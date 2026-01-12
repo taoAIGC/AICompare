@@ -1474,7 +1474,13 @@ async function initializeSiteSettings() {
           if (nav) {
             const navItem = document.createElement('li');
             navItem.className = 'nav-item';
-            navItem.textContent = site.name;
+            navItem.dataset.siteName = site.name;
+
+            // 使用 renderSiteIcon 渲染图标
+            navItem.innerHTML = `
+              ${renderSiteIcon(site)}
+              <div class="nav-tooltip">${site.name}</div>
+            `;
 
             // 点击导航项时滚动到对应的iframe
             navItem.addEventListener('click', () => {
@@ -1503,12 +1509,10 @@ async function initializeSiteSettings() {
           if (iframeToRemove) {
             iframeToRemove.closest('.iframe-container').remove();
             // 移除导航项
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => {
-              if (item.textContent.trim() === site.name) {
-                item.remove();
-              }
-            });
+            const navItemToRemove = document.querySelector(`.nav-item[data-site-name="${site.name}"]`);
+            if (navItemToRemove) {
+              navItemToRemove.remove();
+            }
 
           }
         }

@@ -1,28 +1,26 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <!--  <title data-i18n="appName"></title>-->
-    <title>AI 比一比</title>
+    <!--  <title data-i18n="appName"></title>-->
+    <title>AI比一比</title>
     <link rel="stylesheet" href="iframe.css">
 </head>
+
 <body>
     <div class="search-bar">
         <div class="search-input-container">
             <div class="input-wrapper">
-                <textarea 
-                    id="searchInput" 
-                    placeholder=""
-                    autofocus
-                    rows="1"
-                ></textarea>
+                <textarea id="searchInput" placeholder="" autofocus rows="1"></textarea>
                 <button id="favoriteButton" class="favorite-btn" style="display: none;" data-i18n="favoriteButton">
                     <img id="favoriteIcon" src="../icons/star_unsaved.png" alt="收藏">
                 </button>
                 <!-- 文件上传按钮 -->
                 <button id="fileUploadButton" class="file-upload-btn" title="上传文件到所有AI站点">
                     <img src="../icons/attachment.png" alt="上传文件">
+                    <span class="btn-text">附件</span>
                 </button>
                 <button id="searchButton" class="search-btn" data-i18n="startCompare">启动PK</button>
             </div>
@@ -35,26 +33,29 @@
             <div id="iconContainer">
                 <img id="toggleIcon" src="../icons/down.png" alt="Toggle" />
             </div>
-            
+
             <!-- 导出回答按钮 -->
-            <button id="exportResponsesButton" class="export-responses-btn" data-i18n="exportResponses" title="导出所有AI回答">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <button id="exportResponsesButton" class="export-responses-btn" data-i18n="exportResponses"
+                title="导出所有AI回答">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
+                    focusable="false">
                     <title>Download</title>
-                    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <!-- 托盘 -->
-                        <path d="M4 17h16v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2z"/>
+                        <path d="M4 17h16v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2z" />
                         <!-- 箭头 -->
                         <path d="M12 3v12" />
                         <path d="M8 9l4 4 4-4" />
                     </g>
                 </svg>
             </button>
-        
-        <!-- 隐藏的文件选择input -->
-        <input type="file" id="fileInput" style="display: none;" multiple 
-               accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.rtf,.pages,.numbers,.key,.txt,.csv,.json,.xml,.html,.css,.js,.py,.java,.cpp,.c,.php,.zip,.rar,.7z,.gz,.tar,.wps,.et,.dps,.vsd,.vsdx,.pub,.one,.msg,.eml,.mpp">
-        
-        <!-- 
+
+            <!-- 隐藏的文件选择input -->
+            <input type="file" id="fileInput" style="display: none;" multiple
+                accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.rtf,.pages,.numbers,.key,.txt,.csv,.json,.xml,.html,.css,.js,.py,.java,.cpp,.c,.php,.zip,.rar,.7z,.gz,.tar,.wps,.et,.dps,.vsd,.vsdx,.pub,.one,.msg,.eml,.mpp">
+
+            <!-- 
         <select id="analysisDropdown" disabled >
             <option value="">深度分析</option>
         </select>
@@ -63,63 +64,81 @@
                 <!-- 当前选中的图标显示区域 -->
                 <div class="column-current">
                     <button class="column-current-btn" id="columnCurrentBtn">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                            <rect x="1" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-                            <rect x="8" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-                            <rect x="15" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
+                            style="display: block;">
+                            <rect x="1" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                fill="none" />
+                            <rect x="8" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                fill="none" />
+                            <rect x="15" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                fill="none" />
                         </svg>
                     </button>
                 </div>
-                
+
                 <!-- 下拉选项区域 -->
                 <div class="column-dropdown" id="columnDropdown">
                     <div class="column-options">
                         <button class="column-option-btn" data-columns="1" title="1列">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                                <rect x="6" y="3" width="8" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                <rect x="6" y="3" width="8" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                    fill="none" />
                             </svg>
                         </button>
                         <button class="column-option-btn" data-columns="2" title="2列">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                                <rect x="2" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-                                <rect x="12" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                <rect x="2" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                    fill="none" />
+                                <rect x="12" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                    fill="none" />
                             </svg>
                         </button>
                         <button class="column-option-btn active" data-columns="3" title="3列">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                                <rect x="1" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-                                <rect x="8" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-                                <rect x="15" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                <rect x="1" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                    fill="none" />
+                                <rect x="8" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                    fill="none" />
+                                <rect x="15" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2"
+                                    fill="none" />
                             </svg>
                         </button>
                         <button class="column-option-btn" data-columns="4" title="4列">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                                <rect x="1" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
-                                <rect x="6" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
-                                <rect x="11" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
-                                <rect x="16" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                                <rect x="1" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8"
+                                    fill="none" />
+                                <rect x="6" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8"
+                                    fill="none" />
+                                <rect x="11" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8"
+                                    fill="none" />
+                                <rect x="16" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8"
+                                    fill="none" />
                             </svg>
                         </button>
                     </div>
                 </div>
             </div>
-            
+
             <div class="settings-icon-container">
                 <img src="../icons/setting.png" class="settings-icon" title="iframe-site-setting">
                 <div class="settings-dialog">
-                <div class="dialog-header">
-                    <h3 data-i18n="iframeSiteSettings">集合模式站点设置</h3>
-                    <button class="save-settings-btn" title="saveSettings">
-                        <img src="../icons/save.png" alt="save" class="save-icon">
-                    </button>
-                </div>
-                <div class="multi-ai-dialog">
-                    <div class="site-list">
-                        <!-- 站点选项将通过 JavaScript 动态添加 -->
+                    <div class="dialog-header">
+                        <h3 data-i18n="iframeSiteSettings">集合模式站点设置</h3>
+                        <button class="save-settings-btn" title="saveSettings">
+                            <img src="../icons/save.png" alt="save" class="save-icon">
+                        </button>
+                    </div>
+                    <div class="multi-ai-dialog">
+                        <div class="site-list">
+                            <!-- 站点选项将通过 JavaScript 动态添加 -->
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
         </div> <!-- 结束 search-bar-right-buttons 容器 -->
     </div>
     <div id="iframes-container">
@@ -132,4 +151,5 @@
     <script type="module" src="iframe.js"></script>
     <script src="export-responses.js"></script>
 </body>
-</html> 
+
+</html>

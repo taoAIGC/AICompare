@@ -105,13 +105,37 @@ html {
     /* 顶部对齐，允许输入框向下扩展 */
 }
 
-/* 右侧按钮组容器 - 实现等间距分布 */
+/* 右侧按钮组容器 */
 .search-bar-right-buttons {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     /* 按钮之间的间距 */
     flex-shrink: 0;
+    height: 44px;
+    /* Slightly taller container */
+    margin-top: 4px;
+    /* Push down to align with input center visually */
+}
+
+/* Common style for right side buttons to ensure consistency */
+.search-bar-right-buttons button,
+.search-bar-right-buttons .settings-icon-container,
+#iconContainer {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.search-bar-right-buttons img,
+.search-bar-right-buttons svg {
+    width: 20px !important;
+    height: 20px !important;
 }
 
 .search-input-container {
@@ -128,54 +152,70 @@ html {
     position: relative;
     display: flex;
     align-items: flex-start;
-    /* 改为顶部对齐，允许输入框向下扩展 */
     height: auto;
-    /* 允许高度自动调整 */
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 24px;
+    /* Large rounded corners */
+    padding: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    transition: all 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
 }
 
 .search-bar textarea {
     width: 100%;
-    padding: 8px 100px 8px 8px;
-    /* 增加右边距为三个按钮留出空间 */
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px 240px 12px 16px;
+    /* Increased right padding for wider toolbar */
+    /* Right padding for button group */
+    border: none;
+    border-radius: 24px;
+    background: transparent;
     box-sizing: border-box;
     resize: none;
-    /* 禁用用户手动调整大小 */
     overflow: hidden;
-    /* 隐藏滚动条 */
-    min-height: 36px;
-    /* 最小高度 */
+    min-height: 46px;
     max-height: 200px;
-    /* 最大高度限制 */
     line-height: 1.6;
-    /* 增大行高，让第二行文字在单行高度时不露出 */
     font-family: inherit;
-    /* 继承字体 */
-    font-size: 14px;
-    /* 明确设置字体大小 */
+    font-size: 15px;
+    outline: none;
 }
 
 .file-upload-btn {
     position: absolute;
-    right: 72px;
-    /* 增加间距，为搜索按钮留出更多空间 */
-    bottom: 2px;
-    /* 改为底部对齐 */
-    background: transparent;
-    border: none;
+    right: 110px;
+    /* Positioned to left of search button */
+    bottom: 6px;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    /* Subtle border */
     cursor: pointer;
-    width: 36px;
-    /* 统一宽度 */
     height: 36px;
-    /* 统一高度 */
-    padding: 0;
-    /* 移除内边距 */
-    border-radius: 6px;
+    padding: 0 16px;
+    /* Pill padding */
+    border-radius: 20px;
+    /* Match search btn radius */
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    width: auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    /* Subtle shadow to match search btn feel */
+    z-index: 10;
+}
+
+.file-upload-btn .btn-text {
+    font-size: 13px;
+    color: #555;
+    font-weight: 500;
 }
 
 .file-upload-btn:hover {
@@ -192,18 +232,45 @@ html {
 
 .favorite-btn {
     position: absolute;
-    right: 64px;
-    /* 为文件上传按钮和搜索按钮留出空间 */
-    bottom: 2px;
-    /* 改为底部对齐 */
-    background: transparent;
-    border: none;
+    right: 216px;
+    /* Adjusted left of attachment */
+    bottom: 6px;
+    border-radius: 50%;
+    /* Circle for icon only */
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
     cursor: pointer;
-    padding: 6px 4px;
-    /* 上下6px，左右4px，让高度更大 */
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+
+.favorite-btn:hover {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+    transform: translateY(-1px);
+}
+
+.favorite-btn img {
+    width: 20px;
+    /* Larger icon */
+    height: 20px;
+    opacity: 0.6;
+    display: block;
 }
 
 /* 移除收藏按钮的悬停背景色效果 */
+.favorite-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
 
 
 
@@ -216,18 +283,20 @@ html {
 .search-bar .search-btn {
     position: absolute;
     right: 8px;
-    bottom: 4px;
+    bottom: 6px;
     background: #3b82f6 !important;
     color: white !important;
     border: none;
-    border-radius: 6px;
+    border-radius: 20px;
     cursor: pointer;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 600;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.2s ease;
-    height: 28px;
-    line-height: 1;
+    height: 36px;
+    /* Matching height */
+    line-height: 36px;
+    flex-shrink: 0;
     box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
