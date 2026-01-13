@@ -87,7 +87,6 @@ html {
     position: fixed;
     top: 0;
     left: 57px;
-    /* 避让侧边栏 (56px + 1px border) */
     right: 0;
     padding: 10px;
     background: white;
@@ -95,14 +94,34 @@ html {
     z-index: 1000;
     display: flex;
     gap: 10px;
+    width: calc(100% - 77px);
+    /* Responsive width: 100% - left(57) - padding(20) approx */
+    /* Use margin auto to center, but need constraint */
     max-width: 1200px;
+    /* Limit max width so it doesn't stretch too far on wide screens */
     margin: 0 auto;
+    /* Center it */
     justify-content: space-between;
-    /* 改为两端对齐 */
     min-height: 36px;
-    /* 最小高度，允许扩展 */
     align-items: flex-start;
-    /* 顶部对齐，允许输入框向下扩展 */
+}
+
+@media (max-width: 1400px) {
+    .search-bar {
+        max-width: 800px;
+        /* Smaller max-width on medium screens */
+    }
+}
+
+@media (max-width: 1000px) {
+    .search-bar {
+        max-width: 90%;
+        /* Percentage width on small screens */
+        left: 57px;
+        /* Keep sidebar safe area */
+        width: auto;
+        right: 10px;
+    }
 }
 
 /* 右侧按钮组容器 */
@@ -170,17 +189,18 @@ html {
 
 .search-bar textarea {
     width: 100%;
-    padding: 12px 240px 12px 16px;
-    /* Increased right padding for wider toolbar */
-    /* Right padding for button group */
+    padding: 12px 200px 12px 16px;
+    /* Reduced right padding to ~220px (Compact buttons) */
     border: none;
     border-radius: 24px;
     background: transparent;
     box-sizing: border-box;
     resize: none;
-    overflow: hidden;
-    min-height: 46px;
-    max-height: 200px;
+    overflow-y: auto;
+    /* Enable scrollbar */
+    min-height: 50px;
+    max-height: 280px;
+    /* ~10 lines before scrollbar appears */
     line-height: 1.6;
     font-family: inherit;
     font-size: 15px;
@@ -189,26 +209,22 @@ html {
 
 .file-upload-btn {
     position: absolute;
-    right: 110px;
-    /* Positioned to left of search button */
+    right: 105px;
+    /* Compact position */
     bottom: 6px;
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
-    /* Subtle border */
+    background: transparent;
+    border: none;
     cursor: pointer;
     height: 36px;
-    padding: 0 16px;
-    /* Pill padding */
+    padding: 0 12px;
     border-radius: 20px;
-    /* Match search btn radius */
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     width: auto;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    /* Subtle shadow to match search btn feel */
+    box-shadow: none;
     z-index: 10;
 }
 
@@ -232,13 +248,12 @@ html {
 
 .favorite-btn {
     position: absolute;
-    right: 216px;
-    /* Adjusted left of attachment */
+    right: 185px;
+    /* Compact position */
     bottom: 6px;
     border-radius: 50%;
-    /* Circle for icon only */
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
+    background: transparent;
+    border: none;
     cursor: pointer;
     width: 36px;
     height: 36px;
@@ -247,9 +262,10 @@ html {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
     z-index: 10;
 }
+
 
 .favorite-btn:hover {
     background: #f5f5f5;
@@ -737,11 +753,11 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 42px;
+    height: 42px;
     border-radius: 8px;
     transition: all 0.2s ease;
-    opacity: 0.7;
+    opacity: 1;
 }
 
 .nav-logo:hover {
@@ -750,8 +766,8 @@ html {
 }
 
 .nav-logo img {
-    width: 24px;
-    height: 24px;
+    width: 34px;
+    height: 34px;
 }
 
 .nav-list {

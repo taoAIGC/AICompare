@@ -1046,7 +1046,7 @@ async function createIframes(query, sites) {
   navHeader.className = 'nav-header';
   navHeader.innerHTML = `
     <a href="#" class="nav-logo" title="AI比一比">
-      <img src="../icons/icon48.png" alt="AI比一比" />
+      <img src="../icons/logo.png" alt="AI比一比" />
     </a>
   `;
   nav.appendChild(navHeader);
