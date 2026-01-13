@@ -29,7 +29,7 @@
     "message": "Search with AI Compare"
   },
   "startCompare": {
-    "message": "PK",
+    "message": "StartPK",
     "placeholders": {
       "n": {
         "content": "$1"

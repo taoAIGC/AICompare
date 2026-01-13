@@ -1,123 +1,237 @@
 html {
-  scroll-behavior: smooth;
+    scroll-behavior: smooth;
 }
 
 .iframe-container {
-  border: 1px solid #ddd;
-  margin: 0;
-  border-radius: 8px;
-  overflow: hidden;
-  scroll-margin-top: 0;
+    border: 1px solid #e5e5e5;
+    margin: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    scroll-margin-top: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    background: white;
 }
 
 .iframe-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e5e5;
+    min-height: 36px;
 }
 
+.iframe-header .site-name {
+    color: #333333;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.iframe-header .site-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+}
+
+.iframe-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .iframe-controls button {
-  margin-left: 8px;
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+    margin-left: 0;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.iframe-controls button:hover {
+    opacity: 1;
 }
 
 .ai-iframe {
-  width: 100%;
-  border: none;
-  height: 100vh;
-  scroll-margin-top: 0;
-  overscroll-behavior: contain;
+    width: 100%;
+    border: none;
+    height: 100vh;
+    scroll-margin-top: 0;
+    overscroll-behavior: contain;
 }
 
 .expanded {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1000;
-  margin: 0;
-  border-radius: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    margin: 0;
+    border-radius: 0;
 }
 
 .search-bar {
     position: fixed;
     top: 0;
-    left: 0;
+    left: 57px;
     right: 0;
     padding: 10px;
     background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     display: flex;
     gap: 10px;
+    width: calc(100% - 77px);
+    /* Responsive width: 100% - left(57) - padding(20) approx */
+    /* Use margin auto to center, but need constraint */
     max-width: 1200px;
+    /* Limit max width so it doesn't stretch too far on wide screens */
     margin: 0 auto;
-    justify-content: space-between; /* 改为两端对齐 */
-    min-height: 36px; /* 最小高度，允许扩展 */
-    align-items: flex-start; /* 顶部对齐，允许输入框向下扩展 */
+    /* Center it */
+    justify-content: space-between;
+    min-height: 36px;
+    align-items: flex-start;
 }
 
-/* 右侧按钮组容器 - 实现等间距分布 */
+@media (max-width: 1400px) {
+    .search-bar {
+        max-width: 800px;
+        /* Smaller max-width on medium screens */
+    }
+}
+
+@media (max-width: 1000px) {
+    .search-bar {
+        max-width: 90%;
+        /* Percentage width on small screens */
+        left: 57px;
+        /* Keep sidebar safe area */
+        width: auto;
+        right: 10px;
+    }
+}
+
+/* 右侧按钮组容器 */
 .search-bar-right-buttons {
     display: flex;
     align-items: center;
-    gap: 12px; /* 按钮之间的间距 */
+    gap: 8px;
+    /* 按钮之间的间距 */
     flex-shrink: 0;
+    height: 44px;
+    /* Slightly taller container */
+    margin-top: 4px;
+    /* Push down to align with input center visually */
+}
+
+/* Common style for right side buttons to ensure consistency */
+.search-bar-right-buttons button,
+.search-bar-right-buttons .settings-icon-container,
+#iconContainer {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.search-bar-right-buttons img,
+.search-bar-right-buttons svg {
+    width: 20px !important;
+    height: 20px !important;
 }
 
 .search-input-container {
     flex: 1;
     min-width: 0;
     position: relative;
-    height: auto; /* 允许容器高度自动调整 */
-    min-height: 36px; /* 最小高度与输入框一致 */
+    height: auto;
+    /* 允许容器高度自动调整 */
+    min-height: 36px;
+    /* 最小高度与输入框一致 */
 }
 
 .input-wrapper {
     position: relative;
     display: flex;
-    align-items: flex-start; /* 改为顶部对齐，允许输入框向下扩展 */
-    height: auto; /* 允许高度自动调整 */
+    align-items: flex-start;
+    height: auto;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 24px;
+    /* Large rounded corners */
+    padding: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    transition: all 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
 }
 
 .search-bar textarea {
     width: 100%;
-    padding: 8px 100px 8px 8px; /* 增加右边距为三个按钮留出空间 */
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px 200px 12px 16px;
+    /* Reduced right padding to ~220px (Compact buttons) */
+    border: none;
+    border-radius: 24px;
+    background: transparent;
     box-sizing: border-box;
-    resize: none; /* 禁用用户手动调整大小 */
-    overflow: hidden; /* 隐藏滚动条 */
-    min-height: 36px; /* 最小高度 */
-    max-height: 200px; /* 最大高度限制 */
-    line-height: 1.6; /* 增大行高，让第二行文字在单行高度时不露出 */
-    font-family: inherit; /* 继承字体 */
-    font-size: 14px; /* 明确设置字体大小 */
+    resize: none;
+    overflow-y: auto;
+    /* Enable scrollbar */
+    min-height: 50px;
+    max-height: 280px;
+    /* ~10 lines before scrollbar appears */
+    line-height: 1.6;
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
 }
 
 .file-upload-btn {
     position: absolute;
-    right: 32px; /* 为搜索按钮留出空间 */
-    bottom: 2px; /* 改为底部对齐 */
+    right: 105px;
+    /* Compact position */
+    bottom: 6px;
     background: transparent;
     border: none;
     cursor: pointer;
-    width: 36px;                /* 统一宽度 */
-    height: 36px;               /* 统一高度 */
-    padding: 0;                 /* 移除内边距 */
-    border-radius: 6px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 20px;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    width: auto;
+    box-shadow: none;
+    z-index: 10;
+}
+
+.file-upload-btn .btn-text {
+    font-size: 13px;
+    color: #555;
+    font-weight: 500;
 }
 
 .file-upload-btn:hover {
@@ -134,15 +248,45 @@ html {
 
 .favorite-btn {
     position: absolute;
-    right: 64px; /* 为文件上传按钮和搜索按钮留出空间 */
-    bottom: 2px; /* 改为底部对齐 */
+    right: 185px;
+    /* Compact position */
+    bottom: 6px;
+    border-radius: 50%;
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 6px 4px; /* 上下6px，左右4px，让高度更大 */
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: none;
+    z-index: 10;
+}
+
+
+.favorite-btn:hover {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+    transform: translateY(-1px);
+}
+
+.favorite-btn img {
+    width: 20px;
+    /* Larger icon */
+    height: 20px;
+    opacity: 0.6;
+    display: block;
 }
 
 /* 移除收藏按钮的悬停背景色效果 */
+.favorite-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
 
 
 
@@ -154,31 +298,35 @@ html {
 
 .search-bar .search-btn {
     position: absolute;
-    right: 6px;
-    bottom: 4px;
-    background: #4CAF50 !important;
+    right: 8px;
+    bottom: 6px;
+    background: #3b82f6 !important;
     color: white !important;
     border: none;
-    border-radius: 4px;
+    border-radius: 20px;
     cursor: pointer;
-    padding: 4px 6px;
-    font-size: 12px;
+    padding: 0 20px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.2s ease;
-    height: 28px;
-    line-height: 1;
+    height: 36px;
+    /* Matching height */
+    line-height: 36px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
 .search-bar .search-btn:hover {
-    background: #45a049 !important;
+    background: #2563eb !important;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
 }
 
 .search-bar .search-btn:active,
 .search-bar .search-btn.active {
-    transform: scale(0.95);
-    background: #3d8b40 !important;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-    transition: all 0.1s ease;
+    transform: scale(0.97);
+    background: #1d4ed8 !important;
+    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
 .query-suggestions {
@@ -190,7 +338,7 @@ html {
     border: 1px solid #ddd;
     border-top: none;
     border-radius: 0 0 4px 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1001;
     display: flex;
     flex-wrap: wrap;
@@ -306,8 +454,10 @@ html {
     transform: translateY(-10px);
     transition: all 0.2s ease;
     margin-top: 4px;
-    min-width: 160px; /* 确保下拉菜单有足够的宽度 */
-    width: max-content; /* 根据内容自动调整宽度 */
+    min-width: 160px;
+    /* 确保下拉菜单有足够的宽度 */
+    width: max-content;
+    /* 根据内容自动调整宽度 */
 }
 
 .column-dropdown.show {
@@ -320,8 +470,10 @@ html {
     display: flex;
     gap: 4px;
     padding: 4px;
-    min-width: 160px; /* 确保有足够的宽度容纳4个图标 */
-    width: max-content; /* 根据内容自动调整宽度 */
+    min-width: 160px;
+    /* 确保有足够的宽度容纳4个图标 */
+    width: max-content;
+    /* 根据内容自动调整宽度 */
 }
 
 .column-option-btn {
@@ -379,8 +531,8 @@ html {
     object-fit: contain;
 }
 
-#analysisDropdown  {
-    
+#analysisDropdown {
+
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -407,14 +559,19 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;                /* 统一宽度 */
-    height: 36px;               /* 统一高度 */
-    border: none;               /* 移除默认边框 */
+    width: 36px;
+    /* 统一宽度 */
+    height: 36px;
+    /* 统一高度 */
+    border: none;
+    /* 移除默认边框 */
     border-radius: 6px;
     transition: all 0.2s ease;
-    padding: 0;                 /* 移除内边距 */
+    padding: 0;
+    /* 移除内边距 */
     cursor: pointer;
-    background: transparent;     /* 透明背景 */
+    background: transparent;
+    /* 透明背景 */
 }
 
 .settings-icon-container:hover {
@@ -437,7 +594,7 @@ html {
     width: 300px;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     margin-top: 8px;
     padding: 0 0 16px 0;
@@ -495,9 +652,9 @@ html {
     max-height: 200px;
     overflow-y: auto;
     padding: 4px;
-  }
-  
-  .multi-ai-dialog .site-item {
+}
+
+.multi-ai-dialog .site-item {
     color: #333;
     background: #fff;
     border-radius: 4px;
@@ -507,9 +664,9 @@ html {
     gap: 6px;
     position: relative;
     font-size: 12px;
-  }
-  
-  .multi-ai-dialog .site-item label {
+}
+
+.multi-ai-dialog .site-item label {
     cursor: pointer;
     color: #333;
     font-size: 12px;
@@ -523,28 +680,94 @@ html {
     padding: 0;
     text-align: left;
     justify-content: flex-start;
-  }
-  
-  .multi-ai-dialog .site-item input[type="checkbox"] {
+}
+
+.multi-ai-dialog .site-item input[type="checkbox"] {
     margin: 0;
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-  }
-  
- 
-  .multi-ai-dialog .site-item:hover {
+}
+
+
+.multi-ai-dialog .site-item:hover {
     background: #f5f5f5;
-  }
-  
+}
+
 .nav {
     position: fixed;
     left: 0;
-    top: 60px;
+    top: 0;
+    /* 改为 0，置顶 */
     bottom: 0;
-    width: 70px;
-    padding: 20px 0;
+    width: 56px;
+    padding: 0;
+    /* 移除顶部内边距 */
     overflow-y: auto;
+    background: #fafafa;
+    border-right: 1px solid #eaeaea;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.nav::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+/* 导航顶部 logo 区域 */
+.nav-header {
+    padding: 0;
+    /* 移除内边距，确保紧贴顶部 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* border-bottom: 1px solid #eaeaea; 移除旧边框 */
+    background: #fafafa;
+    margin-bottom: 10px;
+    height: 56px;
+    /* 高度与宽度一致，形成正方形区域 */
+    flex-shrink: 0;
+    position: relative;
+    /* 为伪元素定位 */
+}
+
+/* 渐变分割线 */
+.nav-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    /* 分割线高度 */
+    background: linear-gradient(90deg, #4285f4, #ea4335, #fbbc04, #34a853, #4285f4);
+    /* 谷歌风格/彩虹渐变 */
+    opacity: 0.8;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    opacity: 1;
+}
+
+.nav-logo:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.nav-logo img {
+    width: 34px;
+    height: 34px;
 }
 
 .nav-list {
@@ -552,19 +775,141 @@ html {
     padding: 0;
     margin: 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-direction: column;
+    gap: 4px;
     align-items: center;
 }
 
 .nav-item {
-    padding: 10px 10px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.2s ease;
+    position: relative;
+    background: transparent;
+}
+
+.nav-item:hover {
+    background: #f0f0f0;
+}
+
+.nav-item.active {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.15) 0%, rgba(102, 126, 234, 0.1) 100%);
+}
+
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(180deg, #4285f4 0%, #667eea 100%);
+    border-radius: 0 2px 2px 0;
+}
+
+/* 品牌色图标样式（旧版/回退） */
+.site-icon-fallback {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* 真实图标样式 */
+.site-icon-wrapper {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.site-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+    /* 可选：给图标加一点圆角 */
+}
+
+/* iframe 头部小图标适配 */
+.iframe-header .site-icon-wrapper {
+    width: 20px;
+    height: 20px;
+}
+
+.iframe-header .site-icon-fallback {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+/* 品牌色图标样式 */
+.nav-item .brand-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    text-transform: uppercase;
+    transition: transform 0.2s ease;
+}
+
+.nav-item:hover .brand-icon {
+    transform: scale(1.08);
+}
+
+/* Tooltip 提示 */
+.nav-item .nav-tooltip {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+    padding: 6px 10px;
+    background: #333;
+    color: white;
+    font-size: 12px;
+    border-radius: 6px;
     white-space: nowrap;
-    margin-right: 10px;
-    display: inline-block;
-    min-width: fit-content;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.nav-item .nav-tooltip::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: #333;
+}
+
+.nav-item:hover .nav-tooltip {
+    opacity: 1;
+    visibility: visible;
 }
 
 .close-btn {
@@ -575,8 +920,9 @@ html {
     background-size: contain;
     cursor: pointer;
     padding: 0;
-    opacity: 0.7;
-    transition: opacity 0.3s;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    /* filter: invert(1); 浅色背景不需要反色 */
 }
 
 .close-btn:hover {
@@ -591,23 +937,33 @@ html {
 }
 
 .query-item:hover {
-    background-color: #f0f0f0; /* 鼠标悬停时的背景色 */
+    background-color: #f0f0f0;
+    /* 鼠标悬停时的背景色 */
 }
-  
+
 
 #iconContainer {
-    cursor: pointer;            /* 鼠标悬停时显示为手型 */
-    flex-shrink: 0;             /* 不收缩 */
+    cursor: pointer;
+    /* 鼠标悬停时显示为手型 */
+    flex-shrink: 0;
+    /* 不收缩 */
     display: flex;
-    align-items: center;        /* 垂直居中 */
-    justify-content: center;    /* 水平居中 */
-    width: 36px;               /* 统一宽度 */
-    height: 36px;               /* 统一高度 */
-    border: none;               /* 移除默认边框 */
+    align-items: center;
+    /* 垂直居中 */
+    justify-content: center;
+    /* 水平居中 */
+    width: 36px;
+    /* 统一宽度 */
+    height: 36px;
+    /* 统一高度 */
+    border: none;
+    /* 移除默认边框 */
     border-radius: 6px;
     transition: all 0.2s ease;
-    padding: 0;                 /* 移除内边距 */
-    background: transparent;    /* 透明背景 */
+    padding: 0;
+    /* 移除内边距 */
+    background: transparent;
+    /* 透明背景 */
 }
 
 #iconContainer:hover {
@@ -617,8 +973,10 @@ html {
 }
 
 #toggleIcon {
-    width: 20px;               /* 图标宽度 */
-    height: 20px;              /* 图标高度*/
+    width: 20px;
+    /* 图标宽度 */
+    height: 20px;
+    /* 图标高度*/
 }
 
 #queryList {
@@ -633,7 +991,7 @@ html {
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 0 0 4px 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1000;
 }
 
@@ -759,9 +1117,26 @@ html {
 
 /* 切换图标晃动动画 */
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-    20%, 40%, 60%, 80% { transform: translateX(2px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-2px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(2px);
+    }
 }
 
 .toggle-icon-shake {
@@ -769,50 +1144,51 @@ html {
 }
 
 /* 拖拽排序样式 */
-.nav-item {
-    cursor: move;
-    transition: all 0.2s ease;
-}
-
-.nav-item:hover {
-    background-color: #f0f0f0;
-}
-
 .nav-item.dragging {
     opacity: 0.5;
-    transform: rotate(5deg);
+    transform: scale(0.95);
 }
 
 .nav-item.drag-over {
-    border-top: 2px solid #007bff;
+    box-shadow: 0 -2px 0 0 #007bff;
 }
 
 .nav-list.drag-active {
-    background-color: #f8f9fa;
+    background-color: rgba(66, 133, 244, 0.05);
 }
 
 /* 导出回答按钮样式 */
 .export-responses-btn {
     background: transparent;
-    border: 1px solid #e0e0e0; /* 添加默认边框 */
+    border: 1px solid #e0e0e0;
+    /* 添加默认边框 */
     border-radius: 6px;
-    padding: 0 !important;      /* 强制移除内边距，覆盖通用样式 */
+    padding: 0 !important;
+    /* 强制移除内边距，覆盖通用样式 */
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    justify-content: center;    /* 水平居中 */
-    gap: 0;                     /* 移除间距 */
+    justify-content: center;
+    /* 水平居中 */
+    gap: 0;
+    /* 移除间距 */
     font-size: 14px;
     color: #333;
     margin-left: auto;
     flex-shrink: 0;
-    width: 36px !important;     /* 强制设置宽度 */
-    height: 36px !important;    /* 强制设置高度 */
-    min-width: 36px;            /* 确保最小宽度 */
-    min-height: 36px;           /* 确保最小高度 */
-    max-width: 36px;           /* 确保最大宽度 */
-    max-height: 36px;          /* 确保最大高度 */
+    width: 36px !important;
+    /* 强制设置宽度 */
+    height: 36px !important;
+    /* 强制设置高度 */
+    min-width: 36px;
+    /* 确保最小宽度 */
+    min-height: 36px;
+    /* 确保最小高度 */
+    max-width: 36px;
+    /* 确保最大宽度 */
+    max-height: 36px;
+    /* 确保最大高度 */
 }
 
 .export-responses-btn:hover {
@@ -1067,7 +1443,7 @@ html {
     color: white;
     padding: 12px 16px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10001;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
@@ -1076,18 +1452,35 @@ html {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideInUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
-
-
