@@ -100,7 +100,7 @@ async function createFloatButton() {
 
   // 创建设置图标
   const settingIcon = document.createElement('img');
-  settingIcon.src = chrome.runtime.getURL('icons/extension-setting.png');
+  settingIcon.src = chrome.runtime.getURL('icons/extension-setting.svg');
   settingIcon.className = 'bottom-icon setting-icon';
   settingIcon.title = '设置';
 
@@ -116,7 +116,7 @@ async function createFloatButton() {
 
   // 创建反馈图标
   const feedbackIcon = document.createElement('img');
-  feedbackIcon.src = chrome.runtime.getURL('icons/feedback.png');
+  feedbackIcon.src = chrome.runtime.getURL('icons/feedback.svg');
   feedbackIcon.className = 'bottom-icon feedback-icon';
   feedbackIcon.title = '反馈';
 

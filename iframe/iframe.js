@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {
                 searchInput.value = query;
+                updateFavoriteButtonVisibility(query);
             }
             
             // 获取站点配置并创建 iframes
@@ -895,7 +896,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'loadIframes') {
     console.log('开始加载 iframes, 查询词:', message.query);
     const searchInput = document.getElementById('searchInput');
-    searchInput.value = message.query;
+    if (searchInput) {
+      searchInput.value = message.query;
+      updateFavoriteButtonVisibility(message.query);
+    }
     createIframes(message.query, message.sites);
   } else if (message.type === 'loadHistoryIframes') {
     console.log('开始加载历史记录 iframes:', message.sites);
@@ -1532,6 +1536,7 @@ document.getElementById('searchInput').addEventListener('focus', (e) => {
     if (query) {
         showQuerySuggestions(query);
     }
+    updateFavoriteButtonVisibility(e.target.value);
 });
 
 // 注意：失焦事件监听器已合并到DOMContentLoaded中的自动调整高度功能中
@@ -1789,13 +1794,23 @@ async function favoriteAllIframes() {
         
         // 保存更新后的历史记录
         await chrome.storage.local.set({ pkHistory: pkHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         
         // 更新 UI 中的收藏按钮状态
         updateAllIframeFavoriteButtons(true);
+        updateFavoriteAllIcon(true);
         
         console.log('✅ 已收藏当前记录的所有 iframe');
     } catch (error) {
         console.error('收藏所有 iframe 失败:', error);
+    }
+}
+
+// 更新右侧「全部收藏」星标图标（历史记录收藏成功时切换为实心星）
+function updateFavoriteAllIcon(isFavorited) {
+    const el = document.querySelector('.favorite-icon-container .favorite-icon');
+    if (el) {
+        el.src = isFavorited ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
     }
 }
 
@@ -1805,10 +1820,10 @@ function updateAllIframeFavoriteButtons(isFavorite) {
     favoriteButtons.forEach(btn => {
         const icon = btn.querySelector('.iframe-favorite-icon');
         if (icon) {
-            icon.src = isFavorite ? '../icons/star_saved.png' : '../icons/star_unsaved.png';
+            icon.src = isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
         }
         btn.dataset.favorite = isFavorite ? 'true' : 'false';
-        btn.title = isFavorite ? '取消收藏' : '收藏';
+        btn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
     });
 }
 
@@ -1824,12 +1839,12 @@ function addFavoriteButtonToIframe(iframeContainer, siteName, isFavorite = false
     favoriteBtn.className = 'iframe-favorite-btn';
     favoriteBtn.dataset.siteName = siteName;
     favoriteBtn.dataset.favorite = isFavorite ? 'true' : 'false';
-    favoriteBtn.title = isFavorite ? '取消收藏' : '收藏';
+    favoriteBtn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
     
     const favoriteIcon = document.createElement('img');
     favoriteIcon.className = 'iframe-favorite-icon';
-    favoriteIcon.src = isFavorite ? '../icons/star_saved.png' : '../icons/star_unsaved.png';
-    favoriteIcon.alt = '收藏';
+    favoriteIcon.src = isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
+    favoriteIcon.alt = chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏';
     
     favoriteBtn.appendChild(favoriteIcon);
     
@@ -1882,14 +1897,17 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
         
         // 保存更新后的历史记录
         await chrome.storage.local.set({ pkHistory: pkHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         
         // 更新按钮状态
         const icon = favoriteBtn.querySelector('.iframe-favorite-icon');
         if (icon) {
-            icon.src = siteItem.isFavorite ? '../icons/star_saved.png' : '../icons/star_unsaved.png';
+            icon.src = siteItem.isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
         }
         favoriteBtn.dataset.favorite = siteItem.isFavorite ? 'true' : 'false';
-        favoriteBtn.title = siteItem.isFavorite ? '取消收藏' : '收藏';
+        favoriteBtn.title = siteItem.isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
+        const anyFavorited = historyItem.sites.some(s => s.isFavorite);
+        updateFavoriteAllIcon(anyFavorited);
         
         // 记录埋点：单个 iframe 收藏状态切换
         trackEvent('iframe_site_favorite_toggle', {
@@ -1921,24 +1939,39 @@ if (favoriteIcon) {
 
 // 初始化国际化
 function initializeI18n() {
-    // 处理所有带有 data-i18n 属性的元素
-    document.querySelectorAll('[data-i18n]').forEach(element => {
+    // 处理所有带有 data-i18n 属性的元素（不包含 data-i18n-title / data-i18n-alt，避免重复）
+    document.querySelectorAll('[data-i18n]:not([data-i18n-title]):not([data-i18n-alt])').forEach(element => {
         const key = element.getAttribute('data-i18n');
         const message = chrome.i18n.getMessage(key);
         if (message) {
             if ((element.tagName.toLowerCase() === 'input' && 
                 element.type === 'text') || 
                 element.tagName.toLowerCase() === 'textarea') {
-                // 对于输入框和文本域，设置 placeholder
                 element.placeholder = message;
-            } else if (element.tagName.toLowerCase() === 'button' || 
-                       element.tagName.toLowerCase() === 'img') {
-                // 对于按钮和图片，设置 title 属性
-                element.title = message;
+            } else if (element.tagName.toLowerCase() === 'img') {
+                element.alt = message;
             } else {
-                // 对于其他元素，设置文本内容
+                // 按钮、其他元素：设置可见文本
                 element.textContent = message;
             }
+        }
+    });
+    
+    // 处理 data-i18n-title：设置元素的 title 属性
+    document.querySelectorAll('[data-i18n-title]').forEach(element => {
+        const key = element.getAttribute('data-i18n-title');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.title = message;
+        }
+    });
+    
+    // 处理 data-i18n-alt：设置 img 的 alt 属性
+    document.querySelectorAll('[data-i18n-alt]').forEach(element => {
+        const key = element.getAttribute('data-i18n-alt');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.alt = message;
         }
     });
     
@@ -1988,14 +2021,18 @@ async function showQuerySuggestions(query) {
       suggestionItem.textContent = recommendedQuery.name;
       suggestionItem.classList.add('query-suggestion-item');
       suggestionItem.addEventListener('click', () => {
-        document.getElementById('searchInput').value = recommendedQuery.query;
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.value = recommendedQuery.query;
+          updateFavoriteButtonVisibility(recommendedQuery.query);
+        }
         querySuggestions.style.display = 'none';
       });
       querySuggestions.appendChild(suggestionItem);
     });
     // 添加设置图标到 querySuggestions 区域
     const settingsIcon = document.createElement('img');
-    settingsIcon.src = '../icons/edit.png';
+    settingsIcon.src = '../icons/edit.svg';
     settingsIcon.alt = '设置模板';
     settingsIcon.title = '编辑提示词模板';
     settingsIcon.classList.add('query-suggestion-settings-icon');
@@ -2055,14 +2092,14 @@ document.getElementById('toggleIcon').addEventListener('click', () => {
   if (queryList.style.display === 'none') {
       // 切换图标
        const toggleIcon = document.getElementById('toggleIcon');
-       toggleIcon.src = '../icons/up.png'; // 切换为 up.png
+       toggleIcon.src = '../icons/up.svg'; // 切换为 up.svg
       queryList.style.display = 'block'; // 显示收藏的query列表
       
       // 显示收藏夹
       showFavorites();
   } else {
       queryList.style.display = 'none'; // 隐藏查询列表
-      document.getElementById('toggleIcon').src = '../icons/down.png'; // 切换回 down.png
+      document.getElementById('toggleIcon').src = '../icons/down.svg'; // 切换回 down.svg
   }
 });
 
@@ -2083,9 +2120,9 @@ document.addEventListener('click', (e) => {
     if (!isClickInsideFavorites && !isClickOnToggleIcon && !isClickOnFavoriteIcon) {
       // 隐藏收藏夹
       queryList.style.display = 'none';
-      // 切换图标回 down.png
+      // 切换图标回 down.svg
       if (toggleIcon) {
-        toggleIcon.src = '../icons/down.png';
+        toggleIcon.src = '../icons/down.svg';
       }
     }
   }
@@ -2305,6 +2342,9 @@ async function loadHistoryIframes(sites) {
       addFavoriteButtonToIframe(iframeContainer, siteName, isFavorite);
     });
     
+    const anyFavorited = sites.some(s => s.isFavorite);
+    updateFavoriteAllIcon(anyFavorited);
+    
     // 创建导航栏
     const nav = document.createElement('nav');
     nav.className = 'nav';
@@ -2348,6 +2388,7 @@ async function loadHistoryIframes(sites) {
       const searchInput = document.getElementById('searchInput');
       if (searchInput) {
         searchInput.value = query;
+        updateFavoriteButtonVisibility(query);
       }
     }
     
@@ -2636,6 +2677,7 @@ async function savePKHistory(query) {
     
     // 保存到存储
     await chrome.storage.local.set({ pkHistory: limitedHistory });
+    if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     
     // 将历史记录 ID 存储到全局变量，供 iframe 内部脚本更新 URL 时使用
     window._currentHistoryId = historyId;
@@ -2766,12 +2808,14 @@ async function updateHistorySiteUrl(siteName, url, historyId) {
         pkHistory.splice(historyIndex, 1);
         console.log(`🗑️ 历史记录 ${historyId} 的所有站点 URL 都不包含 urlFeature，删除整条记录`);
         await chrome.storage.local.set({ pkHistory: pkHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         return;
       }
     }
     
     // 保存更新后的历史记录
     await chrome.storage.local.set({ pkHistory: pkHistory });
+    if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     
     console.log(`✅ 更新历史记录 ${historyId} 中 ${siteName} 的 URL:`, url);
   } catch (error) {
@@ -2779,15 +2823,63 @@ async function updateHistorySiteUrl(siteName, url, historyId) {
   }
 }
 
+// 全页面快速 tooltip（约 100ms 显示，替代原生 title 的长时间延迟），显示时暂时移除 title 避免原生提示再出现
+function initQuickTooltips() {
+  const tooltip = document.getElementById('quickTooltip');
+  if (!tooltip) return;
+  let showTimer = null;
+  let currentEl = null;
+  function show(el) {
+    const text = el.getAttribute('title') || el.getAttribute('data-original-title');
+    if (!text) return;
+    currentEl = el;
+    el.setAttribute('data-original-title', text);
+    el.removeAttribute('title');
+    tooltip.textContent = text;
+    const rect = el.getBoundingClientRect();
+    const tw = tooltip.offsetWidth;
+    tooltip.style.left = `${rect.left + (rect.width - tw) / 2}px`;
+    tooltip.style.top = `${rect.bottom + 6}px`;
+    tooltip.classList.add('visible');
+  }
+  function hide() {
+    if (currentEl) {
+      const saved = currentEl.getAttribute('data-original-title');
+      if (saved) currentEl.setAttribute('title', saved);
+      currentEl.removeAttribute('data-original-title');
+      currentEl = null;
+    }
+    tooltip.classList.remove('visible');
+  }
+  function getTooltipEl(node) {
+    return node && (node.closest('[title]') || node.closest('[data-original-title]'));
+  }
+  document.body.addEventListener('mouseover', (e) => {
+    const el = getTooltipEl(e.target);
+    if (!el) return;
+    if (showTimer) clearTimeout(showTimer);
+    showTimer = setTimeout(() => show(el), 100);
+  });
+  document.body.addEventListener('mouseout', (e) => {
+    const stillOver = getTooltipEl(e.relatedTarget);
+    if (stillOver) return;
+    if (showTimer) clearTimeout(showTimer);
+    showTimer = null;
+    hide();
+  });
+}
+
 // 在页面加载时调用
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
   await initializeFavorites();
   checkForSiteConfigUpdates();
-  
+  initQuickTooltips();
+  // 根据当前输入框内容同步收藏按钮显示（解决输入后按钮不显示的问题）
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) updateFavoriteButtonVisibility(searchInput.value);
   // 检查剪贴板权限状态
   checkClipboardPermissionStatus();
-  
   // 注意：粘贴事件监听器已在主 DOMContentLoaded 中统一处理，无需重复添加
 });
 
@@ -3254,12 +3346,14 @@ async function initializeFavorites() {
 function updateFavoriteButtonVisibility(query) {
   const favoriteButton = document.getElementById('favoriteButton');
   const favoriteIcon = document.getElementById('favoriteIcon');
-  
-  if (query) {
+  if (!favoriteButton || !favoriteIcon) return;
+
+  const trimmed = typeof query === 'string' ? query.trim() : '';
+  if (trimmed) {
     favoriteButton.style.display = 'block';
     // 检查当前文本是否已收藏
-    const isFavorited = favoritePrompts.includes(query);
-    favoriteIcon.src = isFavorited ? '../icons/star_saved.png' : '../icons/star_unsaved.png';
+    const isFavorited = favoritePrompts.includes(trimmed);
+    favoriteIcon.src = isFavorited ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
   } else {
     favoriteButton.style.display = 'none';
   }
@@ -3279,7 +3373,7 @@ async function toggleFavorite() {
     if (index > -1) {
       // 取消收藏
       favoritePrompts.splice(index, 1);
-      favoriteIcon.src = '../icons/star_unsaved.png';
+      favoriteIcon.src = '../icons/star_unsaved.svg';
       console.log('取消收藏:', query);
       // 埋点：取消收藏提示词
       trackEvent('iframe_prompt_favorite_toggle', {
@@ -3289,7 +3383,7 @@ async function toggleFavorite() {
     } else {
       // 添加收藏
       favoritePrompts.push(query);
-      favoriteIcon.src = '../icons/star_saved.png';
+      favoriteIcon.src = '../icons/star_saved.svg';
       console.log('添加收藏:', query);
       // 埋点：添加收藏提示词
       trackEvent('iframe_prompt_favorite_toggle', {
@@ -3301,7 +3395,7 @@ async function toggleFavorite() {
     // 保存到存储
     await chrome.storage.sync.set({ favoritePrompts: favoritePrompts });
     console.log('收藏列表已更新:', favoritePrompts);
-    
+    if (typeof window.firebaseSyncUploadFavoritesIfLoggedIn === 'function') window.firebaseSyncUploadFavoritesIfLoggedIn();
   } catch (error) {
     console.error('保存收藏失败:', error);
   }
@@ -3327,12 +3421,12 @@ function showFavorites() {
           
            <!--
             <button class="favorite-item-edit" title="编辑">
-              <img src="../icons/edit.png" alt="编辑">
+              <img src="../icons/edit.svg" alt="编辑">
             </button>
             -->
 
             <button class="favorite-item-delete" title="删除">
-              <img src="../icons/close.png" alt="删除">
+              <img src="../icons/close.svg" alt="删除">
             </button>
            
           </div>
@@ -3355,7 +3449,7 @@ function showFavorites() {
         const prompt = item.getAttribute('data-prompt');
         document.getElementById('searchInput').value = prompt;
         queryList.style.display = 'none';
-        document.getElementById('toggleIcon').src = '../icons/down.png';
+        document.getElementById('toggleIcon').src = '../icons/down.svg';
         
         // 更新收藏按钮状态
         updateFavoriteButtonVisibility(prompt);
@@ -3424,7 +3518,7 @@ async function deleteFavoriteItem(item) {
       
       // 保存到存储
       await chrome.storage.sync.set({ favoritePrompts: favoritePrompts });
-      
+      if (typeof window.firebaseSyncUploadFavoritesIfLoggedIn === 'function') window.firebaseSyncUploadFavoritesIfLoggedIn();
       // 重新显示收藏夹
       showFavorites();
       

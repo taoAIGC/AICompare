@@ -86,6 +86,20 @@ html {
     gap: 12px; /* 按钮之间的间距 */
     flex-shrink: 0;
 }
+.search-bar-right-buttons button:hover,
+.search-bar-right-buttons .favorite-icon-container:hover,
+.search-bar-right-buttons .column-current-btn:hover,
+.search-bar-right-buttons .column-option-btn:hover {
+    box-shadow: none;
+    background-color: transparent;
+}
+.search-bar-right-buttons button:focus,
+.search-bar-right-buttons button:focus-visible,
+.search-bar-right-buttons .favorite-icon-container:focus,
+.search-bar-right-buttons .favorite-icon-container:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
 
 .search-input-container {
     flex: 1;
@@ -135,9 +149,14 @@ html {
 }
 
 .file-upload-btn:hover {
-    background: #e9ecef;
+    background: transparent;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+    box-shadow: none;
+}
+.file-upload-btn:focus,
+.file-upload-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .file-upload-btn img {
@@ -290,9 +309,14 @@ html {
 }
 
 .column-current-btn:hover {
-    background: #e9ecef;
+    background: transparent;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+    box-shadow: none;
+}
+.column-current-btn:focus,
+.column-current-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .column-current-btn svg {
@@ -432,9 +456,8 @@ html {
 }
 
 .settings-icon-container:hover {
-    background: #e9ecef;
+    background: transparent;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
 }
 
 .settings-icon {
@@ -569,9 +592,14 @@ html {
 }
 
 .favorite-icon-container:hover {
-    background: #e9ecef;
+    background: transparent;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+    box-shadow: none;
+}
+.favorite-icon-container:focus,
+.favorite-icon-container:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .favorite-icon {
@@ -613,21 +641,11 @@ html {
     width: 16px;
     height: 16px;
     border: none;
-    background: none;
+    background: url('../icons/external-link.svg') no-repeat center;
+    background-size: contain;
     cursor: pointer;
     padding: 0;
-    position: relative;
-    font-size: 14px;
-    line-height: 16px;
-    color: #666;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.open-page-btn::before {
-    content: '↗';
-    font-size: 14px;
+    transition: opacity 0.3s;
 }
 
 /* 当 iframe-container hover 时，按钮显示并可以进一步 hover */
@@ -644,7 +662,7 @@ html {
     width: 16px;
     height: 16px;
     border: none;
-    background: url('../icons/close.png') no-repeat center;
+    background: url('../icons/close.svg') no-repeat center;
     background-size: contain;
     cursor: pointer;
     padding: 0;
@@ -690,7 +708,25 @@ html {
 #iconContainer:hover {
     background: #e9ecef;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+/* 搜索栏按钮快速 tooltip（替代原生 title 延迟） */
+.quick-tooltip {
+    position: fixed;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+    z-index: 10001;
+}
+
+.quick-tooltip.visible {
+    opacity: 1;
 }
 
 #toggleIcon {
@@ -893,9 +929,14 @@ html {
 }
 
 .export-responses-btn:hover {
-    background: #e9ecef;
+    background: transparent;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+    box-shadow: none;
+}
+.export-responses-btn:focus,
+.export-responses-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .export-responses-btn:active {

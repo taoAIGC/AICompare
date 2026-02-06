@@ -270,6 +270,7 @@ async function deleteFavoriteItem(id) {
         }
         
         await chrome.storage.local.set({ pkHistory: pkHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         // 重新加载收藏记录以更新 allFavoriteItems
         await loadFavorites();
     } catch (error) {
@@ -292,6 +293,7 @@ async function clearAllFavorites() {
         });
         
         await chrome.storage.local.set({ pkHistory: pkHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     } catch (error) {
         console.error('清空收藏记录失败:', error);
     }

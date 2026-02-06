@@ -251,6 +251,7 @@ async function deleteHistoryItem(id) {
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const updatedHistory = pkHistory.filter(item => item.id !== id);
         await chrome.storage.local.set({ pkHistory: updatedHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         // 更新存储的所有历史记录
         allHistoryItems = updatedHistory;
     } catch (error) {
@@ -262,6 +263,7 @@ async function deleteHistoryItem(id) {
 async function clearHistory() {
     try {
         await chrome.storage.local.set({ pkHistory: [] });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     } catch (error) {
         console.error('清空历史记录失败:', error);
     }

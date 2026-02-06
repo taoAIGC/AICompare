@@ -6,63 +6,127 @@
     <link rel="stylesheet" href="homepage.css">
 </head>
 <body>
-    <div class="homepage-container">
-        <!-- Pin 引导提示 -->
-        <div id="pinGuideBanner" class="pin-guide-banner" style="display: none;">
-            <div class="pin-guide-content">
-                <div class="pin-guide-icon">📌</div>
-                <div class="pin-guide-text">
-                    <div class="pin-guide-title" data-i18n="pinGuideTitle">Pin the extension for quick access</div>
-                    <div class="pin-guide-steps" data-i18n="pinGuideSteps">Click the puzzle icon in the toolbar → Find "AI Compare" → Click the pin icon</div>
+    <div class="homepage-layout">
+        <!-- 左侧导航区 -->
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-body">
+            <div class="sidebar-nav-header">
+                <div class="sidebar-nav-icon-wrap">
+                    <img class="sidebar-nav-icon" src="../icons/icon48.png" alt="" aria-hidden="true">
                 </div>
-                <img id="pinGuideImage" src="" alt="Pin" class="pin-guide-image">
-                <button id="pinGuideClose" class="pin-guide-close" aria-label="Close">×</button>
             </div>
-        </div>
-        <div class="extension-icon-container">
-            <h1 id="extensionName" class="extension-name" data-i18n="shortName">AI Compare</h1>
-        </div>
-        <div class="search-bar">
-            <div class="search-input-container">
-                <div class="input-wrapper">
-                    <textarea 
-                        id="searchInput" 
-                        placeholder=""
-                        rows="1"
-                    ></textarea>
-                    <button id="fileUploadButton" class="file-upload-btn" title="上传文件到所有AI站点">
-                        <img src="../icons/attachment.png" alt="上传文件">
+            <div class="action-links">
+                <a id="settingsLink" class="action-link" href="#">
+                    <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+                    <span data-i18n="settingsLink">设置</span>
+                </a>
+                <a id="historyLink" class="action-link" href="#">
+                    <img class="action-link-icon" src="../icons/history.svg" alt="" aria-hidden="true">
+                    <span data-i18n="historyLink">历史</span>
+                </a>
+
+                <a id="feedbackLink" class="action-link action-link-with-tooltip" href="#">
+                    <img class="action-link-icon" src="../icons/feedback.svg" alt="" aria-hidden="true">
+                    <span data-i18n="userFeedback">建议</span>
+                    <span id="feedbackEmailTooltip" class="feedback-email-tooltip" role="tooltip"></span>
+                </a>
+                <a id="reviewLink" class="action-link" href="#">
+                    <img class="action-link-icon action-link-icon-grayscale" src="../icons/thumbs-up.svg" alt="" aria-hidden="true">
+                    <span data-i18n="reviewLink">五星好评</span>
+                </a>
+                <a id="coffeeLink" class="action-link" href="#">
+                    <img class="action-link-icon" src="../icons/coffee.svg" alt="" aria-hidden="true">
+                    <span data-i18n="coffeeLink">请我喝咖啡</span>
+                </a>
+                
+            </div>
+            <div class="sidebar-favorites-list-wrap">
+                <a id="favoritesLink" class="action-link" href="#">
+                    <img class="action-link-icon" src="../icons/star_unsaved.svg" alt="" aria-hidden="true">
+                    <span data-i18n="favoritesLink">收藏</span>
+                </a>
+                <div id="sidebarFavoritesList" class="sidebar-favorites-list"></div>
+            </div>
+            </div>
+            <div id="syncBar" class="sync-bar" role="button" tabindex="0">
+                <img class="sync-bar-icon" src="../icons/cloud-upload.svg" alt="" aria-hidden="true">
+                <span id="syncBarText" class="sync-bar-text" data-i18n="enableSync">开启同步</span>
+            </div>
+        </nav>
+        <!-- 主内容区 -->
+        <div class="homepage-container">
+            <!-- Pin 引导提示 -->
+            <div id="pinGuideBanner" class="pin-guide-banner" style="display: none;">
+                <div class="pin-guide-content">
+                    <div class="pin-guide-icon">📌</div>
+                    <div class="pin-guide-text">
+                        <div class="pin-guide-title" data-i18n="pinGuideTitle">Pin the extension for quick access</div>
+                        <div class="pin-guide-steps" data-i18n="pinGuideSteps">Click the puzzle icon in the toolbar → Find "AI Compare" → Click the pin icon</div>
+                    </div>
+                    <img id="pinGuideImage" src="" alt="Pin" class="pin-guide-image">
+                    <button id="pinGuideClose" class="pin-guide-close" aria-label="Close">×</button>
+                </div>
+            </div>
+            <div class="extension-icon-container">
+                <h1 id="extensionName" class="extension-name" data-i18n="shortName">AI Compare</h1>
+            </div>
+            <div class="search-bar">
+                <div class="search-input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="searchInput" 
+                            placeholder=""
+                            rows="1"
+                        ></textarea>
+                        <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
+                            <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
+                        </button>
+                        <button id="searchButton" class="search-btn" data-i18n="startCompare">PK</button>
+                    </div>
+                    <div id="querySuggestions" class="query-suggestions" style="display: none;">
+                        <!-- queryItem.name 将显示在这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="sites-section">
+                <div class="sites-header">
+                    <h3 class="sites-title" data-i18n="selectAISites">AI sites</h3>
+                    <button id="saveSitesBtn" class="save-settings-btn" aria-label="">
+                        <img src="../icons/save.svg" alt="save" class="save-icon">
                     </button>
-                    <button id="searchButton" class="search-btn" data-i18n="startCompare">PK</button>
+                    <span class="save-btn-tooltip" data-i18n="saveFavoriteSitesTitle">保存当前选中的站点为常用站点</span>
                 </div>
-                <div id="querySuggestions" class="query-suggestions" style="display: none;">
-                    <!-- queryItem.name 将显示在这里 -->
+                <div id="sitesList" class="sites-list">
+                    <!-- 站点列表将通过 JavaScript 动态添加 -->
                 </div>
             </div>
         </div>
-        
-        <div class="sites-section">
-            <div class="sites-header">
-                <h3 class="sites-title" data-i18n="selectAISites">AI sites</h3>
-                <button id="saveSitesBtn" class="save-settings-btn" title="保存当前选中的站点为常用站点">
-                    <img src="../icons/save.png" alt="save" class="save-icon">
-                </button>
-            </div>
-            <div id="sitesList" class="sites-list">
-                <!-- 站点列表将通过 JavaScript 动态添加 -->
-            </div>
-        </div>
-        <div class="action-links">
-            <a id="settingsLink" class="action-link" href="#" data-i18n="settingsLink">设置</a>
-            <a id="historyLink" class="action-link" href="#" data-i18n="historyLink">历史记录</a>
-            <a id="favoritesLink" class="action-link" href="#" data-i18n="favoritesLink">收藏记录</a>
-            <a id="feedbackLink" class="action-link" href="#" data-i18n="userFeedback">用户反馈</a>
-            <a id="reviewLink" class="action-link" href="#" data-i18n="reviewLink">五星好评</a>
-        </div>
-        <div class="automation-notice" data-i18n="automationNotice">如果网站更新，对应的自动化提问功能会失效，敬请谅解。发现失效，可以与我联系更新。</div>
     </div>
+
+    <!-- 微信号弹窗 -->
+    <div id="wechatModal" class="wechat-modal" style="display: none;">
+        <div class="wechat-modal-overlay"></div>
+        <div class="wechat-modal-content">
+            <div class="wechat-modal-title" data-i18n="wechatModalTitle">微信号</div>
+            <div class="wechat-modal-id">aipmgpt</div>
+        </div>
+    </div>
+
+    <!-- 请我喝咖啡弹窗 -->
+    <div id="coffeeModal" class="coffee-modal" style="display: none;">
+        <div class="coffee-modal-overlay"></div>
+        <div class="coffee-modal-content">
+            <p class="coffee-modal-text" data-i18n="coffeeModalText">您的赞助是项目持续发展的动力</p>
+            <img id="coffeeModalImage" class="coffee-modal-image" src="" alt="">
+        </div>
+    </div>
+    
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
+    <script src="../config/firebaseConfig.js"></script>
+    <script src="../firebase/firebase-auth.js"></script>
+    <script src="../firebase/firebase-sync.js"></script>
     <script src="homepage.js"></script>
 </body>
 </html>

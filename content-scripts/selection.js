@@ -6,13 +6,14 @@ let currentSelectedText = '';
 let siteSelectButton = null;
 let siteDropdown = null;
 
-
-
+function hasStorageSync() {
+  return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+}
 
 // 更新收藏站点按钮文本
 function updateFavoriteButton() {
   if (!favoriteButton) return;
-  
+  if (!hasStorageSync()) return;
   chrome.storage.sync.get('favoriteSites', function(settings) {
     console.log("更新收藏按钮文案settings favouriteSites", settings.favoriteSites);
     if (settings.favoriteSites && settings.favoriteSites.length > 0) {
@@ -97,7 +98,9 @@ function initializeSiteDropdown() {
       }];
       
       // 更新存储
-      await chrome.storage.sync.set({ favoriteSites: newFavoriteSite });
+      if (hasStorageSync()) {
+        await chrome.storage.sync.set({ favoriteSites: newFavoriteSite });
+      }
       
       // 隐藏工具栏和下拉菜单
       siteDropdown.classList.remove('show');
@@ -137,6 +140,7 @@ function initializeSiteDropdown() {
       return;
     }
 
+    if (!hasStorageSync()) return;
     chrome.storage.sync.get('favoriteSites', async function(settings) {
       if (settings.favoriteSites && settings.favoriteSites.length > 0) {
         await chrome.runtime.sendMessage({
@@ -254,14 +258,19 @@ document.addEventListener('mouseup', (e) => {
     
     if (currentSelectedText && selection.rangeCount > 0) {
       lastSelectedText = currentSelectedText;
-      chrome.storage.sync.get(['buttonConfig'], function(result) {
-        const buttonConfig = result.buttonConfig || { selectionSearch: true };
-        if (buttonConfig.selectionSearch) {
+      const applyConfig = (buttonConfig) => {
+        const config = buttonConfig || { selectionSearch: true };
+        if (config.selectionSearch) {
           updateToolbarPosition(selection);
         } else {
           console.log('滑词已禁用');
         }
-      });
+      };
+      if (hasStorageSync()) {
+        chrome.storage.sync.get(['buttonConfig'], (result) => applyConfig(result?.buttonConfig));
+      } else {
+        applyConfig({ selectionSearch: true });
+      }
     }
   }, 10);
 });
@@ -303,16 +312,18 @@ document.addEventListener('keydown', (e) => {
 });
 
 // 初始化
-
-
-chrome.storage.sync.get(['buttonConfig'], function(result) {
-  const buttonConfig = result.buttonConfig || { selectionSearch: true };
-  if (buttonConfig.selectionSearch) {
-    createToolbar(); 
-  } else {
-    console.log('滑词已禁用');
-  }
-});
+if (hasStorageSync()) {
+  chrome.storage.sync.get(['buttonConfig'], function(result) {
+    const buttonConfig = result?.buttonConfig || { selectionSearch: true };
+    if (buttonConfig.selectionSearch) {
+      createToolbar();
+    } else {
+      console.log('滑词已禁用');
+    }
+  });
+} else {
+  createToolbar();
+}
 
 
 
@@ -332,9 +343,11 @@ chrome.runtime.onMessage?.addListener((message, sender, sendResponse) => {
 });
 
 // 监听存储变化
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.favoriteSites) {
-    updateFavoriteButton();
-  }
-});
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.favoriteSites) {
+      updateFavoriteButton();
+    }
+  });
+}
 

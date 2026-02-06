@@ -111,6 +111,46 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 初始化操作链接
     initializeActionLinks();
+    // 底部同步栏：未登录点击「开启同步」则打开谷歌登录并同步；已登录显示邮箱，点击无跳转
+    await updateSyncBar();
+    const syncBar = document.getElementById('syncBar');
+    if (syncBar) {
+        syncBar.addEventListener('click', async () => {
+            trackEvent('homepage_sync_bar_click');
+            const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
+            if (loggedIn) {
+                return; // 已登录仅展示账号，不跳转
+            }
+            if (!window.firebaseSignInWithGoogle || !window.firebaseSyncMergeAndUpload) {
+                return;
+            }
+            const textEl = document.getElementById('syncBarText');
+            try {
+                if (textEl) textEl.textContent = chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '正在打开谷歌登录…' : 'Opening Google sign-in…';
+                await window.firebaseSignInWithGoogle();
+                await window.firebaseSyncMergeAndUpload();
+                await updateSyncBar();
+            } catch (e) {
+                if (textEl) textEl.textContent = chrome.i18n.getMessage('enableSync') || '开启同步';
+                console.warn('Sync sign-in failed', e);
+            }
+        });
+    }
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes.pkHistory) loadSidebarFavorites();
+        if (areaName === 'local' && (changes.firebase_email || changes.firebase_uid)) updateSyncBar();
+    });
+    // 加载收藏下方全部收藏历史记录
+    await loadSidebarFavorites();
+    // 已登录时拉取云端并合并，保证换电脑后打开首页能拿到最新历史与收藏
+    const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
+    if (loggedIn && typeof window.firebaseSyncMergeAndUpload === 'function') {
+        const { firebase_lastSyncAt } = await chrome.storage.local.get('firebase_lastSyncAt');
+        const throttleMs = 2 * 60 * 1000;
+        if (!firebase_lastSyncAt || Date.now() - firebase_lastSyncAt > throttleMs) {
+            window.firebaseSyncMergeAndUpload().then(() => loadSidebarFavorites()).catch(() => {});
+        }
+    }
 });
 
 // 初始化国际化
@@ -125,10 +165,31 @@ function initializeI18n() {
                 element.tagName.toLowerCase() === 'textarea') {
                 // 对于输入框和文本域，设置 placeholder
                 element.placeholder = message;
+            } else if (element.tagName.toLowerCase() === 'img') {
+                // 对于图片，设置 alt
+                element.alt = message;
             } else {
                 // 对于其他元素，设置文本内容
                 element.textContent = message;
             }
+        }
+    });
+    
+    // 处理 data-i18n-title：设置元素的 title 属性
+    document.querySelectorAll('[data-i18n-title]').forEach(element => {
+        const key = element.getAttribute('data-i18n-title');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.title = message;
+        }
+    });
+    
+    // 处理 data-i18n-alt：设置 img 的 alt 属性（若未在 data-i18n 中处理）
+    document.querySelectorAll('[data-i18n-alt]').forEach(element => {
+        const key = element.getAttribute('data-i18n-alt');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.alt = message;
         }
     });
     
@@ -215,7 +276,7 @@ async function showQuerySuggestions(query) {
         
         // 添加设置图标到 querySuggestions 区域
         const settingsIcon = document.createElement('img');
-        settingsIcon.src = '../icons/edit.png';
+        settingsIcon.src = '../icons/edit.svg';
         settingsIcon.alt = '设置模板';
         settingsIcon.title = '编辑提示词模板';
         settingsIcon.classList.add('query-suggestion-settings-icon');
@@ -422,11 +483,11 @@ function initializeSaveSitesButton() {
     
     console.log('保存按钮已找到，开始绑定事件');
     
-    // 设置按钮的 title 属性（国际化）
+    // 使用自定义 tooltip（快速显示），仅设置 aria-label 供无障碍
     const saveTitle = chrome.i18n.getMessage('saveFavoriteSitesTitle') || 
         chrome.i18n.getMessage('saveFavoriteSites') || 
         '保存当前选中的站点为常用站点';
-    saveBtn.title = saveTitle;
+    saveBtn.setAttribute('aria-label', saveTitle);
     
     // 点击保存按钮
     saveBtn.addEventListener('click', async (e) => {
@@ -556,6 +617,95 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
     }
 });
 
+// 底部同步栏（双语 i18n）：未登录显示 enableSync（开启同步/Enable Sync），登录后显示账号邮箱
+async function updateSyncBar() {
+    const syncBar = document.getElementById('syncBar');
+    const syncBarText = document.getElementById('syncBarText');
+    const syncBarIcon = syncBar?.querySelector('.sync-bar-icon');
+    if (!syncBar || !syncBarText) return;
+    try {
+        const { firebase_uid, firebase_email, firebase_refreshToken } = await chrome.storage.local.get([
+            'firebase_uid', 'firebase_email', 'firebase_refreshToken'
+        ]);
+        const loggedIn = !!(firebase_uid && firebase_refreshToken);
+        if (loggedIn) {
+            syncBar.classList.add('sync-bar--logged-in');
+            syncBarText.textContent = firebase_email || firebase_uid || '';
+            if (syncBarIcon) syncBarIcon.textContent = '\u{1F464}'; // 👤
+        } else {
+            syncBar.classList.remove('sync-bar--logged-in');
+            syncBarText.textContent = chrome.i18n.getMessage('enableSync') || (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
+            if (syncBarIcon) syncBarIcon.textContent = '';
+        }
+    } catch (e) {
+        syncBar.classList.remove('sync-bar--logged-in');
+        syncBarText.textContent = chrome.i18n.getMessage('enableSync') || (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
+        if (syncBarIcon) syncBarIcon.textContent = '';
+    }
+}
+
+// 收藏下方：加载全部收藏历史记录（与 favorites.js 同源：从 pkHistory 筛选含收藏站点的记录）
+async function loadSidebarFavorites() {
+    const listEl = document.getElementById('sidebarFavoritesList');
+    if (!listEl) return;
+    try {
+        const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+        const favoriteItems = pkHistory
+            .filter(item => item.sites && item.sites.some(site => site.isFavorite === true))
+            .map(item => ({
+                ...item,
+                sites: item.sites.filter(site => site.isFavorite === true)
+            }));
+        const allReversed = [...favoriteItems].reverse();
+        listEl.innerHTML = '';
+        if (allReversed.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'sidebar-favorites-empty';
+            empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
+            listEl.appendChild(empty);
+            return;
+        }
+        allReversed.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'sidebar-favorite-item';
+            el.textContent = item.query || '';
+            el.title = item.query || '';
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                openSidebarFavoriteItem(item);
+            });
+            listEl.appendChild(el);
+        });
+    } catch (error) {
+        console.error('加载侧边栏收藏失败:', error);
+        if (listEl) listEl.innerHTML = '';
+    }
+}
+
+async function openSidebarFavoriteItem(item) {
+    try {
+        const params = new URLSearchParams();
+        params.set('query', item.query || '');
+        const siteNames = (item.sites || []).map(site => site.name).filter(Boolean);
+        if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
+        await chrome.tabs.create({ url: iframeUrl, active: true });
+        setTimeout(async () => {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('iframe.html')) {
+                try {
+                    await chrome.tabs.sendMessage(tabs[0].id, {
+                        type: 'loadHistoryIframes',
+                        sites: item.sites || []
+                    });
+                } catch (err) {}
+            }
+        }, 1000);
+    } catch (error) {
+        console.error('打开收藏记录失败:', error);
+    }
+}
+
 // 初始化操作链接
 async function initializeActionLinks() {
     try {
@@ -598,18 +748,15 @@ async function initializeActionLinks() {
             });
         }
         
-        // 用户反馈链接
+        // 用户反馈链接：悬停立即显示邮箱，点击打开本地邮件客户端
         const feedbackLink = document.getElementById('feedbackLink');
-        if (feedbackLink) {
-            feedbackLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                // 从配置中获取反馈链接
-                const feedbackUrl = externalLinks.feedbackSurvey || 
-                    'https://wenjuan.feishu.cn/m/cfm?t=sTFPGe4oetOi-9m3a';
-                trackEvent('homepage_feedback_click', {
-                    has_feedback_link: Boolean(externalLinks.feedbackSurvey)
-                });
-                chrome.tabs.create({ url: feedbackUrl });
+        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
+        if (feedbackLink && feedbackEmailTooltip) {
+            const feedbackEmail = externalLinks.feedbackEmail || 'AIShortcuts@outlook.com';
+            feedbackLink.href = 'mailto:' + feedbackEmail;
+            feedbackEmailTooltip.textContent = feedbackEmail;
+            feedbackLink.addEventListener('click', () => {
+                trackEvent('homepage_feedback_click', { feedback_email: feedbackEmail });
             });
         }
         
@@ -627,6 +774,11 @@ async function initializeActionLinks() {
                 chrome.tabs.create({ url: reviewUrl });
             });
         }
+        
+        // 微信链接：点击弹窗显示微信号
+        bindWechatLink();
+        // 请我喝咖啡链接：点击弹窗显示图片
+        bindCoffeeLink();
     } catch (error) {
         console.error('加载配置失败:', error);
         // 如果配置加载失败，使用默认链接
@@ -660,13 +812,11 @@ async function initializeActionLinks() {
         }
         
         const feedbackLink = document.getElementById('feedbackLink');
-        if (feedbackLink) {
-            feedbackLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                chrome.tabs.create({ 
-                    url: 'https://wenjuan.feishu.cn/m/cfm?t=sTFPGe4oetOi-9m3a' 
-                });
-            });
+        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
+        if (feedbackLink && feedbackEmailTooltip) {
+            const feedbackEmail = 'AIShortcuts@outlook.com';
+            feedbackLink.href = 'mailto:' + feedbackEmail;
+            feedbackEmailTooltip.textContent = feedbackEmail;
         }
         
         const reviewLink = document.getElementById('reviewLink');
@@ -678,6 +828,64 @@ async function initializeActionLinks() {
                 });
             });
         }
+        
+        bindWechatLink();
+        bindCoffeeLink();
+    }
+}
+
+// 绑定请我喝咖啡链接：点击弹窗显示 icons/wechatMoney.jpg
+function bindCoffeeLink() {
+    const coffeeLink = document.getElementById('coffeeLink');
+    const coffeeModal = document.getElementById('coffeeModal');
+    const coffeeModalImage = document.getElementById('coffeeModalImage');
+    const coffeeModalClose = document.getElementById('coffeeModalClose');
+    const coffeeModalOverlay = coffeeModal?.querySelector('.coffee-modal-overlay');
+    
+    if (!coffeeLink || !coffeeModal || !coffeeModalImage) return;
+    
+    coffeeModalImage.src = chrome.runtime.getURL('icons/weichatMoney.jpg');
+    
+    coffeeLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        coffeeModal.style.display = 'flex';
+    });
+    
+    function closeCoffeeModal() {
+        coffeeModal.style.display = 'none';
+    }
+    
+    if (coffeeModalClose) {
+        coffeeModalClose.addEventListener('click', closeCoffeeModal);
+    }
+    if (coffeeModalOverlay) {
+        coffeeModalOverlay.addEventListener('click', closeCoffeeModal);
+    }
+}
+
+// 绑定微信链接：点击弹窗显示微信号 aipmgpt
+function bindWechatLink() {
+    const wechatLink = document.getElementById('wechatLink');
+    const wechatModal = document.getElementById('wechatModal');
+    const wechatModalClose = document.getElementById('wechatModalClose');
+    const wechatModalOverlay = wechatModal?.querySelector('.wechat-modal-overlay');
+    
+    if (!wechatLink || !wechatModal) return;
+    
+    wechatLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        wechatModal.style.display = 'flex';
+    });
+    
+    function closeWechatModal() {
+        wechatModal.style.display = 'none';
+    }
+    
+    if (wechatModalClose) {
+        wechatModalClose.addEventListener('click', closeWechatModal);
+    }
+    if (wechatModalOverlay) {
+        wechatModalOverlay.addEventListener('click', closeWechatModal);
     }
 }
 

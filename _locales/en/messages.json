@@ -25,6 +25,12 @@
   "inputPlaceholder": {
     "message": "Enter content to search..."
   },
+  "fileUploadButtonTitle": {
+    "message": "Upload file to all AI sites"
+  },
+  "fileUploadButtonAlt": {
+    "message": "Upload file"
+  },
   "openSettings": {
     "message": "AI Compare Settings"
   },
@@ -111,6 +117,10 @@
     "message": "Prompt Favorites",
     "description": "Title for the favorites section"
   },
+  "enableSync": {
+    "message": "Enable Sync",
+    "description": "Sync bar default text, click to go to login"
+  },
   "noFavorites": {
     "message": "No saved prompts yet",
     "description": "Message shown when there are no saved prompts"
@@ -118,6 +128,14 @@
   "favoriteButton": {
     "message": "Save Prompt",
     "description": "Title for the favorite button"
+  },
+  "iframeFavoriteTitle": {
+    "message": "Add This to Favorites",
+    "description": "Tooltip for iframe star when not favorited"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "Remove from favorites",
+    "description": "Tooltip for iframe star when favorited"
   },
   "ruleUpdateTimePrefix": {
     "message": "Rule Remote Auto Update Time: ",
@@ -267,6 +285,9 @@
   "exportResponses": {
     "message": "Export AI Compare Results"
   },
+  "exportResponsesTitle": {
+    "message": "Export all AI responses"
+  },
   "historyTitle": {
     "message": "History"
   },
@@ -320,8 +341,35 @@
   "pinGuideSteps": {
     "message": "Click the puzzle icon in the toolbar → Find \"AI Compare\" → Click the pin icon"
   },
+  "settingsLink": {
+    "message": "Settings"
+  },
+  "historyLink": {
+    "message": "History"
+  },
+  "favoritesLink": {
+    "message": "Favorites"
+  },
   "userFeedback": {
-    "message": "User Feedback"
+    "message": "Suggestions"
+  },
+  "reviewLink": {
+    "message": "Rate Us"
+  },
+  "coffeeLink": {
+    "message": "Buy Me a Coffee"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "WeChat"
+  },
+  "wechatModalTitle": {
+    "message": "WeChat ID"
+  },
+  "coffeeModalText": {
+    "message": "Your sponsorship is the driving force for the continued development of the project"
   },
   "saveFavoriteSites": {
     "message": "Save"
@@ -334,5 +382,8 @@
   },
   "noSitesSelected": {
     "message": "Please select at least one site"
+  },
+  "automationNotice": {
+    "message": "If a website updates, its automated query feature may stop working. We apologize for any inconvenience. If you notice it has stopped working, please contact us for an update."
   }
 } 

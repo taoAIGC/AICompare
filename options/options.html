@@ -7,38 +7,27 @@
 </head>
 <body>
   <div class="page-layout">
-    <!-- 左侧导航栏 -->
-    <nav class="sidebar">
-      <div class="nav-header">
-        <h3 data-i18n="appName">MultiAI</h3>
+    <!-- 左侧导航栏（与 homepage 风格一致） -->
+    <nav class="sidebar-nav">
+      <div class="sidebar-nav-header">
+        <div class="sidebar-nav-icon-wrap">
+          <img class="sidebar-nav-icon" src="../icons/icon48.png" alt="" aria-hidden="true">
+        </div>
       </div>
-      <ul class="nav-menu">
-        <li class="nav-item">
-          <a href="#quick-entry" class="nav-link active" data-section="quick-entry">
-            <span data-i18n="configButtonTitle">快捷入口设置</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#disabled-sites" class="nav-link" data-section="disabled-sites">
-            <span data-i18n="disabledSitesTitle">禁用网站</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#prompt-templates" class="nav-link" data-section="prompt-templates">
-            <span data-i18n="promptTemplatesTitle">提示词模板</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link" id="historyLink">
-            <span data-i18n="historyLink">历史记录</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link" id="favoritesLink">
-            <span data-i18n="favoritesLink">收藏记录</span>
-          </a>
-        </li>
-      </ul>
+      <div class="action-links">
+        <a href="#quick-entry" class="action-link nav-link active" data-section="quick-entry">
+          <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+          <span data-i18n="configButtonTitle">快捷入口设置</span>
+        </a>
+        <a href="#disabled-sites" class="action-link nav-link" data-section="disabled-sites">
+          <img class="action-link-icon" src="../icons/close.svg" alt="" aria-hidden="true">
+          <span data-i18n="disabledSitesTitle">禁用网站</span>
+        </a>
+        <a href="#prompt-templates" class="action-link nav-link" data-section="prompt-templates">
+          <img class="action-link-icon" src="../icons/edit.svg" alt="" aria-hidden="true">
+          <span data-i18n="promptTemplatesTitle">提示词模板</span>
+        </a>
+      </div>
     </nav>
 
     <!-- 主内容区域 -->
@@ -246,7 +235,7 @@
   <!-- Toast提示 -->
   <div id="toast" class="toast"></div>
 
-    <script src="../config/baseConfig.js"></script>
+  <script src="../config/baseConfig.js"></script>
   <script src="options.js"></script>
 </body>
 </html> 

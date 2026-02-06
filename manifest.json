@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.15.10",
+  "version": "2.15.11",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -11,7 +11,8 @@
     "declarativeNetRequest",
     "sidePanel",
     "clipboardRead",
-    "omnibox"
+    "omnibox",
+    "identity"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -97,7 +98,8 @@
       "icons/*",
       "config/*",
       "content-scripts/*",
-      "debug/*"
+      "debug/*",
+      "firebase/*"
     ],
     "use_dynamic_url": true,
     "matches": [

@@ -25,6 +25,12 @@
   "inputPlaceholder": {
     "message": "输入要搜索的内容"
   },
+  "fileUploadButtonTitle": {
+    "message": "上传文件到所有AI站点"
+  },
+  "fileUploadButtonAlt": {
+    "message": "上传文件"
+  },
   "openSettings": {
     "message": "默认AI对比配置"
   },
@@ -106,6 +112,10 @@
     "message": "提示词收藏夹",
     "description": "收藏夹部分的标题"
   },
+  "enableSync": {
+    "message": "开启同步",
+    "description": "同步栏默认文案，点击后跳转登录"
+  },
   "noFavorites": {
     "message": "暂无收藏的提示词",
     "description": "没有保存提示词时显示的消息"
@@ -113,6 +123,14 @@
   "favoriteButton": {
     "message": "收藏提示词",
     "description": "收藏按钮的标题"
+  },
+  "iframeFavoriteTitle": {
+    "message": "收藏",
+    "description": "子 iframe 星标未收藏时的悬停提示"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "取消收藏",
+    "description": "子 iframe 星标已收藏时的悬停提示"
   },
   "ruleUpdateTimePrefix": {
     "message": "规则远程自动更新时间：",
@@ -262,6 +280,9 @@
   "exportResponses": {
     "message": "导出AI比一比结果"
   },
+  "exportResponsesTitle": {
+    "message": "导出所有AI回答"
+  },
   "historyTitle": {
     "message": "历史记录"
   },
@@ -315,8 +336,35 @@
   "pinGuideSteps": {
     "message": "点击工具栏的拼图图标 → 找到「AI比一比」→ 点击固定图标"
   },
+  "settingsLink": {
+    "message": "设置"
+  },
+  "historyLink": {
+    "message": "历史"
+  },
+  "favoritesLink": {
+    "message": "收藏"
+  },
   "userFeedback": {
-    "message": "用户反馈"
+    "message": "建议"
+  },
+  "reviewLink": {
+    "message": "五星好评"
+  },
+  "coffeeLink": {
+    "message": "请我喝咖啡"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "微信"
+  },
+  "wechatModalTitle": {
+    "message": "微信号"
+  },
+  "coffeeModalText": {
+    "message": "您的赞助是项目持续发展的动力"
   },
   "saveFavoriteSites": {
     "message": "保存"
@@ -329,5 +377,8 @@
   },
   "noSitesSelected": {
     "message": "请至少选择一个站点"
+  },
+  "automationNotice": {
+    "message": "如果网站更新，对应的自动化提问功能会失效，敬请谅解。发现失效，可以与我联系更新。"
   }
 } 

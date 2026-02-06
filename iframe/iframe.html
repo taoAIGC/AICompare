@@ -16,12 +16,12 @@
                     autofocus
                     rows="1"
                 ></textarea>
-                <button id="favoriteButton" class="favorite-btn" style="display: none;" data-i18n="favoriteButton">
-                    <img id="favoriteIcon" src="../icons/star_unsaved.png" alt="收藏">
-                </button>
+                <!-- <button id="favoriteButton" class="favorite-btn" style="display: none;" data-i18n-title="favoriteButton" title="">
+                    <img id="favoriteIcon" src="../icons/star_unsaved.svg" alt="收藏">
+                </button> -->
                 <!-- 文件上传按钮 -->
-                <button id="fileUploadButton" class="file-upload-btn" title="上传文件到所有AI站点">
-                    <img src="../icons/attachment.png" alt="上传文件">
+                <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
+                    <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
                 </button>
                 <button id="searchButton" class="search-btn" data-i18n="startCompare">PK</button>
             </div>
@@ -31,12 +31,12 @@
         </div>
         <!-- 右侧按钮组容器 -->
         <div class="search-bar-right-buttons">
-            <div id="iconContainer">
-                <img id="toggleIcon" src="../icons/down.png" alt="Toggle" />
-            </div>
+            <!-- <div id="iconContainer">
+                <img id="toggleIcon" src="../icons/down.svg" alt="Toggle" />
+            </div> -->
             
             <!-- 导出回答按钮 -->
-            <button id="exportResponsesButton" class="export-responses-btn" data-i18n="exportResponses" title="导出所有AI回答">
+            <button id="exportResponsesButton" class="export-responses-btn" data-i18n="exportResponses" data-i18n-title="exportResponsesTitle" title="">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <title>Download</title>
                     <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -104,12 +104,12 @@
             </div>
             
             <div class="settings-icon-container">
-                <img src="../icons/setting.png" class="settings-icon" title="iframe-site-setting">
+                <img src="../icons/layout-grid.svg" class="settings-icon" title="Site Settings">
                 <div class="settings-dialog">
                     <div class="dialog-header">
                         <h3 data-i18n="iframeSiteSettings">站点设置</h3>
                         <button class="save-settings-btn" title="saveSettings">
-                            <img src="../icons/save.png" alt="save" class="save-icon">
+                            <img src="../icons/save.svg" alt="save" class="save-icon">
                         </button>
                     </div>
                     <div class="multi-ai-dialog">
@@ -122,7 +122,7 @@
             </div>
 
             <div class="favorite-icon-container">
-                <img src="../icons/star_unsaved.png" class="favorite-icon" data-i18n="favoriteAllSites" title="Favorite All Sites">
+                <img src="../icons/star_unsaved.svg" class="favorite-icon" data-i18n="favoriteAllSites" title="Save All to Favorites">
             </div>
         </div> <!-- 结束 search-bar-right-buttons 容器 -->
     </div>
@@ -132,8 +132,12 @@
     <div id="queryList" style="display: none;">
         <!-- 收藏的 query 列表将动态添加到这里 -->
     </div>
+    <div id="quickTooltip" class="quick-tooltip" aria-hidden="true"></div>
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
+    <script src="../config/firebaseConfig.js"></script>
+    <script src="../firebase/firebase-auth.js"></script>
+    <script src="../firebase/firebase-sync.js"></script>
     <script type="module" src="iframe.js"></script>
     <script src="export-responses.js"></script>
 </body>
