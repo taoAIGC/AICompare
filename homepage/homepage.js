@@ -399,6 +399,19 @@ function getSelectedSites() {
     return Array.from(checkboxes).map(checkbox => checkbox.id.replace('site-', ''));
 }
 
+// 常用站点优先排序（enabled=true 在前，再按 order 排序）
+function sortSitesFavoriteFirst(sites) {
+    return [...sites].sort((a, b) => {
+        const aFav = a.enabled ? 0 : 1;
+        const bFav = b.enabled ? 0 : 1;
+        if (aFav !== bFav) return aFav - bFav;
+        const orderA = a.order !== undefined ? a.order : 999;
+        const orderB = b.order !== undefined ? b.order : 999;
+        if (orderA !== orderB) return orderA - orderB;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+}
+
 // 初始化站点列表
 async function initializeSitesList() {
     const sitesList = document.getElementById('sitesList');
@@ -415,17 +428,24 @@ async function initializeSitesList() {
         const supportedSites = sites.filter(site => 
             site.supportIframe === true && !site.hidden
         );
+        const sortedSites = sortSitesFavoriteFirst(supportedSites);
         
-        console.log('从getDefaultSites() 获取的可以使用的站点:', supportedSites.map(site => ({ name: site.name, enabled: site.enabled })));
+        console.log('从getDefaultSites() 获取的可以使用的站点:', sortedSites.map(site => ({ name: site.name, enabled: site.enabled })));
         // 清空列表
         sitesList.innerHTML = '';
         
         // 创建站点项
         const fragment = document.createDocumentFragment();
         
-        supportedSites.forEach(site => {
+        sortedSites.forEach(site => {
             const div = document.createElement('div');
             div.className = 'site-item';
+            div.draggable = true;
+            div.dataset.siteName = site.name;
+
+            const dragHandle = document.createElement('span');
+            dragHandle.className = 'site-drag-handle';
+            dragHandle.setAttribute('aria-hidden', 'true');
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
@@ -452,11 +472,15 @@ async function initializeSitesList() {
             
             // 点击整个 item 也能切换复选框
             div.addEventListener('click', (e) => {
-                if (e.target !== checkbox && e.target !== nameLabel) {
+                if (sitesList.classList.contains('drag-active')) {
+                    return;
+                }
+                if (e.target !== checkbox && e.target !== nameLabel && e.target !== dragHandle) {
                     checkbox.click();
                 }
             });
             
+            div.appendChild(dragHandle);
             div.appendChild(checkbox);
             div.appendChild(nameLabel);
             fragment.appendChild(div);
@@ -464,11 +488,125 @@ async function initializeSitesList() {
         
         sitesList.appendChild(fragment);
         
+        // 添加拖拽排序功能
+        addDragAndDropToSitesList(sitesList, sortedSites);
+        
     } catch (error) {
         console.error('获取站点配置失败:', error);
         if (sitesList) {
             sitesList.innerHTML = '<div style="padding: 20px; color: #666; text-align: center;">加载站点配置失败，请刷新页面重试</div>';
         }
+    }
+}
+
+// 为站点列表添加拖拽排序功能
+function addDragAndDropToSitesList(listEl, supportedSites) {
+    let draggedElement = null;
+    let draggedIndex = null;
+    
+    listEl.addEventListener('dragstart', (e) => {
+        const item = e.target.closest('.site-item');
+        if (!item) return;
+        draggedElement = item;
+        draggedIndex = Array.from(listEl.children).indexOf(item);
+        item.classList.add('dragging');
+        listEl.classList.add('drag-active');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', item.outerHTML);
+    });
+    
+    listEl.addEventListener('dragend', (e) => {
+        const item = e.target.closest('.site-item');
+        if (!item) return;
+        item.classList.remove('dragging');
+        listEl.classList.remove('drag-active');
+        listEl.querySelectorAll('.site-item').forEach(el => el.classList.remove('drag-over'));
+        draggedElement = null;
+        draggedIndex = null;
+    });
+    
+    listEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const afterElement = getSitesDragAfterElement(listEl, e.clientY);
+        const dragging = listEl.querySelector('.dragging');
+        if (!dragging) return;
+        if (afterElement == null) {
+            listEl.appendChild(dragging);
+        } else {
+            listEl.insertBefore(dragging, afterElement);
+        }
+    });
+    
+    listEl.addEventListener('dragenter', (e) => {
+        const item = e.target.closest('.site-item');
+        if (item && item !== draggedElement) {
+            item.classList.add('drag-over');
+        }
+    });
+    
+    listEl.addEventListener('dragleave', (e) => {
+        const item = e.target.closest('.site-item');
+        if (item) {
+            item.classList.remove('drag-over');
+        }
+    });
+    
+    listEl.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        if (!draggedElement) return;
+        const newIndex = Array.from(listEl.children).indexOf(draggedElement);
+        if (newIndex !== draggedIndex) {
+            await updateHomepageSitesOrder(listEl, supportedSites);
+            console.log('主页站点顺序已更新并保存');
+        }
+    });
+}
+
+// 获取拖拽后的插入位置
+function getSitesDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.site-item:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        }
+        return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// 保存主页站点排序到 storage
+async function updateHomepageSitesOrder(listEl, supportedSites) {
+    try {
+        const orderedNames = Array.from(listEl.children)
+            .map(el => el.dataset.siteName)
+            .filter(Boolean);
+        
+        const { sites: existingUserSettings = {} } = await chrome.storage.sync.get('sites');
+        const updatedUserSettings = { ...existingUserSettings };
+        
+        orderedNames.forEach((name, index) => {
+            if (!updatedUserSettings[name]) {
+                updatedUserSettings[name] = {};
+            }
+            updatedUserSettings[name].order = index;
+        });
+        
+        await chrome.storage.sync.set({ sites: updatedUserSettings });
+        
+        // 同步内存中的顺序，防止后续逻辑依赖旧顺序
+        if (supportedSites && Array.isArray(supportedSites)) {
+            supportedSites.sort((a, b) => {
+                const orderA = orderedNames.indexOf(a.name);
+                const orderB = orderedNames.indexOf(b.name);
+                return orderA - orderB;
+            });
+        }
+
+        showToast(chrome.i18n.getMessage('saveSuccess') || '配置已保存');
+    } catch (error) {
+        console.error('保存主页站点顺序失败:', error);
     }
 }
 
@@ -656,16 +794,16 @@ async function loadSidebarFavorites() {
                 ...item,
                 sites: item.sites.filter(site => site.isFavorite === true)
             }));
-        const allReversed = [...favoriteItems].reverse();
+        // pkHistory 为最新在前，收藏列表直接使用该顺序，最新收藏在最上面
         listEl.innerHTML = '';
-        if (allReversed.length === 0) {
+        if (favoriteItems.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'sidebar-favorites-empty';
             empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
             listEl.appendChild(empty);
             return;
         }
-        allReversed.forEach(item => {
+        favoriteItems.forEach(item => {
             const el = document.createElement('div');
             el.className = 'sidebar-favorite-item';
             el.textContent = item.query || '';
@@ -919,4 +1057,3 @@ function showToast(message, duration = 2000) {
         }, 300);
     }, duration);
 }
-

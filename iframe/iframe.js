@@ -11,6 +11,19 @@ function trackEvent(name, params = {}) {
   }
 }
 
+// 常用站点优先排序（enabled=true 在前，再按 order 排序）
+function sortSitesFavoriteFirst(sites) {
+  return [...sites].sort((a, b) => {
+    const aFav = a.enabled ? 0 : 1;
+    const bFav = b.enabled ? 0 : 1;
+    if (aFav !== bFav) return aFav - bFav;
+    const orderA = a.order !== undefined ? a.order : 999;
+    const orderB = b.order !== undefined ? b.order : 999;
+    if (orderA !== orderB) return orderA - orderB;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+}
+
 function getOpenedSites() {
   return Array.from(document.querySelectorAll('.ai-iframe'))
     .map(iframe => iframe.getAttribute('data-site'))
@@ -216,6 +229,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             site.supportIframe !== false && 
                             !site.hidden
                         );
+                        availableSites = sortSitesFavoriteFirst(availableSites);
                         console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
                         
                         if (availableSites.length > 0) {
@@ -231,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             site.supportIframe !== false && 
                             !site.hidden
                         );
+                        availableSites = sortSitesFavoriteFirst(availableSites);
 
                         if (availableSites.length > 0) {
                             console.log('使用查询内容创建 iframes:', query, availableSites);
@@ -253,6 +268,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             site.supportIframe !== false && 
                             !site.hidden
                         );
+                        availableSites = sortSitesFavoriteFirst(availableSites);
                         console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
                         
                         if (availableSites.length > 0) {
@@ -268,6 +284,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             site.supportIframe !== false && 
                             !site.hidden
                         );
+                        availableSites = sortSitesFavoriteFirst(availableSites);
 
                         if (availableSites.length > 0) {
                             console.log('初始化可用站点:', availableSites);
@@ -290,6 +307,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         site.supportIframe !== false && 
                         !site.hidden
                     );
+                    availableSites = sortSitesFavoriteFirst(availableSites);
                     console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
                     
                     if (availableSites.length > 0) {
@@ -305,6 +323,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         site.supportIframe !== false && 
                         !site.hidden
                     );
+                    availableSites = sortSitesFavoriteFirst(availableSites);
 
                     if (availableSites.length > 0) {
                         console.log('初始化可用站点:', availableSites);
@@ -1806,7 +1825,7 @@ async function favoriteAllIframes() {
     }
 }
 
-// 更新右侧「全部收藏」星标图标（历史记录收藏成功时切换为实心星）
+// 更新右侧「全部收藏」星标图标：仅当当前记录下所有子 iframe 都已收藏时才显示实心星
 function updateFavoriteAllIcon(isFavorited) {
     const el = document.querySelector('.favorite-icon-container .favorite-icon');
     if (el) {
@@ -1906,8 +1925,9 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
         }
         favoriteBtn.dataset.favorite = siteItem.isFavorite ? 'true' : 'false';
         favoriteBtn.title = siteItem.isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
-        const anyFavorited = historyItem.sites.some(s => s.isFavorite);
-        updateFavoriteAllIcon(anyFavorited);
+        // 仅当当前记录下所有子 iframe 都被收藏时，顶部「收藏全部」图标才显示为已收藏
+        const allFavorited = historyItem.sites.length > 0 && historyItem.sites.every(s => s.isFavorite);
+        updateFavoriteAllIcon(allFavorited);
         
         // 记录埋点：单个 iframe 收藏状态切换
         trackEvent('iframe_site_favorite_toggle', {
@@ -2342,8 +2362,9 @@ async function loadHistoryIframes(sites) {
       addFavoriteButtonToIframe(iframeContainer, siteName, isFavorite);
     });
     
-    const anyFavorited = sites.some(s => s.isFavorite);
-    updateFavoriteAllIcon(anyFavorited);
+    // 仅当当前记录下所有子 iframe 都被收藏时，顶部「收藏全部」图标才显示为已收藏
+    const allFavorited = sites.length > 0 && sites.every(s => s.isFavorite);
+    updateFavoriteAllIcon(allFavorited);
     
     // 创建导航栏
     const nav = document.createElement('nav');
@@ -3853,6 +3874,4 @@ function showFileUploadError(message) {
     }
   }, 3000);
 }
-
-
 

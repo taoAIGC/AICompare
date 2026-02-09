@@ -8,7 +8,7 @@
 
 ### ✨ Introduction
 
-**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, DeepSeek, Kimi, 豆包, 腾讯元宝, and many more — side by side. You use your existing AI accounts; the extension does not require sign-up or paid membership.
+**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, DeepSeek, Kimi, 豆包,元宝, and many more — side by side. You use your existing AI accounts; the extension does not require sign-up or paid membership.
 
 ### 📦 Features
 
@@ -87,7 +87,7 @@
 ### 🤖 Supported AI sites (examples)
 
 Configured in `siteHandlers.json` (enable/disable per site):  
-ChatGPT, Gemini, Grok, Claude, AI Studio, DeepSeek, 豆包, 秘塔AI, 文心一言, 腾讯元宝, Kimi, 千问, Qwen, Copilot, POE, Perplexity, Bing, Google, 百度, 小红书, etc. (and more; some may be hidden or region-specific.)
+ChatGPT, Gemini, Grok, Claude, AI Studio, DeepSeek, 豆包, 秘塔AI, 文心一言, 元宝, Kimi, 千问, Qwen, Copilot, POE, Perplexity, Bing, Google, 百度, 小红书, etc. (and more; some may be hidden or region-specific.)
 
 ### ❤️ Loved by users worldwide
 
@@ -119,7 +119,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 ### ✨ 简介
 
-**AI 比一比**（原名「AI 任意门」）是一款浏览器扩展，在一个页面里同时对比多个 AI 的回答。输入一次问题，即可并排查看 ChatGPT、Gemini、Claude、Grok、DeepSeek、Kimi、豆包、腾讯元宝等十多个 AI 的结果。使用你已有的 AI 账号即可，扩展本身无需注册、无需付费。
+**AI 比一比**（原名「AI 任意门」）是一款浏览器扩展，在一个页面里同时对比多个 AI 的回答。输入一次问题，即可并排查看 ChatGPT、Gemini、Claude、Grok、DeepSeek、Kimi、豆包、元宝等十多个 AI 的结果。使用你已有的 AI 账号即可，扩展本身无需注册、无需付费。
 
 ### 📦 功能一览
 
@@ -195,7 +195,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 ### 🤖 支持的 AI 站点（示例）
 
 在 `siteHandlers.json` 中配置，可按站点启用/关闭：  
-ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、文心一言、腾讯元宝、Kimi、千问、Qwen、Copilot、POE、Perplexity、Bing、Google、百度、小红书等（部分可能隐藏或按地区不可用）。
+ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、文心、元宝、Kimi、千问、Qwen、Copilot、POE、Perplexity、Bing、Google、百度、小红书等（部分可能隐藏或按地区不可用）。
 
 ### ❤️ 被世界各地的用户喜爱
 

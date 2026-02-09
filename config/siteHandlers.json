@@ -985,7 +985,7 @@
       }
     },
     {
-      "name": "腾讯元宝",
+      "name": "元宝",
       "url": "https://yuanbao.tencent.com/chat/",
       "enabled": false,
       "supportUrlQuery": false,
