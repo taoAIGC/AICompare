@@ -7,7 +7,7 @@ if ((typeof window !== 'undefined' && window.BaseConfigLoaded) ||
 
 // 开发环境配置
 const DEV_CONFIG = {
-  IS_PRODUCTION: true,  // 开发时设为 false，发布时设为 true
+  IS_PRODUCTION: false,  // 开发时设为 false，发布时设为 true
   SKIP_REMOTE_CONFIG: true,  // 开发时跳过远程配置，直接使用本地文件
   ENABLE_CONFIG_CACHE: false, // 开发时禁用配置缓存，确保修改立即生效
   FORCE_LOCAL_CONFIG: true,   // 开发时强制使用本地配置文件

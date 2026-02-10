@@ -1,6 +1,35 @@
 
 console.log('🎯 inject.js 脚本已加载');
 
+// 从 DOM 节点获取 React Fiber（用于 Slate 等 React 编辑器）
+function getReactFiber(domNode) {
+  if (!domNode) return null;
+  for (const key of Object.keys(domNode)) {
+    if (key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$')) {
+      return domNode[key];
+    }
+  }
+  return null;
+}
+
+// 在 Fiber 树中查找带有 value/setInputValue/onValueUpdate/onChange 的节点
+function findReactNodeWithValueSetter(fiber, maxDepth = 20, depth = 0, visited = new Set()) {
+  if (!fiber || depth > maxDepth || visited.has(fiber)) return null;
+  visited.add(fiber);
+  try {
+    const props = fiber.memoizedProps || {};
+    if (typeof props.setInputValue === 'function' || typeof props.onValueUpdate === 'function' ||
+        (typeof props.onChange === 'function' && props.value != null)) {
+      return fiber;
+    }
+  } catch (_) {}
+  return (
+    findReactNodeWithValueSetter(fiber.child, maxDepth, depth + 1, visited) ||
+    findReactNodeWithValueSetter(fiber.sibling, maxDepth, depth + 1, visited) ||
+    findReactNodeWithValueSetter(fiber.return, maxDepth, depth + 1, visited)
+  );
+}
+
 // 每个 iframe（每个注入实例）独立保存本次 PK 的历史上下文
 let __aiCompareHistoryContext = {
   historyId: null,
@@ -78,24 +107,60 @@ async function checkAISite() {
   return isAISiteResult;
 }
 
+// 向父页面发送执行进度
+function postInjectProgress(payload) {
+  try {
+    window.parent.postMessage({
+      type: 'INJECT_PROGRESS',
+      source: 'inject-script',
+      ...payload
+    }, '*');
+  } catch (error) {
+    // ignore
+  }
+}
+
 // 通用的配置化站点处理器 - 基于流程的标准化处理
-async function executeSiteHandler(query, handlerConfig) {
+async function executeSiteHandler(query, handlerConfig, siteName = null) {
   console.log('🚀 executeSiteHandler 开始执行');
   console.log('🔍 调试信息 - 查询内容:', query);
   console.log('🔍 调试信息 - 处理器配置:', handlerConfig);
   
   if (!handlerConfig || !handlerConfig.steps) {
     console.error('❌ 无效的处理器配置');
+    if (siteName) {
+      postInjectProgress({
+        siteName,
+        status: 'error',
+        errorMessage: '无效的处理器配置'
+      });
+    }
     return;
   }
 
   console.log('✅ 开始执行配置化处理器，步骤数:', handlerConfig.steps.length);
+  if (siteName) {
+    postInjectProgress({
+      siteName,
+      status: 'start',
+      totalSteps: handlerConfig.steps.length
+    });
+  }
 
   for (let i = 0; i < handlerConfig.steps.length; i++) {
     const step = handlerConfig.steps[i];
     console.log(`执行步骤 ${i + 1}:`, step.action);
 
     try {
+      if (siteName) {
+        postInjectProgress({
+          siteName,
+          status: 'step',
+          stepIndex: i + 1,
+          totalSteps: handlerConfig.steps.length,
+          description: step.description || step.action || ''
+        });
+      }
       switch (step.action) {
         case 'click':
           await executeClick(step);
@@ -132,8 +197,27 @@ async function executeSiteHandler(query, handlerConfig) {
       if (step.waitAfter) {
         await new Promise(resolve => setTimeout(resolve, step.waitAfter));
       }
+      if (siteName) {
+        postInjectProgress({
+          siteName,
+          status: 'step_complete',
+          stepIndex: i + 1,
+          totalSteps: handlerConfig.steps.length,
+          description: step.description || step.action || ''
+        });
+      }
     } catch (error) {
       console.error(`步骤 ${i + 1} 执行失败:`, error);
+      if (siteName) {
+        postInjectProgress({
+          siteName,
+          status: 'error',
+          stepIndex: i + 1,
+          totalSteps: handlerConfig.steps.length,
+          description: step.description || step.action || '',
+          errorMessage: error?.message || String(error)
+        });
+      }
       if (step.required !== false) { // 默认必需步骤
         throw error;
       }
@@ -141,6 +225,13 @@ async function executeSiteHandler(query, handlerConfig) {
   }
 
   console.log('配置化处理器执行完成');
+  if (siteName) {
+    postInjectProgress({
+      siteName,
+      status: 'complete',
+      totalSteps: handlerConfig.steps.length
+    });
+  }
 }
 
 // 执行粘贴操作
@@ -528,6 +619,204 @@ async function executeSetValue(step, query) {
   element = await trySetValue();
 
   if (step.inputType === 'contenteditable') {
+    // 检查是否是 Slate 编辑器（通义千问等，通过 data-slate-editor 属性）
+    const isSlateEditor = element.getAttribute('data-slate-editor') === 'true';
+    if (isSlateEditor) {
+      const isQwenSite = window.location.hostname.includes('qianwen.com');
+      console.log('检测到 Slate 编辑器，尝试同步内部状态');
+      element.focus();
+      const sel = window.getSelection();
+      const range = document.createRange();
+      const p = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
+      const getSlateText = () => {
+        const strings = element.querySelectorAll('[data-slate-string]');
+        return Array.from(strings).map(node => node.textContent || '').join('');
+      };
+      const normalizeText = (text) => (text || '').replace(/\s+/g, '').trim();
+      const slateHasText = () => normalizeText(getSlateText()).length > 0;
+      const slateMatchesQuery = () => normalizeText(getSlateText()) === normalizeText(query);
+      const waitForSlateUpdate = async (attempts = 3, delay = 30) => {
+        for (let i = 0; i < attempts; i++) {
+          if (slateMatchesQuery() || slateHasText()) return true;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        return false;
+      };
+      const collapseToSingleQuery = async () => {
+        if (!query) return;
+        const current = normalizeText(getSlateText());
+        const normalizedQuery = normalizeText(query);
+        if (!current || !normalizedQuery) return;
+        if (current === normalizedQuery) return;
+        if (!current.includes(normalizedQuery)) return;
+        const repeated = current.split(normalizedQuery).filter(Boolean).length;
+        if (repeated < 1) return;
+        const fallbackP = element.querySelector('p[data-slate-node=\"element\"]') || element.querySelector('p');
+        if (fallbackP) {
+          fallbackP.innerHTML = '';
+          const textSpan = document.createElement('span');
+          textSpan.setAttribute('data-slate-node', 'text');
+          const leafSpan = document.createElement('span');
+          leafSpan.setAttribute('data-slate-leaf', 'true');
+          const stringSpan = document.createElement('span');
+          stringSpan.setAttribute('data-slate-string', 'true');
+          stringSpan.textContent = query;
+          leafSpan.appendChild(stringSpan);
+          textSpan.appendChild(leafSpan);
+          fallbackP.appendChild(textSpan);
+        }
+        element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+        element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+        await waitForSlateUpdate();
+        console.log('Slate: 已强制去重重复内容');
+      };
+      let slateUpdated = false;
+
+      if (isQwenSite && query) {
+        const normalizedQuery = normalizeText(query);
+        const now = Date.now();
+        if (window.__qwenLastQuery === normalizedQuery && window.__qwenLastQueryAt && now - window.__qwenLastQueryAt < 3000) {
+          console.log('Qwen: 重复写入拦截，跳过');
+          return;
+        }
+        window.__qwenLastQuery = normalizedQuery;
+        window.__qwenLastQueryAt = now;
+
+        try {
+          const fiber = getReactFiber(element);
+          const node = findReactNodeWithValueSetter(fiber);
+          if (node && node.memoizedProps) {
+            const props = node.memoizedProps;
+            if (typeof props.setInputValue === 'function') {
+              props.setInputValue(query);
+            } else if (typeof props.onValueUpdate === 'function') {
+              props.onValueUpdate(query);
+            } else if (typeof props.onChange === 'function' && Array.isArray(props.value)) {
+              const newValue = [{ type: 'paragraph', children: [{ text: query }] }];
+              props.onChange(newValue);
+            }
+            slateUpdated = await waitForSlateUpdate();
+            if (slateUpdated) {
+              console.log('Qwen: React 路径写入完成');
+              return;
+            }
+          }
+        } catch (e2) {
+          console.log('Qwen: React 路径失败', e2);
+        }
+
+        const fallbackP = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
+        if (fallbackP) {
+          fallbackP.innerHTML = '';
+          const textSpan = document.createElement('span');
+          textSpan.setAttribute('data-slate-node', 'text');
+          const leafSpan = document.createElement('span');
+          leafSpan.setAttribute('data-slate-leaf', 'true');
+          const stringSpan = document.createElement('span');
+          stringSpan.setAttribute('data-slate-string', 'true');
+          stringSpan.textContent = query;
+          leafSpan.appendChild(stringSpan);
+          textSpan.appendChild(leafSpan);
+          fallbackP.appendChild(textSpan);
+        }
+        element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+        element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+        await waitForSlateUpdate();
+        console.log('Qwen: DOM 路径写入完成');
+        return;
+      }
+
+      if (query && slateMatchesQuery()) {
+        console.log('Slate: 输入框已有相同内容，跳过写入');
+        slateUpdated = true;
+      }
+
+      // 方法1：先选中整段内容再 insertText（避免选到 data-slate-zero-width 导致 data-slate-length 仍为 0）
+      if (!slateUpdated) try {
+        sel.removeAllRanges();
+        if (p) {
+          range.selectNodeContents(p);
+        } else {
+          range.selectNodeContents(element);
+        }
+        sel.addRange(range);
+        if (query && document.execCommand('insertText', false, query)) {
+          slateUpdated = await waitForSlateUpdate();
+          console.log('Slate: 全选后 execCommand insertText 完成', { slateUpdated });
+        }
+      } catch (e) {
+        console.log('Slate: execCommand 失败', e);
+      }
+
+      // 方法2：通过 React 内部 setValue/onChange 等回调更新（千问等）
+      if (!slateUpdated && query) {
+        try {
+          const fiber = getReactFiber(element);
+          const node = findReactNodeWithValueSetter(fiber);
+          if (node && node.memoizedProps) {
+            const props = node.memoizedProps;
+            if (typeof props.setInputValue === 'function') {
+              props.setInputValue(query);
+            } else if (typeof props.onValueUpdate === 'function') {
+              props.onValueUpdate(query);
+            } else if (typeof props.onChange === 'function' && Array.isArray(props.value)) {
+              try {
+                const newValue = [{ type: 'paragraph', children: [{ text: query }] }];
+                props.onChange(newValue);
+              } catch (_) {}
+            }
+            slateUpdated = await waitForSlateUpdate();
+            console.log('Slate: React 路径完成', { slateUpdated });
+          }
+        } catch (e2) {
+          console.log('Slate: React 路径失败', e2);
+        }
+      }
+
+      // 方法3：粘贴事件（选区已设为整段）
+      if (!slateUpdated && query && query.trim()) {
+        try {
+          sel.removeAllRanges();
+          if (p) range.selectNodeContents(p);
+          else range.selectNodeContents(element);
+          sel.addRange(range);
+          const dt = new DataTransfer();
+          dt.setData('text/plain', query);
+          element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertFromPaste', data: query }));
+          element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: dt }));
+          slateUpdated = await waitForSlateUpdate();
+          console.log('Slate: 模拟粘贴完成', { slateUpdated });
+        } catch (e3) {
+          console.log('Slate: 模拟粘贴失败', e3);
+        }
+      }
+
+      // 方法4：直接构建 Slate 结构并触发输入事件
+      if (!slateUpdated && query) {
+        const fallbackP = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
+        if (fallbackP) {
+          fallbackP.innerHTML = '';
+          const textSpan = document.createElement('span');
+          textSpan.setAttribute('data-slate-node', 'text');
+          const leafSpan = document.createElement('span');
+          leafSpan.setAttribute('data-slate-leaf', 'true');
+          const stringSpan = document.createElement('span');
+          stringSpan.setAttribute('data-slate-string', 'true');
+          stringSpan.textContent = query;
+          leafSpan.appendChild(stringSpan);
+          textSpan.appendChild(leafSpan);
+          fallbackP.appendChild(textSpan);
+        }
+        element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+        element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+        slateUpdated = await waitForSlateUpdate();
+        console.log('Slate: DOM 构建完成', { slateUpdated });
+      }
+
+      if (slateUpdated) {
+        await collapseToSingleQuery();
+      }
+    } else {
     // 检查是否是 Lexical 编辑器（通过 data-lexical-editor 属性）
     const isLexicalEditor = element.hasAttribute('data-lexical-editor') || 
                            element.getAttribute('data-lexical-editor') === 'true';
@@ -739,6 +1028,7 @@ async function executeSetValue(step, query) {
           newP.innerText = query;
         }
       }
+    }
     }
   } else if (step.inputType === 'special') {
     // 使用配置驱动的特殊处理
@@ -1054,18 +1344,11 @@ async function executeSendKeys(step, query) {
                 navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
 
   if (step.keys === 'Enter') {
-    const enterEvent = new KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      which: 13,
-      location: 0,
-      repeat: false,
-      isComposing: false
-    });
-    element.dispatchEvent(enterEvent);
+    element.focus();
+    const enterOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13, location: 0, repeat: false, isComposing: false };
+    element.dispatchEvent(new KeyboardEvent('keydown', enterOpts));
+    element.dispatchEvent(new KeyboardEvent('keypress', enterOpts));
+    element.dispatchEvent(new KeyboardEvent('keyup', enterOpts));
     console.log('发送回车键到元素:', foundSelector);
   } else if (step.keys === '⌘ + Enter' || step.keys === 'Command+Enter' || step.keys === 'Meta+Enter') {
     // 处理 ⌘ + Enter 组合键
@@ -1447,7 +1730,7 @@ window.addEventListener('message', async function(event) {
                     window._currentFileData = event.data.fileData;
                 }
                 
-                await executeSiteHandler(null, siteHandler.fileUploadHandler);
+                await executeSiteHandler(null, siteHandler.fileUploadHandler, siteHandler.name);
                 console.log('🎯 站点文件上传处理器执行完成');
                 
                 // 清理临时数据
@@ -1472,7 +1755,7 @@ window.addEventListener('message', async function(event) {
                                 action: 'paste', 
                                 description: '最后降级：默认粘贴操作' 
                             }] 
-                        });
+                        }, siteHandler.name);
                     }
                 } else {
                     // 没有文件数据时的降级
@@ -1482,7 +1765,7 @@ window.addEventListener('message', async function(event) {
                             action: 'paste', 
                             description: '降级：默认粘贴操作' 
                         }] 
-                    });
+                    }, siteHandler.name);
                 }
             }
         } else {
@@ -1504,7 +1787,7 @@ window.addEventListener('message', async function(event) {
                         action: 'paste', 
                         description: '默认粘贴操作' 
                     }] 
-                });
+                }, siteHandler.name);
             }
         }
         return;
@@ -1622,7 +1905,7 @@ window.addEventListener('message', async function(event) {
         console.log('🔍 调试信息 - 搜索处理器配置:', siteHandler.searchHandler);
         try {
             // 使用配置化处理器执行
-            await executeSiteHandler(event.data.query, siteHandler.searchHandler);
+            await executeSiteHandler(event.data.query, siteHandler.searchHandler, siteHandler.name);
             console.log(`✅ ${siteHandler.name} 处理完成`);
             
             // 执行完成后，启动 URL 检测逻辑（如果配置了 historyHandler）
@@ -1643,6 +1926,11 @@ window.addEventListener('message', async function(event) {
             }
         } catch (error) {
             console.error(`❌ ${siteHandler.name} 处理失败:`, error);
+            postInjectProgress({
+                siteName: siteHandler.name,
+                status: 'error',
+                errorMessage: error?.message || String(error)
+            });
         }
         return;
     }
@@ -1653,6 +1941,13 @@ window.addEventListener('message', async function(event) {
     console.warn('🔍 调试信息 - 站点处理器:', siteHandler);
     console.warn('🔍 调试信息 - 消息类型:', event.data.type);
     console.warn('🔍 调试信息 - 查询内容:', event.data.query);
+    if (event.data.query) {
+        postInjectProgress({
+            siteName: event.data.siteName || domain,
+            status: 'error',
+            errorMessage: '未找到站点处理器'
+        });
+    }
 }); 
 
 // 处理传递的文件数据粘贴

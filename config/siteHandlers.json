@@ -1375,28 +1375,29 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea",
-            "description": "聚焦输入框"
+            "selector": "[data-slate-editor=\"true\"]",
+            "description": "聚焦输入框（Slate 编辑器）"
           },
           {
             "action": "setValue",
-            "selector": "textarea",
+            "selector": "[data-slate-editor=\"true\"]",
+            "inputType": "contenteditable",
             "description": "设置输入框的值"
           },
           {
             "action": "triggerEvents",
-            "selector": "textarea",
+            "selector": "[data-slate-editor=\"true\"]",
             "events": ["input", "change", "blur", "focus"],
             "description": "触发输入事件"
           },
           {
             "action": "wait",
-            "duration": 100,
-            "description": "等待100ms"
+            "duration": 250,
+            "description": "等待250ms让 Slate 状态更新后再发送"
           },
           {
             "action": "sendKeys",
-            "selector": "textarea",
+            "selector": "[data-slate-editor=\"true\"]",
             "keys": "Enter",
             "description": "发送回车键"
           },
@@ -1412,7 +1413,7 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea",
+            "selector": "[data-slate-editor=\"true\"]",
             "description": "聚焦通义千问输入框准备文件粘贴"
           },
           {

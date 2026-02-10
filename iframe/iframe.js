@@ -24,6 +24,106 @@ function sortSitesFavoriteFirst(sites) {
   });
 }
 
+function createInjectProgressOverlay(siteName) {
+  const overlay = document.createElement('div');
+  overlay.className = 'inject-progress';
+  overlay.innerHTML = `
+    <div class="inject-progress-content">
+      <div class="inject-progress-title">正在执行脚本...</div>
+      <div class="inject-progress-detail">准备中</div>
+      <button class="inject-progress-retry" type="button">重试</button>
+    </div>
+  `;
+
+  const retryBtn = overlay.querySelector('.inject-progress-retry');
+  retryBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = overlay.closest('.iframe-container');
+    const iframe = container?.querySelector('iframe');
+    const query = (container?.dataset.lastQuery || '').trim() || (document.getElementById('searchInput')?.value || '').trim();
+    if (!query) {
+      showToast('请输入问题');
+      return;
+    }
+    setInjectProgressState(overlay, {
+      status: 'start',
+      totalSteps: 0,
+      description: '重试中'
+    });
+    await retryInjectForIframe(iframe, siteName, query);
+  });
+
+  return overlay;
+}
+
+function setInjectProgressState(overlay, payload) {
+  if (!overlay) return;
+  const titleEl = overlay.querySelector('.inject-progress-title');
+  const detailEl = overlay.querySelector('.inject-progress-detail');
+  const retryBtn = overlay.querySelector('.inject-progress-retry');
+
+  const status = payload.status;
+  if (status === 'complete') {
+    overlay.classList.remove('is-visible', 'is-error');
+    return;
+  }
+
+  overlay.classList.add('is-visible');
+
+  if (status === 'error') {
+    overlay.classList.add('is-error');
+    if (titleEl) titleEl.textContent = '执行失败';
+    const stepInfo = payload.stepIndex && payload.totalSteps
+      ? `步骤 ${payload.stepIndex}/${payload.totalSteps}`
+      : '执行中断';
+    const detailText = payload.description ? `${stepInfo}：${payload.description}` : stepInfo;
+    if (detailEl) detailEl.textContent = payload.errorMessage ? `${detailText}（${payload.errorMessage}）` : detailText;
+    if (retryBtn) retryBtn.style.display = 'inline-flex';
+    return;
+  }
+
+  overlay.classList.remove('is-error');
+  if (retryBtn) retryBtn.style.display = 'none';
+
+  if (status === 'start') {
+    if (titleEl) titleEl.textContent = '正在执行脚本...';
+    if (detailEl) detailEl.textContent = payload.description || '准备中';
+    return;
+  }
+
+  if (status === 'step' || status === 'step_complete') {
+    const stepInfo = payload.stepIndex && payload.totalSteps
+      ? `步骤 ${payload.stepIndex}/${payload.totalSteps}`
+      : '执行中';
+    const detailText = payload.description ? `${stepInfo}：${payload.description}` : stepInfo;
+    if (titleEl) titleEl.textContent = '正在执行脚本...';
+    if (detailEl) detailEl.textContent = detailText;
+  }
+}
+
+async function retryInjectForIframe(iframe, siteName, query) {
+  if (!iframe) return;
+  try {
+    const historyId = window._currentHistoryId || null;
+    const handler = await getIframeHandler(iframe.src);
+    if (handler) {
+      await handler(iframe, query, historyId);
+      return;
+    }
+    const domain = new URL(iframe.src).hostname;
+    iframe.contentWindow?.postMessage({
+      type: 'search',
+      query,
+      domain,
+      historyId,
+      siteName
+    }, '*');
+  } catch (error) {
+    console.error('重试失败:', error);
+  }
+}
+
 function getOpenedSites() {
   return Array.from(document.querySelectorAll('.ai-iframe'))
     .map(iframe => iframe.getAttribute('data-site'))
@@ -1159,6 +1259,8 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
 function createSingleIframe(siteName, url, container, query) {
   const iframeContainer = document.createElement('div');
   iframeContainer.className = 'iframe-container';
+  iframeContainer.dataset.siteName = siteName;
+  iframeContainer.dataset.lastQuery = query || '';
   
   // iframe容器不需要特殊的布局设置，CSS Grid会自动处理
   
@@ -1234,6 +1336,15 @@ function createSingleIframe(siteName, url, container, query) {
       window.open(event.data.href, '_blank');
     }
     
+    // 注入脚本执行进度
+    if (event.data.type === 'INJECT_PROGRESS' && event.data.source === 'inject-script') {
+      if (iframe.contentWindow && event.source === iframe.contentWindow) {
+        if (!event.data.siteName || event.data.siteName === siteName) {
+          setInjectProgressState(iframeContainer.querySelector('.inject-progress'), event.data);
+        }
+      }
+    }
+
     // 处理历史记录 URL 更新消息
     if (event.data.type === 'HISTORY_URL_UPDATE' && event.data.source === 'inject-script') {
       // 确保消息来自当前 iframe
@@ -1336,6 +1447,7 @@ function createSingleIframe(siteName, url, container, query) {
   // 组装元素
   iframeContainer.appendChild(header);
   iframeContainer.appendChild(iframe);
+  iframeContainer.appendChild(createInjectProgressOverlay(siteName));
   container.appendChild(iframeContainer);
   
   // 添加悬浮收藏按钮（新创建的 iframe 默认未收藏）
@@ -1469,7 +1581,8 @@ async function getIframeHandler(iframeUrl) {
                 type: 'search',
                 query: query,
                 domain: domain,
-                historyId: historyId || null
+                historyId: historyId || null,
+                siteName: site.name
               }, '*');
               
               console.log(`已向 ${domain} 发送搜索消息`);
@@ -2097,31 +2210,32 @@ function shakeToggleIcon() {
   }
 }
 
-// 添加收藏按钮点击事件
-document.getElementById('favoriteButton').addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  toggleFavorite();
-  // 触发切换图标晃动动画
-  shakeToggleIcon();
-});
+// 添加收藏按钮点击事件（仅当元素存在时）
+const favoriteButton = document.getElementById('favoriteButton');
+if (favoriteButton) {
+  favoriteButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite();
+    shakeToggleIcon();
+  });
+}
 
-// 添加图标点击事件
-document.getElementById('toggleIcon').addEventListener('click', () => {
-  const queryList = document.getElementById('queryList');
-  if (queryList.style.display === 'none') {
-      // 切换图标
-       const toggleIcon = document.getElementById('toggleIcon');
-       toggleIcon.src = '../icons/up.svg'; // 切换为 up.svg
-      queryList.style.display = 'block'; // 显示收藏的query列表
-      
-      // 显示收藏夹
+// 添加图标点击事件（仅当元素存在时）
+const toggleIconBtn = document.getElementById('toggleIcon');
+if (toggleIconBtn) {
+  toggleIconBtn.addEventListener('click', () => {
+    const queryList = document.getElementById('queryList');
+    if (queryList.style.display === 'none') {
+      toggleIconBtn.src = '../icons/up.svg';
+      queryList.style.display = 'block';
       showFavorites();
-  } else {
-      queryList.style.display = 'none'; // 隐藏查询列表
-      document.getElementById('toggleIcon').src = '../icons/down.svg'; // 切换回 down.svg
-  }
-});
+    } else {
+      queryList.style.display = 'none';
+      toggleIconBtn.src = '../icons/down.svg';
+    }
+  });
+}
 
 // 点击收藏夹以外区域隐藏收藏夹
 document.addEventListener('click', (e) => {
@@ -2194,6 +2308,10 @@ async function iframeFresh(query) {
             console.log('当前iframe网站hostname:', domain);
             // 通过 data-site 属性获取站点名
             const siteName = iframe.getAttribute('data-site');
+            const iframeContainer = iframe.closest('.iframe-container');
+            if (iframeContainer) {
+              iframeContainer.dataset.lastQuery = query || '';
+            }
 
             const siteConfig = sites.find(site => site.name === siteName);
             // 如果站点配置存在并且支持 URL 查询
@@ -3874,4 +3992,3 @@ function showFileUploadError(message) {
     }
   }, 3000);
 }
-
