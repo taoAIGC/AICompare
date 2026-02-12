@@ -1,7 +1,7 @@
 {
-  "version": "1.1.3",
-  "lastUpdated": "2026-01-19T00:00:00Z",
-  "description": "支持粘贴功能",
+  "version": "1.2.1",
+  "lastUpdated": "2026-02-12T00:00:00Z",
+  "description": "支持重试功能",
   "author": "AIShortcuts",
   "sites": [
     {
@@ -86,9 +86,9 @@
       "historyHandler": {
         "urlFeature": "/c/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "div[class*=\"user-message-bubble-color\"]",
+        "textSelector": "div.whitespace-pre-wrap"
       }
     },
     {
@@ -175,9 +175,9 @@
       "historyHandler": {
         "urlFeature": "/app/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"], .user-message",
-        "textSelector": "[data-message-author-role=\"user\"], .user-message"
+      "userPrompt": {
+        "containerSelector": "div.query-text",
+        "textSelector": "p.query-text-line"
       }
     },
     {
@@ -297,9 +297,9 @@
       "historyHandler": {
         "urlFeature": "/c/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "div.response-content-markdown.markdown",
+        "textSelector": "div.break-words"
       }
     },
     {
@@ -426,9 +426,9 @@
       "historyHandler": {
         "urlFeature": "/chat/"
       },
-      "userPromptButton": {
+      "userPrompt": {
         "containerSelector": "[data-testid=\"user-message\"]",
-        "textSelector": "[data-testid=\"user-message\"]"
+        "textSelector": "p.whitespace-pre-wrap.break-words"
       }
     },
     {
@@ -520,7 +520,7 @@
       "historyHandler": {
         "urlFeature": "/prompts/"
       },
-      "userPromptButton": {
+      "userPrompt": {
         "containerSelector": "[data-testid^=\"message-prompt\"]",
         "textSelector": "[data-testid^=\"message-prompt\"] .markdown"
       }
@@ -637,9 +637,9 @@
       "historyHandler": {
         "urlFeature": "/chat/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "div.ds-message",
+        "textSelector": "div.ds-message > div"
       }
     },
     {
@@ -752,9 +752,9 @@
       "historyHandler": {
         "urlFeature": "/chat/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "[data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], [data-plugin-identifier=\"block_type:10000\"].flex.justify-end [data-testid=\"message_text_content\"]",
+        "textSelector": "[data-testid=\"message_text_content\"]"
       }
     },
     {
@@ -854,9 +854,9 @@
       "historyHandler": {
         "urlFeature": "/search-v2/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"], .user-message, .user-prompt",
-        "textSelector": "[data-message-author-role=\"user\"], .user-message, .user-prompt"
+      "userPrompt": {
+        "containerSelector": "span.MuiBox-root.css-403oub",
+        "textSelector": "span.MuiBox-root.css-403oub > span[style*=\"margin-right\"]"
       }
     },
     {
@@ -979,9 +979,9 @@
           "[class*=\"yc-editor\"]"
         ]
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "div.hyc-component-text",
+        "textSelector": "div.hyc-content-text"
       }
     },
     {
@@ -1108,9 +1108,9 @@
       "historyHandler": {
         "urlFeature": "-"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "div.agent-chat__list__item--human",
+        "textSelector": "div.agent-chat__bubble--human"
       }
     },
     {
@@ -1300,6 +1300,10 @@
           }
         ]
       },
+      "userPrompt": {
+        "containerSelector": "div.segment-content-box",
+        "textSelector": "div.segment-content-box .user-content"
+      },
       "contentExtractor": {
         "selectors": [
           "[data-message-author-role=\"assistant\"] .markdown",
@@ -1355,10 +1359,6 @@
       },
       "historyHandler": {
         "urlFeature": "/chat/"
-      },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
       }
     },
     
@@ -1388,12 +1388,13 @@
             "action": "triggerEvents",
             "selector": "[data-slate-editor=\"true\"]",
             "events": ["input", "change", "blur", "focus"],
-            "description": "触发输入事件"
+            "inputType": "special",
+            "description": "触发输入事件（含 InputEvent 文本，同步 React 状态以启用发送按钮）"
           },
           {
             "action": "wait",
-            "duration": 250,
-            "description": "等待250ms让 Slate 状态更新后再发送"
+            "duration": 400,
+            "description": "等待400ms让 Slate/React 状态更新并启用发送按钮后再发送"
           },
           {
             "action": "sendKeys",
@@ -1485,9 +1486,9 @@
       "historyHandler": {
         "urlFeature": "/chat/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+      "userPrompt": {
+        "containerSelector": "[class*=\"questionItem\"]",
+        "textSelector": "[class*=\"bubble\"]"
       }
     },
     {
@@ -1610,7 +1611,7 @@
       "historyHandler": {
         "urlFeature": "/c/"
       },
-      "userPromptButton": {
+      "userPrompt": {
         "containerSelector": "[data-message-author-role=\"user\"]",
         "textSelector": "[data-message-author-role=\"user\"]"
       }
@@ -1757,9 +1758,9 @@
       "historyHandler": {
         "urlFeature": "/chats/"
       },
-      "userPromptButton": {
-        "containerSelector": "[data-message-author-role=\"user\"], .user-message",
-        "textSelector": "[data-message-author-role=\"user\"], .user-message"
+      "userPrompt": {
+        "containerSelector": "div[class*=\"Prose_prose__\"]",
+        "textSelector": "div[class*=\"Prose_prose__\"] > p"
       }
     },
     {
@@ -1839,7 +1840,7 @@
       "historyHandler": {
         "urlFeature": "/chat/"
       },
-      "userPromptButton": {
+      "userPrompt": {
         "containerSelector": "[data-message-author-role=\"user\"], .user-message",
         "textSelector": "[data-message-author-role=\"user\"], .user-message"
       }

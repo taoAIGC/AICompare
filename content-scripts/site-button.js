@@ -70,15 +70,15 @@
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
           createSiteButton(currentSite);
-          // 如果配置了 userPromptButton，创建 userprompt 按钮
-          if (currentSite.userPromptButton) {
+          // 如果配置了 userPrompt，创建 userprompt 按钮
+          if (currentSite.userPrompt) {
             createUserPromptButtons(currentSite);
           }
         });
       } else {
         createSiteButton(currentSite);
-        // 如果配置了 userPromptButton，创建 userprompt 按钮
-        if (currentSite.userPromptButton) {
+        // 如果配置了 userPrompt，创建 userprompt 按钮
+        if (currentSite.userPrompt) {
           createUserPromptButtons(currentSite);
         }
       }
@@ -455,9 +455,9 @@
    * 在每个用户消息旁边显示"多AI 对比"按钮
    */
   function createUserPromptButtons(site) {
-    const userPromptConfig = site.userPromptButton;
+    const userPromptConfig = site.userPrompt;
     if (!userPromptConfig || !userPromptConfig.containerSelector) {
-      console.log('未配置 userPromptButton');
+      console.log('未配置 userPrompt');
       return;
     }
 
@@ -508,7 +508,7 @@
       // 创建按钮容器
       const buttonContainer = document.createElement('div');
       buttonContainer.className = 'multi-ai-userprompt-button-container';
-      buttonContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 8px; vertical-align: middle;';
+      buttonContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 23px; vertical-align: middle;';
 
       // 创建按钮
       const button = document.createElement('button');
@@ -517,6 +517,8 @@
       button.title = '使用多AI对比搜索';
       button.setAttribute('aria-label', '使用多AI对比搜索');
       button.style.cssText = `
+        display: inline-flex;
+        align-items: center;
         padding: 4px 8px;
         font-size: 12px;
         border: 1px solid #ccc;

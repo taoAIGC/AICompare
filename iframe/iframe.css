@@ -52,7 +52,7 @@ html {
 .inject-progress {
   position: absolute;
   inset: 40px 0 0 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.6);
   display: none;
   align-items: center;
   justify-content: center;
@@ -90,11 +90,29 @@ html {
   word-break: break-all;
 }
 
+.inject-progress-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .inject-progress-retry {
   display: none;
   border: 1px solid #d0d0d0;
   background: #f7f7f7;
   color: #333;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.inject-progress-close {
+  display: none;
+  border: 1px solid #e2c9c9;
+  background: #fff;
+  color: #8a2b2b;
   border-radius: 6px;
   padding: 6px 12px;
   cursor: pointer;
@@ -1270,7 +1288,7 @@ html {
 }
 
 /* iframe 悬浮收藏按钮：默认隐藏，仅在该 iframe 内悬停时显示 */
-.iframe-favorite-btn {
+.iframe-favorite-btn-float {
     position: absolute;
     bottom: 12px;
     right: 12px;
@@ -1291,18 +1309,18 @@ html {
     pointer-events: none;
 }
 
-.iframe-container:hover .iframe-favorite-btn {
+.iframe-container:hover .iframe-favorite-btn-float {
     opacity: 1;
     pointer-events: auto;
 }
 
-.iframe-favorite-btn:hover {
+.iframe-favorite-btn-float:hover {
     background: rgba(255, 255, 255, 1);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
     transform: translateY(-1px);
 }
 
-.iframe-favorite-btn:active {
+.iframe-favorite-btn-float:active {
     transform: translateY(0);
 }
 
@@ -1312,3 +1330,13 @@ html {
     display: block;
 }
 
+.iframe-favorite-btn-header {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

@@ -24,18 +24,31 @@ function sortSitesFavoriteFirst(sites) {
   });
 }
 
+function t(key, fallback = '', substitutions = undefined) {
+  try {
+    const message = chrome?.i18n?.getMessage(key, substitutions);
+    return message || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
   overlay.className = 'inject-progress';
   overlay.innerHTML = `
     <div class="inject-progress-content">
-      <div class="inject-progress-title">正在执行脚本...</div>
-      <div class="inject-progress-detail">准备中</div>
-      <button class="inject-progress-retry" type="button">重试</button>
+      <div class="inject-progress-title">${t('injectProgressTitleRunning', '正在执行脚本...')}</div>
+      <div class="inject-progress-detail">${t('injectProgressDetailPreparing', '准备中')}</div>
+      <div class="inject-progress-actions">
+        <button class="inject-progress-retry" type="button">${t('injectProgressButtonRetry', '重试')}</button>
+        <button class="inject-progress-close" type="button">${t('injectProgressButtonClose', '关闭')}</button>
+      </div>
     </div>
   `;
 
   const retryBtn = overlay.querySelector('.inject-progress-retry');
+  const closeBtn = overlay.querySelector('.inject-progress-close');
   retryBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -43,15 +56,20 @@ function createInjectProgressOverlay(siteName) {
     const iframe = container?.querySelector('iframe');
     const query = (container?.dataset.lastQuery || '').trim() || (document.getElementById('searchInput')?.value || '').trim();
     if (!query) {
-      showToast('请输入问题');
+      showToast(t('injectProgressToastNeedQuery', '请输入问题'));
       return;
     }
     setInjectProgressState(overlay, {
       status: 'start',
       totalSteps: 0,
-      description: '重试中'
+      description: t('injectProgressDetailRetrying', '重试中')
     });
     await retryInjectForIframe(iframe, siteName, query);
+  });
+  closeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    overlay.classList.remove('is-visible', 'is-error');
   });
 
   return overlay;
@@ -62,6 +80,7 @@ function setInjectProgressState(overlay, payload) {
   const titleEl = overlay.querySelector('.inject-progress-title');
   const detailEl = overlay.querySelector('.inject-progress-detail');
   const retryBtn = overlay.querySelector('.inject-progress-retry');
+  const closeBtn = overlay.querySelector('.inject-progress-close');
 
   const status = payload.status;
   if (status === 'complete') {
@@ -69,35 +88,126 @@ function setInjectProgressState(overlay, payload) {
     return;
   }
 
-  overlay.classList.add('is-visible');
+  const rawDescription = payload.description || '';
+  const cleanedDescription = rawDescription
+    .replace(/（支持重试）/g, '')
+    .replace(/\(支持重试\)/g, '')
+    .trim();
+  const descriptionI18nMap = {
+    '使用URL查询，无需输入框操作': 'injectStepDescUrlQueryNoInput',
+    '发送 ⌘ + Enter (Mac) 或 Ctrl + Enter (Windows) 提交Prompt': 'injectStepDescSendCmdOrCtrlEnter',
+    '发送回车键': 'injectStepDescSendEnter',
+    '发送回车键提交': 'injectStepDescSendEnterSubmit',
+    '发送消息给父窗口': 'injectStepDescSendMessageToParent',
+    '执行文件粘贴操作': 'injectStepDescExecuteFilePaste',
+    '点击Claude发送按钮': 'injectStepDescClickClaudeSend',
+    '点击POE发送按钮': 'injectStepDescClickPoeSend',
+    '点击发送按钮': 'injectStepDescClickSend',
+    '点击豆包发送按钮': 'injectStepDescClickDoubaoSend',
+    '站点暂未实现搜索处理器': 'injectStepDescHandlerNotImplemented',
+    '等待100ms': 'injectStepDescWait100ms',
+    '等待200ms确保聚焦完成': 'injectStepDescWait200msEnsureFocus',
+    '等待200ms，确保Angular变更检测完成': 'injectStepDescWait200msAngular',
+    '等待400ms让 Slate/React 状态更新并启用发送按钮后再发送': 'injectStepDescWait400msSlateReact',
+    '聚焦 Lexical 编辑器输入框': 'injectStepDescFocusLexicalInput',
+    '聚焦AI Studio提示输入区域': 'injectStepDescFocusAIStudioPrompt',
+    '聚焦AI Studio输入框准备文件粘贴': 'injectStepDescFocusAIStudioInputForPaste',
+    '聚焦ChatGPT输入框': 'injectStepDescFocusChatGPTInput',
+    '聚焦ChatGPT输入框准备文件粘贴': 'injectStepDescFocusChatGPTInputForPaste',
+    '聚焦Claude输入框准备文件粘贴': 'injectStepDescFocusClaudeInputForPaste',
+    '聚焦Copilot输入框': 'injectStepDescFocusCopilotInput',
+    '聚焦Copilot输入框准备文件粘贴': 'injectStepDescFocusCopilotInputForPaste',
+    '聚焦Gemini输入框准备文件粘贴': 'injectStepDescFocusGeminiInputForPaste',
+    '聚焦Grok输入框准备文件粘贴': 'injectStepDescFocusGrokInputForPaste',
+    '聚焦Kimi Lexical编辑器输入框准备文件粘贴': 'injectStepDescFocusKimiLexicalInputForPaste',
+    '聚焦POE输入框准备文件粘贴': 'injectStepDescFocusPoeInputForPaste',
+    '聚焦Qwen输入框准备文件粘贴': 'injectStepDescFocusQwenInputForPaste',
+    '聚焦可编辑区域': 'injectStepDescFocusEditableArea',
+    '聚焦可编辑区域准备文件粘贴': 'injectStepDescFocusEditableAreaForPaste',
+    '聚焦推荐框或输入框': 'injectStepDescFocusSuggestionOrInput',
+    '聚焦文心一言编辑器': 'injectStepDescFocusWenxinEditor',
+    '聚焦文心一言编辑器准备文件粘贴': 'injectStepDescFocusWenxinEditorForPaste',
+    '聚焦秘塔AI输入框准备文件粘贴': 'injectStepDescFocusMetasoInputForPaste',
+    '聚焦豆包输入框': 'injectStepDescFocusDoubaoInput',
+    '聚焦豆包输入框准备文件粘贴': 'injectStepDescFocusDoubaoInputForPaste',
+    '聚焦输入框': 'injectStepDescFocusInput',
+    '聚焦输入框准备文件粘贴': 'injectStepDescFocusInputForPaste',
+    '聚焦输入框（Slate 编辑器）': 'injectStepDescFocusInputSlate',
+    '聚焦通义千问输入框准备文件粘贴': 'injectStepDescFocusTongyiInputForPaste',
+    '触发多种输入事件': 'injectStepDescTriggerMultipleInputEvents',
+    '触发完整的输入事件序列': 'injectStepDescTriggerFullInputEventSequence',
+    '触发特殊输入事件': 'injectStepDescTriggerSpecialInputEvents',
+    '触发输入事件': 'injectStepDescTriggerInputEvents',
+    '触发输入事件（含 InputEvent 文本，同步 React 状态以启用发送按钮）': 'injectStepDescTriggerInputEventsWithInputEvent',
+    '设置 Lexical 编辑器内容（自动创建 span[data-lexical-text] 结构）': 'injectStepDescSetLexicalContent',
+    '设置AI Studio输入内容（Angular FormControl）': 'injectStepDescSetAIStudioInputAngular',
+    '设置ChatGPT输入框内容': 'injectStepDescSetChatGPTInputContent',
+    '设置Copilot输入框的值': 'injectStepDescSetCopilotInputValue',
+    '设置POE特殊输入框的值': 'injectStepDescSetPoeSpecialInputValue',
+    '设置可编辑区域内容': 'injectStepDescSetEditableAreaContent',
+    '设置文心一言特殊编辑器内容': 'injectStepDescSetWenxinSpecialEditorContent',
+    '设置秘塔输入框的值': 'injectStepDescSetMetasoInputValue',
+    '设置豆包输入框的值': 'injectStepDescSetDoubaoInputValue',
+    '设置输入框的值': 'injectStepDescSetInputValue'
+  };
+  const descriptionKey = descriptionI18nMap[cleanedDescription];
+  const translatedDescription = descriptionKey ? t(descriptionKey, cleanedDescription) : cleanedDescription;
+  const isEnglish = (chrome?.i18n?.getUILanguage() || '').toLowerCase().startsWith('en');
+  const hasChinese = /[\u4e00-\u9fff]/.test(translatedDescription);
+  const actionLabelMap = {
+    click: t('injectStepActionClick', 'Click'),
+    focus: t('injectStepActionFocus', 'Focus'),
+    setValue: t('injectStepActionSetValue', 'Set value'),
+    triggerEvents: t('injectStepActionTriggerEvents', 'Trigger events'),
+    sendKeys: t('injectStepActionSendKeys', 'Send keys'),
+    replace: t('injectStepActionReplace', 'Replace'),
+    wait: t('injectStepActionWait', 'Wait'),
+    custom: t('injectStepActionCustom', 'Custom action'),
+    paste: t('injectStepActionPaste', 'Paste')
+  };
+  const actionLabel = payload.action ? actionLabelMap[payload.action] : '';
+  const description = (!translatedDescription || (isEnglish && hasChinese))
+    ? (actionLabel || translatedDescription)
+    : translatedDescription;
+  const retryInfo = (payload.retryAttempts && payload.retryMax)
+    ? t('injectProgressRetryInfo', '重试 $1/$2', [String(payload.retryAttempts), String(payload.retryMax)])
+    : '';
+  const retrySuffix = retryInfo ? `（${retryInfo}）` : '';
 
   if (status === 'error') {
-    overlay.classList.add('is-error');
-    if (titleEl) titleEl.textContent = '执行失败';
+    if (payload.manualRetryRequired !== true) {
+      overlay.classList.remove('is-visible', 'is-error');
+      return;
+    }
+    overlay.classList.add('is-visible', 'is-error');
+    if (titleEl) titleEl.textContent = t('injectProgressTitleError', '执行失败');
     const stepInfo = payload.stepIndex && payload.totalSteps
-      ? `步骤 ${payload.stepIndex}/${payload.totalSteps}`
-      : '执行中断';
-    const detailText = payload.description ? `${stepInfo}：${payload.description}` : stepInfo;
+      ? t('injectProgressStepInfo', '步骤 $1/$2', [String(payload.stepIndex), String(payload.totalSteps)])
+      : t('injectProgressStepInfoFallback', '执行中断');
+    const detailText = description ? `${stepInfo}：${description}${retrySuffix}` : stepInfo;
     if (detailEl) detailEl.textContent = payload.errorMessage ? `${detailText}（${payload.errorMessage}）` : detailText;
     if (retryBtn) retryBtn.style.display = 'inline-flex';
+    if (closeBtn) closeBtn.style.display = 'inline-flex';
     return;
   }
 
+  overlay.classList.add('is-visible');
   overlay.classList.remove('is-error');
-  if (retryBtn) retryBtn.style.display = 'none';
+  if (retryBtn) retryBtn.style.display = 'inline-flex';
+  if (closeBtn) closeBtn.style.display = 'inline-flex';
 
   if (status === 'start') {
-    if (titleEl) titleEl.textContent = '正在执行脚本...';
-    if (detailEl) detailEl.textContent = payload.description || '准备中';
+    if (titleEl) titleEl.textContent = t('injectProgressTitleRunning', '正在执行脚本...');
+    if (detailEl) detailEl.textContent = description || t('injectProgressDetailPreparing', '准备中');
     return;
   }
 
   if (status === 'step' || status === 'step_complete') {
     const stepInfo = payload.stepIndex && payload.totalSteps
-      ? `步骤 ${payload.stepIndex}/${payload.totalSteps}`
-      : '执行中';
-    const detailText = payload.description ? `${stepInfo}：${payload.description}` : stepInfo;
-    if (titleEl) titleEl.textContent = '正在执行脚本...';
+      ? t('injectProgressStepInfo', '步骤 $1/$2', [String(payload.stepIndex), String(payload.totalSteps)])
+      : t('injectProgressStepInfoFallbackProgress', '执行中');
+    const detailText = description ? `${stepInfo}：${description}${retrySuffix}` : stepInfo;
+    if (titleEl) titleEl.textContent = t('injectProgressTitleRunning', '正在执行脚本...');
     if (detailEl) detailEl.textContent = detailText;
   }
 }
@@ -877,6 +987,12 @@ function showFileUploadProgress(current, total, status, siteName = null, result 
   
   let message = '';
   let emoji = '';
+  let fileInfo = '';
+  
+  if (currentUploadBatch) {
+    const safeName = escapeHtml(currentUploadBatch.name);
+    fileInfo = `<br><small style="opacity: 0.8;">文件: ${safeName} (${currentUploadBatch.index}/${currentUploadBatch.total})</small>`;
+  }
   
   switch (status) {
     case 'starting':
@@ -903,6 +1019,8 @@ function showFileUploadProgress(current, total, status, siteName = null, result 
       }
       break;
   }
+  
+  message += fileInfo;
   
   progressElement.innerHTML = `
     <div style="display: flex; align-items: center; gap: 8px;">
@@ -1341,6 +1459,13 @@ function createSingleIframe(siteName, url, container, query) {
       if (iframe.contentWindow && event.source === iframe.contentWindow) {
         if (!event.data.siteName || event.data.siteName === siteName) {
           setInjectProgressState(iframeContainer.querySelector('.inject-progress'), event.data);
+          if (event.data.status === 'start' || event.data.status === 'step' || event.data.status === 'step_complete' || event.data.status === 'error') {
+            const stepLabel = event.data.stepIndex && event.data.totalSteps
+              ? `步骤 ${event.data.stepIndex}/${event.data.totalSteps}`
+              : '步骤';
+            const desc = event.data.description ? `：${event.data.description}` : '';
+            console.log(`[inject-progress] ${siteName || ''} ${event.data.status} ${stepLabel}${desc}`);
+          }
         }
       }
     }
@@ -1429,6 +1554,9 @@ function createSingleIframe(siteName, url, container, query) {
   header.innerHTML = `
     <span class="site-name">${siteName}</span>
     <div class="iframe-controls">
+      <button class="iframe-favorite-btn iframe-favorite-btn-header" title="收藏">
+        <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg" alt="收藏">
+      </button>
       <button class="open-page-btn" title="在新标签页打开"></button>
       <button class="close-btn"></button>
     </div>
@@ -1454,6 +1582,7 @@ function createSingleIframe(siteName, url, container, query) {
   addFavoriteButtonToIframe(iframeContainer, siteName, false);
   
   // 添加按钮事件处理
+  const headerFavoriteBtn = header.querySelector('.iframe-favorite-btn-header');
   const openPageBtn = header.querySelector('.open-page-btn');
   const closeBtn = header.querySelector('.close-btn');
   
@@ -1462,6 +1591,23 @@ function createSingleIframe(siteName, url, container, query) {
   if (openInNewTabTitle) {
     openPageBtn.title = openInNewTabTitle;
   }
+  const favoriteTitle = chrome.i18n.getMessage('iframeFavoriteTitle');
+  if (favoriteTitle) {
+    headerFavoriteBtn.title = favoriteTitle;
+    const headerFavoriteIcon = headerFavoriteBtn.querySelector('.iframe-favorite-icon');
+    if (headerFavoriteIcon) {
+      headerFavoriteIcon.alt = favoriteTitle;
+    }
+  }
+  headerFavoriteBtn.dataset.siteName = siteName;
+  updateFavoriteButtonState(headerFavoriteBtn, false);
+  
+  // 头部收藏按钮点击事件
+  headerFavoriteBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    await toggleIframeFavorite(siteName, headerFavoriteBtn);
+  });
   
   // 打开页面按钮点击事件
   openPageBtn.onclick = async (e) => {
@@ -1946,29 +2092,34 @@ function updateFavoriteAllIcon(isFavorited) {
     }
 }
 
+// 更新单个收藏按钮的视觉状态
+function updateFavoriteButtonState(btn, isFavorite) {
+    const icon = btn.querySelector('.iframe-favorite-icon');
+    if (icon) {
+        icon.src = isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
+    }
+    btn.dataset.favorite = isFavorite ? 'true' : 'false';
+    btn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
+}
+
 // 更新所有 iframe 的收藏按钮状态
 function updateAllIframeFavoriteButtons(isFavorite) {
     const favoriteButtons = document.querySelectorAll('.iframe-favorite-btn');
     favoriteButtons.forEach(btn => {
-        const icon = btn.querySelector('.iframe-favorite-icon');
-        if (icon) {
-            icon.src = isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
-        }
-        btn.dataset.favorite = isFavorite ? 'true' : 'false';
-        btn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
+        updateFavoriteButtonState(btn, isFavorite);
     });
 }
 
 // 为 iframe 容器添加悬浮收藏按钮
 function addFavoriteButtonToIframe(iframeContainer, siteName, isFavorite = false) {
     // 检查是否已经存在收藏按钮
-    if (iframeContainer.querySelector('.iframe-favorite-btn')) {
+    if (iframeContainer.querySelector('.iframe-favorite-btn-float')) {
         return;
     }
     
     // 创建悬浮收藏按钮
     const favoriteBtn = document.createElement('button');
-    favoriteBtn.className = 'iframe-favorite-btn';
+    favoriteBtn.className = 'iframe-favorite-btn iframe-favorite-btn-float';
     favoriteBtn.dataset.siteName = siteName;
     favoriteBtn.dataset.favorite = isFavorite ? 'true' : 'false';
     favoriteBtn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
@@ -2031,13 +2182,13 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
         await chrome.storage.local.set({ pkHistory: pkHistory });
         if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         
-        // 更新按钮状态
-        const icon = favoriteBtn.querySelector('.iframe-favorite-icon');
-        if (icon) {
-            icon.src = siteItem.isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
-        }
-        favoriteBtn.dataset.favorite = siteItem.isFavorite ? 'true' : 'false';
-        favoriteBtn.title = siteItem.isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
+        // 更新当前站点所有收藏按钮状态
+        const favoriteButtons = document.querySelectorAll('.iframe-favorite-btn');
+        favoriteButtons.forEach(btn => {
+            if (btn.dataset.siteName === siteName) {
+                updateFavoriteButtonState(btn, siteItem.isFavorite);
+            }
+        });
         // 仅当当前记录下所有子 iframe 都被收藏时，顶部「收藏全部」图标才显示为已收藏
         const allFavorited = historyItem.sites.length > 0 && historyItem.sites.every(s => s.isFavorite);
         updateFavoriteAllIcon(allFavorited);
@@ -2426,12 +2577,16 @@ async function loadHistoryIframes(sites) {
       header.innerHTML = `
         <span class="site-name">${siteName}</span>
         <div class="iframe-controls">
+          <button class="iframe-favorite-btn iframe-favorite-btn-header" title="收藏">
+            <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg" alt="收藏">
+          </button>
           <button class="open-page-btn" title="在新标签页打开"></button>
           <button class="close-btn"></button>
         </div>
       `;
       
       // 添加按钮事件
+      const headerFavoriteBtn = header.querySelector('.iframe-favorite-btn-header');
       const openPageBtn = header.querySelector('.open-page-btn');
       const closeBtn = header.querySelector('.close-btn');
       
@@ -2440,7 +2595,26 @@ async function loadHistoryIframes(sites) {
       if (openInNewTabTitle) {
         openPageBtn.title = openInNewTabTitle;
       }
+      const favoriteTitle = chrome.i18n.getMessage('iframeFavoriteTitle');
+      if (favoriteTitle) {
+        headerFavoriteBtn.title = favoriteTitle;
+        const headerFavoriteIcon = headerFavoriteBtn.querySelector('.iframe-favorite-icon');
+        if (headerFavoriteIcon) {
+          headerFavoriteIcon.alt = favoriteTitle;
+        }
+      }
       
+      // 初始化头部收藏按钮状态
+      headerFavoriteBtn.dataset.siteName = siteName;
+      updateFavoriteButtonState(headerFavoriteBtn, site.isFavorite);
+
+      // 头部收藏按钮点击事件
+      headerFavoriteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        await toggleIframeFavorite(siteName, headerFavoriteBtn);
+      });
+
       // 打开页面按钮点击事件
       openPageBtn.onclick = async (e) => {
         e.stopPropagation();
@@ -3855,6 +4029,19 @@ function initializeFileUpload() {
   console.log('🎯 文件上传功能已初始化');
 }
 
+// 当前批次文件上传状态（用于进度提示）
+let currentUploadBatch = null;
+
+// 简单的 HTML 转义，避免文件名插入到 innerHTML 时出现问题
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // 初始化导出回答功能
 function initializeExportResponses() {
   const exportButton = document.getElementById('exportResponsesButton');
@@ -3887,9 +4074,26 @@ async function handleFileSelection(event) {
   
   console.log('🎯 用户选择了文件:', files.length, '个');
   
-  // 处理第一个文件（暂时只支持单文件）
-  const file = files[0];
-  await processUploadedFile(file);
+  // 逐个处理文件，避免并发触发上传流程
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    currentUploadBatch = {
+      index: index + 1,
+      total: files.length,
+      name: file.name
+    };
+    
+    const result = await processUploadedFile(file);
+    
+    if (!result.ok) {
+      const remaining = files.length - index - 1;
+      const remainingText = remaining > 0 ? `，继续处理剩余 ${remaining} 个文件` : '';
+      const reason = result.errorMessage ? `：${result.errorMessage}` : '';
+      showFileUploadError(`文件 "${file.name}" 处理失败${reason}${remainingText}`);
+    }
+  }
+  
+  currentUploadBatch = null;
   
   // 清空input，允许重复选择同一文件
   event.target.value = '';
@@ -3907,8 +4111,10 @@ async function processUploadedFile(file) {
   // 文件大小检查（限制50MB）
   const maxSize = 50 * 1024 * 1024; // 50MB
   if (file.size > maxSize) {
-    showFileUploadError(`文件大小超过限制（${Math.round(maxSize / 1024 / 1024)}MB）`);
-    return;
+    return {
+      ok: false,
+      errorMessage: `文件大小超过限制（${Math.round(maxSize / 1024 / 1024)}MB）`
+    };
   }
   
   try {
@@ -3929,11 +4135,19 @@ async function processUploadedFile(file) {
     console.log('🎯 文件数据准备完成:', fileData);
     
     // 调用现有的多iframe文件处理流程
-    await processFileToAllIframes(fileData);
+    const ok = await processFileToAllIframes(fileData);
+    if (!ok) {
+      return { ok: false, errorMessage: '没有找到可用的AI站点' };
+    }
+    
+    return { ok: true };
     
   } catch (error) {
     console.error('❌ 文件处理失败:', error);
-    showFileUploadError('文件处理失败: ' + error.message);
+    return {
+      ok: false,
+      errorMessage: `文件处理失败: ${error.message}`
+    };
   }
 }
 
@@ -3947,11 +4161,13 @@ async function processFileToAllIframes(fileData) {
   
   if (iframes.length === 0) {
     showFileUploadError('没有找到可用的AI站点');
-    return;
+    return false;
   }
   
   // 调用现有的文件上传处理流程
   await executeFileUploadSequentially(iframes, fileData);
+  
+  return true;
 }
 
 // 显示文件上传错误
@@ -3975,12 +4191,14 @@ function showFileUploadError(message) {
     animation: slideInScale 0.3s ease-out;
   `;
   
+  const safeMessage = escapeHtml(message);
+  
   error.innerHTML = `
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
       <span style="font-size: 18px;">❌</span>
       <span style="font-weight: 600;">文件上传失败</span>
     </div>
-    <div style="font-size: 13px; opacity: 0.9;">${message}</div>
+    <div style="font-size: 13px; opacity: 0.9;">${safeMessage}</div>
   `;
   
   document.body.appendChild(error);

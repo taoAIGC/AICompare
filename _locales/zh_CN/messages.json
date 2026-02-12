@@ -37,6 +37,30 @@
   "searchWithMultiAI": {
     "message": "使用AI比一比搜索"
   },
+  "compareButtonLabel": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "对比按钮语言"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "跟随系统"
+  },
+  "compareButtonLanguageZh": {
+    "message": "中文"
+  },
+  "compareButtonLanguageEn": {
+    "message": "English"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "双语"
+  },
   "startCompare": {
     "message": "PK"
   },
@@ -380,5 +404,245 @@
   },
   "automationNotice": {
     "message": "如果网站更新，对应的自动化提问功能会失效，敬请谅解。发现失效，可以与我联系更新。"
+  },
+  "injectProgressTitleRunning": {
+    "message": "正在执行脚本..."
+  },
+  "injectProgressTitleError": {
+    "message": "执行失败"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "准备中"
+  },
+  "injectProgressDetailRetrying": {
+    "message": "重试中"
+  },
+  "injectProgressButtonRetry": {
+    "message": "重试"
+  },
+  "injectProgressButtonClose": {
+    "message": "关闭"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "请输入问题"
+  },
+  "injectProgressStepInfo": {
+    "message": "步骤 $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "执行中断"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "执行中"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "未找到元素"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "无效的处理器配置"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "按钮达到最大重试次数仍被禁用"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "步骤超时"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "未找到站点处理器"
+  },
+  "injectProgressRetryInfo": {
+    "message": "重试 $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "点击"
+  },
+  "injectStepActionFocus": {
+    "message": "聚焦"
+  },
+  "injectStepActionSetValue": {
+    "message": "设置内容"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "触发事件"
+  },
+  "injectStepActionSendKeys": {
+    "message": "发送按键"
+  },
+  "injectStepActionReplace": {
+    "message": "替换元素"
+  },
+  "injectStepActionWait": {
+    "message": "等待"
+  },
+  "injectStepActionCustom": {
+    "message": "自定义操作"
+  },
+  "injectStepActionPaste": {
+    "message": "粘贴"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "使用URL查询，无需输入框操作"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "发送 ⌘ + Enter (Mac) 或 Ctrl + Enter (Windows) 提交Prompt"
+  },
+  "injectStepDescSendEnter": {
+    "message": "发送回车键"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "发送回车键提交"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "发送消息给父窗口"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "执行文件粘贴操作"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "点击Claude发送按钮"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "点击POE发送按钮"
+  },
+  "injectStepDescClickSend": {
+    "message": "点击发送按钮"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "点击豆包发送按钮"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "站点暂未实现搜索处理器"
+  },
+  "injectStepDescWait100ms": {
+    "message": "等待100ms"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "等待200ms确保聚焦完成"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "等待200ms，确保Angular变更检测完成"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "等待400ms让 Slate/React 状态更新并启用发送按钮后再发送"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "聚焦 Lexical 编辑器输入框"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "聚焦AI Studio提示输入区域"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "聚焦AI Studio输入框准备文件粘贴"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "聚焦ChatGPT输入框"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "聚焦ChatGPT输入框准备文件粘贴"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "聚焦Claude输入框准备文件粘贴"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "聚焦Copilot输入框"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "聚焦Copilot输入框准备文件粘贴"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "聚焦Gemini输入框准备文件粘贴"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "聚焦Grok输入框准备文件粘贴"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "聚焦Kimi Lexical编辑器输入框准备文件粘贴"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "聚焦POE输入框准备文件粘贴"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "聚焦Qwen输入框准备文件粘贴"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "聚焦可编辑区域"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "聚焦可编辑区域准备文件粘贴"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "聚焦推荐框或输入框"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "聚焦文心一言编辑器"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "聚焦文心一言编辑器准备文件粘贴"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "聚焦秘塔AI输入框准备文件粘贴"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "聚焦豆包输入框"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "聚焦豆包输入框准备文件粘贴"
+  },
+  "injectStepDescFocusInput": {
+    "message": "聚焦输入框"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "聚焦输入框准备文件粘贴"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "聚焦输入框（Slate 编辑器）"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "聚焦通义千问输入框准备文件粘贴"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "触发多种输入事件"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "触发完整的输入事件序列"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "触发特殊输入事件"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "触发输入事件"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "触发输入事件（含 InputEvent 文本，同步 React 状态以启用发送按钮）"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "设置 Lexical 编辑器内容（自动创建 span[data-lexical-text] 结构）"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "设置AI Studio输入内容（Angular FormControl）"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "设置ChatGPT输入框内容"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "设置Copilot输入框的值"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "设置POE特殊输入框的值"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "设置可编辑区域内容"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "设置文心一言特殊编辑器内容"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "设置秘塔输入框的值"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "设置豆包输入框的值"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "设置输入框的值"
   }
 } 

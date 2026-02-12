@@ -36,6 +36,73 @@ let __aiCompareHistoryContext = {
   siteName: null
 };
 
+// 直接在 AI 站点使用时的历史记录上下文
+let __directHistoryContext = {
+  historyId: null,
+  siteName: null
+};
+
+let __directHistoryInit = false;
+let __directHistoryLastQuery = '';
+let __directHistoryLastAt = 0;
+let __directHistoryIsComposing = false;
+let __userPromptButtonsInit = false;
+let __currentInjectStepMeta = null;
+
+function t(key, fallback = '', substitutions = undefined) {
+  try {
+    const message = chrome?.i18n?.getMessage(key, substitutions);
+    return message || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function isRunningInExtensionIframe() {
+  try {
+    if (window.top === window) return false;
+    const ancestors = window.location?.ancestorOrigins;
+    if (ancestors && ancestors.length) {
+      for (const origin of ancestors) {
+        if (origin && origin.startsWith('chrome-extension://')) return true;
+      }
+    }
+    const referrer = document.referrer || '';
+    return referrer.startsWith('chrome-extension://');
+  } catch (_) {
+    return false;
+  }
+}
+
+function isExtensionContextValid() {
+  try {
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (_) {
+    return false;
+  }
+}
+
+async function safeStorageGet(keys) {
+  if (!isExtensionContextValid()) return {};
+  try {
+    return await chrome.storage.local.get(keys);
+  } catch (error) {
+    console.warn('DirectHistory: storage.get failed', error);
+    return {};
+  }
+}
+
+async function safeStorageSet(data) {
+  if (!isExtensionContextValid()) return false;
+  try {
+    await chrome.storage.local.set(data);
+    return true;
+  } catch (error) {
+    console.warn('DirectHistory: storage.set failed', error);
+    return false;
+  }
+}
+
 // 动态检查是否在 AI 站点中运行
 async function isAISite() {
   try {
@@ -45,7 +112,31 @@ async function isAISite() {
       if (isAI) {
         console.log('🎯 使用新检测器匹配到 AI 站点');
       } else {
-        console.log('🎯 使用新检测器：当前站点不在 AI 站点配置中');
+        console.log('🎯 使用新检测器：当前站点不在 AI 站点配置中', window.location.hostname);
+        // 降级到原有逻辑再试一次
+        if (window.getDefaultSites) {
+          const sites = await window.getDefaultSites();
+          console.log('🎯 降级检测：getDefaultSites 数量', sites?.length || 0);
+          if (sites && Array.isArray(sites)) {
+            const currentHostname = window.location.hostname;
+            const matchedSite = sites.find(site => {
+              if (!site.url || site.hidden) return false;
+              try {
+                const siteUrl = new URL(site.url);
+                const siteHostname = siteUrl.hostname;
+                return currentHostname === siteHostname ||
+                       currentHostname.includes(siteHostname) ||
+                       siteHostname.includes(currentHostname);
+              } catch (_) {
+                return false;
+              }
+            });
+            if (matchedSite) {
+              console.log('🎯 降级检测匹配到 AI 站点:', matchedSite.name);
+              return true;
+            }
+          }
+        }
       }
       return isAI;
     }
@@ -120,6 +211,45 @@ function postInjectProgress(payload) {
   }
 }
 
+function createRetryExhaustedError(message) {
+  const error = new Error(message);
+  error.manualRetryRequired = true;
+  return error;
+}
+
+function reportStepRetry(attempts, maxAttempts) {
+  if (!__currentInjectStepMeta) return;
+  const description = __currentInjectStepMeta.description || __currentInjectStepMeta.action || '';
+  const retryInfo = t('injectProgressRetryInfo', '重试 $1/$2', [String(attempts), String(maxAttempts)]);
+  postInjectProgress({
+    siteName: __currentInjectStepMeta.siteName,
+    status: 'step',
+    stepIndex: __currentInjectStepMeta.stepIndex,
+    totalSteps: __currentInjectStepMeta.totalSteps,
+    description,
+    action: __currentInjectStepMeta.action,
+    retryAttempts: attempts,
+    retryMax: maxAttempts
+  });
+  console.log(`🔁 ${__currentInjectStepMeta.siteName || ''} ${description} ${retryInfo}`);
+}
+
+function getStepTimeoutMs(step) {
+  if (!step) return 15000;
+  if (Number.isFinite(step.timeoutMs)) return step.timeoutMs;
+  const retryInterval = step.retryInterval || 200;
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? 5 : (step.retryOnDisabled ? 5 : 1));
+  if (step.action === 'wait') {
+    const rawDuration = Number(step.duration);
+    const duration = Number.isFinite(rawDuration) && rawDuration >= 0 ? rawDuration : 0;
+    return duration + 2000;
+  }
+  if (step.waitForElement || step.retryOnDisabled || step.maxAttempts) {
+    return maxAttempts * retryInterval + 2000;
+  }
+  return 15000;
+}
+
 // 通用的配置化站点处理器 - 基于流程的标准化处理
 async function executeSiteHandler(query, handlerConfig, siteName = null) {
   console.log('🚀 executeSiteHandler 开始执行');
@@ -132,7 +262,7 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
       postInjectProgress({
         siteName,
         status: 'error',
-        errorMessage: '无效的处理器配置'
+        errorMessage: t('injectProgressErrorInvalidHandler', '无效的处理器配置')
       });
     }
     return;
@@ -150,6 +280,13 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
   for (let i = 0; i < handlerConfig.steps.length; i++) {
     const step = handlerConfig.steps[i];
     console.log(`执行步骤 ${i + 1}:`, step.action);
+    __currentInjectStepMeta = {
+      siteName,
+      stepIndex: i + 1,
+      totalSteps: handlerConfig.steps.length,
+      description: step.description || '',
+      action: step.action || ''
+    };
 
     try {
       if (siteName) {
@@ -158,40 +295,55 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
           status: 'step',
           stepIndex: i + 1,
           totalSteps: handlerConfig.steps.length,
-          description: step.description || step.action || ''
+          description: step.description || step.action || '',
+          action: step.action || ''
         });
       }
-      switch (step.action) {
-        case 'click':
-          await executeClick(step);
-          break;
-        case 'focus':
-          await executeFocus(step);
-          break;
-        case 'setValue':
-          await executeSetValue(step, query);
-          break;
-        case 'triggerEvents':
-          await executeTriggerEvents(step);
-          break;
-        case 'sendKeys':
-          await executeSendKeys(step, query);
-          break;
-        case 'replace':
-          await executeReplace(step, query);
-          break;
-        case 'wait':
-          await executeWait(step);
-          break;
-        case 'custom':
-          await executeCustom(step, query);
-          break;
-        case 'paste':
-          await executePaste(step);
-          break;
-        default:
-          console.warn('未知的步骤类型:', step.action);
-      }
+      const stepPromise = (async () => {
+        switch (step.action) {
+          case 'click':
+            await executeClick(step);
+            break;
+          case 'focus':
+            await executeFocus(step);
+            break;
+          case 'setValue':
+            await executeSetValue(step, query);
+            break;
+          case 'triggerEvents':
+            await executeTriggerEvents(step);
+            break;
+          case 'sendKeys':
+            await executeSendKeys(step, query);
+            break;
+          case 'replace':
+            await executeReplace(step, query);
+            break;
+          case 'wait':
+            await executeWait(step);
+            break;
+          case 'custom':
+            await executeCustom(step, query);
+            break;
+          case 'paste':
+            await executePaste(step);
+            break;
+          default:
+            console.warn('未知的步骤类型:', step.action);
+        }
+      })();
+
+      const timeoutMs = getStepTimeoutMs(step);
+      await Promise.race([
+        stepPromise,
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            const label = step.description || step.action || '';
+            const base = t('injectProgressErrorStepTimeout', '步骤超时');
+            reject(createRetryExhaustedError(label ? `${base}：${label}` : base));
+          }, timeoutMs);
+        })
+      ]);
 
       // 步骤间等待
       if (step.waitAfter) {
@@ -203,11 +355,16 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
           status: 'step_complete',
           stepIndex: i + 1,
           totalSteps: handlerConfig.steps.length,
-          description: step.description || step.action || ''
+          description: step.description || step.action || '',
+          action: step.action || ''
         });
       }
     } catch (error) {
       console.error(`步骤 ${i + 1} 执行失败:`, error);
+      const manualRetryRequired = error?.manualRetryRequired === true ||
+        step?.retryOnDisabled === true ||
+        step?.waitForElement === true ||
+        typeof step?.maxAttempts === 'number';
       if (siteName) {
         postInjectProgress({
           siteName,
@@ -215,13 +372,16 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
           stepIndex: i + 1,
           totalSteps: handlerConfig.steps.length,
           description: step.description || step.action || '',
-          errorMessage: error?.message || String(error)
+          action: step.action || '',
+          errorMessage: error?.message || String(error),
+          manualRetryRequired
         });
       }
       if (step.required !== false) { // 默认必需步骤
         throw error;
       }
     }
+    __currentInjectStepMeta = null;
   }
 
   console.log('配置化处理器执行完成');
@@ -491,7 +651,7 @@ async function executeClick(step) {
   }
   
   if (!element) {
-    throw new Error(`未找到任何元素，尝试的选择器: ${selectors.join(', ')}`);
+    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
   }
   
   if (step.condition) {
@@ -513,20 +673,33 @@ async function executeClick(step) {
       if (!element.disabled) {
         element.click();
         console.log('点击元素:', foundSelector);
-        return;
+        return true;
       }
       
-      attempts++;
-      if (attempts < maxAttempts) {
-        console.log(`按钮被禁用，${retryInterval}ms后重试 (${attempts}/${maxAttempts})`);
-        setTimeout(tryClick, retryInterval);
+    attempts++;
+    if (attempts < maxAttempts) {
+      reportStepRetry(attempts, maxAttempts);
+      console.log(`按钮被禁用，${retryInterval}ms后重试 (${attempts}/${maxAttempts})`);
+      return new Promise(resolve => {
+        setTimeout(() => resolve(tryClick()), retryInterval);
+      });
       } else {
         console.error('达到最大尝试次数，按钮仍然被禁用');
+        throw createRetryExhaustedError(t('injectProgressErrorButtonDisabled', '按钮达到最大重试次数仍被禁用'));
       }
     };
     
     // 延迟100ms开始尝试，给页面一些时间
-    setTimeout(tryClick, 100);
+    await new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          await tryClick();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      }, 100);
+    });
   } else {
     element.click();
     console.log('点击元素:', foundSelector);
@@ -560,17 +733,28 @@ async function executeFocus(step) {
       // 元素找到了，执行聚焦
       element.focus();
       console.log('聚焦元素:', foundSelector);
-      return;
+      if (document.activeElement === element) {
+        return;
+      }
+      attempts++;
+      if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
+        reportStepRetry(attempts, maxAttempts);
+        console.log(`焦点未生效，${retryInterval}ms后重试 (${attempts}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        return tryFocus();
+      }
+      throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
     }
     
     // 元素未找到，如果允许重试则重试
     attempts++;
     if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
+      reportStepRetry(attempts, maxAttempts);
       console.log(`元素未找到，${retryInterval}ms后重试 (${attempts}/${maxAttempts}): ${selectors.join(', ')}`);
       await new Promise(resolve => setTimeout(resolve, retryInterval));
       return tryFocus();
     } else {
-      throw new Error(`未找到任何元素，尝试的选择器: ${selectors.join(', ')}`);
+      throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
     }
   };
   
@@ -604,11 +788,12 @@ async function executeSetValue(step, query) {
       // 元素未找到，如果允许重试则重试
       attempts++;
       if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
+        reportStepRetry(attempts, maxAttempts);
         console.log(`元素未找到，${retryInterval}ms后重试 (${attempts}/${maxAttempts}): ${selectors.join(', ')}`);
         await new Promise(resolve => setTimeout(resolve, retryInterval));
         return trySetValue();
       } else {
-        throw new Error(`未找到任何元素，尝试的选择器: ${selectors.join(', ')}`);
+        throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
       }
     }
     
@@ -1169,7 +1354,7 @@ async function handleLexicalEditor(config, query) {
 async function handleGrowingTextarea(config, query) {
   const container = document.querySelector(config.containerSelector);
   if (!container) {
-    throw new Error(`未找到容器元素: ${config.containerSelector}`);
+    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
   }
   
   // 设置容器属性
@@ -1192,7 +1377,7 @@ async function handleGrowingTextarea(config, query) {
 async function handleCustomElement(config, query) {
   const element = document.querySelector(config.selector);
   if (!element) {
-    throw new Error(`未找到元素: ${config.selector}`);
+    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
   }
   
   // 执行自定义方法
@@ -1282,11 +1467,12 @@ async function executeTriggerEvents(step) {
       // 元素未找到，如果允许重试则重试
       attempts++;
       if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
+        reportStepRetry(attempts, maxAttempts);
         console.log(`元素未找到，${retryInterval}ms后重试 (${attempts}/${maxAttempts}): ${selectors.join(', ')}`);
         await new Promise(resolve => setTimeout(resolve, retryInterval));
         return tryTriggerEvents();
       } else {
-        throw new Error(`未找到任何元素，尝试的选择器: ${selectors.join(', ')}`);
+        throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
       }
     }
     
@@ -1300,23 +1486,37 @@ async function executeTriggerEvents(step) {
   element = result.element;
   foundSelector = result.selector;
 
+  // Slate 编辑器（千问等）：用当前 DOM 文本派发 InputEvent，便于页面同步 React 状态并启用发送按钮
+  const isSlateEditor = element.getAttribute('data-slate-editor') === 'true';
+  const getTextForInputEvent = () => {
+    if (isSlateEditor) {
+      const strings = element.querySelectorAll('[data-slate-string]');
+      if (strings.length) return Array.from(strings).map(n => n.textContent || '').join('');
+    }
+    return element.value != null ? element.value : (element.innerText || element.textContent || '');
+  };
+
   const events = step.events || ['input', 'change'];
   events.forEach(eventName => {
-    if (eventName === 'input' && step.inputType === 'special') {
-      // 特殊输入事件
-      const inputEvent = new InputEvent('input', {
-        bubbles: true,
-        cancelable: true,
-        inputType: 'insertText',
-        data: element.value || element.innerText
-      });
-      element.dispatchEvent(inputEvent);
+    if (eventName === 'input') {
+      if (step.inputType === 'special' || isSlateEditor || element.isContentEditable) {
+        const text = getTextForInputEvent();
+        const inputEvent = new InputEvent('input', {
+          bubbles: true,
+          cancelable: true,
+          inputType: 'insertText',
+          data: text
+        });
+        element.dispatchEvent(inputEvent);
+      } else {
+        element.dispatchEvent(new Event(eventName, { bubbles: true }));
+      }
     } else {
       element.dispatchEvent(new Event(eventName, { bubbles: true }));
     }
   });
 
-  console.log('触发事件:', events, '在元素:', foundSelector);
+  console.log('触发事件:', events, '在元素:', foundSelector, isSlateEditor ? '(Slate 已用 InputEvent+data)' : '');
 }
 
 // 执行发送按键操作
@@ -1336,7 +1536,7 @@ async function executeSendKeys(step, query) {
   }
   
   if (!element) {
-    throw new Error(`未找到任何元素，尝试的选择器: ${selectors.join(', ')}`);
+    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
   }
 
   // 检测平台（Mac 使用 Command/Meta，Windows/Linux 使用 Ctrl）
@@ -1458,7 +1658,7 @@ async function executeReplace(step, query) {
   }
   
   if (!element) {
-    throw new Error(`未找到任何元素，尝试的选择器: ${selectors.join(', ')}`);
+    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
   }
 
   console.log('🔧 找到元素:', element);
@@ -1532,8 +1732,10 @@ function createElementFromConfig(config, query) {
 
 // 执行等待操作
 async function executeWait(step) {
-  await new Promise(resolve => setTimeout(resolve, step.duration));
-  console.log('等待:', step.duration + 'ms');
+  const rawDuration = Number(step?.duration);
+  const duration = Number.isFinite(rawDuration) && rawDuration >= 0 ? rawDuration : 0;
+  await new Promise(resolve => setTimeout(resolve, duration));
+  console.log('等待:', duration + 'ms');
 }
 
 // 执行自定义操作
@@ -1929,7 +2131,8 @@ window.addEventListener('message', async function(event) {
             postInjectProgress({
                 siteName: siteHandler.name,
                 status: 'error',
-                errorMessage: error?.message || String(error)
+                errorMessage: error?.message || String(error),
+                manualRetryRequired: error?.manualRetryRequired === true
             });
         }
         return;
@@ -1945,7 +2148,7 @@ window.addEventListener('message', async function(event) {
         postInjectProgress({
             siteName: event.data.siteName || domain,
             status: 'error',
-            errorMessage: '未找到站点处理器'
+            errorMessage: t('injectProgressErrorNoSiteHandler', '未找到站点处理器')
         });
     }
 }); 
@@ -2260,6 +2463,393 @@ function startHistoryUrlDetection(siteName, urlFeature, historyId) {
   
   console.log(`⏱️ ${siteName} URL 检测已启动，将每 500ms 检查一次，最多检测 ${maxChecks} 次`);
 }
+
+// 直接模式：更新本地历史记录中的站点 URL
+async function updateLocalHistorySiteUrl(siteName, url, historyId) {
+  try {
+    if (!historyId || !siteName || !url) return;
+    const { pkHistory = [] } = await safeStorageGet('pkHistory');
+    const historyIndex = pkHistory.findIndex(item => item.id === historyId);
+    if (historyIndex === -1) return;
+    const historyItem = pkHistory[historyIndex];
+    const updatedSites = (historyItem.sites || []).map(site => {
+      if (site.name === siteName) {
+        return { ...site, url };
+      }
+      return site;
+    });
+    const updatedHistory = [...pkHistory];
+    updatedHistory[historyIndex] = { ...historyItem, sites: updatedSites };
+    await safeStorageSet({ pkHistory: updatedHistory });
+  } catch (error) {
+    console.error('直接模式更新历史 URL 失败:', error);
+  }
+}
+
+// 直接模式：检测 URL 并更新历史记录
+function startDirectHistoryUrlDetection(siteName, urlFeature, historyId) {
+  const targetHistoryId = historyId || __directHistoryContext.historyId || null;
+  if (!targetHistoryId) return;
+  let lastMatchedUrl = null;
+  let checkCount = 0;
+  const maxChecks = 60;
+  const interval = setInterval(async () => {
+    try {
+      const currentUrl = window.location.href;
+      const currentPath = window.location.pathname;
+      if (currentPath.includes(urlFeature)) {
+        if (currentUrl !== lastMatchedUrl) {
+          lastMatchedUrl = currentUrl;
+          await updateLocalHistorySiteUrl(siteName, currentUrl, targetHistoryId);
+          clearInterval(interval);
+          return;
+        }
+      }
+      checkCount++;
+      if (checkCount >= maxChecks) {
+        clearInterval(interval);
+      }
+    } catch (error) {
+      clearInterval(interval);
+    }
+  }, 500);
+}
+
+function extractEditableText(target) {
+  if (!target) return '';
+  const tag = target.tagName?.toLowerCase();
+  if (tag === 'textarea' || (tag === 'input' && (target.type === 'text' || target.type === 'search'))) {
+    const text = target.value || '';
+    console.log('DirectHistory: extract textarea/input', { text: text.slice(0, 80) });
+    return text;
+  }
+  const isSlateEditor = target.getAttribute && target.getAttribute('data-slate-editor') === 'true';
+  if (isSlateEditor) {
+    const strings = target.querySelectorAll('[data-slate-string]');
+    const text = Array.from(strings).map(node => node.textContent || '').join('');
+    console.log('DirectHistory: extract slate', { text: text.slice(0, 80) });
+    return text;
+  }
+  if (target.isContentEditable) {
+    const text = target.innerText || '';
+    console.log('DirectHistory: extract contenteditable', { text: text.slice(0, 80) });
+    return text;
+  }
+  return '';
+}
+
+async function saveDirectHistory(query, siteName, siteConfig) {
+  if (!query || !siteName) return;
+  if (!isExtensionContextValid()) {
+    console.warn('DirectHistory: extension context invalid, skip save');
+    return;
+  }
+  const now = Date.now();
+  if (query === __directHistoryLastQuery && now - __directHistoryLastAt < 2000) return;
+  __directHistoryLastQuery = query;
+  __directHistoryLastAt = now;
+  console.log('DirectHistory: save', { siteName, query: query.slice(0, 80) });
+
+  let urlToSave = window.location.href;
+  if (siteConfig?.historyHandler?.urlFeature) {
+    try {
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes(siteConfig.historyHandler.urlFeature)) {
+        urlToSave = '';
+      }
+    } catch (_) {
+      urlToSave = '';
+    }
+  }
+
+  const historyId = Date.now().toString();
+  const historyItem = {
+    id: historyId,
+    query: query.trim(),
+    sites: [{ name: siteName, url: urlToSave, isFavorite: false }],
+    timestamp: Date.now(),
+    date: new Date().toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  };
+
+  const { pkHistory = [] } = await safeStorageGet('pkHistory');
+  console.log('DirectHistory: pkHistory size', pkHistory.length);
+  let updatedHistory = pkHistory;
+  const lastItem = pkHistory[0];
+  if (lastItem && lastItem.query === historyItem.query && lastItem.sites?.[0]?.name === siteName) {
+    const merged = {
+      ...lastItem,
+      timestamp: historyItem.timestamp,
+      date: historyItem.date,
+      sites: [{ ...lastItem.sites[0], url: urlToSave || lastItem.sites[0].url || '' }]
+    };
+    updatedHistory = [merged, ...pkHistory.slice(1)];
+    __directHistoryContext.historyId = lastItem.id;
+  } else {
+    updatedHistory = [historyItem, ...pkHistory];
+    __directHistoryContext.historyId = historyId;
+  }
+
+  let maxHistory = 100;
+  try {
+    if (window.AppConfigManager) {
+      const appConfig = await window.AppConfigManager.loadConfig();
+      if (appConfig?.history?.maxCount) maxHistory = appConfig.history.maxCount;
+    }
+  } catch (_) {}
+  updatedHistory = updatedHistory.slice(0, maxHistory);
+  await safeStorageSet({ pkHistory: updatedHistory });
+  console.log('DirectHistory: saved', { historyId: __directHistoryContext.historyId || historyId });
+
+  __directHistoryContext.siteName = siteName;
+
+  if (siteConfig?.historyHandler?.urlFeature) {
+    startDirectHistoryUrlDetection(siteName, siteConfig.historyHandler.urlFeature, __directHistoryContext.historyId);
+  }
+}
+
+async function initDirectHistoryTracking() {
+  if (__directHistoryInit) return;
+  __directHistoryInit = true;
+
+  // 仅在非 iframe 的页面记录（避免第三方 iframe 干扰）
+  if (window.top !== window) {
+    console.log('DirectHistory: in iframe, skip', window.location.hostname);
+    return;
+  }
+
+  // 仅跳过插件 iframe
+  if (isRunningInExtensionIframe()) {
+    console.log('DirectHistory: in extension iframe, skip');
+    return;
+  }
+
+  const isAI = await checkAISite();
+  if (!isAI) {
+    console.log('DirectHistory: not AI site, skip');
+    return;
+  }
+
+  const domain = window.location.hostname;
+  const siteHandler = await getSiteHandler(domain);
+  const siteName = siteHandler?.name || (window.getSiteNameFromDomain ? await window.getSiteNameFromDomain(domain) : domain);
+  console.log('DirectHistory: init', { domain, siteName });
+
+  document.addEventListener('compositionstart', () => {
+    __directHistoryIsComposing = true;
+  }, true);
+  document.addEventListener('compositionend', () => {
+    __directHistoryIsComposing = false;
+  }, true);
+
+  document.addEventListener('keydown', async (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.isComposing || __directHistoryIsComposing) return;
+    const target = event.target;
+    const text = extractEditableText(target);
+    if (!text || !text.trim()) return;
+    console.log('DirectHistory: keydown submit', { siteName, text: text.trim().slice(0, 80) });
+    await saveDirectHistory(text.trim(), siteName, siteHandler);
+  }, true);
+
+  document.addEventListener('click', async (event) => {
+    const target = event.target;
+    if (!target) return;
+    const button = target.closest('button, [role="button"], input[type="submit"]');
+    if (!button || button.disabled) return;
+    const active = document.activeElement;
+    const text = extractEditableText(active);
+    if (!text || !text.trim()) return;
+    console.log('DirectHistory: click submit', { siteName, text: text.trim().slice(0, 80) });
+    await saveDirectHistory(text.trim(), siteName, siteHandler);
+  }, true);
+}
+
+initDirectHistoryTracking();
+
+function buildCompareUrl(query) {
+  if (!query || !query.trim()) return '';
+  try {
+    const baseUrl = chrome?.runtime?.getURL ? chrome.runtime.getURL('iframe/iframe.html') : '';
+    if (!baseUrl) return '';
+    const params = new URLSearchParams();
+    params.set('query', query.trim());
+    return `${baseUrl}?${params.toString()}`;
+  } catch (e) {
+    console.error('buildCompareUrl failed:', e);
+    return '';
+  }
+}
+
+async function initDirectUserPromptButtons() {
+  if (__userPromptButtonsInit) return;
+  __userPromptButtonsInit = true;
+
+  if (isRunningInExtensionIframe()) {
+    console.log('DirectUserPrompt: in extension iframe, skip');
+    return;
+  }
+
+  const isAI = await checkAISite();
+  if (!isAI) {
+    console.log('DirectUserPrompt: not AI site, skip');
+    return;
+  }
+
+  const domain = window.location.hostname;
+  const siteHandler = await getSiteHandler(domain);
+  const siteName = siteHandler?.name || (window.getSiteNameFromDomain ? await window.getSiteNameFromDomain(domain) : domain);
+  let config = siteHandler?.userPrompt || siteHandler?.userPromptButton;
+  if (!config?.textSelector) {
+    // 尝试从本地配置文件读取（兼容 remoteSiteHandlers 未更新的情况）
+    try {
+      if (chrome?.runtime?.getURL) {
+        const resp = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
+        if (resp.ok) {
+          const localConfig = await resp.json();
+          const matched = (localConfig.sites || []).find(s => {
+            try {
+              const host = new URL(s.url).hostname;
+              return host === domain || domain.includes(host) || host.includes(domain);
+            } catch (_) {
+              return false;
+            }
+          });
+          config = matched?.userPrompt || matched?.userPromptButton || config;
+        }
+      }
+    } catch (_) {}
+  }
+  if (!config?.textSelector) {
+    console.log('DirectUserPrompt: missing config, skip', { siteName });
+    return;
+  }
+
+  console.log('DirectUserPrompt: init', { siteName, config });
+  let userPromptLabel = chrome?.i18n?.getMessage?.('compareButtonLabel') || '多AI 对比';
+  const labelZh = chrome?.i18n?.getMessage?.('compareButtonLabelZh') || '多AI 对比';
+  const labelEn = chrome?.i18n?.getMessage?.('compareButtonLabelEn') || 'Multi-AI Compare';
+  try {
+    const { compareButtonLang } = await chrome.storage.sync.get(['compareButtonLang']);
+    if (compareButtonLang === 'zh') {
+      userPromptLabel = labelZh;
+    } else if (compareButtonLang === 'en') {
+      userPromptLabel = labelEn;
+    } else if (compareButtonLang === 'bilingual') {
+      userPromptLabel = `${labelZh} / ${labelEn}`;
+    }
+  } catch (e) {
+    console.warn('DirectUserPrompt: read compareButtonLang failed', e);
+  }
+
+  const buttonContainers = new WeakMap();
+  const getPositionAnchor = (container) => {
+    const msgContent = container.closest('[data-testid="message_content"]');
+    return msgContent?.firstElementChild || container.closest('[data-testid="message-block-container"]') || container;
+  };
+
+  const updateFloatingPositions = () => {
+    document.querySelectorAll('.ai-compare-userprompt-btn-wrap').forEach(btnWrap => {
+      const container = buttonContainers.get(btnWrap);
+      if (!container) return;
+      if (!document.contains(container)) {
+        container.dataset.aiCompareBtnAdded = '';
+        btnWrap.remove();
+        return;
+      }
+      const anchor = getPositionAnchor(container);
+      const rect = anchor.getBoundingClientRect();
+      const vh = window.innerHeight;
+      if (rect.top < -50 || rect.bottom > vh + 50) {
+        btnWrap.style.visibility = 'hidden';
+      } else {
+        btnWrap.style.visibility = '';
+        btnWrap.style.left = `${rect.right + 23}px`;
+        btnWrap.style.top = `${rect.top + rect.height / 2}px`;
+      }
+    });
+  };
+
+  const addButtonToContainer = (node) => {
+    if (!node) return;
+    const container = config.containerSelector ? node : (node.parentElement || node);
+    if (!container) return;
+    if (container.dataset.aiCompareBtnAdded === '1') return;
+    const textNode = config.containerSelector ? container.querySelector(config.textSelector) : node;
+    const text = ((textNode || container).textContent || '').trim();
+    if (!text) return;
+
+    const btnWrap = document.createElement('span');
+    btnWrap.className = 'ai-compare-userprompt-btn-wrap';
+    btnWrap.style.cssText = 'position:fixed;transform:translateY(-50%);z-index:9999;pointer-events:auto;display:inline-flex;align-items:center;align-self:center;flex-shrink:0;height:fit-content;';
+    buttonContainers.set(btnWrap, container);
+
+    const btn = document.createElement('button');
+    btn.className = 'ai-compare-userprompt-btn';
+    const icon = document.createElement('img');
+    icon.src = chrome.runtime.getURL('icons/columns-2.svg');
+    icon.alt = '';
+    icon.style.cssText = 'width:12px;height:12px;margin-right:4px;display:inline-block;vertical-align:middle;';
+    btn.appendChild(icon);
+    const label = document.createElement('span');
+    label.textContent = userPromptLabel;
+    btn.appendChild(label);
+    btn.style.cssText = 'display:inline-flex;align-items:center;padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#333;white-space:nowrap;line-height:1;height:fit-content;';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = buildCompareUrl(text);
+      if (url) {
+        window.open(url, '_blank');
+      }
+    });
+    btnWrap.appendChild(btn);
+
+    document.body.appendChild(btnWrap);
+    container.dataset.aiCompareBtnAdded = '1';
+    updateFloatingPositions();
+  };
+
+  const onScrollResize = () => {
+    requestAnimationFrame(updateFloatingPositions);
+  };
+  window.addEventListener('scroll', onScrollResize, true);
+  window.addEventListener('resize', onScrollResize);
+
+  const scan = () => {
+    const containers = document.querySelectorAll(config.containerSelector || config.textSelector);
+    console.log('DirectUserPrompt: scan containers', containers.length);
+    containers.forEach(node => addButtonToContainer(node));
+    updateFloatingPositions();
+  };
+
+  const waitForBody = () => new Promise(resolve => {
+    if (document.body) return resolve();
+    const timer = setInterval(() => {
+      if (document.body) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, 50);
+  });
+
+  await waitForBody();
+  scan();
+  const observer = new MutationObserver(() => scan());
+  observer.observe(document.body, { childList: true, subtree: true });
+  // 豆包等 SPA 的消息列表异步渲染，需延时重试
+  [1000, 2500, 5000].forEach(ms => setTimeout(scan, ms));
+  // 持续轮询以捕获新发送的消息（新对话中发送后不会触发页面级 MutationObserver）
+  const pollInterval = setInterval(scan, 2000);
+  setTimeout(() => clearInterval(pollInterval), 60000);
+}
+
+initDirectUserPromptButtons();
 
 // 验证选择器有效性
 function validateSelectors(selectors, searchRoot = document) {

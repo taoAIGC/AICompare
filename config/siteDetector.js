@@ -50,19 +50,23 @@ class SiteDetector {
       
       // 1. 优先从 chrome.storage.local 读取站点配置
       try {
-        this.performanceStats.storageReads++;
-        const result = await chrome.storage.local.get('remoteSiteHandlers');
-        sites = result.remoteSiteHandlers?.sites || [];
-        if (sites.length > 0) {
-          console.log('✅ 从 chrome.storage.local 加载站点配置成功，数量:', sites.length);
-          console.log('📊 本地存储配置详情:', {
-            totalSites: sites.length,
-            hasContentExtractor: sites.filter(s => s.contentExtractor).length,
-            hasSearchHandler: sites.filter(s => s.searchHandler).length,
-            hasFileUploadHandler: sites.filter(s => s.fileUploadHandler).length
-          });
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          this.performanceStats.storageReads++;
+          const result = await chrome.storage.local.get('remoteSiteHandlers');
+          sites = result.remoteSiteHandlers?.sites || [];
+          if (sites.length > 0) {
+            console.log('✅ 从 chrome.storage.local 加载站点配置成功，数量:', sites.length);
+            console.log('📊 本地存储配置详情:', {
+              totalSites: sites.length,
+              hasContentExtractor: sites.filter(s => s.contentExtractor).length,
+              hasSearchHandler: sites.filter(s => s.searchHandler).length,
+              hasFileUploadHandler: sites.filter(s => s.fileUploadHandler).length
+            });
+          } else {
+            console.log('⚠️ chrome.storage.local 中的站点配置为空');
+          }
         } else {
-          console.log('⚠️ chrome.storage.local 中的站点配置为空');
+          console.log('⚠️ chrome.storage.local 不可用，跳过本地读取');
         }
       } catch (storageError) {
         console.warn('❌ 从 chrome.storage.local 读取配置失败:', storageError);
@@ -259,7 +263,6 @@ class SiteDetector {
         };
       }
       
-      console.warn('⚠️ 未找到匹配的站点配置:', domain);
       return null;
     } catch (error) {
       console.error('❌ 站点查找失败:', error);
@@ -330,6 +333,7 @@ class SiteDetector {
         contentExtractor: site.contentExtractor,
         historyHandler: site.historyHandler,
         supportUrlQuery: site.supportUrlQuery,
+        userPrompt: site.userPrompt,
         matchType: site.matchType
       };
     } catch (error) {

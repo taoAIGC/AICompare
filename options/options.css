@@ -161,6 +161,20 @@ h1 {
   align-items: center;
 }
 
+.site-setting-row {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.site-setting-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #333;
+}
+
 .drag-handle {
   cursor: grab;
   color: #999;

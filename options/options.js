@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeI18n();
   initializeRuleInfo();
   initializePromptTemplates();
+  initializeCompareButtonLanguage();
 });
 
 // 显示消息
@@ -142,6 +143,26 @@ async function initializeButtonConfigs() {
 
   } catch (error) {
     console.error('初始化按钮配置失败:', error);
+  }
+}
+
+async function initializeCompareButtonLanguage() {
+  try {
+    const select = document.getElementById('compareButtonLangSelect');
+    if (!select) return;
+    const { compareButtonLang } = await chrome.storage.sync.get(['compareButtonLang']);
+    select.value = compareButtonLang || 'auto';
+    select.addEventListener('change', async (e) => {
+      const value = e.target.value;
+      await chrome.storage.sync.set({ compareButtonLang: value });
+      if (chrome.runtime.lastError) {
+        showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
+        return;
+      }
+      showToast(chrome.i18n.getMessage("saveSuccess"));
+    });
+  } catch (error) {
+    console.error('初始化对比按钮语言设置失败:', error);
   }
 }
 

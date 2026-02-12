@@ -37,6 +37,30 @@
   "searchWithMultiAI": {
     "message": "Search with AI Compare"
   },
+  "compareButtonLabel": {
+    "message": "AICompare"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "Compare Button Language"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "System"
+  },
+  "compareButtonLanguageZh": {
+    "message": "Chinese"
+  },
+  "compareButtonLanguageEn": {
+    "message": "English"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "Bilingual"
+  },
   "startCompare": {
     "message": "PK",
     "placeholders": {
@@ -385,5 +409,245 @@
   },
   "automationNotice": {
     "message": "If a website updates, its automated query feature may stop working. We apologize for any inconvenience. If you notice it has stopped working, please contact us for an update."
+  },
+  "injectProgressTitleRunning": {
+    "message": "Running script..."
+  },
+  "injectProgressTitleError": {
+    "message": "Execution failed"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "Preparing"
+  },
+  "injectProgressDetailRetrying": {
+    "message": "Retrying"
+  },
+  "injectProgressButtonRetry": {
+    "message": "Retry"
+  },
+  "injectProgressButtonClose": {
+    "message": "Close"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "Please enter a question"
+  },
+  "injectProgressStepInfo": {
+    "message": "Step $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "Execution interrupted"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "Running"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "Element not found"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "Invalid handler configuration"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "Button remained disabled after maximum retries"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "Step timed out"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "Site handler not found"
+  },
+  "injectProgressRetryInfo": {
+    "message": "Retry $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "Click"
+  },
+  "injectStepActionFocus": {
+    "message": "Focus"
+  },
+  "injectStepActionSetValue": {
+    "message": "Set value"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "Trigger events"
+  },
+  "injectStepActionSendKeys": {
+    "message": "Send keys"
+  },
+  "injectStepActionReplace": {
+    "message": "Replace"
+  },
+  "injectStepActionWait": {
+    "message": "Wait"
+  },
+  "injectStepActionCustom": {
+    "message": "Custom action"
+  },
+  "injectStepActionPaste": {
+    "message": "Paste"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "Use URL query, no input interaction needed"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "Send ⌘ + Enter (Mac) or Ctrl + Enter (Windows) to submit the prompt"
+  },
+  "injectStepDescSendEnter": {
+    "message": "Send Enter key"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "Send Enter to submit"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "Send message to parent window"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "Execute file paste"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "Click Claude send button"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "Click Poe send button"
+  },
+  "injectStepDescClickSend": {
+    "message": "Click send button"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "Click Doubao send button"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "Site handler not implemented yet"
+  },
+  "injectStepDescWait100ms": {
+    "message": "Wait 100ms"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "Wait 200ms to ensure focus"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "Wait 200ms to ensure Angular change detection completes"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "Wait 400ms for Slate/React to update and enable send button"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "Focus Lexical editor input"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "Focus AI Studio prompt input"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "Focus AI Studio input for file paste"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "Focus ChatGPT input"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "Focus ChatGPT input for file paste"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "Focus Claude input for file paste"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "Focus Copilot input"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "Focus Copilot input for file paste"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "Focus Gemini input for file paste"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "Focus Grok input for file paste"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "Focus Kimi Lexical input for file paste"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "Focus Poe input for file paste"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "Focus Qwen input for file paste"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "Focus editable area"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "Focus editable area for file paste"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "Focus suggestion box or input"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "Focus Wenxin editor"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "Focus Wenxin editor for file paste"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "Focus Metaso input for file paste"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "Focus Doubao input"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "Focus Doubao input for file paste"
+  },
+  "injectStepDescFocusInput": {
+    "message": "Focus input"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "Focus input for file paste"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "Focus input (Slate editor)"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "Focus Tongyi Qianwen input for file paste"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "Trigger multiple input events"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "Trigger full input event sequence"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "Trigger special input events"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "Trigger input events"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "Trigger input events (with InputEvent text to sync React)"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "Set Lexical editor content (auto-create span[data-lexical-text])"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "Set AI Studio input (Angular FormControl)"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "Set ChatGPT input content"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "Set Copilot input value"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "Set Poe special input value"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "Set editable area content"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "Set Wenxin special editor content"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "Set Metaso input value"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "Set Doubao input value"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "Set input value"
   }
 } 

@@ -7,7 +7,7 @@ if ((typeof window !== 'undefined' && window.BaseConfigLoaded) ||
 
 // 开发环境配置
 const DEV_CONFIG = {
-  IS_PRODUCTION: false,  // 开发时设为 false，发布时设为 true
+  IS_PRODUCTION: true,  // 开发时设为 false，发布时设为 true
   SKIP_REMOTE_CONFIG: true,  // 开发时跳过远程配置，直接使用本地文件
   ENABLE_CONFIG_CACHE: false, // 开发时禁用配置缓存，确保修改立即生效
   FORCE_LOCAL_CONFIG: true,   // 开发时强制使用本地配置文件
@@ -512,14 +512,20 @@ else {
   // 动态获取站点配置
   window.getDefaultSites = async function() {
     try {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.runtime) {
+        console.warn('⚠️ chrome API 不可用，返回空站点列表');
+        return [];
+      }
       
       // 生产环境：从 remoteSiteHandlers 读取基础配置
       let baseSites = [];
       try {
-        const result = await chrome.storage.local.get('remoteSiteHandlers');
-        if (result.remoteSiteHandlers && result.remoteSiteHandlers.sites && result.remoteSiteHandlers.sites.length > 0) {
-          baseSites = result.remoteSiteHandlers.sites;
-          console.log('从 remoteSiteHandlers 加载站点配置成功');
+        if (chrome.storage?.local) {
+          const result = await chrome.storage.local.get('remoteSiteHandlers');
+          if (result.remoteSiteHandlers && result.remoteSiteHandlers.sites && result.remoteSiteHandlers.sites.length > 0) {
+            baseSites = result.remoteSiteHandlers.sites;
+            console.log('从 remoteSiteHandlers 加载站点配置成功');
+          }
         }
       } catch (error) {
         console.error('从 remoteSiteHandlers 读取配置失败:', error);
@@ -528,9 +534,11 @@ else {
       // 2. 从 chrome.storage.sync 读取用户设置（顺序、启用状态等）
       let userSettings = {};
       try {
-        const { sites: userSiteSettings = {} } = await chrome.storage.sync.get('sites');
-        userSettings = userSiteSettings;
-        console.log('从 chrome.storage.sync 加载用户设置成功');
+        if (chrome.storage?.sync) {
+          const { sites: userSiteSettings = {} } = await chrome.storage.sync.get('sites');
+          userSettings = userSiteSettings;
+          console.log('从 chrome.storage.sync 加载用户设置成功');
+        }
       } catch (error) {
         console.error('从 chrome.storage.sync 读取用户设置失败:', error);
       }
@@ -559,12 +567,14 @@ else {
       
       // 4. 如果远程配置不可用，尝试从本地文件加载
       try {
-        const response = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
-        if (response.ok) {
-          const localConfig = await response.json();
-          if (localConfig.sites && localConfig.sites.length > 0) {
-            console.log('从本地文件加载站点配置成功');
-            return localConfig.sites;
+        if (chrome.runtime?.getURL) {
+          const response = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
+          if (response.ok) {
+            const localConfig = await response.json();
+            if (localConfig.sites && localConfig.sites.length > 0) {
+              console.log('从本地文件加载站点配置成功');
+              return localConfig.sites;
+            }
           }
         }
       } catch (error) {
@@ -611,4 +621,3 @@ else {
 }
 
 } // 结束重复声明检查的 else 块
-
