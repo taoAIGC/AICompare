@@ -2309,7 +2309,8 @@ async function extractWithConfig(contentExtractor, siteName) {
                 contentExtractor.contentSelectors, 
                 siteName, 
                 contentExtractor.excludeSelectors,
-                contentExtractor.messageContainer
+                contentExtractor.messageContainer,
+                contentExtractor.exportLatestOnly ? 1 : null
             );
             
             if (content.trim() && !content.includes('无法自动提取')) {
@@ -2326,7 +2327,8 @@ async function extractWithConfig(contentExtractor, siteName) {
                 contentExtractor.fallbackSelectors, 
                 siteName, 
                 contentExtractor.excludeSelectors,
-                contentExtractor.messageContainer
+                contentExtractor.messageContainer,
+                contentExtractor.exportLatestOnly ? 1 : null
             );
             
             if (content.trim() && !content.includes('无法自动提取')) {
@@ -2872,11 +2874,13 @@ function validateSelectors(selectors, searchRoot = document) {
 
 
 // 优化版选择器提取内容
-async function extractWithSelectorsOptimized(selectors, siteName, excludeSelectors = [], messageContainer = null) {
+// maxMessages: 仅导出最新N条消息，null表示导出全部
+async function extractWithSelectorsOptimized(selectors, siteName, excludeSelectors = [], messageContainer = null, maxMessages = null) {
     console.log(`🔍 开始提取 ${siteName} 的内容...`);
     console.log(`🔍 使用选择器:`, selectors);
     console.log(`🔍 排除选择器:`, excludeSelectors);
     console.log(`🔍 消息容器:`, messageContainer);
+    console.log(`🔍 导出最新条数:`, maxMessages ?? '全部');
     
     let content = '';
     
@@ -2894,6 +2898,14 @@ async function extractWithSelectorsOptimized(selectors, siteName, excludeSelecto
         if (messageContainers.length === 0) {
             console.log(`⚠️ 未找到消息容器 ${messageContainer}，使用整个文档`);
         } else {
+            // 导出规则：只导出每个站点最新内容
+            if (maxMessages === 1 && messageContainers.length > 1) {
+                messageContainers = messageContainers.slice(-1);
+                console.log(`🔍 仅导出最新1条消息`);
+            } else if (maxMessages && maxMessages > 0 && messageContainers.length > maxMessages) {
+                messageContainers = messageContainers.slice(-maxMessages);
+                console.log(`🔍 仅导出最新${maxMessages}条消息`);
+            }
             console.log(`🔍 将在 ${messageContainers.length} 个消息容器中搜索内容`);
         }
     }
@@ -2915,8 +2927,12 @@ async function extractWithSelectorsOptimized(selectors, siteName, excludeSelecto
         // 使用 Promise.all 并行处理选择器
         const extractionPromises = validSelectors.map(async (selector) => {
             try {
-                const elements = container.querySelectorAll(selector);
-                // 移除重复日志，已在 validateSelectors 中输出
+                let elements = Array.from(container.querySelectorAll(selector));
+                // 导出规则：只导出最新内容，当无messageContainer时仅取最后一个匹配元素
+                if (maxMessages === 1 && elements.length > 1 && container === document) {
+                    elements = elements.slice(-1);
+                    console.log(`🔍 无消息容器时仅取最后1个匹配元素`);
+                }
             
             if (elements.length === 0) return '';
             

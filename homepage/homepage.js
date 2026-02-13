@@ -13,19 +13,67 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 初始化自动调整高度的输入框
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        const inputWrapper = searchInput.closest('.input-wrapper');
+        const mirror = document.createElement('div');
+        mirror.setAttribute('aria-hidden', 'true');
+        mirror.style.position = 'absolute';
+        mirror.style.top = '-9999px';
+        mirror.style.left = '-9999px';
+        mirror.style.visibility = 'hidden';
+        mirror.style.whiteSpace = 'pre-wrap';
+        mirror.style.wordWrap = 'break-word';
+        mirror.style.boxSizing = 'border-box';
+        document.body.appendChild(mirror);
+
+        function syncMirrorStyles() {
+            const styles = window.getComputedStyle(searchInput);
+            mirror.style.fontFamily = styles.fontFamily;
+            mirror.style.fontSize = styles.fontSize;
+            mirror.style.lineHeight = styles.lineHeight;
+            mirror.style.letterSpacing = styles.letterSpacing;
+            mirror.style.paddingTop = styles.paddingTop;
+            mirror.style.paddingBottom = styles.paddingBottom;
+            mirror.style.paddingLeft = styles.paddingLeft;
+            mirror.style.paddingRight = styles.paddingRight;
+            mirror.style.borderTopWidth = styles.borderTopWidth;
+            mirror.style.borderBottomWidth = styles.borderBottomWidth;
+        }
+
+        syncMirrorStyles();
+
         // 自动调整输入框高度
         function autoResizeTextarea() {
-            searchInput.style.height = 'auto';
-            const scrollHeight = searchInput.scrollHeight;
-            const minHeight = 36; // 最小高度
+            const minHeightFallback = 36; // 最小高度
             const maxHeight = 200; // 最大高度
-            
-            if (scrollHeight <= minHeight) {
-                searchInput.style.height = minHeight + 'px';
-            } else {
-                const newHeight = Math.min(scrollHeight, maxHeight);
-                searchInput.style.height = newHeight + 'px';
+            const actionsWidth = inputWrapper
+                ? inputWrapper.querySelector('.input-actions')?.offsetWidth || 0
+                : 0;
+            const availableWidth = searchInput.clientWidth - actionsWidth - 6;
+
+            // 计算单行真实高度，避免空内容时看起来像两行
+            mirror.style.width = searchInput.clientWidth + 'px';
+            mirror.textContent = 'A';
+            const singleLineHeight = Math.ceil(mirror.scrollHeight);
+            const minHeight = Math.max(minHeightFallback, singleLineHeight);
+
+            mirror.style.width = Math.max(0, availableWidth) + 'px';
+            mirror.textContent = searchInput.value + '\n';
+
+            const neededHeight = Math.ceil(mirror.scrollHeight);
+            const needsWrap = neededHeight > minHeight + 1;
+
+            if (inputWrapper) {
+                inputWrapper.classList.toggle('avoid-overlap', needsWrap);
             }
+
+            if (needsWrap) {
+                mirror.style.width = searchInput.clientWidth + 'px';
+                mirror.textContent = searchInput.value + '\n';
+            }
+
+            const finalHeight = Math.ceil(mirror.scrollHeight);
+            const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
+            searchInput.style.height = clampedHeight + 'px';
         }
         
         // 监听输入事件
@@ -46,7 +94,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 检查 URL 参数，判断是否有预填充的查询和是否在侧边栏中
     const urlParams = new URLSearchParams(window.location.search);
     const isSidePanel = urlParams.get('side_panel') === 'true';
+    if (isSidePanel) {
+        document.body.classList.add('is-side-panel');
+    }
     const hasQueryParam = urlParams.has('query');
+
+    // 应用输入框位置设置
+    await applyHomepageInputPosition();
     
     // 延迟设置焦点，防止页面自动滚动
     // 使用 setTimeout 确保页面完全加载后再聚焦
@@ -109,49 +163,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 初始化保存按钮（确保即使站点列表加载失败也能初始化）
     initializeSaveSitesButton();
     
-    // 初始化操作链接
-    initializeActionLinks();
-    // 底部同步栏：未登录点击「开启同步」则打开谷歌登录并同步；已登录显示邮箱，点击无跳转
-    await updateSyncBar();
-    const syncBar = document.getElementById('syncBar');
-    if (syncBar) {
-        syncBar.addEventListener('click', async () => {
-            trackEvent('homepage_sync_bar_click');
-            const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
-            if (loggedIn) {
-                return; // 已登录仅展示账号，不跳转
-            }
-            if (!window.firebaseSignInWithGoogle || !window.firebaseSyncMergeAndUpload) {
-                return;
-            }
-            const textEl = document.getElementById('syncBarText');
-            try {
-                if (textEl) textEl.textContent = chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '正在打开谷歌登录…' : 'Opening Google sign-in…';
-                await window.firebaseSignInWithGoogle();
-                await window.firebaseSyncMergeAndUpload();
-                await updateSyncBar();
-            } catch (e) {
-                if (textEl) textEl.textContent = chrome.i18n.getMessage('enableSync') || '开启同步';
-                console.warn('Sync sign-in failed', e);
-            }
-        });
-    }
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName === 'local' && changes.pkHistory) loadSidebarFavorites();
-        if (areaName === 'local' && (changes.firebase_email || changes.firebase_uid)) updateSyncBar();
-    });
-    // 加载收藏下方全部收藏历史记录
-    await loadSidebarFavorites();
-    // 已登录时拉取云端并合并，保证换电脑后打开首页能拿到最新历史与收藏
-    const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
-    if (loggedIn && typeof window.firebaseSyncMergeAndUpload === 'function') {
-        const { firebase_lastSyncAt } = await chrome.storage.local.get('firebase_lastSyncAt');
-        const throttleMs = 2 * 60 * 1000;
-        if (!firebase_lastSyncAt || Date.now() - firebase_lastSyncAt > throttleMs) {
-            window.firebaseSyncMergeAndUpload().then(() => loadSidebarFavorites()).catch(() => {});
-        }
-    }
+    // 侧边栏导航由 shared/sidebar.js 统一初始化
 });
+
+// 应用首页输入框位置设置
+async function applyHomepageInputPosition() {
+    try {
+        const defaultPosition = await window.AppConfigManager.getHomepageInputPosition();
+        const { homepageInputPosition } = await chrome.storage.sync.get(['homepageInputPosition']);
+        const position = homepageInputPosition || defaultPosition || 'top';
+        document.body.classList.toggle('search-bar-bottom', position === 'bottom');
+    } catch (error) {
+        console.error('应用输入框位置设置失败:', error);
+    }
+}
 
 // 初始化国际化
 function initializeI18n() {
@@ -217,9 +242,7 @@ async function initializeQuerySuggestions() {
     // 添加焦点事件监听器
     searchInput.addEventListener('focus', (e) => {
         const query = e.target.value.trim();
-        if (query) {
-            showQuerySuggestions(query);
-        }
+        showQuerySuggestions(query);
     });
     
     // 失焦时隐藏建议
@@ -236,11 +259,6 @@ async function initializeQuerySuggestions() {
 // 显示查询建议
 async function showQuerySuggestions(query) {
     const querySuggestions = document.getElementById('querySuggestions');
-    
-    if (!query || query.trim() === '') {
-        querySuggestions.style.display = 'none';
-        return;
-    }
 
     try {
         // 从存储中获取提示词模板
@@ -259,6 +277,13 @@ async function showQuerySuggestions(query) {
 
         // 清空之前的内容
         querySuggestions.innerHTML = '';
+
+        // 添加提示文案
+        const label = document.createElement('div');
+        const labelText = (chrome?.i18n?.getMessage && chrome.i18n.getMessage('promptTemplatesLabel')) || '模板：';
+        label.textContent = labelText;
+        label.classList.add('query-suggestion-label');
+        querySuggestions.appendChild(label);
 
         // 创建建议项
         recommendedQueries.forEach(recommendedQuery => {
@@ -281,8 +306,8 @@ async function showQuerySuggestions(query) {
         settingsIcon.title = '编辑提示词模板';
         settingsIcon.classList.add('query-suggestion-settings-icon');
         settingsIcon.style.cursor = 'pointer';
-        settingsIcon.style.width = '20px';
-        settingsIcon.style.height = '20px';
+        settingsIcon.style.width = '14px';
+        settingsIcon.style.height = '14px';
         settingsIcon.style.marginLeft = '8px';
         settingsIcon.style.verticalAlign = 'middle';
 
@@ -755,277 +780,6 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
     }
 });
 
-// 底部同步栏（双语 i18n）：未登录显示 enableSync（开启同步/Enable Sync），登录后显示账号邮箱
-async function updateSyncBar() {
-    const syncBar = document.getElementById('syncBar');
-    const syncBarText = document.getElementById('syncBarText');
-    const syncBarIcon = syncBar?.querySelector('.sync-bar-icon');
-    if (!syncBar || !syncBarText) return;
-    try {
-        const { firebase_uid, firebase_email, firebase_refreshToken } = await chrome.storage.local.get([
-            'firebase_uid', 'firebase_email', 'firebase_refreshToken'
-        ]);
-        const loggedIn = !!(firebase_uid && firebase_refreshToken);
-        if (loggedIn) {
-            syncBar.classList.add('sync-bar--logged-in');
-            syncBarText.textContent = firebase_email || firebase_uid || '';
-            if (syncBarIcon) syncBarIcon.textContent = '\u{1F464}'; // 👤
-        } else {
-            syncBar.classList.remove('sync-bar--logged-in');
-            syncBarText.textContent = chrome.i18n.getMessage('enableSync') || (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
-            if (syncBarIcon) syncBarIcon.textContent = '';
-        }
-    } catch (e) {
-        syncBar.classList.remove('sync-bar--logged-in');
-        syncBarText.textContent = chrome.i18n.getMessage('enableSync') || (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
-        if (syncBarIcon) syncBarIcon.textContent = '';
-    }
-}
-
-// 收藏下方：加载全部收藏历史记录（与 favorites.js 同源：从 pkHistory 筛选含收藏站点的记录）
-async function loadSidebarFavorites() {
-    const listEl = document.getElementById('sidebarFavoritesList');
-    if (!listEl) return;
-    try {
-        const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
-        const favoriteItems = pkHistory
-            .filter(item => item.sites && item.sites.some(site => site.isFavorite === true))
-            .map(item => ({
-                ...item,
-                sites: item.sites.filter(site => site.isFavorite === true)
-            }));
-        // pkHistory 为最新在前，收藏列表直接使用该顺序，最新收藏在最上面
-        listEl.innerHTML = '';
-        if (favoriteItems.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'sidebar-favorites-empty';
-            empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
-            listEl.appendChild(empty);
-            return;
-        }
-        favoriteItems.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'sidebar-favorite-item';
-            el.textContent = item.query || '';
-            el.title = item.query || '';
-            el.addEventListener('click', (e) => {
-                e.preventDefault();
-                openSidebarFavoriteItem(item);
-            });
-            listEl.appendChild(el);
-        });
-    } catch (error) {
-        console.error('加载侧边栏收藏失败:', error);
-        if (listEl) listEl.innerHTML = '';
-    }
-}
-
-async function openSidebarFavoriteItem(item) {
-    try {
-        const params = new URLSearchParams();
-        params.set('query', item.query || '');
-        const siteNames = (item.sites || []).map(site => site.name).filter(Boolean);
-        if (siteNames.length > 0) params.set('sites', siteNames.join(','));
-        const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
-        await chrome.tabs.create({ url: iframeUrl, active: true });
-        setTimeout(async () => {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('iframe.html')) {
-                try {
-                    await chrome.tabs.sendMessage(tabs[0].id, {
-                        type: 'loadHistoryIframes',
-                        sites: item.sites || []
-                    });
-                } catch (err) {}
-            }
-        }, 1000);
-    } catch (error) {
-        console.error('打开收藏记录失败:', error);
-    }
-}
-
-// 初始化操作链接
-async function initializeActionLinks() {
-    try {
-        // 加载配置
-        const config = await AppConfigManager.loadConfig();
-        const externalLinks = config.externalLinks || {};
-        
-        // 历史记录链接
-        const historyLink = document.getElementById('historyLink');
-        if (historyLink) {
-            historyLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                trackEvent('homepage_history_click');
-                chrome.tabs.create({ 
-                    url: chrome.runtime.getURL('history/history.html')
-                });
-            });
-        }
-        
-        // 收藏记录链接
-        const favoritesLink = document.getElementById('favoritesLink');
-        if (favoritesLink) {
-            favoritesLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                trackEvent('homepage_favorites_click');
-                chrome.tabs.create({ 
-                    url: chrome.runtime.getURL('favorites/favorites.html')
-                });
-            });
-        }
-        
-        // 设置链接
-        const settingsLink = document.getElementById('settingsLink');
-        if (settingsLink) {
-            settingsLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                trackEvent('homepage_settings_click');
-                // 在当前页面跳转到设置页面
-                window.location.href = chrome.runtime.getURL('options/options.html');
-            });
-        }
-        
-        // 用户反馈链接：悬停立即显示邮箱，点击打开本地邮件客户端
-        const feedbackLink = document.getElementById('feedbackLink');
-        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
-        if (feedbackLink && feedbackEmailTooltip) {
-            const feedbackEmail = externalLinks.feedbackEmail || 'AIShortcuts@outlook.com';
-            feedbackLink.href = 'mailto:' + feedbackEmail;
-            feedbackEmailTooltip.textContent = feedbackEmail;
-            feedbackLink.addEventListener('click', () => {
-                trackEvent('homepage_feedback_click', { feedback_email: feedbackEmail });
-            });
-        }
-        
-        // 五星好评链接
-        const reviewLink = document.getElementById('reviewLink');
-        if (reviewLink) {
-            reviewLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                // 从配置中获取评价链接
-                const reviewUrl = externalLinks.reviewLink || 
-                    'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
-                trackEvent('homepage_review_click', {
-                    has_review_link: Boolean(externalLinks.reviewLink)
-                });
-                chrome.tabs.create({ url: reviewUrl });
-            });
-        }
-        
-        // 微信链接：点击弹窗显示微信号
-        bindWechatLink();
-        // 请我喝咖啡链接：点击弹窗显示图片
-        bindCoffeeLink();
-    } catch (error) {
-        console.error('加载配置失败:', error);
-        // 如果配置加载失败，使用默认链接
-        const historyLink = document.getElementById('historyLink');
-        if (historyLink) {
-            historyLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                chrome.tabs.create({ 
-                    url: chrome.runtime.getURL('history/history.html')
-                });
-            });
-        }
-        
-        const favoritesLink = document.getElementById('favoritesLink');
-        if (favoritesLink) {
-            favoritesLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                chrome.tabs.create({ 
-                    url: chrome.runtime.getURL('favorites/favorites.html')
-                });
-            });
-        }
-        
-        const settingsLink = document.getElementById('settingsLink');
-        if (settingsLink) {
-            settingsLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                // 在当前页面跳转到设置页面
-                window.location.href = chrome.runtime.getURL('options/options.html');
-            });
-        }
-        
-        const feedbackLink = document.getElementById('feedbackLink');
-        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
-        if (feedbackLink && feedbackEmailTooltip) {
-            const feedbackEmail = 'AIShortcuts@outlook.com';
-            feedbackLink.href = 'mailto:' + feedbackEmail;
-            feedbackEmailTooltip.textContent = feedbackEmail;
-        }
-        
-        const reviewLink = document.getElementById('reviewLink');
-        if (reviewLink) {
-            reviewLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                chrome.tabs.create({ 
-                    url: 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews'
-                });
-            });
-        }
-        
-        bindWechatLink();
-        bindCoffeeLink();
-    }
-}
-
-// 绑定请我喝咖啡链接：点击弹窗显示 icons/wechatMoney.jpg
-function bindCoffeeLink() {
-    const coffeeLink = document.getElementById('coffeeLink');
-    const coffeeModal = document.getElementById('coffeeModal');
-    const coffeeModalImage = document.getElementById('coffeeModalImage');
-    const coffeeModalClose = document.getElementById('coffeeModalClose');
-    const coffeeModalOverlay = coffeeModal?.querySelector('.coffee-modal-overlay');
-    
-    if (!coffeeLink || !coffeeModal || !coffeeModalImage) return;
-    
-    coffeeModalImage.src = chrome.runtime.getURL('icons/weichatMoney.jpg');
-    
-    coffeeLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        coffeeModal.style.display = 'flex';
-    });
-    
-    function closeCoffeeModal() {
-        coffeeModal.style.display = 'none';
-    }
-    
-    if (coffeeModalClose) {
-        coffeeModalClose.addEventListener('click', closeCoffeeModal);
-    }
-    if (coffeeModalOverlay) {
-        coffeeModalOverlay.addEventListener('click', closeCoffeeModal);
-    }
-}
-
-// 绑定微信链接：点击弹窗显示微信号 aipmgpt
-function bindWechatLink() {
-    const wechatLink = document.getElementById('wechatLink');
-    const wechatModal = document.getElementById('wechatModal');
-    const wechatModalClose = document.getElementById('wechatModalClose');
-    const wechatModalOverlay = wechatModal?.querySelector('.wechat-modal-overlay');
-    
-    if (!wechatLink || !wechatModal) return;
-    
-    wechatLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        wechatModal.style.display = 'flex';
-    });
-    
-    function closeWechatModal() {
-        wechatModal.style.display = 'none';
-    }
-    
-    if (wechatModalClose) {
-        wechatModalClose.addEventListener('click', closeWechatModal);
-    }
-    if (wechatModalOverlay) {
-        wechatModalOverlay.addEventListener('click', closeWechatModal);
-    }
-}
 
 // Toast 提示函数
 function showToast(message, duration = 2000) {

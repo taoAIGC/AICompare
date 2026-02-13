@@ -157,7 +157,12 @@ function createFavoriteItem(item) {
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
-    deleteBtn.textContent = 'Delete';
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('aria-label', '删除');
+    const deleteIcon = document.createElement('img');
+    deleteIcon.alt = '';
+    deleteIcon.src = '../icons/trash.svg';
+    deleteBtn.appendChild(deleteIcon);
     deleteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (confirm('确定要删除这条收藏记录吗？')) {

@@ -68,32 +68,20 @@ async function initializeDefaultPromptTemplates() {
     // 如果还没有提示词模板，设置默认模板
     if (!promptTemplates || promptTemplates.length === 0) {
       const defaultTemplates = [
-        {
-          id: 'risk_analysis_cn',
-          name: '风险分析',
-          query: '导致失败的原因:「{query}」',
-          order: 1,
-          isDefault: true
-        },
+
         {
           id: 'risk_analysis',
           name: 'RiskAnalysis',
           query: 'Root cause of the failure:「{query}」',
-          order: 2,
+          order: 1,
           isDefault: true
         },
-        {
-          id: 'best_practice_cn',
-          name: '最佳实践',
-          query: '写一份这件事做成功的回顾报告:「{query}」',
-          order: 3,
-          isDefault: true
-        },
+
         {
           id: 'best_practice',
           name: 'BestPractice',
           query: 'Write a success retrospective report on this project:「{query}」',
-          order: 4,
+          order: 2,
           isDefault: true
         }
       ];

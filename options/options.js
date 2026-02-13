@@ -61,8 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeSiteConfigs();
   initializeI18n();
   initializeRuleInfo();
+  initializeInputPositionSetting();
   initializePromptTemplates();
-  initializeCompareButtonLanguage();
 });
 
 // 显示消息
@@ -76,6 +76,41 @@ function showMessage(message, isError = false) {
   setTimeout(() => {
     messageElement.remove();
   }, 3000);
+}
+
+// 初始化输入框位置设置
+async function initializeInputPositionSetting() {
+  const topRadio = document.getElementById('inputPositionTop');
+  const bottomRadio = document.getElementById('inputPositionBottom');
+  if (!topRadio || !bottomRadio) return;
+
+  try {
+    const defaultPosition = await window.AppConfigManager.getHomepageInputPosition();
+    const { homepageInputPosition } = await chrome.storage.sync.get(['homepageInputPosition']);
+    const currentPosition = homepageInputPosition || defaultPosition || 'top';
+
+    if (currentPosition === 'bottom') {
+      bottomRadio.checked = true;
+    } else {
+      topRadio.checked = true;
+    }
+
+    const handleChange = async (event) => {
+      if (!event.target.checked) return;
+      const selectedPosition = event.target.value;
+      await chrome.storage.sync.set({ homepageInputPosition: selectedPosition });
+      if (chrome.runtime.lastError) {
+        showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
+        return;
+      }
+      showToast(chrome.i18n.getMessage("saveSuccess"));
+    };
+
+    topRadio.addEventListener('change', handleChange);
+    bottomRadio.addEventListener('change', handleChange);
+  } catch (error) {
+    console.error('初始化输入框位置设置失败:', error);
+  }
 }
 
 // 初始化快捷入口配置
@@ -143,26 +178,6 @@ async function initializeButtonConfigs() {
 
   } catch (error) {
     console.error('初始化按钮配置失败:', error);
-  }
-}
-
-async function initializeCompareButtonLanguage() {
-  try {
-    const select = document.getElementById('compareButtonLangSelect');
-    if (!select) return;
-    const { compareButtonLang } = await chrome.storage.sync.get(['compareButtonLang']);
-    select.value = compareButtonLang || 'auto';
-    select.addEventListener('change', async (e) => {
-      const value = e.target.value;
-      await chrome.storage.sync.set({ compareButtonLang: value });
-      if (chrome.runtime.lastError) {
-        showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
-        return;
-      }
-      showToast(chrome.i18n.getMessage("saveSuccess"));
-    });
-  } catch (error) {
-    console.error('初始化对比按钮语言设置失败:', error);
   }
 }
 
@@ -765,20 +780,25 @@ async function loadTemplatesList() {
           <div style="flex: 1;">
             <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${template.name}</h4>
             <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666;">
-              <span>顺序: ${template.order}</span>
+              <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
               ${template.isDefault ? '<span style="background: #e8f5e8; color: #4caf50; padding: 2px 6px; border-radius: 3px;">默认</span>' : ''}
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="edit-template-btn" data-template-id="${template.id}" style="
-              background: #f5f5f5;
-              border: 1px solid #ddd;
+            <button class="edit-template-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}" style="
+              background: transparent;
+              border: none;
               border-radius: 4px;
-              padding: 6px 12px;
+              padding: 6px;
+              width: 30px;
+              height: 30px;
               cursor: pointer;
-              font-size: 12px;
-              color: #666;
-            " data-i18n="editButton">编辑</button>
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <img src="../icons/edit.svg" alt="" style="width: 16px; height: 16px; opacity: 0.8;">
+            </button>
             ${!template.isDefault ? `<button class="delete-template-btn" data-template-id="${template.id}" style="
               background: #ffebee;
               border: 1px solid #ffcdd2;

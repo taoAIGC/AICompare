@@ -33,6 +33,18 @@ function t(key, fallback = '', substitutions = undefined) {
   }
 }
 
+// 应用 iframe 输入框位置设置
+async function applyIframeInputPosition() {
+  try {
+    const defaultPosition = await window.AppConfigManager.getHomepageInputPosition();
+    const { homepageInputPosition } = await chrome.storage.sync.get(['homepageInputPosition']);
+    const position = homepageInputPosition || defaultPosition || 'top';
+    document.body.classList.toggle('search-bar-bottom', position === 'bottom');
+  } catch (error) {
+    console.error('应用 iframe 输入框位置设置失败:', error);
+  }
+}
+
 function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
   overlay.className = 'inject-progress';
@@ -327,21 +339,81 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 初始化自动调整高度的输入框
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        const inputWrapper = searchInput.closest('.input-wrapper');
+        const mirror = document.createElement('div');
+        mirror.setAttribute('aria-hidden', 'true');
+        mirror.style.position = 'absolute';
+        mirror.style.top = '-9999px';
+        mirror.style.left = '-9999px';
+        mirror.style.visibility = 'hidden';
+        mirror.style.whiteSpace = 'pre-wrap';
+        mirror.style.wordWrap = 'break-word';
+        mirror.style.boxSizing = 'border-box';
+        document.body.appendChild(mirror);
+
+        function syncMirrorStyles() {
+            const styles = window.getComputedStyle(searchInput);
+            mirror.style.fontFamily = styles.fontFamily;
+            mirror.style.fontSize = styles.fontSize;
+            mirror.style.lineHeight = styles.lineHeight;
+            mirror.style.letterSpacing = styles.letterSpacing;
+            mirror.style.paddingTop = styles.paddingTop;
+            mirror.style.paddingBottom = styles.paddingBottom;
+            mirror.style.paddingLeft = styles.paddingLeft;
+            mirror.style.paddingRight = styles.paddingRight;
+            mirror.style.borderTopWidth = styles.borderTopWidth;
+            mirror.style.borderBottomWidth = styles.borderBottomWidth;
+        }
+
+        function getSingleLineHeightPx() {
+            const styles = window.getComputedStyle(searchInput);
+            const fontSize = parseFloat(styles.fontSize) || 14;
+            let lineHeight = parseFloat(styles.lineHeight);
+            if (Number.isNaN(lineHeight)) {
+                lineHeight = fontSize * 1.2;
+            }
+            const paddingTop = parseFloat(styles.paddingTop) || 0;
+            const paddingBottom = parseFloat(styles.paddingBottom) || 0;
+            const borderTop = parseFloat(styles.borderTopWidth) || 0;
+            const borderBottom = parseFloat(styles.borderBottomWidth) || 0;
+            return Math.ceil(lineHeight + paddingTop + paddingBottom + borderTop + borderBottom);
+        }
+
+        syncMirrorStyles();
+
         // 自动调整输入框高度
         function autoResizeTextarea() {
-            searchInput.style.height = 'auto';
-            const scrollHeight = searchInput.scrollHeight;
-            const minHeight = 36; // 最小高度
+            const minHeightFallback = 36; // 最小高度
             const maxHeight = 200; // 最大高度
-            
-            // 如果内容高度小于等于最小高度，保持最小高度不变
-            if (scrollHeight <= minHeight) {
-                searchInput.style.height = minHeight + 'px';
-            } else {
-                // 只有当内容真正需要更多空间时才调整高度
-                const newHeight = Math.min(scrollHeight, maxHeight);
-                searchInput.style.height = newHeight + 'px';
+            const actionsWidth = inputWrapper
+                ? inputWrapper.querySelector('.input-actions')?.offsetWidth || 0
+                : 0;
+            const availableWidth = searchInput.clientWidth - actionsWidth - 6;
+
+            // 计算单行真实高度，避免空内容时看起来像两行
+            const singleLineHeight = getSingleLineHeightPx();
+            const minHeight = Math.max(minHeightFallback, singleLineHeight);
+            // 记录单行高度，供失焦收起时使用
+            searchInput.dataset.singleLineHeight = String(minHeight);
+
+            mirror.style.width = Math.max(0, availableWidth) + 'px';
+            mirror.textContent = searchInput.value + '\n';
+
+            const neededHeight = Math.ceil(mirror.scrollHeight);
+            const needsWrap = neededHeight > minHeight + 1;
+
+            if (inputWrapper) {
+                inputWrapper.classList.toggle('avoid-overlap', needsWrap);
             }
+
+            if (needsWrap) {
+                mirror.style.width = searchInput.clientWidth + 'px';
+                mirror.textContent = searchInput.value + '\n';
+            }
+
+            const finalHeight = Math.ceil(mirror.scrollHeight);
+            const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
+            searchInput.style.height = clampedHeight + 'px';
         }
         
         // 监听输入事件
@@ -356,13 +428,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 监听聚焦事件，自动调整高度
         searchInput.addEventListener('focus', () => {
             // 聚焦时总是调用自动调整函数
+            if (inputWrapper) {
+                inputWrapper.classList.remove('compact');
+            }
             autoResizeTextarea();
         });
         
         // 监听失焦事件，自动收回高度并隐藏建议
         searchInput.addEventListener('blur', (e) => {
-            // 失焦后始终收回到底部（单行高度）
+            // 失焦后恢复默认单行样式（允许按钮遮盖文字）
+            if (inputWrapper) {
+                inputWrapper.classList.add('compact');
+                inputWrapper.classList.remove('avoid-overlap');
+            }
             searchInput.style.height = '36px';
+            searchInput.scrollTop = 0;
             
             // 延迟隐藏查询建议，以便用户能够点击建议项
             setTimeout(() => {
@@ -376,6 +456,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 初始调整
         autoResizeTextarea();
     }
+
+    // 应用输入框位置设置
+    await applyIframeInputPosition();
     
     // 初始化列数选择
     const columnCurrentBtn = document.getElementById('columnCurrentBtn');
@@ -391,8 +474,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 从存储中获取列数设置
     let { preferredColumns = '3' } = await chrome.storage.sync.get('preferredColumns');
     
-    // 如果在侧边栏中打开，临时使用1列
-    if (isSidePanel || window.innerWidth < 500) {
+    // 如果在侧边栏中打开，或窗口极窄，临时使用1列
+    if (window.innerWidth < 180 || isSidePanel || window.innerWidth < 500) {
        preferredColumns = '1';
     }
     
@@ -1175,7 +1258,7 @@ async function createIframes(query, sites) {
 
     } 
     // 调整主容器样式以适应导航栏
-    container.style.marginLeft = '72px';
+    // container.style.marginLeft = '72px';
     // 为每个启用的站点创建 iframe，传入 query 参数
     enabledSites.forEach(site => {
       // 如果 query 为空,使用 site.url 的 hostname
@@ -1203,76 +1286,74 @@ async function createIframes(query, sites) {
  
   
   // 创建导航栏
-  const nav = document.createElement('nav');
-  nav.className = 'nav';
+  // const nav = document.createElement('nav');
+  // nav.className = 'nav';
 
-  // 创建导航列表
-  const navList = document.createElement('ul');
-  navList.className = 'nav-list';
+  // // 创建导航列表
+  // const navList = document.createElement('ul');
+  // navList.className = 'nav-list';
 
-  // 为每个站点创建导航项
-  enabledSites.forEach((site, index) => {
-    const navItem = document.createElement('li');
-    navItem.className = 'nav-item';
-    navItem.textContent = site.name;
-    navItem.draggable = true;
-    navItem.dataset.siteName = site.name;
-    navItem.dataset.originalIndex = index;
-    
+  // // 为每个站点创建导航项
+  // enabledSites.forEach((site, index) => {
+  //   const navItem = document.createElement('li');
+  //   navItem.className = 'nav-item';
+  //   navItem.textContent = site.name;
+  //   navItem.draggable = true;
+  //   navItem.dataset.siteName = site.name;
+  //   navItem.dataset.originalIndex = index;
+  //   
+  //   // 监听页面滚动事件
+  //   window.addEventListener('scroll', () => {
+  //     // 获取所有 iframe 容器
+  //     const iframes = container.querySelectorAll('.iframe-container');
+  //     // 获取所有导航项
+  //     const navItems = navList.querySelectorAll('li');
+  //     
+  //     // 遍历所有 iframe 检查哪个在视口中
+  //     iframes.forEach((iframe, idx) => {
+  //       const rect = iframe.getBoundingClientRect();
+  //       // 如果 iframe 在视口中(考虑到导航栏高度60px的偏移)
+  //       if (rect.top <= window.innerHeight / 2) {
+  //         // 移除所有激活状态
+  //         navItems.forEach(item => {
+  //           item.style.backgroundColor = '';
+  //           item.classList.remove('active');
+  //         });
+  //         
+  //         // 激活对应的导航项
+  //         navItems[idx].style.backgroundColor = '#e0e0e0';
+  //         navItems[idx].classList.add('active');
+  //       }
+  //     });
+  //   });
 
+  //   // 点击导航项时滚动到对应的iframe
+  //   navItem.addEventListener('click', () => {
+  //     // 移除所有激活状态
+  //     navList.querySelectorAll('li').forEach(item => {
+  //       item.style.backgroundColor = '';
+  //       item.classList.remove('active');
+  //     });
+  //     
+  //     // 激活当前点击项
+  //     navItem.style.backgroundColor = '#e0e0e0';
+  //     navItem.classList.add('active');
+  //     
+  //     // 滚动到对应的iframe
+  //     const iframes = container.querySelectorAll('.iframe-container');
+  //     if(iframes[index]) {
+  //       iframes[index].scrollIntoView({ behavior: 'smooth' });
+  //     }
+  //   });
+  //   
+  //   navList.appendChild(navItem);
+  // });
 
-    // 监听页面滚动事件
-    window.addEventListener('scroll', () => {
-      // 获取所有 iframe 容器
-      const iframes = container.querySelectorAll('.iframe-container');
-      // 获取所有导航项
-      const navItems = navList.querySelectorAll('li');
-      
-      // 遍历所有 iframe 检查哪个在视口中
-      iframes.forEach((iframe, idx) => {
-        const rect = iframe.getBoundingClientRect();
-        // 如果 iframe 在视口中(考虑到导航栏高度60px的偏移)
-        if (rect.top <= window.innerHeight / 2) {
-          // 移除所有激活状态
-          navItems.forEach(item => {
-            item.style.backgroundColor = '';
-            item.classList.remove('active');
-          });
-          
-          // 激活对应的导航项
-          navItems[idx].style.backgroundColor = '#e0e0e0';
-          navItems[idx].classList.add('active');
-        }
-      });
-    });
+  // // 添加拖拽排序功能
+  // addDragAndDropToNavList(navList, enabledSites);
 
-    // 点击导航项时滚动到对应的iframe
-    navItem.addEventListener('click', () => {
-      // 移除所有激活状态
-      navList.querySelectorAll('li').forEach(item => {
-        item.style.backgroundColor = '';
-        item.classList.remove('active');
-      });
-      
-      // 激活当前点击项
-      navItem.style.backgroundColor = '#e0e0e0';
-      navItem.classList.add('active');
-      
-      // 滚动到对应的iframe
-      const iframes = container.querySelectorAll('.iframe-container');
-      if(iframes[index]) {
-        iframes[index].scrollIntoView({ behavior: 'smooth' });
-      }
-    });
-    
-    navList.appendChild(navItem);
-  });
-
-  // 添加拖拽排序功能
-  addDragAndDropToNavList(navList, enabledSites);
-
-  nav.appendChild(navList);
-  document.body.insertBefore(nav, container);
+  // nav.appendChild(navList);
+  // document.body.insertBefore(nav, container);
 
   // 如果有查询词，保存历史记录（只保存 ID 和 query，URL 由各 iframe 内部脚本检测后更新）
   if (query && query.trim() !== '') {
@@ -1804,6 +1885,10 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
 // 添加输入监听器，当searchInput有内容时显示建议
 document.getElementById('searchInput').addEventListener('input', (e) => {
     const query = e.target.value.trim();
+    const inputWrapper = e.target.closest('.input-wrapper');
+    if (inputWrapper) {
+        inputWrapper.classList.remove('compact');
+    }
     showQuerySuggestions(query);
     updateFavoriteButtonVisibility(query);
 });
@@ -1811,9 +1896,7 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 // 添加焦点事件监听器
 document.getElementById('searchInput').addEventListener('focus', (e) => {
     const query = e.target.value.trim();
-    if (query) {
-        showQuerySuggestions(query);
-    }
+    showQuerySuggestions(query);
     updateFavoriteButtonVisibility(e.target.value);
 });
 
@@ -2274,11 +2357,6 @@ function initializeI18n() {
 // 显示查询建议
 async function showQuerySuggestions(query) {
   const querySuggestions = document.getElementById('querySuggestions');
-  
-  if (!query || query.trim() === '') {
-    querySuggestions.style.display = 'none';
-    return;
-  }
 
   try {
     // 从存储中获取提示词模板
@@ -2299,11 +2377,22 @@ async function showQuerySuggestions(query) {
     // 清空之前的内容
     querySuggestions.innerHTML = '';
 
+    // 添加提示文案
+    const label = document.createElement('div');
+    const labelText = (chrome?.i18n?.getMessage && chrome.i18n.getMessage('promptTemplatesLabel')) || '模板：';
+    label.textContent = labelText;
+    label.classList.add('query-suggestion-label');
+    querySuggestions.appendChild(label);
+
     // 创建建议项
     recommendedQueries.forEach(recommendedQuery => {
       const suggestionItem = document.createElement('div');
       suggestionItem.textContent = recommendedQuery.name;
       suggestionItem.classList.add('query-suggestion-item');
+      // 防止点击时触发 textarea 失焦收缩，导致点击被中断
+      suggestionItem.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
       suggestionItem.addEventListener('click', () => {
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
@@ -2321,10 +2410,14 @@ async function showQuerySuggestions(query) {
     settingsIcon.title = '编辑提示词模板';
     settingsIcon.classList.add('query-suggestion-settings-icon');
     settingsIcon.style.cursor = 'pointer';
-    settingsIcon.style.width = '20px';
-    settingsIcon.style.height = '20px';
+    settingsIcon.style.width = '14px';
+    settingsIcon.style.height = '14px';
     settingsIcon.style.marginLeft = '8px';
     settingsIcon.style.verticalAlign = 'middle';
+    // 防止 mousedown 导致 textarea 失焦收缩，影响点击跳转
+    settingsIcon.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+    });
 
     // 点击后在新标签页打开设置页面并跳转到模板编辑区域
     settingsIcon.addEventListener('click', (e) => {
@@ -2547,7 +2640,7 @@ async function loadHistoryIframes(sites) {
     }
     
     // 调整主容器样式以适应导航栏
-    container.style.marginLeft = '72px';
+    // container.style.marginLeft = '72px';
     
     // 为每个站点创建 iframe，直接使用历史记录中的 URL（不进行任何处理）
     sites.forEach(site => {
@@ -2659,40 +2752,40 @@ async function loadHistoryIframes(sites) {
     updateFavoriteAllIcon(allFavorited);
     
     // 创建导航栏
-    const nav = document.createElement('nav');
-    nav.className = 'nav';
-    
-    const navList = document.createElement('ul');
-    navList.className = 'nav-list';
-    
-    sites.forEach((site, index) => {
-      const navItem = document.createElement('li');
-      navItem.className = 'nav-item';
-      navItem.textContent = site.name;
-      navItem.dataset.siteName = site.name;
-      navItem.dataset.originalIndex = index;
-      
-      // 点击导航项时滚动到对应的iframe
-      navItem.addEventListener('click', () => {
-        navList.querySelectorAll('li').forEach(item => {
-          item.style.backgroundColor = '';
-          item.classList.remove('active');
-        });
-        
-        navItem.style.backgroundColor = '#e0e0e0';
-        navItem.classList.add('active');
-        
-        const iframes = container.querySelectorAll('.iframe-container');
-        if (iframes[index]) {
-          iframes[index].scrollIntoView({ behavior: 'smooth' });
-        }
-      });
-      
-      navList.appendChild(navItem);
-    });
-    
-    nav.appendChild(navList);
-    document.body.insertBefore(nav, container);
+    // const nav = document.createElement('nav');
+    // nav.className = 'nav';
+    // 
+    // const navList = document.createElement('ul');
+    // navList.className = 'nav-list';
+    // 
+    // sites.forEach((site, index) => {
+    //   const navItem = document.createElement('li');
+    //   navItem.className = 'nav-item';
+    //   navItem.textContent = site.name;
+    //   navItem.dataset.siteName = site.name;
+    //   navItem.dataset.originalIndex = index;
+    //   
+    //   // 点击导航项时滚动到对应的iframe
+    //   navItem.addEventListener('click', () => {
+    //     navList.querySelectorAll('li').forEach(item => {
+    //       item.style.backgroundColor = '';
+    //       item.classList.remove('active');
+    //     });
+    //     
+    //     navItem.style.backgroundColor = '#e0e0e0';
+    //     navItem.classList.add('active');
+    //     
+    //     const iframes = container.querySelectorAll('.iframe-container');
+    //     if (iframes[index]) {
+    //       iframes[index].scrollIntoView({ behavior: 'smooth' });
+    //     }
+    //   });
+    //   
+    //   navList.appendChild(navItem);
+    // });
+    // 
+    // nav.appendChild(navList);
+    // document.body.insertBefore(nav, container);
     
     // 设置搜索框的值（如果有的话）
     const urlParams = new URLSearchParams(window.location.search);

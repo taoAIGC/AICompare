@@ -3,34 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <title>Favorites</title>
+    <link rel="stylesheet" href="../shared/sidebar.css">
     <link rel="stylesheet" href="favorites.css">
 </head>
-<body>
-    <div class="favorites-container">
-        <div class="favorites-header">
-            <h1>Favorites</h1>
-            <button id="clearFavoritesBtn" class="clear-btn">Clear All Favorites</button>
-        </div>
-        <div class="search-container">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search by query ...">
-        </div>
-        <div id="favoritesList" class="favorites-list">
-            <!-- 收藏记录将动态加载到这里 -->
-        </div>
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-icon">⭐</div>
-            <div class="empty-text">No favorite record</div>
-        </div>
-        <div id="noResultsState" class="empty-state" style="display: none;">
-            <div class="empty-icon">🔍</div>
-            <div class="empty-text">No results found</div>
-            <div class="empty-hint">Try different keywords</div>
+<body data-page="favorites">
+    <div class="page-layout">
+        <div id="appSidebarMount"></div>
+        <div class="favorites-container">
+            <div class="favorites-header">
+                <div class="favorites-title">
+                    <h1>Favorites</h1>
+                </div>
+                <button id="clearFavoritesBtn" class="clear-btn">Clear All Favorites</button>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by query ...">
+            </div>
+            <div id="favoritesList" class="favorites-list">
+                <!-- 收藏记录将动态加载到这里 -->
+            </div>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">⭐</div>
+                <div class="empty-text">No favorite record</div>
+            </div>
+            <div id="noResultsState" class="empty-state" style="display: none;">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-text">No results found</div>
+                <div class="empty-hint">Try different keywords</div>
+            </div>
         </div>
     </div>
     <script src="../config/baseConfig.js"></script>
     <script src="../config/firebaseConfig.js"></script>
     <script src="../firebase/firebase-auth.js"></script>
     <script src="../firebase/firebase-sync.js"></script>
+    <script src="../shared/sidebar.js"></script>
     <script src="favorites.js"></script>
 </body>
 </html>

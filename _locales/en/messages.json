@@ -117,6 +117,26 @@
     "message": "Shortcut Entry Configuration",
     "description": "Title for shortcut entry configuration"
   },
+  "inputPositionTitle": {
+    "message": "Input Position",
+    "description": "Input position section title"
+  },
+  "inputPositionDescription": {
+    "message": "Choose to show the input at the top or fixed at the bottom",
+    "description": "Input position section description"
+  },
+  "inputPositionTop": {
+    "message": "Page top",
+    "description": "Input position top option"
+  },
+  "inputPositionBottom": {
+    "message": "Fixed bottom",
+    "description": "Input position bottom option"
+  },
+  "comingSoonNotice": {
+    "message": "In development, not available yet",
+    "description": "Feature coming soon notice"
+  },
   "floatButton": {
     "message": "Float Button",
     "description": "The name for the float button"
@@ -230,6 +250,9 @@
   },
   "promptTemplatesTitle": {
     "message": "Prompt Templates"
+  },
+  "promptTemplatesLabel": {
+    "message": "Template:"
   },
   "promptTemplatesDescription": {
     "message": "Customize prompt templates for AI comparison search"

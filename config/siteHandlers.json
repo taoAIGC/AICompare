@@ -851,6 +851,24 @@
           }
         ]
       },
+      "contentExtractor": {
+        "messageContainer": null,
+        "contentSelectors": [
+          ".markdown-body",
+          ".result-responsive-layer .markdown-body",
+          "[class*=\"markdown-body\"]",
+          ".result-responsive-layer"
+        ],
+        "excludeSelectors": [
+          "nav",
+          "header",
+          "footer",
+          ".sidebar",
+          "button",
+          "[class*=\"思考\"]"
+        ],
+        "exportLatestOnly": true
+      },
       "historyHandler": {
         "urlFeature": "/search-v2/"
       },
@@ -1053,37 +1071,17 @@
         ]
       },
       "contentExtractor": {
-        "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".yuanbao-message .markdown",
-          ".yuanbao-message",
-          ".message-content .markdown",
-          ".message-content",
-          "[class*=\"yuanbao\"][class*=\"message\"]",
-          "[class*=\"yuanbao\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".yuanbao-response",
-          "[class*=\"yuanbao-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]",
-          ".tencent-response",
-          "[class*=\"tencent\"]"
+        "messageContainer": ".agent-chat__list__item--ai",
+        "contentSelectors": [
+          ".agent-chat__conv--ai__speech_show"
         ],
         "fallbackSelectors": [
-          "main",
-          "article",
-          ".container",
-          "[class*=\"content\"]",
-          "[class*=\"result\"]",
-          "[class*=\"output\"]"
+          ".agent-chat__bubble__content"
         ],
         "excludeSelectors": [
+          ".hyc-component-reasoner",
+          "[class*=\"reasoner\"]",
+          "[class*=\"think-header\"]",
           "nav",
           "header",
           "footer",
@@ -1103,7 +1101,8 @@
           "[class*=\"stop\"]",
           ".attachment",
           "[class*=\"attachment\"]"
-        ]
+        ],
+        "exportLatestOnly": true
       },
       "historyHandler": {
         "urlFeature": "-"
@@ -1836,6 +1835,24 @@
             "description": "执行文件粘贴操作"
           }
         ]
+      },
+      "contentExtractor": {
+        "messageContainer": "[class*=\"MessageBubble\"][class*=\"leftSide\"], [data-message-author-role=\"assistant\"], [class*=\"BotMessage\"]",
+        "contentSelectors": [
+          "[class*=\"Markdown_markdownContainer\"]"
+        ],
+        "fallbackSelectors": [
+          "[class*=\"Prose_prose\"]"
+        ],
+        "excludeSelectors": [
+          "nav",
+          "header",
+          "footer",
+          ".sidebar",
+          "button",
+          "[class*=\"MarkdownCodeBlock_codeHeader\"]"
+        ],
+        "exportLatestOnly": true
       },
       "historyHandler": {
         "urlFeature": "/chat/"

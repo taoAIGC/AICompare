@@ -1,0 +1,11 @@
+{
+  "shortName": {
+    "message": "AI Compare"
+  },
+  "appName": {
+    "message": "AI Compare - ワンクリックでChatGPT、Gemini、Grokなどを比較。"
+  },
+  "extDescription": {
+    "message": "AI Compareは複数のAIの回答から最適な答えをすばやく見つけるのに役立ちます。"
+  }
+}

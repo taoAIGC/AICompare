@@ -3,56 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title data-i18n="appName">MultiAI</title>
+    <link rel="stylesheet" href="../shared/sidebar.css">
     <link rel="stylesheet" href="homepage.css">
 </head>
-<body>
+<body data-page="homepage">
     <div class="homepage-layout">
-        <!-- 左侧导航区 -->
-        <nav class="sidebar-nav">
-            <div class="sidebar-nav-body">
-            <div class="sidebar-nav-header">
-                <div class="sidebar-nav-icon-wrap">
-                    <img class="sidebar-nav-icon" src="../icons/icon48.png" alt="" aria-hidden="true">
-                </div>
-            </div>
-            <div class="action-links">
-                <a id="settingsLink" class="action-link" href="#">
-                    <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
-                    <span data-i18n="settingsLink">设置</span>
-                </a>
-                <a id="historyLink" class="action-link" href="#">
-                    <img class="action-link-icon" src="../icons/history.svg" alt="" aria-hidden="true">
-                    <span data-i18n="historyLink">历史</span>
-                </a>
-
-                <a id="feedbackLink" class="action-link action-link-with-tooltip" href="#">
-                    <img class="action-link-icon" src="../icons/feedback.svg" alt="" aria-hidden="true">
-                    <span data-i18n="userFeedback">建议</span>
-                    <span id="feedbackEmailTooltip" class="feedback-email-tooltip" role="tooltip"></span>
-                </a>
-                <a id="reviewLink" class="action-link" href="#">
-                    <img class="action-link-icon action-link-icon-grayscale" src="../icons/thumbs-up.svg" alt="" aria-hidden="true">
-                    <span data-i18n="reviewLink">五星好评</span>
-                </a>
-                <a id="coffeeLink" class="action-link" href="#">
-                    <img class="action-link-icon" src="../icons/coffee.svg" alt="" aria-hidden="true">
-                    <span data-i18n="coffeeLink">请我喝咖啡</span>
-                </a>
-                
-            </div>
-            <div class="sidebar-favorites-list-wrap">
-                <a id="favoritesLink" class="action-link" href="#">
-                    <img class="action-link-icon" src="../icons/star_unsaved.svg" alt="" aria-hidden="true">
-                    <span data-i18n="favoritesLink">收藏</span>
-                </a>
-                <div id="sidebarFavoritesList" class="sidebar-favorites-list"></div>
-            </div>
-            </div>
-            <div id="syncBar" class="sync-bar" role="button" tabindex="0">
-                <img class="sync-bar-icon" src="../icons/cloud-upload.svg" alt="" aria-hidden="true">
-                <span id="syncBarText" class="sync-bar-text" data-i18n="enableSync">开启同步</span>
-            </div>
-        </nav>
+        <!-- 左侧导航区（共享） -->
+        <div id="appSidebarMount"></div>
         <!-- 主内容区 -->
         <div class="homepage-container">
             <!-- Pin 引导提示 -->
@@ -78,10 +35,12 @@
                             placeholder=""
                             rows="1"
                         ></textarea>
-                        <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
-                            <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
-                        </button>
-                        <button id="searchButton" class="search-btn" data-i18n="startCompare">PK</button>
+                        <div class="input-actions">
+                            <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
+                                <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
+                            </button>
+                            <button id="searchButton" class="search-btn" data-i18n="startCompare">PK</button>
+                        </div>
                     </div>
                     <div id="querySuggestions" class="query-suggestions" style="display: none;">
                         <!-- queryItem.name 将显示在这里 -->
@@ -104,30 +63,12 @@
         </div>
     </div>
 
-    <!-- 微信号弹窗 -->
-    <div id="wechatModal" class="wechat-modal" style="display: none;">
-        <div class="wechat-modal-overlay"></div>
-        <div class="wechat-modal-content">
-            <div class="wechat-modal-title" data-i18n="wechatModalTitle">微信号</div>
-            <div class="wechat-modal-id">aipmgpt</div>
-        </div>
-    </div>
-
-    <!-- 请我喝咖啡弹窗 -->
-    <div id="coffeeModal" class="coffee-modal" style="display: none;">
-        <div class="coffee-modal-overlay"></div>
-        <div class="coffee-modal-content">
-            <p class="coffee-modal-text" data-i18n="coffeeModalText">您的赞助是项目持续发展的动力</p>
-            <img id="coffeeModalImage" class="coffee-modal-image" src="" alt="">
-        </div>
-    </div>
-    
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
     <script src="../config/firebaseConfig.js"></script>
     <script src="../firebase/firebase-auth.js"></script>
     <script src="../firebase/firebase-sync.js"></script>
+    <script src="../shared/sidebar.js"></script>
     <script src="homepage.js"></script>
 </body>
 </html>
-

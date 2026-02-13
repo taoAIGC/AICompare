@@ -1,0 +1,392 @@
+async function loadSidebarMarkup() {
+    const mount = document.getElementById('appSidebarMount');
+    if (!mount) return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSidePanel = urlParams.get('side_panel') === 'true';
+    if (isSidePanel) {
+        mount.remove();
+        return null;
+    }
+    try {
+        const sidebarUrl = chrome.runtime.getURL('shared/sidebar.html');
+        const response = await fetch(sidebarUrl);
+        if (!response.ok) {
+            console.warn('Failed to load sidebar HTML:', response.status);
+            return null;
+        }
+        const html = await response.text();
+        mount.innerHTML = html;
+        return mount;
+    } catch (error) {
+        console.error('Failed to load sidebar HTML', error);
+        return null;
+    }
+}
+
+function safeTrackEvent(name, params = {}) {
+    const analytics = window.AIShortcutsAnalytics;
+    if (analytics && typeof analytics.logEvent === 'function') {
+        analytics.logEvent(name, params);
+    }
+}
+
+function applySidebarI18n(root) {
+    if (!root || !chrome?.i18n) return;
+    root.querySelectorAll('[data-i18n]').forEach((element) => {
+        const key = element.getAttribute('data-i18n');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.textContent = message;
+        }
+    });
+    root.querySelectorAll('[data-i18n-title]').forEach((element) => {
+        const key = element.getAttribute('data-i18n-title');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.title = message;
+        }
+    });
+    root.querySelectorAll('[data-i18n-alt]').forEach((element) => {
+        const key = element.getAttribute('data-i18n-alt');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.alt = message;
+        }
+    });
+}
+
+async function initializeSidebarActionLinks() {
+    try {
+        const config = await AppConfigManager.loadConfig();
+        const externalLinks = config.externalLinks || {};
+
+        const historyLink = document.getElementById('historyLink');
+        if (historyLink) {
+            historyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                safeTrackEvent('sidebar_history_click');
+                chrome.tabs.create({
+                    url: chrome.runtime.getURL('history/history.html')
+                });
+            });
+        }
+
+        const favoritesLink = document.getElementById('favoritesLink');
+        if (favoritesLink) {
+            favoritesLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                safeTrackEvent('sidebar_favorites_click');
+                chrome.tabs.create({
+                    url: chrome.runtime.getURL('favorites/favorites.html')
+                });
+            });
+        }
+
+        const settingsLink = document.getElementById('settingsLink');
+        if (settingsLink) {
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                safeTrackEvent('sidebar_settings_click');
+                window.location.href = chrome.runtime.getURL('options/options.html');
+            });
+        }
+
+        const feedbackLink = document.getElementById('feedbackLink');
+        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
+        if (feedbackLink && feedbackEmailTooltip) {
+            const feedbackEmail = externalLinks.feedbackEmail || 'AIShortcuts@outlook.com';
+            feedbackLink.href = 'mailto:' + feedbackEmail;
+            feedbackEmailTooltip.textContent = feedbackEmail;
+            feedbackLink.addEventListener('click', () => {
+                safeTrackEvent('sidebar_feedback_click', { feedback_email: feedbackEmail });
+            });
+        }
+
+        const reviewLink = document.getElementById('reviewLink');
+        if (reviewLink) {
+            reviewLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                const reviewUrl = externalLinks.reviewLink ||
+                    'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
+                safeTrackEvent('sidebar_review_click', {
+                    has_review_link: Boolean(externalLinks.reviewLink)
+                });
+                chrome.tabs.create({ url: reviewUrl });
+            });
+        }
+
+        bindWechatLink();
+        bindCoffeeLink();
+    } catch (error) {
+        console.error('加载配置失败:', error);
+
+        const historyLink = document.getElementById('historyLink');
+        if (historyLink) {
+            historyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                chrome.tabs.create({
+                    url: chrome.runtime.getURL('history/history.html')
+                });
+            });
+        }
+
+        const favoritesLink = document.getElementById('favoritesLink');
+        if (favoritesLink) {
+            favoritesLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                chrome.tabs.create({
+                    url: chrome.runtime.getURL('favorites/favorites.html')
+                });
+            });
+        }
+
+        const settingsLink = document.getElementById('settingsLink');
+        if (settingsLink) {
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = chrome.runtime.getURL('options/options.html');
+            });
+        }
+
+        const feedbackLink = document.getElementById('feedbackLink');
+        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
+        if (feedbackLink && feedbackEmailTooltip) {
+            const feedbackEmail = 'AIShortcuts@outlook.com';
+            feedbackLink.href = 'mailto:' + feedbackEmail;
+            feedbackEmailTooltip.textContent = feedbackEmail;
+        }
+
+        const reviewLink = document.getElementById('reviewLink');
+        if (reviewLink) {
+            reviewLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                chrome.tabs.create({
+                    url: 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews'
+                });
+            });
+        }
+
+        bindWechatLink();
+        bindCoffeeLink();
+    }
+}
+
+function bindCoffeeLink() {
+    const coffeeLink = document.getElementById('coffeeLink');
+    const coffeeModal = document.getElementById('coffeeModal');
+    const coffeeModalImage = document.getElementById('coffeeModalImage');
+    const coffeeModalClose = document.getElementById('coffeeModalClose');
+    const coffeeModalOverlay = coffeeModal?.querySelector('.coffee-modal-overlay');
+
+    if (!coffeeLink || !coffeeModal || !coffeeModalImage) return;
+
+    coffeeModalImage.src = chrome.runtime.getURL('icons/weichatMoney.jpg');
+
+    coffeeLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        coffeeModal.style.display = 'flex';
+    });
+
+    function closeCoffeeModal() {
+        coffeeModal.style.display = 'none';
+    }
+
+    if (coffeeModalClose) {
+        coffeeModalClose.addEventListener('click', closeCoffeeModal);
+    }
+    if (coffeeModalOverlay) {
+        coffeeModalOverlay.addEventListener('click', closeCoffeeModal);
+    }
+}
+
+function bindWechatLink() {
+    const wechatLink = document.getElementById('wechatLink');
+    const wechatModal = document.getElementById('wechatModal');
+    const wechatModalClose = document.getElementById('wechatModalClose');
+    const wechatModalOverlay = wechatModal?.querySelector('.wechat-modal-overlay');
+
+    if (!wechatLink || !wechatModal) return;
+
+    wechatLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        wechatModal.style.display = 'flex';
+    });
+
+    function closeWechatModal() {
+        wechatModal.style.display = 'none';
+    }
+
+    if (wechatModalClose) {
+        wechatModalClose.addEventListener('click', closeWechatModal);
+    }
+    if (wechatModalOverlay) {
+        wechatModalOverlay.addEventListener('click', closeWechatModal);
+    }
+}
+
+async function updateSyncBar() {
+    const syncBar = document.getElementById('syncBar');
+    const syncBarText = document.getElementById('syncBarText');
+    const syncBarIcon = syncBar?.querySelector('.sync-bar-icon');
+    if (!syncBar || !syncBarText) return;
+    try {
+        const { firebase_uid, firebase_email, firebase_refreshToken } = await chrome.storage.local.get([
+            'firebase_uid', 'firebase_email', 'firebase_refreshToken'
+        ]);
+        const loggedIn = !!(firebase_uid && firebase_refreshToken);
+        if (loggedIn) {
+            syncBar.classList.add('sync-bar--logged-in');
+            syncBarText.textContent = firebase_email || firebase_uid || '';
+            if (syncBarIcon) syncBarIcon.textContent = '\u{1F464}';
+        } else {
+            syncBar.classList.remove('sync-bar--logged-in');
+            syncBarText.textContent = chrome.i18n.getMessage('enableSync') ||
+                (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
+            if (syncBarIcon) syncBarIcon.textContent = '';
+        }
+    } catch (e) {
+        syncBar.classList.remove('sync-bar--logged-in');
+        syncBarText.textContent = chrome.i18n.getMessage('enableSync') ||
+            (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
+        if (syncBarIcon) syncBarIcon.textContent = '';
+    }
+}
+
+function bindSyncBar() {
+    const syncBar = document.getElementById('syncBar');
+    if (!syncBar) return;
+    syncBar.addEventListener('click', async () => {
+        safeTrackEvent('sidebar_sync_bar_click');
+        const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
+        if (loggedIn) {
+            return;
+        }
+        if (!window.firebaseSignInWithGoogle || !window.firebaseSyncMergeAndUpload) {
+            return;
+        }
+        const textEl = document.getElementById('syncBarText');
+        try {
+            if (textEl) {
+                textEl.textContent = chrome.i18n.getUILanguage().toLowerCase().startsWith('zh')
+                    ? '正在打开谷歌登录…'
+                    : 'Opening Google sign-in…';
+            }
+            await window.firebaseSignInWithGoogle();
+            await window.firebaseSyncMergeAndUpload();
+            await updateSyncBar();
+        } catch (e) {
+            if (textEl) {
+                textEl.textContent = chrome.i18n.getMessage('enableSync') || '开启同步';
+            }
+            console.warn('Sync sign-in failed', e);
+        }
+    });
+}
+
+async function loadSidebarFavorites() {
+    const listEl = document.getElementById('sidebarFavoritesList');
+    if (!listEl) return;
+    try {
+        const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+        const favoriteItems = pkHistory
+            .filter(item => item.sites && item.sites.some(site => site.isFavorite === true))
+            .map(item => ({
+                ...item,
+                sites: item.sites.filter(site => site.isFavorite === true)
+            }));
+        listEl.innerHTML = '';
+        if (favoriteItems.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'sidebar-favorites-empty';
+            empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
+            listEl.appendChild(empty);
+            return;
+        }
+        favoriteItems.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'sidebar-favorite-item';
+            el.textContent = item.query || '';
+            el.title = item.query || '';
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                openSidebarFavoriteItem(item);
+            });
+            listEl.appendChild(el);
+        });
+    } catch (error) {
+        console.error('加载侧边栏收藏失败:', error);
+        if (listEl) listEl.innerHTML = '';
+    }
+}
+
+async function openSidebarFavoriteItem(item) {
+    try {
+        const params = new URLSearchParams();
+        params.set('query', item.query || '');
+        const siteNames = (item.sites || []).map(site => site.name).filter(Boolean);
+        if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
+        await chrome.tabs.create({ url: iframeUrl, active: true });
+        setTimeout(async () => {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('iframe.html')) {
+                try {
+                    await chrome.tabs.sendMessage(tabs[0].id, {
+                        type: 'loadHistoryIframes',
+                        sites: item.sites || []
+                    });
+                } catch (err) {}
+            }
+        }, 1000);
+    } catch (error) {
+        console.error('打开收藏记录失败:', error);
+    }
+}
+
+function bindSidebarStorageListeners() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes.pkHistory) loadSidebarFavorites();
+        if (areaName === 'local' && (changes.firebase_email || changes.firebase_uid)) updateSyncBar();
+    });
+}
+
+function markActiveSidebarLink() {
+    const page = document.body?.dataset?.page;
+    if (!page) return;
+    const linkMap = {
+        favorites: 'favoritesLink',
+        history: 'historyLink',
+        settings: 'settingsLink'
+    };
+    const linkId = linkMap[page];
+    if (!linkId) return;
+    const link = document.getElementById(linkId);
+    if (link) {
+        link.setAttribute('aria-current', 'page');
+    }
+}
+
+async function initSharedSidebar() {
+    const mount = await loadSidebarMarkup();
+    if (!mount) return;
+    applySidebarI18n(mount);
+    markActiveSidebarLink();
+    await initializeSidebarActionLinks();
+    await updateSyncBar();
+    bindSyncBar();
+    bindSidebarStorageListeners();
+    await loadSidebarFavorites();
+
+    const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
+    if (loggedIn && typeof window.firebaseSyncMergeAndUpload === 'function') {
+        const { firebase_lastSyncAt } = await chrome.storage.local.get('firebase_lastSyncAt');
+        const throttleMs = 2 * 60 * 1000;
+        if (!firebase_lastSyncAt || Date.now() - firebase_lastSyncAt > throttleMs) {
+            window.firebaseSyncMergeAndUpload().then(() => loadSidebarFavorites()).catch(() => {});
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initSharedSidebar();
+});

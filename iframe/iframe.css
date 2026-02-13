@@ -158,6 +158,19 @@ html {
     align-items: flex-start;
 }
 
+body.search-bar-bottom .search-bar {
+    top: auto;
+    bottom: 12px;
+}
+
+body.search-bar-bottom .query-suggestions {
+    top: auto;
+    bottom: 100%;
+    border-radius: 4px 4px 0 0;
+    border-top: 1px solid #ddd;
+    border-bottom: none;
+}
+
 /* 右侧按钮组容器 - 实现等间距分布 */
 .search-bar-right-buttons {
     display: flex;
@@ -191,15 +204,17 @@ html {
 .input-wrapper {
     position: relative;
     display: flex;
-    align-items: flex-start; /* 改为顶部对齐，允许输入框向下扩展 */
+    align-items: stretch; /* 允许输入框向下扩展 */
     height: auto; /* 允许高度自动调整 */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
 }
 
 .search-bar textarea {
     width: 100%;
-    padding: 8px 100px 8px 8px; /* 增加右边距为三个按钮留出空间 */
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 10px; /* 默认不预留按钮空间 */
+    border: none;
     box-sizing: border-box;
     resize: none; /* 禁用用户手动调整大小 */
     overflow: hidden; /* 隐藏滚动条 */
@@ -208,18 +223,62 @@ html {
     line-height: 1.6; /* 增大行高，让第二行文字在单行高度时不露出 */
     font-family: inherit; /* 继承字体 */
     font-size: 14px; /* 明确设置字体大小 */
+    outline: none;
+}
+
+.input-actions {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.input-wrapper.avoid-overlap {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 6px;
+}
+
+.input-wrapper.avoid-overlap .input-actions {
+    position: static;
+    align-self: flex-end;
+    margin: 4px 6px 4px 0;
+}
+
+.input-wrapper.avoid-overlap textarea {
+    padding-right: 8px;
+}
+
+.input-wrapper.compact {
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.input-wrapper.compact .input-actions {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    margin: 0;
+}
+
+.input-wrapper.compact textarea {
+    padding-right: 8px;
+    overflow: hidden;
 }
 
 .file-upload-btn {
-    position: absolute;
-    right: 32px; /* 为搜索按钮留出空间 */
-    bottom: 2px; /* 改为底部对齐 */
-    background: transparent;
+    position: static;
+    background: #fff;
     border: none;
     cursor: pointer;
-    width: 36px;                /* 统一宽度 */
-    height: 36px;               /* 统一高度 */
-    padding: 0;                 /* 移除内边距 */
+    width: 28px;                /* 与 PK 按钮高度一致 */
+    height: 28px;
+    padding: 4px 6px;           /* 与 PK 按钮一致 */
     border-radius: 6px;
     transition: all 0.2s ease;
     display: flex;
@@ -265,9 +324,7 @@ html {
 }
 
 .search-bar .search-btn {
-    position: absolute;
-    right: 6px;
-    bottom: 4px;
+    position: static;
     background: #4CAF50 !important;
     color: white !important;
     border: none;
@@ -312,6 +369,13 @@ html {
     overflow-y: auto;
 }
 
+.query-suggestion-label {
+    font-size: 12px;
+    color: #666;
+    align-self: center;
+    white-space: nowrap;
+}
+
 .query-suggestion-item {
     padding: 4px 8px;
     background: #f0f0f0;
@@ -327,6 +391,12 @@ html {
     background: #e0e0e0;
 }
 
+.query-suggestion-settings-icon {
+    width: 14px;
+    height: 14px;
+    align-self: center;
+}
+
 .search-bar button {
     padding: 8px 16px;
     background: transparent;
@@ -334,6 +404,10 @@ html {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+}
+
+.search-bar .file-upload-btn {
+    background: #fff;
 }
 
 
@@ -347,6 +421,11 @@ html {
     grid-template-columns: repeat(var(--columns, 2), 1fr);
     gap: 16px;
     padding: 16px 0;
+}
+
+body.search-bar-bottom #iframes-container {
+    margin-top: 16px;
+    padding-bottom: 96px;
 }
 
 /* 在侧边栏模式下默认显示1列 */

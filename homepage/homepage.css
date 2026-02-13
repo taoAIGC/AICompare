@@ -13,6 +13,14 @@ html, body {
     display: flex;
 }
 
+.is-side-panel #appSidebarMount {
+    display: none;
+}
+
+.is-side-panel .homepage-layout {
+    display: block;
+}
+
 /* 左侧导航区：占满视口高度，账号区域固定在窗口底部 */
 .sidebar-nav {
     width: 180px;
@@ -245,6 +253,32 @@ html, body {
     margin-right: auto;
 }
 
+body.search-bar-bottom .homepage-container {
+    padding-bottom: 160px;
+}
+
+body.search-bar-bottom .search-bar {
+    position: fixed;
+    bottom: 20px;
+    left: calc(50% + 90px);
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 700px;
+    z-index: 1000;
+}
+
+body.is-side-panel.search-bar-bottom .search-bar {
+    left: 50%;
+}
+
+body.search-bar-bottom .query-suggestions {
+    top: auto;
+    bottom: 100%;
+    border-radius: 4px 4px 0 0;
+    border-top: 1px solid #ddd;
+    border-bottom: none;
+}
+
 .search-input-container {
     flex: 1;
     min-width: 0;
@@ -256,15 +290,17 @@ html, body {
 .input-wrapper {
     position: relative;
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
 }
 
 .search-bar textarea {
     width: 100%;
-    padding: 8px 170px 8px 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 8px;
+    border: none;
     box-sizing: border-box;
     resize: none;
     overflow: hidden;
@@ -273,20 +309,46 @@ html, body {
     line-height: 1.6;
     font-family: inherit;
     font-size: 14px;
-    transition: border-color 0.2s ease;
+    outline: none;
+}
+
+.input-actions {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.input-wrapper.avoid-overlap {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 6px;
+}
+
+.input-wrapper.avoid-overlap .input-actions {
+    position: static;
+    align-self: flex-end;
+    margin: 4px 6px 4px 0;
+}
+
+.input-wrapper.avoid-overlap textarea {
+    padding-right: 8px;
 }
 
 .file-upload-btn {
-    position: absolute;
-    right: 42px;
-    bottom: 4px;
+    position: static;
     background: transparent;
     border: none;
     cursor: pointer;
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     padding: 0;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -294,8 +356,9 @@ html, body {
 }
 
 .file-upload-btn:hover {
-    background: #e9ecef;
+    background: transparent;
     transform: translateY(-1px);
+    box-shadow: none;
 }
 
 .file-upload-btn img {
@@ -304,16 +367,14 @@ html, body {
     display: block;
 }
 
-.search-bar textarea:focus {
+.file-upload-btn:focus,
+.file-upload-btn:focus-visible {
     outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+    box-shadow: none;
 }
 
 .search-bar .search-btn {
-    position: absolute;
-    right: 6px;
-    bottom: 4px;
+    position: static;
     background: #4CAF50 !important;
     color: white !important;
     border: none;
@@ -358,6 +419,13 @@ html, body {
     overflow-y: auto;
 }
 
+.query-suggestion-label {
+    font-size: 12px;
+    color: #666;
+    align-self: center;
+    white-space: nowrap;
+}
+
 .query-suggestion-item {
     padding: 4px 8px;
     background: #f0f0f0;
@@ -375,10 +443,10 @@ html, body {
 
 .query-suggestion-settings-icon {
     cursor: pointer;
-    width: 20px;
-    height: 20px;
+    width: 14px;
+    height: 14px;
     margin-left: 8px;
-    vertical-align: middle;
+    align-self: center;
     opacity: 0.6;
     transition: opacity 0.2s;
 }

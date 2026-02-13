@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title data-i18n="appName"></title>
+  <link rel="stylesheet" href="../shared/sidebar.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -10,14 +11,18 @@
     <!-- 左侧导航栏（与 homepage 风格一致） -->
     <nav class="sidebar-nav">
       <div class="sidebar-nav-header">
-        <div class="sidebar-nav-icon-wrap">
-          <img class="sidebar-nav-icon" src="../icons/icon48.png" alt="" aria-hidden="true">
-        </div>
+        <a class="app-icon-link" href="../homepage/homepage.html" title="Go to homepage" aria-label="Go to homepage">
+          <img class="app-icon" src="../icons/icon48.png" alt="">
+        </a>
       </div>
       <div class="action-links">
         <a href="#quick-entry" class="action-link nav-link active" data-section="quick-entry">
           <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
           <span data-i18n="configButtonTitle">快捷入口设置</span>
+        </a>
+        <a href="#input-position" class="action-link nav-link" data-section="input-position">
+          <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+          <span data-i18n="inputPositionTitle">输入框位置</span>
         </a>
         <a href="#disabled-sites" class="action-link nav-link" data-section="disabled-sites">
           <img class="action-link-icon" src="../icons/close.svg" alt="" aria-hidden="true">
@@ -38,20 +43,25 @@
           <h1 data-i18n="configButtonTitle">快捷入口设置</h1>
           <div class="site-section">
             <div id="buttonSiteConfigs" class="site-configs"></div>
-            <div class="site-config">
-              <div class="site-header site-setting-row">
-                <span class="site-name-display" data-i18n="compareButtonLanguageTitle">对比按钮语言</span>
-                <select id="compareButtonLangSelect" class="site-setting-select">
-                  <option value="auto" data-i18n="compareButtonLanguageAuto">跟随系统</option>
-                  <option value="zh" data-i18n="compareButtonLanguageZh">中文</option>
-                  <option value="en" data-i18n="compareButtonLanguageEn">English</option>
-                  <option value="bilingual" data-i18n="compareButtonLanguageBilingual">双语</option>
-                </select>
-              </div>
-            </div>
           </div>
         </section>
 
+        <!-- 输入框位置设置 -->
+        <section id="input-position" class="settings-section">
+          <h1 data-i18n="inputPositionTitle">输入框位置</h1>
+          <p class="section-description" data-i18n="inputPositionDescription">选择输入框显示在页面顶部或固定在底部</p>
+          <div class="input-position-options">
+            <label class="input-position-option is-disabled">
+              <input type="radio" name="homepageInputPosition" id="inputPositionTop" value="top" disabled>
+              <span data-i18n="inputPositionTop">页面顶部</span>
+            </label>
+            <label class="input-position-option is-disabled">
+              <input type="radio" name="homepageInputPosition" id="inputPositionBottom" value="bottom" disabled>
+              <span data-i18n="inputPositionBottom">固定在底部</span>
+            </label>
+          </div>
+          <div class="coming-soon-badge" data-i18n="comingSoonNotice">开发中，暂不可用</div>
+        </section>
 
         <!-- 禁用网站管理 -->
         <section id="disabled-sites" class="settings-section">

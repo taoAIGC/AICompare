@@ -1,0 +1,11 @@
+{
+  "shortName": {
+    "message": "AI Compare"
+  },
+  "appName": {
+    "message": "AI Compare - 一鍵比較 ChatGPT、Gemini、Grok 等。"
+  },
+  "extDescription": {
+    "message": "AI Compare 可協助你快速從多個 AI 中找到最佳答案。"
+  }
+}

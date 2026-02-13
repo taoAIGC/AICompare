@@ -112,6 +112,26 @@
     "message": "快捷入口配置",
     "description": "入口配置标题"
   },
+  "inputPositionTitle": {
+    "message": "输入框位置",
+    "description": "输入框位置设置标题"
+  },
+  "inputPositionDescription": {
+    "message": "选择输入框显示在页面顶部或固定在底部",
+    "description": "输入框位置设置描述"
+  },
+  "inputPositionTop": {
+    "message": "页面顶部",
+    "description": "输入框位置顶部选项"
+  },
+  "inputPositionBottom": {
+    "message": "固定在底部",
+    "description": "输入框位置底部选项"
+  },
+  "comingSoonNotice": {
+    "message": "开发中，暂不可用",
+    "description": "功能开发中提示"
+  },
   "floatButton": {
     "message": "悬浮球",
     "description": "悬浮按钮的名称"
@@ -225,6 +245,9 @@
   },
   "promptTemplatesTitle": {
     "message": "提示词模板管理"
+  },
+  "promptTemplatesLabel": {
+    "message": "模板："
   },
   "promptTemplatesDescription": {
     "message": "自定义搜索建议按钮的提示词模板"

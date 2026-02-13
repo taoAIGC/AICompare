@@ -1,0 +1,11 @@
+{
+  "shortName": {
+    "message": "AI Compare"
+  },
+  "appName": {
+    "message": "AI Compare - Un clic pour comparer ChatGPT, Gemini, Grok et plus encore."
+  },
+  "extDescription": {
+    "message": "AI Compare vous aide à trouver rapidement la meilleure réponse parmi plusieurs IA."
+  }
+}

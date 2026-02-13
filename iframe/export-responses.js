@@ -172,7 +172,7 @@ function initializeExportModal(modal) {
   // 更新预览（优化版）
   function updatePreview() {
     if (!modal.selectedSites || modal.selectedSites.size === 0) {
-      previewContent.textContent = '请选择要导出的站点...';
+      setPreviewContent(previewContent, '请选择要导出的站点...', selectedFormat);
       return;
     }
     
@@ -188,7 +188,7 @@ function initializeExportModal(modal) {
     // 收集选中站点的回答内容（使用缓存）
     collectResponses(modal.selectedSites, true).then(responses => {
       const preview = generatePreview(responses, selectedFormat);
-      previewContent.textContent = preview;
+      setPreviewContent(previewContent, preview, selectedFormat);
     }).catch(error => {
       previewContent.innerHTML = `
         <div class="error-message">
@@ -284,16 +284,15 @@ function loadExportSites(container, modal) {
       
       // 更新预览
       const previewContent = modal.querySelector('#exportPreviewContent');
+      const activeFormat = modal.querySelector('.export-format-btn.active').dataset.format;
       if (selectedSites.size === 0) {
-        previewContent.textContent = '请选择要导出的站点...';
+        setPreviewContent(previewContent, '请选择要导出的站点...', activeFormat);
       } else {
         collectResponses(selectedSites).then(responses => {
-          const formatButtons = modal.querySelectorAll('.export-format-btn');
-          const activeFormat = modal.querySelector('.export-format-btn.active').dataset.format;
           const preview = generatePreview(responses, activeFormat);
-          previewContent.textContent = preview;
+          setPreviewContent(previewContent, preview, activeFormat);
         }).catch(error => {
-          previewContent.textContent = `预览生成失败: ${error.message}`;
+          setPreviewContent(previewContent, `预览生成失败: ${error.message}`, activeFormat);
         });
       }
     });
@@ -310,13 +309,12 @@ function loadExportSites(container, modal) {
   setTimeout(() => {
     const previewContent = modal.querySelector('#exportPreviewContent');
     if (selectedSites.size > 0) {
+      const activeFormat = modal.querySelector('.export-format-btn.active').dataset.format;
       collectResponses(selectedSites).then(responses => {
-        const formatButtons = modal.querySelectorAll('.export-format-btn');
-        const activeFormat = modal.querySelector('.export-format-btn.active').dataset.format;
         const preview = generatePreview(responses, activeFormat);
-        previewContent.textContent = preview;
+        setPreviewContent(previewContent, preview, activeFormat);
       }).catch(error => {
-        previewContent.textContent = `预览生成失败: ${error.message}`;
+        setPreviewContent(previewContent, `预览生成失败: ${error.message}`, activeFormat);
       });
     }
   }, 100);
@@ -640,7 +638,7 @@ async function extractContentFromDocument(doc, siteName) {
       responses = await extractMessagesWithContainer(doc, siteName, siteConfig);
     } else if (siteConfig && siteConfig.contentSelectors) {
       // 方法2: 使用contentSelectors直接查找内容（向后兼容）
-      const content = await extractWithSelectors(doc, siteConfig.contentSelectors, siteConfig.excludeSelectors, siteName);
+      const content = await extractWithSelectors(doc, siteConfig.contentSelectors, siteConfig.excludeSelectors, siteName, siteConfig.exportLatestOnly);
       if (content.trim()) {
         responses.push({
           siteName: siteName,
@@ -650,7 +648,7 @@ async function extractContentFromDocument(doc, siteName) {
       }
     } else if (siteConfig && siteConfig.selectors) {
       // 方法3: 向后兼容旧配置结构
-      const content = await extractWithSelectors(doc, siteConfig.selectors, siteConfig.excludeSelectors, siteName);
+      const content = await extractWithSelectors(doc, siteConfig.selectors, siteConfig.excludeSelectors, siteName, siteConfig.exportLatestOnly);
       if (content.trim()) {
         responses.push({
           siteName: siteName,
@@ -675,7 +673,7 @@ async function extractContentFromDocument(doc, siteName) {
         '.container'
       ];
       
-      const content = await extractWithSelectors(doc, fallbackSelectors, siteConfig?.excludeSelectors, siteName);
+      const content = await extractWithSelectors(doc, fallbackSelectors, siteConfig?.excludeSelectors, siteName, siteConfig?.exportLatestOnly);
       if (content.trim()) {
         responses.push({
           siteName: siteName,
@@ -744,12 +742,18 @@ async function extractMessagesWithContainer(doc, siteName, siteConfig) {
     }
     
     // 查找所有AI消息容器
-    const messageContainers = searchRoot.querySelectorAll(siteConfig.messageContainer);
+    let messageContainers = Array.from(searchRoot.querySelectorAll(siteConfig.messageContainer));
     console.log(`📝 ${siteName} 找到 ${messageContainers.length} 个消息容器`);
     
     if (messageContainers.length === 0) {
       console.log(`⚠️ ${siteName} 未找到消息容器，使用fallback`);
       return responses;
+    }
+    
+    // 导出规则：只导出每个站点最新内容
+    if (siteConfig.exportLatestOnly && messageContainers.length > 1) {
+      messageContainers = messageContainers.slice(-1);
+      console.log(`📝 ${siteName} 仅导出最新1条消息`);
     }
     
     for (const [index, container] of messageContainers.entries()) {
@@ -840,13 +844,18 @@ async function extractMessagesWithContainer(doc, siteName, siteConfig) {
 
 // 使用选择器提取内容
 // 优化版选择器提取内容
-async function extractWithSelectors(doc, selectors, excludeSelectors = [], siteName = '') {
+// exportLatestOnly: 仅导出最后一个匹配元素的内容
+async function extractWithSelectors(doc, selectors, excludeSelectors = [], siteName = '', exportLatestOnly = false) {
   let content = '';
   
   // 使用 Promise.all 并行处理选择器
   const extractionPromises = selectors.map(async (selector) => {
     try {
-      const elements = doc.querySelectorAll(selector);
+      let elements = Array.from(doc.querySelectorAll(selector));
+      // 导出规则：只导出最新内容
+      if (exportLatestOnly && elements.length > 1) {
+        elements = elements.slice(-1);
+      }
       
       if (elements.length === 0) return '';
       
@@ -982,8 +991,15 @@ async function extractElementContent(element) {
 function cleanExtractedText(text) {
   if (!text) return '';
   
-  // 移除多余的空白字符
-  text = text.replace(/\s+/g, ' ').trim();
+  // 保留换行，仅压缩行内空白
+  text = text.replace(/\r\n/g, '\n');
+  text = text
+    .split('\n')
+    .map(line => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n');
+  
+  // 折叠过多空行，保留段落
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
   
   // 移除常见的无用内容
   const unwantedPatterns = [
@@ -1108,11 +1124,13 @@ function generatePreview(responses, format) {
         
         // 添加URL信息
         if (response.url && response.url !== 'unknown') {
-          preview += `<p><strong>URL:</strong> <a href="${response.url}" target="_blank">${response.url}</a></p>\n`;
+          const safeUrl = escapeHtml(response.url);
+          preview += `<p><strong>URL:</strong> <a href="${safeUrl}" target="_blank" rel="noreferrer noopener">${safeUrl}</a></p>\n`;
         }
         
         const contentPreview = response.content.substring(0, maxPreviewLength);
-        preview += `<p>${contentPreview}`;
+        const safePreview = escapeHtml(contentPreview).replace(/\n/g, '<br>');
+        preview += `<p>${safePreview}`;
       if (response.content.length > maxPreviewLength) {
         preview += '...</p>\n';
       } else {
@@ -1137,6 +1155,24 @@ function generatePreview(responses, format) {
   });
   
   return preview;
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function setPreviewContent(previewContent, preview, format) {
+  if (format === 'html') {
+    previewContent.innerHTML = preview;
+  } else {
+    previewContent.textContent = preview;
+  }
 }
 
 // 生成导出内容

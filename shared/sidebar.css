@@ -1,0 +1,317 @@
+/* Shared sidebar styles for homepage, history, favorites */
+
+.sidebar-nav {
+    width: 180px;
+    height: 100vh;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #e8e8e8;
+    padding: 0;
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-nav-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-nav-header {
+    display: flex;
+    align-items: center;
+    padding: 16px 14px;
+}
+
+.app-icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.app-icon-link:hover {
+    background: #e8ecf3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+}
+
+.app-icon-link:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
+
+.app-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar-nav .action-links {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin: 0;
+    padding: 12px 10px;
+    flex-shrink: 0;
+}
+
+.sidebar-nav .action-link,
+.sidebar-nav .action-link:link,
+.sidebar-nav .action-link:visited {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #666;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sidebar-nav .action-link-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    object-fit: contain;
+    opacity: 0.85;
+}
+
+.sidebar-nav .action-link-icon-grayscale {
+    filter: grayscale(100%);
+}
+
+.sidebar-nav .action-link:hover .action-link-icon {
+    opacity: 1;
+}
+
+.sidebar-nav .action-link:hover {
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.06);
+    text-decoration: none;
+}
+
+.sidebar-nav .action-link:active {
+    color: #000;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-nav .action-link[aria-current="page"] {
+    color: #1f2937;
+    background: rgba(17, 24, 39, 0.08);
+}
+
+.sidebar-nav .action-link-with-tooltip {
+    position: relative;
+}
+
+.feedback-email-tooltip {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.88);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: none;
+}
+
+.sidebar-nav .action-link-with-tooltip:hover .feedback-email-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sidebar-favorites-list-wrap {
+    flex-shrink: 0;
+    border-top: 1px solid #e8e8e8;
+    padding: 4px 10px 8px;
+}
+
+.sidebar-favorites-list {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-favorite-item {
+    padding: 6px 8px 6px 8px;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-favorite-item:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #333;
+}
+
+.sidebar-favorites-empty {
+    padding: 8px;
+    font-size: 12px;
+    color: #999;
+}
+
+.sync-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    background: #fff;
+    border-top: 1px solid #e8e8e8;
+    border-radius: 6px;
+    margin: 8px 10px 10px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-top: auto;
+    color: #666;
+    font-size: 14px;
+}
+
+.sync-bar:hover {
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.sync-bar:active {
+    color: #000;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sync-bar-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    object-fit: contain;
+    display: block;
+    opacity: 0.85;
+}
+
+.sync-bar:hover .sync-bar-icon {
+    opacity: 1;
+}
+
+.sync-bar.sync-bar--logged-in .sync-bar-icon {
+    filter: invert(32%) sepia(60%) saturate(1500%) hue-rotate(195deg);
+}
+
+.sync-bar-text {
+    font-size: 14px;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.wechat-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.wechat-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.wechat-modal-content {
+    position: relative;
+    background: white;
+    padding: 24px 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    min-width: 220px;
+}
+
+.wechat-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.wechat-modal-id {
+    font-size: 16px;
+    color: #666;
+    font-weight: 500;
+}
+
+.coffee-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.coffee-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.coffee-modal-content {
+    position: relative;
+    background: white;
+    padding: 24px 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 420px;
+}
+
+.coffee-modal-text {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 16px;
+}
+
+.coffee-modal-image {
+    width: 260px;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}

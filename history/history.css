@@ -11,10 +11,30 @@ body {
     line-height: 1.6;
 }
 
+.page-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.page-sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #e8e8e8;
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.04);
+}
+
+.page-sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 16px 14px;
+}
+
 .history-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    flex: 1;
 }
 
 .history-header {
@@ -26,6 +46,33 @@ body {
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.app-icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.app-icon-link:hover {
+    background: #e8ecf3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+}
+
+.app-icon-link:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
+
+.app-icon {
+    width: 24px;
+    height: 24px;
 }
 
 .history-header h1 {
@@ -148,6 +195,16 @@ body {
     color: #333;
 }
 
+.favorite-tag {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.favorite-tag:hover {
+    background: #ffeaa7;
+    color: #856404;
+}
+
 .empty-state {
     text-align: center;
     padding: 80px 20px;
@@ -176,30 +233,69 @@ body {
 /* 删除按钮样式 */
 .history-item-actions {
     display: flex;
-    gap: 8px;
+    flex-direction: row;
     align-items: center;
+    gap: 8px;
+}
+
+.favorite-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.favorite-btn img {
+    width: 16px;
+    height: 16px;
+}
+
+.favorite-btn:hover {
+    background: #f6f4ee;
 }
 
 .delete-btn {
-    padding: 4px 8px;
-    background: transparent;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: none;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 12px;
     color: #666;
     transition: all 0.2s ease;
     opacity: 0;
+    pointer-events: none;
+}
+
+.delete-btn img {
+    width: 16px;
+    height: 16px;
+}
+
+.history-item:hover .favorite-btn {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .history-item:hover .delete-btn {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .delete-btn:hover {
-    background: #ff4757;
-    border-color: #ff4757;
-    color: white;
+    background: #f9eeee;
 }
 
 /* 响应式设计 */

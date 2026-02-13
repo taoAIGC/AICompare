@@ -1,0 +1,11 @@
+{
+  "shortName": {
+    "message": "AI Compare"
+  },
+  "appName": {
+    "message": "AI Compare - 원클릭으로 ChatGPT, Gemini, Grok 등을 비교하세요."
+  },
+  "extDescription": {
+    "message": "AI Compare는 여러 AI의 답변 중 최상의 답을 빠르게 찾도록 도와줍니다."
+  }
+}

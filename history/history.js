@@ -131,6 +131,15 @@ function filterHistory(searchTerm) {
 function createHistoryItem(item) {
     const div = document.createElement('div');
     div.className = 'history-item';
+
+    // 兼容旧数据：确保 isFavorite 字段存在
+    if (item.sites) {
+        item.sites.forEach(site => {
+            if (site.isFavorite === undefined) {
+                site.isFavorite = false;
+            }
+        });
+    }
     
     // 创建头部
     const header = document.createElement('div');
@@ -147,9 +156,33 @@ function createHistoryItem(item) {
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'history-item-actions';
     
+    const favoriteBtn = document.createElement('button');
+    favoriteBtn.className = 'favorite-btn';
+    favoriteBtn.type = 'button';
+    favoriteBtn.setAttribute('aria-label', '收藏');
+    const favoriteIcon = document.createElement('img');
+    favoriteIcon.alt = '';
+    favoriteBtn.appendChild(favoriteIcon);
+    setFavoriteButtonState(favoriteBtn, isItemFavorited(item));
+    favoriteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const current = favoriteBtn.dataset.favorite === 'true';
+        const next = !current;
+        const updatedItem = await toggleHistoryItemFavorite(item.id, next);
+        if (updatedItem) {
+            item.sites = updatedItem.sites;
+            setFavoriteButtonState(favoriteBtn, isItemFavorited(updatedItem));
+        }
+    });
+    
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
-    deleteBtn.textContent = 'Delete';
+    deleteBtn.type = 'button';
+    deleteBtn.setAttribute('aria-label', '删除');
+    const deleteIcon = document.createElement('img');
+    deleteIcon.alt = '';
+    deleteIcon.src = '../icons/trash.svg';
+    deleteBtn.appendChild(deleteIcon);
     deleteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (confirm('确定要删除这条历史记录吗？')) {
@@ -159,6 +192,7 @@ function createHistoryItem(item) {
     });
     
     actionsDiv.appendChild(deleteBtn);
+    actionsDiv.appendChild(favoriteBtn);
     
     header.appendChild(queryDiv);
     header.appendChild(dateDiv);
@@ -171,6 +205,9 @@ function createHistoryItem(item) {
     item.sites.forEach(site => {
         const tag = document.createElement('span');
         tag.className = 'site-tag';
+        if (site.isFavorite === true) {
+            tag.classList.add('favorite-tag');
+        }
         tag.textContent = site.name;
         sitesDiv.appendChild(tag);
     });
@@ -190,6 +227,25 @@ function createHistoryItem(item) {
     });
     
     return div;
+}
+
+// 判断历史记录是否已全部收藏
+function isItemFavorited(item) {
+    if (!item.sites || item.sites.length === 0) {
+        return false;
+    }
+    return item.sites.every(site => site.isFavorite === true);
+}
+
+// 更新收藏按钮状态
+function setFavoriteButtonState(btn, isFavorited) {
+    const icon = btn.querySelector('img');
+    if (icon) {
+        icon.src = isFavorited ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
+    }
+    btn.dataset.favorite = isFavorited ? 'true' : 'false';
+    btn.title = isFavorited ? '取消收藏' : '收藏';
+    btn.setAttribute('aria-pressed', isFavorited ? 'true' : 'false');
 }
 
 // 打开历史记录项
@@ -256,6 +312,37 @@ async function deleteHistoryItem(id) {
         allHistoryItems = updatedHistory;
     } catch (error) {
         console.error('删除历史记录失败:', error);
+    }
+}
+
+// 收藏或取消收藏单条历史记录（对该记录中所有站点生效）
+async function toggleHistoryItemFavorite(id, shouldFavorite) {
+    try {
+        const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+        const historyIndex = pkHistory.findIndex(item => item.id === id);
+        if (historyIndex === -1) {
+            console.warn('未找到历史记录');
+            return null;
+        }
+        const historyItem = pkHistory[historyIndex];
+        if (historyItem.sites) {
+            historyItem.sites.forEach(site => {
+                if (site.isFavorite === undefined) {
+                    site.isFavorite = false;
+                }
+                site.isFavorite = shouldFavorite;
+            });
+        }
+        await chrome.storage.local.set({ pkHistory: pkHistory });
+        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+        const localIndex = allHistoryItems.findIndex(item => item.id === id);
+        if (localIndex !== -1) {
+            allHistoryItems[localIndex] = historyItem;
+        }
+        return historyItem;
+    } catch (error) {
+        console.error('更新收藏状态失败:', error);
+        return null;
     }
 }
 
