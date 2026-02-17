@@ -286,6 +286,7 @@ function bindSyncBar() {
 async function loadSidebarFavorites() {
     const listEl = document.getElementById('sidebarFavoritesList');
     if (!listEl) return;
+    const tooltipEl = getSidebarFavoritesTooltip();
     try {
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const favoriteItems = pkHistory
@@ -300,23 +301,63 @@ async function loadSidebarFavorites() {
             empty.className = 'sidebar-favorites-empty';
             empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
             listEl.appendChild(empty);
+            hideSidebarFavoritesTooltip(tooltipEl);
             return;
         }
         favoriteItems.forEach(item => {
             const el = document.createElement('div');
             el.className = 'sidebar-favorite-item';
-            el.textContent = item.query || '';
-            el.title = item.query || '';
+            const queryText = item.query || '';
+            const textSpan = document.createElement('span');
+            textSpan.className = 'sidebar-favorite-text';
+            textSpan.textContent = queryText;
+            el.appendChild(textSpan);
+            if (queryText) el.setAttribute('aria-label', queryText);
             el.addEventListener('click', (e) => {
                 e.preventDefault();
                 openSidebarFavoriteItem(item);
             });
+            el.addEventListener('mouseenter', () => {
+                showSidebarFavoritesTooltip(tooltipEl, el, queryText);
+            });
+            el.addEventListener('mouseleave', () => {
+                hideSidebarFavoritesTooltip(tooltipEl);
+            });
             listEl.appendChild(el);
         });
+        listEl.addEventListener('scroll', () => hideSidebarFavoritesTooltip(tooltipEl), { passive: true });
     } catch (error) {
         console.error('加载侧边栏收藏失败:', error);
         if (listEl) listEl.innerHTML = '';
+        hideSidebarFavoritesTooltip(tooltipEl);
     }
+}
+
+function getSidebarFavoritesTooltip() {
+    let tooltip = document.getElementById('sidebarFavoritesTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'sidebarFavoritesTooltip';
+        tooltip.className = 'sidebar-favorite-tooltip-floating';
+        tooltip.setAttribute('role', 'tooltip');
+        tooltip.style.display = 'none';
+        document.body.appendChild(tooltip);
+    }
+    return tooltip;
+}
+
+function showSidebarFavoritesTooltip(tooltipEl, anchorEl, text) {
+    if (!tooltipEl || !anchorEl || !text) return;
+    tooltipEl.textContent = text;
+    const rect = anchorEl.getBoundingClientRect();
+    tooltipEl.style.left = `${Math.round(rect.right + 8)}px`;
+    tooltipEl.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
+    tooltipEl.style.display = 'block';
+}
+
+function hideSidebarFavoritesTooltip(tooltipEl) {
+    if (!tooltipEl) return;
+    tooltipEl.style.display = 'none';
 }
 
 async function openSidebarFavoriteItem(item) {

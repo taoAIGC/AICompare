@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 自动调整输入框高度
         function autoResizeTextarea() {
-            const minHeightFallback = 36; // 最小高度
+            const minHeightFallback = 36; // 默认高度
             const maxHeight = 200; // 最大高度
             const actionsWidth = inputWrapper
                 ? inputWrapper.querySelector('.input-actions')?.offsetWidth || 0
@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             mirror.textContent = 'A';
             const singleLineHeight = Math.ceil(mirror.scrollHeight);
             const minHeight = Math.max(minHeightFallback, singleLineHeight);
+            searchInput.dataset.singleLineHeight = String(minHeightFallback);
 
             mirror.style.width = Math.max(0, availableWidth) + 'px';
             mirror.textContent = searchInput.value + '\n';
@@ -69,11 +70,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (needsWrap) {
                 mirror.style.width = searchInput.clientWidth + 'px';
                 mirror.textContent = searchInput.value + '\n';
-            }
 
-            const finalHeight = Math.ceil(mirror.scrollHeight);
-            const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
-            searchInput.style.height = clampedHeight + 'px';
+                const finalHeight = Math.ceil(mirror.scrollHeight);
+                const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
+                searchInput.style.height = clampedHeight + 'px';
+            } else {
+                searchInput.style.height = minHeightFallback + 'px';
+            }
         }
         
         // 监听输入事件
@@ -84,8 +87,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             setTimeout(autoResizeTextarea, 10);
         });
         
-        // 监听聚焦事件
+        // 监听聚焦事件（仅在需要时扩展高度）
         searchInput.addEventListener('focus', autoResizeTextarea);
+
+        // 监听失焦事件，恢复默认高度
+        searchInput.addEventListener('blur', () => {
+            searchInput.style.height = '36px';
+            searchInput.scrollTop = 0;
+            if (inputWrapper) {
+                inputWrapper.classList.remove('avoid-overlap');
+            }
+        });
         
         // 初始调整
         autoResizeTextarea();

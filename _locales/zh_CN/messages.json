@@ -667,5 +667,26 @@
   },
   "injectStepDescSetInputValue": {
     "message": "设置输入框的值"
+  },
+  "ratingModalClose": {
+    "message": "关闭"
+  },
+  "ratingModalTitle": {
+    "message": "喜欢这个插件吗？"
+  },
+  "ratingModalSubtitle": {
+    "message": "如果它帮到你，给我们一个五星好评吧！"
+  },
+  "ratingModalStars": {
+    "message": "五星好评"
+  },
+  "ratingModalLater": {
+    "message": "以后再说"
+  },
+  "ratingModalGoRate": {
+    "message": "去评分"
+  },
+  "ratingModalNoLink": {
+    "message": "无法获取评分链接"
   }
-} 
+}

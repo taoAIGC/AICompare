@@ -560,6 +560,7 @@ body.search-bar-bottom .query-suggestions {
 .sidebar-favorites-list {
     max-height: 200px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -571,15 +572,34 @@ body.search-bar-bottom .query-suggestions {
     color: #666;
     cursor: pointer;
     border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-favorite-text {
+    display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: background-color 0.2s, color 0.2s;
 }
 
 .sidebar-favorite-item:hover {
     background-color: rgba(0, 0, 0, 0.06);
     color: #333;
+}
+
+.sidebar-favorite-tooltip-floating {
+    position: fixed;
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.88);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    max-width: 260px;
+    white-space: normal;
+    word-break: break-word;
+    pointer-events: none;
+    z-index: 9999;
 }
 
 .sidebar-favorites-empty {

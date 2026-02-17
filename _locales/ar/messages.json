@@ -7,5 +7,26 @@
   },
   "extDescription": {
     "message": "يساعدك AI Compare على العثور بسرعة على أفضل إجابة من عدة نماذج ذكاء اصطناعي."
+  },
+  "ratingModalClose": {
+    "message": "إغلاق"
+  },
+  "ratingModalTitle": {
+    "message": "هل أعجبك هذا الامتداد؟"
+  },
+  "ratingModalSubtitle": {
+    "message": "إذا كان مفيدًا، فالرجاء ترك تقييم بخمس نجوم!"
+  },
+  "ratingModalStars": {
+    "message": "تقييم بخمس نجوم"
+  },
+  "ratingModalLater": {
+    "message": "ربما لاحقًا"
+  },
+  "ratingModalGoRate": {
+    "message": "اترك تقييمًا"
+  },
+  "ratingModalNoLink": {
+    "message": "تعذّر فتح رابط التقييم"
   }
 }

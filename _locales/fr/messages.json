@@ -7,5 +7,26 @@
   },
   "extDescription": {
     "message": "AI Compare vous aide à trouver rapidement la meilleure réponse parmi plusieurs IA."
+  },
+  "ratingModalClose": {
+    "message": "Fermer"
+  },
+  "ratingModalTitle": {
+    "message": "Vous aimez cette extension ?"
+  },
+  "ratingModalSubtitle": {
+    "message": "Si elle vous a aidé, laissez un avis cinq étoiles !"
+  },
+  "ratingModalStars": {
+    "message": "Avis cinq étoiles"
+  },
+  "ratingModalLater": {
+    "message": "Peut-être plus tard"
+  },
+  "ratingModalGoRate": {
+    "message": "Laisser un avis"
+  },
+  "ratingModalNoLink": {
+    "message": "Impossible d'ouvrir le lien d'avis"
   }
 }

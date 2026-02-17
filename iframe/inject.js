@@ -815,7 +815,13 @@ async function executeSetValue(step, query) {
       const p = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
       const getSlateText = () => {
         const strings = element.querySelectorAll('[data-slate-string]');
-        return Array.from(strings).map(node => node.textContent || '').join('');
+        const fromStrings = Array.from(strings).map(node => node.textContent || '').join('');
+        if (fromStrings.length > 0) return fromStrings;
+        // 千问等：execCommand 后内容可能在 data-slate-zero-width 中，用 innerText 兜底，避免误判后覆盖 DOM 导致发送按钮仍灰
+        const visible = (element.innerText || element.textContent || '').trim();
+        const placeholder = (element.getAttribute('data-placeholder') || '').trim();
+        if (visible && visible !== placeholder) return visible;
+        return '';
       };
       const normalizeText = (text) => (text || '').replace(/\s+/g, '').trim();
       const slateHasText = () => normalizeText(getSlateText()).length > 0;
@@ -867,7 +873,44 @@ async function executeSetValue(step, query) {
         window.__qwenLastQuery = normalizedQuery;
         window.__qwenLastQueryAt = now;
 
-        try {
+        // 方法1（优先）：通过 beforeinput 事件写入
+        // Slate 编辑器原生监听 beforeinput 事件，会 preventDefault 并通过内部逻辑处理文本插入，
+        // 确保 data-slate-string 等内部状态正确同步，发送按钮也会正常启用
+        if (!slateUpdated) try {
+          element.focus();
+          await new Promise(r => setTimeout(r, 50));
+          // 模拟用户点击交互，确保编辑器建立正确的选区
+          element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+          element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+          element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          element.focus();
+          await new Promise(r => setTimeout(r, 50));
+          // 将光标定位到编辑器段落末尾
+          const curP = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
+          if (curP) {
+            sel.removeAllRanges();
+            range.selectNodeContents(curP);
+            range.collapse(false);
+            sel.addRange(range);
+          }
+          element.dispatchEvent(new InputEvent('beforeinput', {
+            bubbles: true,
+            cancelable: true,
+            inputType: 'insertText',
+            data: query,
+            composed: true
+          }));
+          slateUpdated = await waitForSlateUpdate(5, 60);
+          if (slateUpdated) {
+            console.log('Qwen: beforeinput 事件写入完成');
+            return;
+          }
+        } catch (e1) {
+          console.log('Qwen: beforeinput 事件写入失败', e1);
+        }
+
+        // 方法2：通过 React Fiber 内部 setter 写入
+        if (!slateUpdated) try {
           const fiber = getReactFiber(element);
           const node = findReactNodeWithValueSetter(fiber);
           if (node && node.memoizedProps) {
@@ -890,24 +933,45 @@ async function executeSetValue(step, query) {
           console.log('Qwen: React 路径失败', e2);
         }
 
-        const fallbackP = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
-        if (fallbackP) {
-          fallbackP.innerHTML = '';
-          const textSpan = document.createElement('span');
-          textSpan.setAttribute('data-slate-node', 'text');
-          const leafSpan = document.createElement('span');
-          leafSpan.setAttribute('data-slate-leaf', 'true');
-          const stringSpan = document.createElement('span');
-          stringSpan.setAttribute('data-slate-string', 'true');
-          stringSpan.textContent = query;
-          leafSpan.appendChild(stringSpan);
-          textSpan.appendChild(leafSpan);
-          fallbackP.appendChild(textSpan);
+        // 方法3：整段 execCommand insertText
+        if (!slateUpdated) try {
+          element.focus();
+          sel.removeAllRanges();
+          if (p) range.selectNodeContents(p);
+          else range.selectNodeContents(element);
+          sel.addRange(range);
+          if (document.execCommand('insertText', false, query)) {
+            slateUpdated = await waitForSlateUpdate(10, 60);
+            if (slateUpdated) {
+              console.log('Qwen: execCommand insertText 完成');
+              return;
+            }
+          }
+        } catch (e3) {
+          console.log('Qwen: execCommand 失败', e3);
         }
-        element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
-        element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
-        await waitForSlateUpdate();
-        console.log('Qwen: DOM 路径写入完成');
+
+        // 方法4（兜底）：直接构建 Slate DOM 结构
+        if (!slateUpdated) {
+          const fallbackP = element.querySelector('p[data-slate-node="element"]') || element.querySelector('p');
+          if (fallbackP) {
+            fallbackP.innerHTML = '';
+            const textSpan = document.createElement('span');
+            textSpan.setAttribute('data-slate-node', 'text');
+            const leafSpan = document.createElement('span');
+            leafSpan.setAttribute('data-slate-leaf', 'true');
+            const stringSpan = document.createElement('span');
+            stringSpan.setAttribute('data-slate-string', 'true');
+            stringSpan.textContent = query;
+            leafSpan.appendChild(stringSpan);
+            textSpan.appendChild(leafSpan);
+            fallbackP.appendChild(textSpan);
+          }
+          element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+          element.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: query }));
+          await waitForSlateUpdate();
+          console.log('Qwen: DOM 兜底路径写入完成');
+        }
         return;
       }
 
@@ -3054,12 +3118,19 @@ async function extractElementContent(element) {
     return text;
 }
 
-// 清理提取的文本
+// 清理提取的文本（保留换行，仅压缩行内空白）
 function cleanExtractedText(text) {
     if (!text) return '';
     
-    // 移除多余的空白字符
-    text = text.replace(/\s+/g, ' ').trim();
+    // 保留换行，仅压缩行内空白（不要用 \s+ 替换，否则会丢失换行）
+    text = text.replace(/\r\n/g, '\n');
+    text = text
+        .split('\n')
+        .map(line => line.replace(/[ \t]+/g, ' ').trim())
+        .join('\n');
+    
+    // 折叠过多空行，保留段落
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
     
     // 移除常见的无用内容
     const unwantedPatterns = [
@@ -3247,11 +3318,12 @@ function convertHtmlToMarkdown(html) {
                 return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${counter++}. $1\n`) + '\n';
             })
             
-            // 段落
+            // 段落和块级元素（保留换行）
             .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+            .replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, '$1\n')
             
             // 换行
-            .replace(/<br[^>]*>/gi, '\n')
+            .replace(/<br[^>]*\/?>/gi, '\n')
             
             // 表格（简单处理）
             .replace(/<table[^>]*>(.*?)<\/table>/gis, (match, content) => {

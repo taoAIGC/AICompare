@@ -7,5 +7,26 @@
   },
   "extDescription": {
     "message": "AI Compare 可協助你快速從多個 AI 中找到最佳答案。"
+  },
+  "ratingModalClose": {
+    "message": "關閉"
+  },
+  "ratingModalTitle": {
+    "message": "喜歡這個擴充功能嗎？"
+  },
+  "ratingModalSubtitle": {
+    "message": "如果它幫到你，給我們一個五星好評吧！"
+  },
+  "ratingModalStars": {
+    "message": "五星好評"
+  },
+  "ratingModalLater": {
+    "message": "以後再說"
+  },
+  "ratingModalGoRate": {
+    "message": "去評分"
+  },
+  "ratingModalNoLink": {
+    "message": "無法取得評分連結"
   }
 }

@@ -209,6 +209,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         await chrome.storage.sync.set({ buttonConfig: defaultButtonConfig });
         console.log('已初始化 buttonConfig:', defaultButtonConfig);
       }
+
+      // 首次安装后自动打开首页
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('homepage/homepage.html')
+      });
     } else if (details.reason === 'update') {
       console.log('扩展更新，保持用户设置不变');
       
@@ -853,4 +858,3 @@ chrome.omnibox.onInputEntered.addListener((text, disposition) => {
     }
   }
 });
-

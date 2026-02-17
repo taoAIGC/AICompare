@@ -7,5 +7,26 @@
   },
   "extDescription": {
     "message": "O AI Compare ajuda você a encontrar rapidamente a melhor resposta entre vários AIs."
+  },
+  "ratingModalClose": {
+    "message": "Fechar"
+  },
+  "ratingModalTitle": {
+    "message": "Gostou desta extensão?"
+  },
+  "ratingModalSubtitle": {
+    "message": "Se ela ajudou, deixe uma avaliação de cinco estrelas!"
+  },
+  "ratingModalStars": {
+    "message": "Avaliação de cinco estrelas"
+  },
+  "ratingModalLater": {
+    "message": "Talvez depois"
+  },
+  "ratingModalGoRate": {
+    "message": "Deixar avaliação"
+  },
+  "ratingModalNoLink": {
+    "message": "Não foi possível abrir o link de avaliação"
   }
 }

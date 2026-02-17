@@ -1381,19 +1381,12 @@
             "action": "setValue",
             "selector": "[data-slate-editor=\"true\"]",
             "inputType": "contenteditable",
-            "description": "设置输入框的值"
-          },
-          {
-            "action": "triggerEvents",
-            "selector": "[data-slate-editor=\"true\"]",
-            "events": ["input", "change", "blur", "focus"],
-            "inputType": "special",
-            "description": "触发输入事件（含 InputEvent 文本，同步 React 状态以启用发送按钮）"
+            "description": "通过 beforeinput 事件写入 Slate 编辑器（已内置状态同步）"
           },
           {
             "action": "wait",
-            "duration": 400,
-            "description": "等待400ms让 Slate/React 状态更新并启用发送按钮后再发送"
+            "duration": 200,
+            "description": "等待200ms让 Slate 状态同步并启用发送按钮"
           },
           {
             "action": "sendKeys",
@@ -1860,6 +1853,169 @@
       "userPrompt": {
         "containerSelector": "[data-message-author-role=\"user\"], .user-message",
         "textSelector": "[data-message-author-role=\"user\"], .user-message"
+      }
+    },
+    {
+      "name": "Z.ai",
+      "url": "https://chat.z.ai/",
+      "enabled": false,
+      "supportUrlQuery": false,
+      "region": "China",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "GLM-5 & GLM-4.7",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "textarea",
+            "description": "聚焦输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "textarea",
+            "description": "设置输入框的值"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "textarea",
+            "events": ["input", "change", "blur", "focus"],
+            "description": "触发输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 100,
+            "description": "等待100ms"
+          },
+          {
+            "action": "sendKeys",
+            "selector": "textarea",
+            "keys": "Enter",
+            "description": "发送回车键"
+          }
+        ]
+      },
+      "fileUploadHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "textarea",
+            "description": "聚焦输入框准备文件粘贴"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待200ms确保聚焦完成"
+          },
+          {
+            "action": "paste",
+            "description": "执行文件粘贴操作"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "messageContainer": "[class*=\"chat-assistant\"]",
+        "contentSelectors": [
+          "[class*=\"markdown-prose\"]"
+        ],
+        "excludeSelectors": [
+          "nav",
+          "header",
+          "footer",
+          ".sidebar",
+          "button",
+          "[class*=\"think\"], [class*=\"reason\"]"
+        ],
+        "exportLatestOnly": true
+      },
+      "historyHandler": {
+        "urlFeature": "/c/"
+      },
+      "userPrompt": {
+        "containerSelector": "[class*=\"chat-user\"]",
+        "textSelector": "[class*=\"chat-user\"] [class*=\"whitespace-pre-wrap\"], [class*=\"chat-user\"] [class*=\"rounded-xl\"]"
+      }
+    },
+    {
+      "name": "Mistral",
+      "url": "https://chat.mistral.ai/chat",
+      "enabled": false,
+      "supportUrlQuery": false,
+      "region": "EU",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "Le Chat",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "[contenteditable=\"true\"], .ProseMirror",
+            "description": "聚焦ProseMirror输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "[contenteditable=\"true\"], .ProseMirror",
+            "inputType": "contenteditable",
+            "description": "设置输入框内容"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "[contenteditable=\"true\"], .ProseMirror",
+            "events": ["input", "change", "blur", "focus"],
+            "description": "触发输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 100,
+            "description": "等待100ms"
+          },
+          {
+            "action": "sendKeys",
+            "selector": "[contenteditable=\"true\"], .ProseMirror",
+            "keys": "Enter",
+            "description": "发送回车键"
+          }
+        ]
+      },
+      "fileUploadHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "[contenteditable=\"true\"], .ProseMirror",
+            "description": "聚焦输入框准备文件粘贴"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待200ms确保聚焦完成"
+          },
+          {
+            "action": "paste",
+            "description": "执行文件粘贴操作"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "messageContainer": "[class*=\"group/message\"]",
+        "contentSelectors": [
+          "[class*=\"markdown-container-style\"]",
+          "[class*=\"markdown-container\"]"
+        ],
+        "excludeSelectors": [
+          "nav",
+          "header",
+          "footer",
+          ".sidebar",
+          "button"
+        ],
+        "exportLatestOnly": true
+      },
+      "historyHandler": {
+        "urlFeature": "/chat"
+      },
+      "userPrompt": {
+        "containerSelector": "[class*=\"group/message\"]",
+        "textSelector": "[class*=\"group/message\"]"
       }
     },
     {

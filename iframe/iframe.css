@@ -128,6 +128,92 @@ html {
   color: #c62828;
 }
 
+.rating-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.rating-modal-overlay.is-visible {
+  display: flex;
+}
+
+.rating-modal {
+  width: min(420px, 92vw);
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 22px 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  position: relative;
+  text-align: center;
+}
+
+.rating-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
+.rating-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.rating-modal-subtitle {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.rating-modal-stars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 20px;
+  color: #f5b301;
+  margin-bottom: 18px;
+}
+
+.rating-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.rating-modal-actions button {
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.rating-modal-secondary {
+  background: #f6f6f6;
+  border-color: #e0e0e0;
+  color: #444;
+}
+
+.rating-modal-primary {
+  background: #111;
+  color: #fff;
+}
+
 .expanded {
   position: fixed;
   top: 0;
@@ -139,6 +225,10 @@ html {
   border-radius: 0;
 }
 
+.search-bar-drag-handle {
+    display: none; /* 非底部模式不显示 */
+}
+
 .search-bar {
     position: fixed;
     top: 12px;
@@ -148,19 +238,65 @@ html {
     margin: 0 auto;
     padding: 10px 14px;
     background: white;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
     border-radius: 8px;
     z-index: 1000;
     display: flex;
     gap: 10px;
     justify-content: space-between;
-    min-height: 36px;
-    align-items: flex-start;
+    height: 56px; /* 固定高度，不随输入框撑高 */
+    min-height: 56px;
+    overflow: visible; /* 输入框变高时向上溢出显示 */
+    align-items: center; /* 输入框上下居中，上下留白相等 */
 }
 
 body.search-bar-bottom .search-bar {
     top: auto;
     bottom: 12px;
+    height: 56px; /* 条固定高度不变 */
+    min-height: 56px;
+    align-items: flex-end; /* 内容贴底，输入框变高时只向上溢出 */
+    overflow: visible;
+    min-width: min(900px, calc(100vw - 24px)); /* 与未加手柄前一致，不因多出手柄而变窄 */
+}
+
+/* 底部 search-bar 拖动手柄：仅在此模式下显示 */
+/* 底部模式：输入区占满条高并垂直居中，单行时输入框在条正中；变高时仍由条 flex-end 只向上溢出 */
+body.search-bar-bottom .search-input-container {
+    min-height: 56px;
+    align-items: center;
+}
+/* 底部模式：右侧按钮组同样占满条高并垂直居中 */
+body.search-bar-bottom .search-bar-right-buttons {
+    min-height: 56px;
+    align-items: center;
+}
+
+body.search-bar-bottom .search-bar-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    min-width: 20px;
+    height: 100%;
+    margin: 0 4px 0 -4px;
+    color: #999;
+    cursor: grab;
+    border-radius: 4px;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+body.search-bar-bottom .search-bar-drag-handle:active {
+    cursor: grabbing;
+}
+body.search-bar-bottom .search-bar-drag-handle:hover {
+    color: #666;
+    background: rgba(0, 0, 0, 0.04);
+}
+/* 拖拽时用 transform 平移，不改变 left/right 布局，保证 GPU 合成无卡顿 */
+body.search-bar-bottom .search-bar.search-bar-dragging {
+    will-change: transform;
 }
 
 body.search-bar-bottom .query-suggestions {
@@ -169,6 +305,18 @@ body.search-bar-bottom .query-suggestions {
     border-radius: 4px 4px 0 0;
     border-top: 1px solid #ddd;
     border-bottom: none;
+}
+
+body.search-bar-bottom .column-dropdown {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 6px;
+    transform: translate(-50%, 10px);
+}
+
+body.search-bar-bottom .column-dropdown.show {
+    transform: translate(-50%, 0);
 }
 
 /* 右侧按钮组容器 - 实现等间距分布 */
@@ -199,12 +347,16 @@ body.search-bar-bottom .query-suggestions {
     position: relative;
     height: auto; /* 允许容器高度自动调整 */
     min-height: 36px; /* 最小高度与输入框一致 */
+    display: flex;
+    align-items: flex-end; /* 输入框高度变化时向上增长 */
+    width: 100%;
 }
 
 .input-wrapper {
     position: relative;
     display: flex;
-    align-items: stretch; /* 允许输入框向下扩展 */
+    align-items: flex-end; /* 输入框向上扩展 */
+    width: 100%;
     height: auto; /* 允许高度自动调整 */
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -416,16 +568,16 @@ body.search-bar-bottom .query-suggestions {
 
 
 #iframes-container {
-    margin-top: 72px;
+    margin: 0;
     display: grid;
     grid-template-columns: repeat(var(--columns, 2), 1fr);
     gap: 16px;
-    padding: 16px 0;
+    padding: 0;
 }
 
 body.search-bar-bottom #iframes-container {
-    margin-top: 16px;
-    padding-bottom: 96px;
+    margin: 0;
+    padding: 0;
 }
 
 /* 在侧边栏模式下默认显示1列 */
@@ -490,8 +642,8 @@ body.search-bar-bottom #iframes-container {
 .column-dropdown {
     position: absolute;
     top: 100%;
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -499,7 +651,7 @@ body.search-bar-bottom #iframes-container {
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
+    transform: translate(-50%, -10px);
     transition: all 0.2s ease;
     margin-top: 4px;
     min-width: 160px; /* 确保下拉菜单有足够的宽度 */
@@ -509,7 +661,7 @@ body.search-bar-bottom #iframes-container {
 .column-dropdown.show {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
 }
 
 .column-options {
@@ -636,6 +788,13 @@ body.search-bar-bottom #iframes-container {
     z-index: 1000;
     margin-top: 8px;
     padding: 0 0 16px 0;
+}
+
+body.search-bar-bottom .settings-dialog {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 8px;
 }
 
 .dialog-header {

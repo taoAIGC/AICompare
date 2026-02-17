@@ -7,5 +7,26 @@
   },
   "extDescription": {
     "message": "AI Compare는 여러 AI의 답변 중 최상의 답을 빠르게 찾도록 도와줍니다."
+  },
+  "ratingModalClose": {
+    "message": "닫기"
+  },
+  "ratingModalTitle": {
+    "message": "이 확장 프로그램이 마음에 드시나요?"
+  },
+  "ratingModalSubtitle": {
+    "message": "도움이 되었다면 별점 5개 리뷰를 남겨 주세요!"
+  },
+  "ratingModalStars": {
+    "message": "별점 5개 리뷰"
+  },
+  "ratingModalLater": {
+    "message": "나중에"
+  },
+  "ratingModalGoRate": {
+    "message": "리뷰 남기기"
+  },
+  "ratingModalNoLink": {
+    "message": "리뷰 링크를 열 수 없습니다"
   }
 }

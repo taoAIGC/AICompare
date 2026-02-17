@@ -11,6 +11,242 @@ function trackEvent(name, params = {}) {
   }
 }
 
+const ratingPromptState = {
+  batchId: 0,
+  total: 0,
+  loaded: 0,
+  shown: false
+};
+
+const ratingReminderState = {
+  reminderTargetCount: 10
+};
+
+async function getReviewUrlFromConfig() {
+  const fallbackUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
+  try {
+    if (window.AppConfigManager?.loadConfig) {
+      const config = await window.AppConfigManager.loadConfig();
+      const externalLinks = config?.externalLinks || {};
+      if (externalLinks.reviewLink) {
+        return externalLinks.reviewLink;
+      }
+    }
+  } catch (error) {
+    console.warn('读取评分链接配置失败，使用默认链接:', error);
+  }
+  return fallbackUrl;
+}
+
+async function startRatingPromptBatch(totalIframes) {
+  if (!totalIframes || totalIframes <= 0) return null;
+  try {
+    const { ratingPromptShown = false, ratingPromptFinalDismissed = false } = await chrome.storage.local.get([
+      'ratingPromptShown',
+      'ratingPromptFinalDismissed'
+    ]);
+    if (ratingPromptShown || ratingPromptFinalDismissed) return null;
+
+    const reminder = await chrome.storage.local.get([
+      'ratingPromptDeferred',
+      'ratingPromptReminderShown',
+      'ratingPromptSuccessCount'
+    ]);
+    const deferred = reminder.ratingPromptDeferred === true;
+    const reminderShown = reminder.ratingPromptReminderShown === true;
+
+    if (deferred && reminderShown) {
+      return null;
+    }
+  } catch (error) {
+    console.warn('读取评分提示状态失败:', error);
+  }
+
+  ratingPromptState.batchId += 1;
+  ratingPromptState.total = totalIframes;
+  ratingPromptState.loaded = 0;
+  ratingPromptState.shown = false;
+  return ratingPromptState.batchId;
+}
+
+function ensureRatingModal() {
+  let overlay = document.getElementById('ratingPromptOverlay');
+  if (overlay) return overlay;
+
+  overlay = document.createElement('div');
+  overlay.id = 'ratingPromptOverlay';
+  overlay.className = 'rating-modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  overlay.innerHTML = `
+    <div class="rating-modal">
+      <button class="rating-modal-close" type="button" aria-label="${t('ratingModalClose', '关闭')}">×</button>
+      <div class="rating-modal-title">${t('ratingModalTitle', '喜欢这个插件吗？')}</div>
+      <div class="rating-modal-subtitle">${t('ratingModalSubtitle', '如果它帮到你，给我们一个五星好评吧！')}</div>
+      <div class="rating-modal-stars" aria-label="${t('ratingModalStars', '五星好评')}">
+        <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+      </div>
+      <div class="rating-modal-actions">
+        <button class="rating-modal-secondary" type="button">${t('ratingModalLater', '以后再说')}</button>
+        <button class="rating-modal-primary" type="button">${t('ratingModalGoRate', '去评分')}</button>
+      </div>
+    </div>
+  `;
+
+  const closeBtn = overlay.querySelector('.rating-modal-close');
+  const laterBtn = overlay.querySelector('.rating-modal-secondary');
+  const rateBtn = overlay.querySelector('.rating-modal-primary');
+
+  const closeModal = () => {
+    overlay.classList.remove('is-visible');
+    overlay.setAttribute('aria-hidden', 'true');
+  };
+
+  closeBtn?.addEventListener('click', async () => {
+    await handleRatingPromptLater();
+    closeModal();
+  });
+  laterBtn?.addEventListener('click', async () => {
+    await handleRatingPromptLater();
+    closeModal();
+  });
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closeModal();
+    }
+  });
+
+  rateBtn?.addEventListener('click', async () => {
+    const reviewUrl = await getReviewUrlFromConfig();
+    if (reviewUrl) {
+      chrome.tabs.create({ url: reviewUrl });
+      trackEvent('rating_prompt_clicked');
+      await chrome.storage.local.set({
+        ratingPromptFinalDismissed: true,
+        ratingPromptShown: true
+      });
+    } else {
+      showToast(t('ratingModalNoLink', '无法获取评分链接'));
+    }
+    closeModal();
+  });
+
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+async function handleRatingPromptLater() {
+  try {
+    const { ratingPromptReminderShown = false } = await chrome.storage.local.get('ratingPromptReminderShown');
+    if (ratingPromptReminderShown) {
+      await chrome.storage.local.set({
+        ratingPromptFinalDismissed: true,
+        ratingPromptShown: true
+      });
+    } else {
+      await chrome.storage.local.set({
+        ratingPromptDeferred: true,
+        ratingPromptSuccessCount: 0
+      });
+    }
+    trackEvent('rating_prompt_later');
+  } catch (error) {
+    console.warn('保存评分稍后状态失败:', error);
+  }
+}
+
+async function showRatingPromptOnce(kind) {
+  if (ratingPromptState.shown) return;
+  ratingPromptState.shown = true;
+
+  try {
+    if (kind === 'reminder') {
+      await chrome.storage.local.set({ ratingPromptReminderShown: true });
+    } else {
+      await chrome.storage.local.set({ ratingPromptInitialShown: true });
+    }
+  } catch (error) {
+    console.warn('保存评分提示状态失败:', error);
+  }
+
+  const overlay = ensureRatingModal();
+  if (overlay) {
+    setTimeout(() => {
+      if (ratingPromptState.shown) {
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.classList.add('is-visible');
+        trackEvent(kind === 'reminder' ? 'rating_prompt_reminder_shown' : 'rating_prompt_shown');
+      }
+    }, 5000);
+  }
+}
+
+function handleIframeLoadedForRating(iframe) {
+  if (!iframe || ratingPromptState.shown || ratingPromptState.total <= 0) return;
+  const batchId = Number(iframe.dataset.ratingBatchId || '0');
+  if (!batchId || batchId !== ratingPromptState.batchId) return;
+  if (iframe.dataset.ratingLoaded === '1') return;
+  iframe.dataset.ratingLoaded = '1';
+  ratingPromptState.loaded += 1;
+  if (ratingPromptState.loaded >= ratingPromptState.total) {
+    handleRatingPromptAfterSuccess();
+  }
+}
+
+async function incrementRatingSuccessIfDeferred() {
+  try {
+    const data = await chrome.storage.local.get([
+      'ratingPromptShown',
+      'ratingPromptFinalDismissed',
+      'ratingPromptDeferred',
+      'ratingPromptReminderShown',
+      'ratingPromptSuccessCount'
+    ]);
+    if (data.ratingPromptShown === true || data.ratingPromptFinalDismissed === true) return;
+    if (data.ratingPromptDeferred !== true) return;
+    if (data.ratingPromptReminderShown === true) return;
+
+    const nextCount = (Number(data.ratingPromptSuccessCount) || 0) + 1;
+    const shouldRemind = nextCount >= ratingReminderState.reminderTargetCount;
+    await chrome.storage.local.set({
+      ratingPromptSuccessCount: nextCount
+    });
+    if (shouldRemind) {
+      await showRatingPromptOnce('reminder');
+    }
+  } catch (error) {
+    console.warn('更新评分延后计数失败:', error);
+  }
+}
+
+async function handleRatingPromptAfterSuccess() {
+  try {
+    const data = await chrome.storage.local.get([
+      'ratingPromptShown',
+      'ratingPromptFinalDismissed',
+      'ratingPromptInitialShown',
+      'ratingPromptDeferred',
+      'ratingPromptReminderShown'
+    ]);
+    if (data.ratingPromptShown === true || data.ratingPromptFinalDismissed === true) return;
+
+    if (data.ratingPromptDeferred === true) {
+      if (data.ratingPromptReminderShown !== true) {
+        await incrementRatingSuccessIfDeferred();
+      }
+      return;
+    }
+
+    if (data.ratingPromptInitialShown !== true) {
+      await showRatingPromptOnce('initial');
+    }
+  } catch (error) {
+    console.warn('处理评分提示状态失败:', error);
+  }
+}
+
 // 常用站点优先排序（enabled=true 在前，再按 order 排序）
 function sortSitesFavoriteFirst(sites) {
   return [...sites].sort((a, b) => {
@@ -33,16 +269,84 @@ function t(key, fallback = '', substitutions = undefined) {
   }
 }
 
-// 应用 iframe 输入框位置设置
+// 应用 iframe 输入框位置设置（iframe 页固定底部）
 async function applyIframeInputPosition() {
-  try {
-    const defaultPosition = await window.AppConfigManager.getHomepageInputPosition();
-    const { homepageInputPosition } = await chrome.storage.sync.get(['homepageInputPosition']);
-    const position = homepageInputPosition || defaultPosition || 'top';
-    document.body.classList.toggle('search-bar-bottom', position === 'bottom');
-  } catch (error) {
-    console.error('应用 iframe 输入框位置设置失败:', error);
+  document.body.classList.add('search-bar-bottom');
+}
+
+// 底部 search-bar 左右拖动：用 transform 平移，不触发布局
+function initSearchBarDrag() {
+  const bar = document.getElementById('searchBar');
+  const handle = document.getElementById('searchBarDragHandle');
+  if (!bar || !handle || !document.body.classList.contains('search-bar-bottom')) return;
+
+  let pointerOffsetX = 0;
+  let originLeft = 0;
+  let cachedBarWidth = 0;
+  let cachedViewportWidth = 0;
+  let isDragging = false;
+  let rafId = 0;
+  let pendingClientX = null;
+
+  function clampTargetLeft(targetLeft) {
+    const maxLeft = Math.max(0, cachedViewportWidth - cachedBarWidth);
+    return Math.max(0, Math.min(maxLeft, targetLeft));
   }
+
+  function flushPosition() {
+    if (pendingClientX === null) return;
+    const x = pendingClientX;
+    pendingClientX = null;
+    rafId = 0;
+    const targetLeft = clampTargetLeft(x - pointerOffsetX);
+    const tx = targetLeft - originLeft;
+    bar.style.transform = 'translateX(' + tx + 'px)';
+  }
+
+  function onMouseMove(e) {
+    if (!isDragging) return;
+    if (e.buttons !== 1) {
+      endDrag();
+      return;
+    }
+    pendingClientX = e.clientX;
+    if (rafId === 0) {
+      rafId = requestAnimationFrame(flushPosition);
+    }
+  }
+
+  function endDrag() {
+    if (!isDragging) return;
+    isDragging = false;
+    bar.classList.remove('search-bar-dragging');
+    if (rafId !== 0) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+    pendingClientX = null;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseUp() {
+    endDrag();
+  }
+
+  handle.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    isDragging = true;
+    bar.classList.add('search-bar-dragging');
+    pendingClientX = null;
+    const rect = bar.getBoundingClientRect();
+    pointerOffsetX = e.clientX - rect.left;
+    originLeft = rect.left;
+    cachedBarWidth = rect.width;
+    cachedViewportWidth = document.documentElement.clientWidth;
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
 }
 
 function createInjectProgressOverlay(siteName) {
@@ -383,7 +687,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 自动调整输入框高度
         function autoResizeTextarea() {
-            const minHeightFallback = 36; // 最小高度
+            const minHeightFallback = 36; // 默认高度
             const maxHeight = 200; // 最大高度
             const actionsWidth = inputWrapper
                 ? inputWrapper.querySelector('.input-actions')?.offsetWidth || 0
@@ -393,8 +697,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 计算单行真实高度，避免空内容时看起来像两行
             const singleLineHeight = getSingleLineHeightPx();
             const minHeight = Math.max(minHeightFallback, singleLineHeight);
-            // 记录单行高度，供失焦收起时使用
-            searchInput.dataset.singleLineHeight = String(minHeight);
+            // 记录默认高度（固定）
+            searchInput.dataset.singleLineHeight = String(minHeightFallback);
 
             mirror.style.width = Math.max(0, availableWidth) + 'px';
             mirror.textContent = searchInput.value + '\n';
@@ -404,16 +708,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (inputWrapper) {
                 inputWrapper.classList.toggle('avoid-overlap', needsWrap);
+                inputWrapper.classList.toggle('compact', !needsWrap);
             }
 
             if (needsWrap) {
                 mirror.style.width = searchInput.clientWidth + 'px';
                 mirror.textContent = searchInput.value + '\n';
-            }
 
-            const finalHeight = Math.ceil(mirror.scrollHeight);
-            const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
-            searchInput.style.height = clampedHeight + 'px';
+                const finalHeight = Math.ceil(mirror.scrollHeight);
+                const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
+                searchInput.style.height = clampedHeight + 'px';
+            } else {
+                searchInput.style.height = minHeightFallback + 'px';
+            }
         }
         
         // 监听输入事件
@@ -427,10 +734,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // 监听聚焦事件，自动调整高度
         searchInput.addEventListener('focus', () => {
-            // 聚焦时总是调用自动调整函数
-            if (inputWrapper) {
-                inputWrapper.classList.remove('compact');
-            }
             autoResizeTextarea();
         });
         
@@ -459,7 +762,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 应用输入框位置设置
     await applyIframeInputPosition();
-    
+    initSearchBarDrag();
+
     // 初始化列数选择
     const columnCurrentBtn = document.getElementById('columnCurrentBtn');
     const columnDropdown = document.getElementById('columnDropdown');
@@ -1245,6 +1549,9 @@ async function createIframes(query, sites) {
     console.error('未找到 iframes 容器');
     return;
   }
+
+  const hasQuery = query && query.trim() !== '';
+  const ratingBatchId = hasQuery ? await startRatingPromptBatch(enabledSites.length) : null;
   
   // 保持原有的grid布局，但确保支持order属性
   // 不覆盖CSS中定义的display: grid
@@ -1278,7 +1585,7 @@ async function createIframes(query, sites) {
       }
         
       console.log("即将开始调用创建单个 iframe",site.name, url)
-      createSingleIframe(site.name, url, container, query);
+      createSingleIframe(site.name, url, container, query, ratingBatchId);
     });
   } catch (error) {
     console.error('创建 iframes 失败:', error);
@@ -1455,7 +1762,7 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
 }
 
 // 创建单个 iframe 时添加标识
-function createSingleIframe(siteName, url, container, query) {
+function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   const iframeContainer = document.createElement('div');
   iframeContainer.className = 'iframe-container';
   iframeContainer.dataset.siteName = siteName;
@@ -1466,6 +1773,9 @@ function createSingleIframe(siteName, url, container, query) {
   const iframe = document.createElement('iframe');
   iframe.className = 'ai-iframe';
   iframe.setAttribute('data-site', siteName);
+  if (ratingBatchId) {
+    iframe.dataset.ratingBatchId = String(ratingBatchId);
+  }
   
   // 临时移除 sandbox 属性以测试剪贴板权限
   // iframe.sandbox = 'allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation';
@@ -1527,6 +1837,8 @@ function createSingleIframe(siteName, url, container, query) {
     
     // 重新设置输入框焦点
     document.getElementById('searchInput').focus();
+
+    handleIframeLoadedForRating(iframe);
   });
   
   // 添加消息监听（确保只处理一次）

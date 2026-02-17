@@ -672,5 +672,26 @@
   },
   "injectStepDescSetInputValue": {
     "message": "Set input value"
+  },
+  "ratingModalClose": {
+    "message": "Close"
+  },
+  "ratingModalTitle": {
+    "message": "Love this extension?"
+  },
+  "ratingModalSubtitle": {
+    "message": "If it helped, please leave a five-star review!"
+  },
+  "ratingModalStars": {
+    "message": "Five-star review"
+  },
+  "ratingModalLater": {
+    "message": "Maybe later"
+  },
+  "ratingModalGoRate": {
+    "message": "Leave a review"
+  },
+  "ratingModalNoLink": {
+    "message": "Unable to open review link"
   }
-} 
+}
