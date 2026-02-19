@@ -111,8 +111,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     const hasQueryParam = urlParams.has('query');
 
-    // 应用输入框位置设置
-    await applyHomepageInputPosition();
+    // 输入框固定在底部
+    applyHomepageInputPosition();
     
     // 延迟设置焦点，防止页面自动滚动
     // 使用 setTimeout 确保页面完全加载后再聚焦
@@ -178,16 +178,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 侧边栏导航由 shared/sidebar.js 统一初始化
 });
 
-// 应用首页输入框位置设置
-async function applyHomepageInputPosition() {
-    try {
-        const defaultPosition = await window.AppConfigManager.getHomepageInputPosition();
-        const { homepageInputPosition } = await chrome.storage.sync.get(['homepageInputPosition']);
-        const position = homepageInputPosition || defaultPosition || 'top';
-        document.body.classList.toggle('search-bar-bottom', position === 'bottom');
-    } catch (error) {
-        console.error('应用输入框位置设置失败:', error);
-    }
+// 输入框固定在底部
+function applyHomepageInputPosition() {
+    document.body.classList.add('search-bar-bottom');
 }
 
 // 初始化国际化

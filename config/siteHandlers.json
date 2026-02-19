@@ -1,6 +1,6 @@
 {
-  "version": "1.2.1",
-  "lastUpdated": "2026-02-12T00:00:00Z",
+  "version": "1.2.2",
+  "lastUpdated": "2026-02-20T00:00:00Z",
   "description": "支持重试功能",
   "author": "AIShortcuts",
   "sites": [
@@ -298,8 +298,8 @@
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "div.response-content-markdown.markdown",
-        "textSelector": "div.break-words"
+        "containerSelector": "[id^=\"response-\"][class*=\"items-end\"]",
+        "textSelector": "div[class*=\"message-bubble\"]"
       }
     },
     {
@@ -796,6 +796,10 @@
             "description": "发送回车键"
           }
         ]
+      },
+      "userPrompt": {
+        "containerSelector": "[class*=\"Question_question_container\"]",
+        "textSelector": "pre[class*=\"Question_question_content_pre\"]"
       }
     },
     {
@@ -1140,7 +1144,7 @@
       "region": "China",
       "hidden": true,
       "supportIframe": false,
-      "note": "待后续支持",
+      "note": "待后续支持，网站目前无法访问",
       "searchHandler": {
         "steps": [
           {
@@ -1149,6 +1153,10 @@
             "description": "站点暂未实现搜索处理器"
           }
         ]
+      },
+      "userPrompt": {
+        "containerSelector": "[class*=\"user\"], [class*=\"human\"], [class*=\"question\"]",
+        "textSelector": "[class*=\"user\"] p, [class*=\"human\"] p, [class*=\"question\"] p"
       }
     },
     {
@@ -1168,6 +1176,10 @@
             "description": "站点暂未实现搜索处理器"
           }
         ]
+      },
+      "userPrompt": {
+        "containerSelector": "div.conversation.question",
+        "textSelector": "div.question-txt"
       },
       "contentExtractor": {
         "selectors": [
@@ -1233,7 +1245,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "待后续支持",
       "searchHandler": {
         "steps": [
           {
@@ -1604,8 +1615,8 @@
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]"
+        "containerSelector": "div.qwen-chat-message.qwen-chat-message-user",
+        "textSelector": "p[class*=\"user-message-content\"]"
       }
     },
     {
@@ -1647,6 +1658,10 @@
             "description": "发送回车键"
           }
         ]
+      },
+      "userPrompt": {
+        "containerSelector": "div[style*=\"padding: 12px\"][style*=\"rgba(90, 77, 248\"]",
+        "textSelector": "div[dir=\"auto\"]"
       }
     },
     {
@@ -2014,8 +2029,8 @@
         "urlFeature": "/chat"
       },
       "userPrompt": {
-        "containerSelector": "[class*=\"group/message\"]",
-        "textSelector": "[class*=\"group/message\"]"
+        "containerSelector": "[class*=\"group/message\"]:has([class*=\"ms-auto\"])",
+        "textSelector": "[class*=\"whitespace-pre-wrap\"]"
       }
     },
     {

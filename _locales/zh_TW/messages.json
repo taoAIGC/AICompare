@@ -55,5 +55,17 @@
   },
   "favFolderRemove": {
     "message": "移除收藏"
+  },
+  "addToFavorites": {
+    "message": "收藏"
+  },
+  "removeFromFavorites": {
+    "message": "取消收藏"
+  },
+  "savedToFavorites": {
+    "message": "已收藏"
+  },
+  "removedFromFavorites": {
+    "message": "已取消收藏"
   }
 }

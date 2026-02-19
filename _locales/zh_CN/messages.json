@@ -285,6 +285,9 @@
   "saveButton": {
     "message": "保存"
   },
+  "favButtonSaved": {
+    "message": "已收藏"
+  },
   "editButton": {
     "message": "编辑"
   },
@@ -693,7 +696,7 @@
     "message": "数据同步"
   },
   "dataSyncDescription": {
-    "message": "跨设备同步您的所有设置与数据"
+    "message": "跨设备同步您的所有设置与数据（Beta - 功能开发中，可能存在 bug）"
   },
   "syncEnabledLabel": {
     "message": "启用数据同步至"
@@ -761,6 +764,12 @@
   "syncImportFailed": {
     "message": "恢复失败"
   },
+  "syncTokenPlaceholder": {
+    "message": "输入 Token"
+  },
+  "syncErrorNoToken": {
+    "message": "请填写 Token"
+  },
   "syncErrorNoUrl": {
     "message": "请填写 WebDAV 地址"
   },
@@ -799,5 +808,17 @@
   },
   "favFolderRemove": {
     "message": "移除收藏"
+  },
+  "addToFavorites": {
+    "message": "收藏"
+  },
+  "removeFromFavorites": {
+    "message": "取消收藏"
+  },
+  "savedToFavorites": {
+    "message": "已收藏"
+  },
+  "removedFromFavorites": {
+    "message": "已取消收藏"
   }
 }

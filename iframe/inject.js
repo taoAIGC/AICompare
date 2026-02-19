@@ -2752,6 +2752,317 @@ function buildCompareUrl(query) {
   }
 }
 
+// ─── 直接使用 AI 站点时的收藏功能 ───
+
+let __favModalStylesInjected = false;
+
+function injectFavModalStyles() {
+  if (__favModalStylesInjected) return;
+  __favModalStylesInjected = true;
+  const style = document.createElement('style');
+  style.id = 'ai-fav-modal-styles';
+  style.textContent = `
+    .ai-fav-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:2147483646;display:flex;align-items:center;justify-content:center;animation:aiFavFadeIn 0.15s ease}
+    @keyframes aiFavFadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes aiFavSlideIn{from{opacity:0;transform:translateY(-12px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .ai-fav-modal{background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.18);width:360px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;animation:aiFavSlideIn 0.2s ease;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+    .ai-fav-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0}
+    .ai-fav-modal-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
+    .ai-fav-modal-close{width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:18px;transition:all 0.15s ease}
+    .ai-fav-modal-close:hover{background:#f5f5f5;color:#333}
+    .ai-fav-modal-body{padding:12px 20px;overflow-y:auto;flex:1}
+    .ai-fav-folder-list{display:flex;flex-direction:column;gap:4px}
+    .ai-fav-folder-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s ease;user-select:none}
+    .ai-fav-folder-item:hover{background:#f5f7fa}
+    .ai-fav-folder-item.selected{background:#eef4ff}
+    .ai-fav-folder-radio{width:18px;height:18px;border:2px solid #ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease}
+    .ai-fav-folder-item.selected .ai-fav-folder-radio{border-color:#4a90e2}
+    .ai-fav-folder-radio-inner{width:10px;height:10px;border-radius:50%;background:transparent;transition:background 0.15s ease}
+    .ai-fav-folder-item.selected .ai-fav-folder-radio-inner{background:#4a90e2}
+    .ai-fav-folder-name{flex:1;font-size:14px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ai-fav-folder-count{font-size:12px;color:#999;flex-shrink:0}
+    .ai-fav-folder-new-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0}
+    .ai-fav-folder-new-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed #ccc;border-radius:8px;background:none;cursor:pointer;color:#666;font-size:13px;transition:all 0.15s ease;width:100%}
+    .ai-fav-folder-new-btn:hover{border-color:#4a90e2;color:#4a90e2;background:#f8faff}
+    .ai-fav-folder-new-input-row{display:flex;align-items:center;gap:8px;width:100%}
+    .ai-fav-folder-new-input{flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;transition:border-color 0.15s ease}
+    .ai-fav-folder-new-input:focus{border-color:#4a90e2}
+    .ai-fav-folder-new-confirm{width:32px;height:32px;border:none;background:#4a90e2;color:#fff;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s ease}
+    .ai-fav-folder-new-confirm:hover{background:#3a7bd5}
+    .ai-fav-folder-new-cancel{width:32px;height:32px;border:1px solid #ddd;background:#fff;color:#999;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease}
+    .ai-fav-folder-new-cancel:hover{border-color:#ccc;color:#666}
+    .ai-fav-modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:12px 20px 16px;border-top:1px solid #f0f0f0}
+    .ai-fav-modal-footer button{padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s ease}
+    .ai-fav-modal-remove-btn{background:#fff;border:1px solid #fca5a5;color:#dc2626}
+    .ai-fav-modal-remove-btn:hover{background:#fef2f2;border-color:#f87171;color:#b91c1c}
+    .ai-fav-modal-save-btn{background:#4a90e2;border:1px solid #4a90e2;color:#fff}
+    .ai-fav-modal-save-btn:hover{background:#3a7bd5}
+    .ai-fav-modal-save-btn:disabled{background:#b0c4de;border-color:#b0c4de;cursor:not-allowed}
+    .ai-fav-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;z-index:2147483647;pointer-events:none;animation:aiFavFadeIn 0.2s ease}
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+const AI_FAV_FOLDERS_KEY = 'favoriteFolders';
+const AI_FAV_DEFAULT_FOLDER_ID = 'default';
+
+async function getAiFavFolders() {
+  const data = await safeStorageGet(AI_FAV_FOLDERS_KEY);
+  return data[AI_FAV_FOLDERS_KEY] || [];
+}
+
+async function saveAiFavFolders(folders) {
+  await safeStorageSet({ [AI_FAV_FOLDERS_KEY]: folders });
+}
+
+async function ensureAiFavDefaultFolder() {
+  let folders = await getAiFavFolders();
+  if (!folders.find(f => f.id === AI_FAV_DEFAULT_FOLDER_ID)) {
+    folders.unshift({ id: AI_FAV_DEFAULT_FOLDER_ID, name: t('favFolderDefault', '默认收藏'), createdAt: Date.now(), order: 0 });
+    await saveAiFavFolders(folders);
+  }
+  return folders;
+}
+
+async function getAiFavFolderCounts() {
+  const { pkHistory = [] } = await safeStorageGet('pkHistory');
+  const counts = {};
+  pkHistory.forEach(item => {
+    if (!item.sites) return;
+    const seen = new Set();
+    item.sites.forEach(site => {
+      if (site.isFavorite) {
+        const fid = site.favoriteFolder || AI_FAV_DEFAULT_FOLDER_ID;
+        if (!seen.has(fid)) { counts[fid] = (counts[fid] || 0) + 1; seen.add(fid); }
+      }
+    });
+  });
+  return counts;
+}
+
+async function checkPromptIsFavorited(text, siteName) {
+  const { pkHistory = [] } = await safeStorageGet('pkHistory');
+  return pkHistory.some(item =>
+    item.query === text.trim() &&
+    item.sites && item.sites.some(s => s.name === siteName && s.isFavorite === true)
+  );
+}
+
+async function getFavoritedFolderId(text, siteName) {
+  const { pkHistory = [] } = await safeStorageGet('pkHistory');
+  const item = pkHistory.find(h =>
+    h.query === text.trim() && h.sites && h.sites.some(s => s.name === siteName && s.isFavorite)
+  );
+  if (!item) return AI_FAV_DEFAULT_FOLDER_ID;
+  const site = item.sites.find(s => s.name === siteName && s.isFavorite);
+  return site?.favoriteFolder || AI_FAV_DEFAULT_FOLDER_ID;
+}
+
+async function saveFavoritePromptToHistory(text, siteName, folderId, remove) {
+  const { pkHistory = [] } = await safeStorageGet('pkHistory');
+  const trimmedText = text.trim();
+  const idx = pkHistory.findIndex(item =>
+    item.query === trimmedText && item.sites && item.sites.some(s => s.name === siteName)
+  );
+  let updated;
+  if (idx !== -1) {
+    updated = pkHistory.slice();
+    updated[idx] = {
+      ...updated[idx],
+      sites: updated[idx].sites.map(s => {
+        if (s.name !== siteName) return s;
+        const upd = { ...s, isFavorite: !remove };
+        if (!remove && folderId) upd.favoriteFolder = folderId;
+        if (remove) delete upd.favoriteFolder;
+        return upd;
+      })
+    };
+  } else if (!remove) {
+    const newItem = {
+      id: Date.now().toString(),
+      query: trimmedText,
+      sites: [{ name: siteName, url: window.location.href, isFavorite: true, favoriteFolder: folderId || AI_FAV_DEFAULT_FOLDER_ID }],
+      timestamp: Date.now(),
+      date: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    };
+    updated = [newItem, ...pkHistory];
+  } else {
+    return;
+  }
+  await safeStorageSet({ pkHistory: updated });
+  if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+}
+
+function showAiFavToast(msg) {
+  injectFavModalStyles();
+  const toast = document.createElement('div');
+  toast.className = 'ai-fav-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+function showAiFavModal(currentFolderId, onDone) {
+  injectFavModalStyles();
+  let resolved = false;
+  function finish(result) {
+    if (resolved) return;
+    resolved = true;
+    overlay.remove();
+    document.removeEventListener('keydown', onKeydown);
+    onDone(result);
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ai-fav-modal-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) finish(null); });
+
+  const modal = document.createElement('div');
+  modal.className = 'ai-fav-modal';
+
+  const header = document.createElement('div');
+  header.className = 'ai-fav-modal-header';
+  const titleEl = document.createElement('h3');
+  titleEl.textContent = t('favFolderSaveToFolder', '保存到收藏夹');
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'ai-fav-modal-close';
+  closeBtn.innerHTML = '&#x2715;';
+  closeBtn.addEventListener('click', () => finish(null));
+  header.appendChild(titleEl);
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.className = 'ai-fav-modal-body';
+
+  const listEl = document.createElement('div');
+  listEl.className = 'ai-fav-folder-list';
+
+  let folders = [];
+  let counts = {};
+  let selectedId = currentFolderId || AI_FAV_DEFAULT_FOLDER_ID;
+
+  function renderList() {
+    listEl.innerHTML = '';
+    folders.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    folders.forEach(folder => {
+      const item = document.createElement('div');
+      item.className = 'ai-fav-folder-item' + (folder.id === selectedId ? ' selected' : '');
+      const radio = document.createElement('div');
+      radio.className = 'ai-fav-folder-radio';
+      const inner = document.createElement('div');
+      inner.className = 'ai-fav-folder-radio-inner';
+      radio.appendChild(inner);
+      const nameEl = document.createElement('span');
+      nameEl.className = 'ai-fav-folder-name';
+      nameEl.textContent = folder.name;
+      const countEl = document.createElement('span');
+      countEl.className = 'ai-fav-folder-count';
+      const c = counts[folder.id] || 0;
+      countEl.textContent = c > 0 ? `${c}` : '';
+      item.appendChild(radio);
+      item.appendChild(nameEl);
+      item.appendChild(countEl);
+      item.addEventListener('click', () => { selectedId = folder.id; renderList(); });
+      listEl.appendChild(item);
+    });
+  }
+
+  body.appendChild(listEl);
+
+  const newRow = document.createElement('div');
+  newRow.className = 'ai-fav-folder-new-row';
+  const newBtn = document.createElement('button');
+  newBtn.className = 'ai-fav-folder-new-btn';
+  newBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> <span>${t('favFolderNewFolder', '新建文件夹')}</span>`;
+
+  const inputRow = document.createElement('div');
+  inputRow.className = 'ai-fav-folder-new-input-row';
+  inputRow.style.display = 'none';
+
+  const newInput = document.createElement('input');
+  newInput.className = 'ai-fav-folder-new-input';
+  newInput.type = 'text';
+  newInput.placeholder = t('favFolderNamePlaceholder', '输入文件夹名称');
+  newInput.maxLength = 30;
+
+  const confirmNewBtn = document.createElement('button');
+  confirmNewBtn.className = 'ai-fav-folder-new-confirm';
+  confirmNewBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  const cancelNewBtn = document.createElement('button');
+  cancelNewBtn.className = 'ai-fav-folder-new-cancel';
+  cancelNewBtn.innerHTML = '&#x2715;';
+
+  inputRow.appendChild(newInput);
+  inputRow.appendChild(confirmNewBtn);
+  inputRow.appendChild(cancelNewBtn);
+
+  newBtn.addEventListener('click', () => {
+    newBtn.style.display = 'none';
+    inputRow.style.display = 'flex';
+    newInput.value = '';
+    newInput.focus();
+  });
+  cancelNewBtn.addEventListener('click', () => {
+    inputRow.style.display = 'none';
+    newBtn.style.display = 'flex';
+  });
+
+  async function createFolder() {
+    const name = newInput.value.trim();
+    if (!name) return;
+    const id = 'folder_' + Date.now();
+    folders.push({ id, name, createdAt: Date.now(), order: folders.length });
+    await saveAiFavFolders(folders);
+    selectedId = id;
+    renderList();
+    inputRow.style.display = 'none';
+    newBtn.style.display = 'flex';
+  }
+
+  confirmNewBtn.addEventListener('click', createFolder);
+  newInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); createFolder(); }
+    if (e.key === 'Escape') { inputRow.style.display = 'none'; newBtn.style.display = 'flex'; }
+  });
+
+  newRow.appendChild(newBtn);
+  newRow.appendChild(inputRow);
+  body.appendChild(newRow);
+
+  const footer = document.createElement('div');
+  footer.className = 'ai-fav-modal-footer';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'ai-fav-modal-remove-btn';
+  removeBtn.textContent = t('favFolderRemove', '移除收藏');
+  removeBtn.addEventListener('click', () => finish({ action: 'remove' }));
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'ai-fav-modal-save-btn';
+  saveBtn.textContent = t('saveButton', '保存');
+  saveBtn.addEventListener('click', () => finish({ folderId: selectedId }));
+
+  footer.appendChild(removeBtn);
+  footer.appendChild(saveBtn);
+  modal.appendChild(header);
+  modal.appendChild(body);
+  modal.appendChild(footer);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  (async () => {
+    folders = await ensureAiFavDefaultFolder();
+    counts = await getAiFavFolderCounts();
+    renderList();
+  })();
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') finish(null);
+  }
+  document.addEventListener('keydown', onKeydown);
+}
+
 async function initDirectUserPromptButtons() {
   if (__userPromptButtonsInit) return;
   __userPromptButtonsInit = true;
@@ -2875,6 +3186,43 @@ async function initDirectUserPromptButtons() {
       }
     });
     btnWrap.appendChild(btn);
+
+    // 收藏按钮
+    const favBtn = document.createElement('button');
+    favBtn.className = 'ai-compare-userprompt-fav-btn';
+    favBtn.style.cssText = 'display:inline-flex;align-items:center;padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#333;white-space:nowrap;line-height:1;height:fit-content;margin-left:4px;transition:border-color 0.15s ease;';
+    const favIcon = document.createElement('img');
+    favIcon.alt = '';
+    favIcon.style.cssText = 'width:12px;height:12px;margin-right:4px;display:inline-block;vertical-align:middle;';
+    const favLabel = document.createElement('span');
+
+    const updateFavBtnState = (isFavd) => {
+      favIcon.src = chrome.runtime.getURL(isFavd ? 'icons/star_saved.svg' : 'icons/star_unsaved.svg');
+      favLabel.textContent = isFavd ? t('favButtonSaved', 'Saved') : t('saveButton', 'Save');
+      favBtn.title = isFavd ? t('removeFromFavorites', '取消收藏') : t('addToFavorites', '收藏');
+      favBtn.style.borderColor = isFavd ? '#f5a623' : '#ccc';
+      favBtn.dataset.favorited = isFavd ? '1' : '0';
+    };
+
+    updateFavBtnState(false);
+    favBtn.appendChild(favIcon);
+    favBtn.appendChild(favLabel);
+    checkPromptIsFavorited(text, siteName).then(state => updateFavBtnState(state));
+
+    favBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isFavd = favBtn.dataset.favorited === '1';
+      const currentFolderId = isFavd ? await getFavoritedFolderId(text, siteName) : AI_FAV_DEFAULT_FOLDER_ID;
+      showAiFavModal(currentFolderId, async (result) => {
+        if (!result) return;
+        const shouldRemove = result.action === 'remove';
+        await saveFavoritePromptToHistory(text, siteName, result.folderId, shouldRemove);
+        updateFavBtnState(!shouldRemove);
+        showAiFavToast(shouldRemove ? t('removedFromFavorites', '已取消收藏') : t('savedToFavorites', '已收藏'));
+      });
+    });
+    btnWrap.appendChild(favBtn);
 
     document.body.appendChild(btnWrap);
     container.dataset.aiCompareBtnAdded = '1';

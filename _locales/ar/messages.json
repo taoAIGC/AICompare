@@ -55,5 +55,17 @@
   },
   "favFolderRemove": {
     "message": "إزالة"
+  },
+  "addToFavorites": {
+    "message": "تفضيل"
+  },
+  "removeFromFavorites": {
+    "message": "إزالة من المفضلة"
+  },
+  "savedToFavorites": {
+    "message": "تمت الإضافة إلى المفضلة"
+  },
+  "removedFromFavorites": {
+    "message": "تمت الإزالة من المفضلة"
   }
 }

@@ -1,0 +1,1222 @@
+{
+  "config": {
+    "configFile": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/playwright.config.js",
+    "rootDir": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 5
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 5
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.test.js"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report/test-results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 5,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "e2e/user-flows.test.js",
+      "file": "e2e/user-flows.test.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "E2E测试 - 用户操作流程",
+          "file": "e2e/user-flows.test.js",
+          "line": 7,
+          "column": 1,
+          "specs": [
+            {
+              "title": "用户应该能够通过浮窗按钮打开AI比较界面",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 937,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:11.212Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-303f3b97efe9f0a44f7e",
+              "file": "e2e/user-flows.test.js",
+              "line": 8,
+              "column": 3
+            },
+            {
+              "title": "用户应该能够选择文本并查询AI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 841,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:11.207Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-d40dfd97495fc1d44ea9",
+              "file": "e2e/user-flows.test.js",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "用户应该能够在选项页面配置站点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 829,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:11.209Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-50c7bfb4015be87fb894",
+              "file": "e2e/user-flows.test.js",
+              "line": 81,
+              "column": 3
+            },
+            {
+              "title": "用户应该能够使用搜索按钮快速访问AI站点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 877,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:11.179Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-3a7dfeecaf8e18f6c424",
+              "file": "e2e/user-flows.test.js",
+              "line": 115,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "E2E测试 - 多站点比较流程",
+          "file": "e2e/user-flows.test.js",
+          "line": 151,
+          "column": 1,
+          "specs": [
+            {
+              "title": "用户应该能够同时向多个AI站点发送查询",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 935,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:11.209Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-37a3d7f425fd3ed35b7e",
+              "file": "e2e/user-flows.test.js",
+              "line": 152,
+              "column": 3
+            },
+            {
+              "title": "用户应该能够导出AI响应",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 477,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.446Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-9c27eef2bdfb51179c2f",
+              "file": "e2e/user-flows.test.js",
+              "line": 208,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "E2E测试 - 收藏和历史",
+          "file": "e2e/user-flows.test.js",
+          "line": 245,
+          "column": 1,
+          "specs": [
+            {
+              "title": "用户应该能够收藏查询",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 502,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.453Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-887a6447c103667108ae",
+              "file": "e2e/user-flows.test.js",
+              "line": 246,
+              "column": 3
+            },
+            {
+              "title": "用户应该能够查看历史记录",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 448,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.482Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3b9d644088db62cac55f-f6437a41cd0d95e27ca3",
+              "file": "e2e/user-flows.test.js",
+              "line": 275,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "integration/storage.test.js",
+      "file": "integration/storage.test.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "集成测试 - Chrome Storage",
+          "file": "integration/storage.test.js",
+          "line": 8,
+          "column": 1,
+          "specs": [
+            {
+              "title": "JavaScript对象存储模拟应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 406,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.547Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-88cd2946ffd66c4074ea",
+              "file": "integration/storage.test.js",
+              "line": 9,
+              "column": 3
+            },
+            {
+              "title": "JavaScript对象存储多个键应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 417,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.579Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-d6d0ec58fe0a3f39492f",
+              "file": "integration/storage.test.js",
+              "line": 43,
+              "column": 3
+            },
+            {
+              "title": "JavaScript对象存储删除应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 431,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.943Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-a21b71089a87d971952d",
+              "file": "integration/storage.test.js",
+              "line": 70,
+              "column": 3
+            },
+            {
+              "title": "JavaScript对象存储清空应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 400,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.942Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-4789af56e392783bd217",
+              "file": "integration/storage.test.js",
+              "line": 93,
+              "column": 3
+            },
+            {
+              "title": "存储变化监听器模拟应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 366,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.972Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-c7cd941611cc2cd7b503",
+              "file": "integration/storage.test.js",
+              "line": 116,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "集成测试 - 消息通信",
+          "file": "integration/storage.test.js",
+          "line": 167,
+          "column": 1,
+          "specs": [
+            {
+              "title": "消息传递模拟应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 414,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:13.969Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-9692963a00e77de1d0d5",
+              "file": "integration/storage.test.js",
+              "line": 168,
+              "column": 3
+            },
+            {
+              "title": "tabs API 模拟应该正常工作",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 429,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.006Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "e4737bc6eaf26e15564f-ef83b52addb005d4b310",
+              "file": "integration/storage.test.js",
+              "line": 208,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui/components.test.js",
+      "file": "ui/components.test.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "UI测试 - 浮窗按钮",
+          "file": "ui/components.test.js",
+          "line": 7,
+          "column": 1,
+          "specs": [
+            {
+              "title": "浮窗按钮应该正确显示",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 461,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.356Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-01f7ef78010007768927",
+              "file": "ui/components.test.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "浮窗按钮应该可以点击",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 466,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.362Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-cf5bfd401a616aefd31a",
+              "file": "ui/components.test.js",
+              "line": 30,
+              "column": 3
+            },
+            {
+              "title": "浮窗按钮位置应该正确",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 411,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.384Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-99fc5be73f9c7ea537e1",
+              "file": "ui/components.test.js",
+              "line": 54,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UI测试 - 文本选择功能",
+          "file": "ui/components.test.js",
+          "line": 83,
+          "column": 1,
+          "specs": [
+            {
+              "title": "选中文本后应该显示弹出框",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 469,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.397Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-13e199482d9882e2f13e",
+              "file": "ui/components.test.js",
+              "line": 84,
+              "column": 3
+            },
+            {
+              "title": "弹出框位置应该跟随鼠标",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 878,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.447Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-6763fd08dd98cda5240e",
+              "file": "ui/components.test.js",
+              "line": 124,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UI测试 - 搜索按钮",
+          "file": "ui/components.test.js",
+          "line": 156,
+          "column": 1,
+          "specs": [
+            {
+              "title": "搜索按钮应该正确渲染",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 928,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.802Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-c519be0f35a936e7c313",
+              "file": "ui/components.test.js",
+              "line": 157,
+              "column": 3
+            },
+            {
+              "title": "搜索按钮悬停状态",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 746,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.825Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a1d0b06465c660a99d9e-66349227894fc0c5cf4c",
+              "file": "ui/components.test.js",
+              "line": 184,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "unit/config.test.js",
+      "file": "unit/config.test.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "单元测试 - 配置解析",
+          "file": "unit/config.test.js",
+          "line": 7,
+          "column": 1,
+          "specs": [
+            {
+              "title": "应该正确解析siteHandlers.json配置",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 6,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.838Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-f10ed85068a723abb358",
+              "file": "unit/config.test.js",
+              "line": 8,
+              "column": 3
+            },
+            {
+              "title": "应该正确验证站点URL格式",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 262,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.857Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-4834493855f28c5938ba",
+              "file": "unit/config.test.js",
+              "line": 28,
+              "column": 3
+            },
+            {
+              "title": "应该正确识别支持的站点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.875Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-fe2be725264215025807",
+              "file": "unit/config.test.js",
+              "line": 43,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "单元测试 - 基础配置",
+          "file": "unit/config.test.js",
+          "line": 60,
+          "column": 1,
+          "specs": [
+            {
+              "title": "应该包含必要的默认配置项",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 18,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:14.880Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-17bb72fc59cc4afacf3f",
+              "file": "unit/config.test.js",
+              "line": 61,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "单元测试 - 工具函数",
+          "file": "unit/config.test.js",
+          "line": 81,
+          "column": 1,
+          "specs": [
+            {
+              "title": "URL验证函数应该正确识别有效和无效URL",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 17,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:15.101Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-d7c5313cb0c6b480a3f3",
+              "file": "unit/config.test.js",
+              "line": 82,
+              "column": 3
+            },
+            {
+              "title": "时间格式化函数应该正确格式化时间戳",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 47,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:15.159Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-959ffc35255e452ee8a5",
+              "file": "unit/config.test.js",
+              "line": 105,
+              "column": 3
+            },
+            {
+              "title": "搜索参数解析函数应该正确提取查询参数",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 8,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:15.288Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-37f79686e958d6c79af9",
+              "file": "unit/config.test.js",
+              "line": 118,
+              "column": 3
+            },
+            {
+              "title": "站点匹配函数应该正确识别AI站点",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-19T15:37:15.298Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "38b8091b4426452aa32c-2bf99856d136f0dacc1b",
+              "file": "unit/config.test.js",
+              "line": 133,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-02-19T15:37:10.567Z",
+    "duration": 5210.97,
+    "expected": 30,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

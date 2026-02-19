@@ -55,5 +55,17 @@
   },
   "favFolderRemove": {
     "message": "お気に入りから削除"
+  },
+  "addToFavorites": {
+    "message": "お気に入り"
+  },
+  "removeFromFavorites": {
+    "message": "お気に入り解除"
+  },
+  "savedToFavorites": {
+    "message": "お気に入りに追加しました"
+  },
+  "removedFromFavorites": {
+    "message": "お気に入りから削除しました"
   }
 }

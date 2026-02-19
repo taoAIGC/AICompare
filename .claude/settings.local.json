@@ -12,7 +12,17 @@
       "WebFetch(domain:developers.chrome.com)",
       "mcp__chrome-devtools__list_pages",
       "mcp__chrome-devtools__navigate_page",
-      "mcp__chrome-devtools__performance_start_trace"
+      "mcp__chrome-devtools__performance_start_trace",
+      "Bash(npm install)",
+      "Bash(sudo chown:*)",
+      "Bash(npm install:*)",
+      "Bash(npm cache clean --force)",
+      "Bash(npm test)",
+      "Bash(npx playwright install chromium:*)",
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npm search:*)",
+      "Bash(npx @playwright/mcp --help)"
     ],
     "deny": [],
     "ask": [],

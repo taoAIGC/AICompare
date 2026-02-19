@@ -799,7 +799,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 const WEBDAV_SYNC_KEY      = 'webdavSyncConfig';
 const WEBDAV_SYNC_FILENAME = 'multiAI-settings.json';
 const WEBDAV_SYNC_KEYS = [
-  'buttonConfig', 'homepageInputPosition', 'sites',
+  'buttonConfig', 'sites',
   'siteSettings', 'disabledSites', 'promptTemplates',
   'favoritePrompts', 'favoriteSites',
 ];

@@ -596,6 +596,16 @@ input:checked + .slider:before {
   border-bottom: 1px solid #eee;
 }
 
+/* token 模式：隐藏用户名列 */
+.sync-connection-table.token-mode .sync-table-row {
+  grid-template-columns: 130px 1fr 160px;
+}
+
+.sync-connection-table.token-mode #syncUsernameHeader,
+.sync-connection-table.token-mode #syncUsernameCell {
+  display: none;
+}
+
 .sync-table-row:last-child {
   border-bottom: none;
 }

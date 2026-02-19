@@ -55,5 +55,17 @@
   },
   "favFolderRemove": {
     "message": "즐겨찾기 삭제"
+  },
+  "addToFavorites": {
+    "message": "즐겨찾기"
+  },
+  "removeFromFavorites": {
+    "message": "즐겨찾기 해제"
+  },
+  "savedToFavorites": {
+    "message": "즐겨찾기에 추가됨"
+  },
+  "removedFromFavorites": {
+    "message": "즐겨찾기에서 삭제됨"
   }
 }

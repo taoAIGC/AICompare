@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeSiteConfigs();
   initializeI18n();
   initializeRuleInfo();
-  initializeInputPositionSetting();
   initializePromptTemplates();
 });
 
@@ -78,40 +77,6 @@ function showMessage(message, isError = false) {
   }, 3000);
 }
 
-// 初始化输入框位置设置
-async function initializeInputPositionSetting() {
-  const topRadio = document.getElementById('inputPositionTop');
-  const bottomRadio = document.getElementById('inputPositionBottom');
-  if (!topRadio || !bottomRadio) return;
-
-  try {
-    const defaultPosition = await window.AppConfigManager.getHomepageInputPosition();
-    const { homepageInputPosition } = await chrome.storage.sync.get(['homepageInputPosition']);
-    const currentPosition = homepageInputPosition || defaultPosition || 'top';
-
-    if (currentPosition === 'bottom') {
-      bottomRadio.checked = true;
-    } else {
-      topRadio.checked = true;
-    }
-
-    const handleChange = async (event) => {
-      if (!event.target.checked) return;
-      const selectedPosition = event.target.value;
-      await chrome.storage.sync.set({ homepageInputPosition: selectedPosition });
-      if (chrome.runtime.lastError) {
-        showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
-        return;
-      }
-      showToast(chrome.i18n.getMessage("saveSuccess"));
-    };
-
-    topRadio.addEventListener('change', handleChange);
-    bottomRadio.addEventListener('change', handleChange);
-  } catch (error) {
-    console.error('初始化输入框位置设置失败:', error);
-  }
-}
 
 // 初始化快捷入口配置
 async function initializeButtonConfigs() {
@@ -781,7 +746,6 @@ async function loadTemplatesList() {
             <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${template.name}</h4>
             <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666;">
               <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
-              ${template.isDefault ? '<span style="background: #e8f5e8; color: #4caf50; padding: 2px 6px; border-radius: 3px;">默认</span>' : ''}
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
@@ -875,15 +839,15 @@ function bindTemplateEvents() {
 
 // 处理模板列表点击事件
 async function handleTemplateListClick(event) {
-  const target = event.target;
-  const templateId = target.getAttribute('data-template-id');
-  
-  if (!templateId) return;
-  
-  if (target.classList.contains('edit-template-btn')) {
-    await editTemplate(templateId);
-  } else if (target.classList.contains('delete-template-btn')) {
-    await deleteTemplate(templateId);
+  const editBtn = event.target.closest('.edit-template-btn');
+  const deleteBtn = event.target.closest('.delete-template-btn');
+
+  if (editBtn) {
+    const templateId = editBtn.getAttribute('data-template-id');
+    if (templateId) await editTemplate(templateId);
+  } else if (deleteBtn) {
+    const templateId = deleteBtn.getAttribute('data-template-id');
+    if (templateId) await deleteTemplate(templateId);
   }
 }
 
@@ -1100,7 +1064,6 @@ const SYNC_DATA_FILENAME = 'multiAI-settings.json';
 // 需要同步的 chrome.storage.sync 数据键
 const SYNC_KEYS = [
   'buttonConfig',
-  'homepageInputPosition',
   'sites',
   'siteSettings',
   'disabledSites',
@@ -1135,6 +1098,29 @@ async function loadSyncConfig() {
   if (authType) authType.value   = cfg.authType || 'password';
 
   updateConnectionTableState(!!cfg.enabled);
+  updateAuthTypeUI(cfg.authType || 'password');
+}
+
+function updateAuthTypeUI(authType) {
+  const table          = document.getElementById('syncConnectionConfig');
+  const passwordHeader = document.getElementById('syncPasswordHeader');
+  const passwordInput  = document.getElementById('syncPassword');
+
+  if (authType === 'token') {
+    table?.classList.add('token-mode');
+    if (passwordHeader) passwordHeader.textContent  = 'Token';
+    if (passwordInput) {
+      passwordInput.placeholder  = chrome.i18n.getMessage('syncTokenPlaceholder') || '输入 Token';
+      passwordInput.autocomplete = 'off';
+    }
+  } else {
+    table?.classList.remove('token-mode');
+    if (passwordHeader) passwordHeader.textContent  = chrome.i18n.getMessage('syncPassword') || '密码';
+    if (passwordInput) {
+      passwordInput.placeholder  = '••••••••';
+      passwordInput.autocomplete = 'current-password';
+    }
+  }
 }
 
 function updateConnectionTableState(enabled) {
@@ -1161,13 +1147,18 @@ async function saveSyncConfig() {
     document.getElementById('syncUrl')?.focus();
     return;
   }
-  if (!cfg.username) {
+  if (cfg.authType !== 'token' && !cfg.username) {
     showSyncStatus(chrome.i18n.getMessage('syncErrorNoUsername') || '请填写用户名', 'error');
     document.getElementById('syncUsername')?.focus();
     return;
   }
   if (!cfg.password) {
-    showSyncStatus(chrome.i18n.getMessage('syncErrorNoPassword') || '请填写密码', 'error');
+    showSyncStatus(
+      cfg.authType === 'token'
+        ? (chrome.i18n.getMessage('syncErrorNoToken') || '请填写 Token')
+        : (chrome.i18n.getMessage('syncErrorNoPassword') || '请填写密码'),
+      'error'
+    );
     document.getElementById('syncPassword')?.focus();
     return;
   }
@@ -1325,6 +1316,10 @@ function initializeDataSync() {
 
   document.getElementById('syncEnabled')?.addEventListener('change', (e) => {
     updateConnectionTableState(e.target.checked);
+  });
+
+  document.getElementById('syncAuthType')?.addEventListener('change', (e) => {
+    updateAuthTypeUI(e.target.value);
   });
 
   document.getElementById('saveSyncConfig')?.addEventListener('click', saveSyncConfig);

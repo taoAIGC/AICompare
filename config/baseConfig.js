@@ -66,12 +66,6 @@ const AppConfigManager = {
     return config.buttonConfig || {};
   },
 
-  // 获取首页输入框位置配置
-  async getHomepageInputPosition() {
-    const config = await this.loadConfig();
-    return config.homepageInputPosition || 'top';
-  },
-  
   // 获取外部链接配置
   async getExternalLinks() {
     const config = await this.loadConfig();

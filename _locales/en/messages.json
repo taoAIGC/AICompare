@@ -174,7 +174,7 @@
     "description": "Title for the favorite button"
   },
   "iframeFavoriteTitle": {
-    "message": "Add This to Favorites",
+    "message": "Save This to Favorites",
     "description": "Tooltip for iframe star when not favorited"
   },
   "iframeUnfavoriteTitle": {
@@ -289,6 +289,9 @@
   },
   "saveButton": {
     "message": "Save"
+  },
+  "favButtonSaved": {
+    "message": "Saved"
   },
   "editButton": {
     "message": "Edit"
@@ -698,7 +701,7 @@
     "message": "Data Sync"
   },
   "dataSyncDescription": {
-    "message": "Sync all your settings across devices"
+    "message": "Sync all your settings across devices (Beta - may contain bugs)"
   },
   "syncEnabledLabel": {
     "message": "Enable sync to"
@@ -766,6 +769,12 @@
   "syncImportFailed": {
     "message": "Restore failed"
   },
+  "syncTokenPlaceholder": {
+    "message": "Enter Token"
+  },
+  "syncErrorNoToken": {
+    "message": "Please enter a Token"
+  },
   "syncErrorNoUrl": {
     "message": "Please enter a WebDAV URL"
   },
@@ -804,5 +813,17 @@
   },
   "favFolderRemove": {
     "message": "Remove"
+  },
+  "addToFavorites": {
+    "message": "Favorite"
+  },
+  "removeFromFavorites": {
+    "message": "Unfavorite"
+  },
+  "savedToFavorites": {
+    "message": "Saved to favorites"
+  },
+  "removedFromFavorites": {
+    "message": "Removed from favorites"
   }
 }

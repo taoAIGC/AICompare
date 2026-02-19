@@ -55,5 +55,17 @@
   },
   "favFolderRemove": {
     "message": "Retirer"
+  },
+  "addToFavorites": {
+    "message": "Favori"
+  },
+  "removeFromFavorites": {
+    "message": "Retirer des favoris"
+  },
+  "savedToFavorites": {
+    "message": "Ajouté aux favoris"
+  },
+  "removedFromFavorites": {
+    "message": "Retiré des favoris"
   }
 }
