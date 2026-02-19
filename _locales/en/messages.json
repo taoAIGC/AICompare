@@ -693,5 +693,116 @@
   },
   "ratingModalNoLink": {
     "message": "Unable to open review link"
+  },
+  "dataSyncTitle": {
+    "message": "Data Sync"
+  },
+  "dataSyncDescription": {
+    "message": "Sync all your settings across devices"
+  },
+  "syncEnabledLabel": {
+    "message": "Enable sync to"
+  },
+  "syncOnChange": {
+    "message": "Auto sync"
+  },
+  "syncOnStartup": {
+    "message": "Sync on startup"
+  },
+  "syncAuthType": {
+    "message": "Auth type"
+  },
+  "syncAuthPassword": {
+    "message": "password"
+  },
+  "syncAuthToken": {
+    "message": "token"
+  },
+  "syncUsername": {
+    "message": "Username"
+  },
+  "syncPassword": {
+    "message": "Password"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "Username"
+  },
+  "syncTestConnection": {
+    "message": "Test connection"
+  },
+  "syncNowButton": {
+    "message": "Sync now"
+  },
+  "syncImportButton": {
+    "message": "Restore from cloud"
+  },
+  "syncTesting": {
+    "message": "Testing connection…"
+  },
+  "syncTestSuccess": {
+    "message": "Connection successful!"
+  },
+  "syncTestFailed": {
+    "message": "Connection failed"
+  },
+  "syncUploading": {
+    "message": "Uploading data…"
+  },
+  "syncSuccess": {
+    "message": "Sync successful"
+  },
+  "syncFailed": {
+    "message": "Sync failed"
+  },
+  "syncDownloading": {
+    "message": "Downloading from cloud…"
+  },
+  "syncImportSuccess": {
+    "message": "Data restored from cloud. Reload the page for changes to take effect."
+  },
+  "syncImportFailed": {
+    "message": "Restore failed"
+  },
+  "syncErrorNoUrl": {
+    "message": "Please enter a WebDAV URL"
+  },
+  "syncErrorNoUsername": {
+    "message": "Please enter a username"
+  },
+  "syncErrorNoPassword": {
+    "message": "Please enter a password"
+  },
+  "syncErrorNotConfigured": {
+    "message": "Please enable sync and fill in the WebDAV configuration"
+  },
+  "favFolderDefault": {
+    "message": "Default"
+  },
+  "favFolderSaveToFolder": {
+    "message": "Save to Folder"
+  },
+  "favFolderNewFolder": {
+    "message": "New Folder"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "Enter folder name"
+  },
+  "favFolderAll": {
+    "message": "All"
+  },
+  "favFolderManage": {
+    "message": "Manage Folders"
+  },
+  "favFolderDefaultLabel": {
+    "message": "Default"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "Delete this folder? Favorites in it will be moved to the default folder."
+  },
+  "favFolderRemove": {
+    "message": "Remove"
   }
 }

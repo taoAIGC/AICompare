@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "Não foi possível abrir o link de avaliação"
+  },
+  "favFolderDefault": {
+    "message": "Padrão"
+  },
+  "favFolderSaveToFolder": {
+    "message": "Salvar na pasta"
+  },
+  "favFolderNewFolder": {
+    "message": "Nova pasta"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "Nome da pasta"
+  },
+  "favFolderAll": {
+    "message": "Tudo"
+  },
+  "favFolderManage": {
+    "message": "Gerenciar pastas"
+  },
+  "favFolderDefaultLabel": {
+    "message": "Padrão"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "Excluir esta pasta? Os favoritos serão movidos para a pasta padrão."
+  },
+  "favFolderRemove": {
+    "message": "Remover"
   }
 }

@@ -194,6 +194,57 @@
     color: #999;
 }
 
+.sidebar-folder-group {
+    margin-bottom: 2px;
+}
+
+.sidebar-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    font-size: 11px;
+    color: #999;
+    cursor: pointer;
+    border-radius: 4px;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.sidebar-folder-header:hover {
+    background-color: rgba(0,0,0,0.04);
+    color: #666;
+}
+
+.sidebar-folder-arrow {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.sidebar-folder-header.collapsed .sidebar-folder-arrow {
+    transform: rotate(-90deg);
+}
+
+.sidebar-folder-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.sidebar-folder-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.sidebar-folder-items.collapsed {
+    display: none;
+}
+
 .sync-bar {
     display: flex;
     align-items: center;
@@ -316,11 +367,14 @@
 .coffee-modal-content {
     position: relative;
     background: white;
-    padding: 24px 32px;
+    padding: 24px 28px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     text-align: center;
-    max-width: 420px;
+    width: 520px;
+    max-width: 90vw;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .coffee-modal-text {
@@ -329,9 +383,46 @@
     margin-bottom: 16px;
 }
 
+.coffee-modal-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
 .coffee-modal-image {
-    width: 260px;
-    max-width: 100%;
+    flex: 1;
+    min-width: 0;
+    max-width: 200px;
+    width: 100%;
     height: auto;
     border-radius: 8px;
+    display: block;
+}
+
+.coffee-modal-bmc {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bmc-button {
+    display: inline-block;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+}
+
+.bmc-button:hover {
+    opacity: 0.85;
+}
+
+.bmc-button-icon {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    display: block;
 }

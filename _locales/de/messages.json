@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "Bewertungslink konnte nicht geöffnet werden"
+  },
+  "favFolderDefault": {
+    "message": "Standard"
+  },
+  "favFolderSaveToFolder": {
+    "message": "In Ordner speichern"
+  },
+  "favFolderNewFolder": {
+    "message": "Neuer Ordner"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "Ordnername eingeben"
+  },
+  "favFolderAll": {
+    "message": "Alle"
+  },
+  "favFolderManage": {
+    "message": "Ordner verwalten"
+  },
+  "favFolderDefaultLabel": {
+    "message": "Standard"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "Diesen Ordner löschen? Favoriten werden in den Standardordner verschoben."
+  },
+  "favFolderRemove": {
+    "message": "Entfernen"
   }
 }

@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "レビューリンクを開けません"
+  },
+  "favFolderDefault": {
+    "message": "デフォルト"
+  },
+  "favFolderSaveToFolder": {
+    "message": "フォルダに保存"
+  },
+  "favFolderNewFolder": {
+    "message": "新しいフォルダ"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "フォルダ名を入力"
+  },
+  "favFolderAll": {
+    "message": "すべて"
+  },
+  "favFolderManage": {
+    "message": "フォルダ管理"
+  },
+  "favFolderDefaultLabel": {
+    "message": "デフォルト"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "このフォルダを削除しますか？お気に入りはデフォルトフォルダに移動されます。"
+  },
+  "favFolderRemove": {
+    "message": "お気に入りから削除"
   }
 }

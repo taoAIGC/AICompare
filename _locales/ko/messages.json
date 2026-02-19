@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "리뷰 링크를 열 수 없습니다"
+  },
+  "favFolderDefault": {
+    "message": "기본"
+  },
+  "favFolderSaveToFolder": {
+    "message": "폴더에 저장"
+  },
+  "favFolderNewFolder": {
+    "message": "새 폴더"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "폴더 이름 입력"
+  },
+  "favFolderAll": {
+    "message": "전체"
+  },
+  "favFolderManage": {
+    "message": "폴더 관리"
+  },
+  "favFolderDefaultLabel": {
+    "message": "기본"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "이 폴더를 삭제하시겠습니까? 즐겨찾기는 기본 폴더로 이동됩니다."
+  },
+  "favFolderRemove": {
+    "message": "즐겨찾기 삭제"
   }
 }

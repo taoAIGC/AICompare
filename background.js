@@ -795,6 +795,115 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
 });
 
+// ── WebDAV 自动同步 ────────────────────────────────────────────
+const WEBDAV_SYNC_KEY      = 'webdavSyncConfig';
+const WEBDAV_SYNC_FILENAME = 'multiAI-settings.json';
+const WEBDAV_SYNC_KEYS = [
+  'buttonConfig', 'homepageInputPosition', 'sites',
+  'siteSettings', 'disabledSites', 'promptTemplates',
+  'favoritePrompts', 'favoriteSites',
+];
+
+async function getWebDAVConfig() {
+  const { [WEBDAV_SYNC_KEY]: cfg = {} } = await chrome.storage.local.get(WEBDAV_SYNC_KEY);
+  return cfg;
+}
+
+function buildWebDAVHeaders(cfg) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (cfg.authType === 'token') {
+    headers['Authorization'] = `Bearer ${cfg.password}`;
+  } else {
+    headers['Authorization'] = 'Basic ' + btoa(`${cfg.username}:${cfg.password}`);
+  }
+  return headers;
+}
+
+function getWebDAVFileURL(cfg) {
+  let base = (cfg.url || '').trim();
+  if (!base.endsWith('/')) base += '/';
+  return base + WEBDAV_SYNC_FILENAME;
+}
+
+async function webdavUpload() {
+  const cfg = await getWebDAVConfig();
+  if (!cfg.enabled || !cfg.url) return;
+  try {
+    const syncData  = await chrome.storage.sync.get(WEBDAV_SYNC_KEYS);
+    const localData = await chrome.storage.local.get('pkHistory');
+    const pkHistory = (localData.pkHistory || []).slice(0, 500);
+    const data = {
+      ...syncData,
+      pkHistory,
+      _syncVersion: 1,
+      _exportedAt: new Date().toISOString(),
+    };
+    await fetch(getWebDAVFileURL(cfg), {
+      method: 'PUT',
+      headers: buildWebDAVHeaders(cfg),
+      body: JSON.stringify(data, null, 2),
+    });
+    console.log('[WebDAV Sync] 上传成功');
+  } catch (e) {
+    console.warn('[WebDAV Sync] 上传失败:', e.message);
+  }
+}
+
+async function webdavDownload() {
+  const cfg = await getWebDAVConfig();
+  if (!cfg.enabled || !cfg.url) return;
+  try {
+    const res = await fetch(getWebDAVFileURL(cfg), {
+      method: 'GET',
+      headers: buildWebDAVHeaders(cfg),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const { _syncVersion, _exportedAt, pkHistory, ...rest } = data;
+
+    // 恢复 chrome.storage.sync 的设置
+    const filteredSync = {};
+    for (const key of WEBDAV_SYNC_KEYS) {
+      if (key in rest) filteredSync[key] = rest[key];
+    }
+    if (Object.keys(filteredSync).length > 0) {
+      await chrome.storage.sync.set(filteredSync);
+    }
+
+    // 恢复 pkHistory 到 chrome.storage.local
+    if (Array.isArray(pkHistory) && pkHistory.length > 0) {
+      await chrome.storage.local.set({ pkHistory });
+    }
+
+    console.log('[WebDAV Sync] 下载并恢复成功');
+  } catch (e) {
+    console.warn('[WebDAV Sync] 下载失败:', e.message);
+  }
+}
+
+// 启动时从云端拉取最新数据
+chrome.runtime.onStartup.addListener(() => {
+  webdavDownload();
+});
+
+// 安装/更新时也拉取一次
+chrome.runtime.onInstalled.addListener(() => {
+  webdavDownload();
+});
+
+// 设置变更时自动上传
+let syncDebounceTimer = null;
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace !== 'sync') return;
+  const relevantKey = WEBDAV_SYNC_KEYS.some(k => k in changes);
+  if (!relevantKey) return;
+  // 防抖：500ms 内多次变更合并为一次上传
+  clearTimeout(syncDebounceTimer);
+  syncDebounceTimer = setTimeout(() => {
+    webdavUpload();
+  }, 500);
+});
+
 
 
 // 监听扩展卸载事件

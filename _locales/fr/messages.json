@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "Impossible d'ouvrir le lien d'avis"
+  },
+  "favFolderDefault": {
+    "message": "Par défaut"
+  },
+  "favFolderSaveToFolder": {
+    "message": "Enregistrer dans un dossier"
+  },
+  "favFolderNewFolder": {
+    "message": "Nouveau dossier"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "Nom du dossier"
+  },
+  "favFolderAll": {
+    "message": "Tout"
+  },
+  "favFolderManage": {
+    "message": "Gérer les dossiers"
+  },
+  "favFolderDefaultLabel": {
+    "message": "Par défaut"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "Supprimer ce dossier ? Les favoris seront déplacés vers le dossier par défaut."
+  },
+  "favFolderRemove": {
+    "message": "Retirer"
   }
 }

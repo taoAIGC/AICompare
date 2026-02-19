@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "無法取得評分連結"
+  },
+  "favFolderDefault": {
+    "message": "預設收藏"
+  },
+  "favFolderSaveToFolder": {
+    "message": "儲存到收藏夾"
+  },
+  "favFolderNewFolder": {
+    "message": "新建資料夾"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "輸入資料夾名稱"
+  },
+  "favFolderAll": {
+    "message": "全部"
+  },
+  "favFolderManage": {
+    "message": "管理資料夾"
+  },
+  "favFolderDefaultLabel": {
+    "message": "預設"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "刪除此資料夾？其中的收藏將移至預設資料夾。"
+  },
+  "favFolderRemove": {
+    "message": "移除收藏"
   }
 }

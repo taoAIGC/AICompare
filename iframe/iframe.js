@@ -792,6 +792,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('query');
     const hasSitesParam = urlParams.has('sites');
+
+    // 如果 URL 中携带了 historyId，表示从历史/收藏页打开，直接恢复该记录的 ID，
+    // 避免 createIframes → savePKHistory 创建重复记录
+    const urlHistoryId = urlParams.get('historyId');
+    if (urlHistoryId) {
+        window._currentHistoryId = urlHistoryId;
+        window._openedFromHistory = true;
+        console.log('从历史记录打开，historyId:', urlHistoryId);
+    }
     
     // 获取指定的站点列表（如果存在）
     let selectedSiteNames = null;
@@ -1663,7 +1672,8 @@ async function createIframes(query, sites) {
   // document.body.insertBefore(nav, container);
 
   // 如果有查询词，保存历史记录（只保存 ID 和 query，URL 由各 iframe 内部脚本检测后更新）
-  if (query && query.trim() !== '') {
+  // 如果是从历史/收藏页打开的，跳过保存（避免重复创建记录）
+  if (query && query.trim() !== '' && !window._openedFromHistory) {
     // 立即保存历史记录，不等待 iframe 加载
     savePKHistory(query);
   }
@@ -2438,6 +2448,25 @@ async function favoriteAllIframes() {
             return;
         }
         
+        // 弹窗前先读取当前收藏文件夹，作为弹窗的默认选中项（取第一个已收藏站点的文件夹）
+        let currentFolderIdAll = null;
+        {
+            const { pkHistory: ph = [] } = await chrome.storage.local.get('pkHistory');
+            const hi = ph.find(item => item.id === historyId);
+            if (hi && hi.sites) {
+                const favSite = hi.sites.find(s => s.isFavorite);
+                if (favSite) currentFolderIdAll = favSite.favoriteFolder || 'default';
+            }
+        }
+
+        // 弹出文件夹选择弹窗
+        const result = await window.showFavoriteFolderModal(
+            currentFolderIdAll ? { defaultFolderId: currentFolderIdAll } : {}
+        );
+        if (!result) return;
+
+        const isRemove = result.action === 'remove';
+
         // 从存储中获取历史记录
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const historyIndex = pkHistory.findIndex(item => item.id === historyId);
@@ -2449,20 +2478,24 @@ async function favoriteAllIframes() {
         
         const historyItem = pkHistory[historyIndex];
         
-        // 确保 sites 数组存在
         if (!historyItem.sites) {
             historyItem.sites = [];
         }
         
-        // 将所有 iframe 的收藏状态设为 true
         historyItem.sites.forEach(site => {
-            site.isFavorite = true;
+            if (isRemove) {
+                site.isFavorite = false;
+                delete site.favoriteFolder;
+            } else {
+                site.isFavorite = true;
+                site.favoriteFolder = result.folderId;
+            }
         });
         
-        // 记录埋点：收藏当前记录的所有 iframe
         trackEvent('iframe_favorite_all_iframes', {
             history_id: historyId,
-            sites_count: historyItem.sites.length
+            sites_count: historyItem.sites.length,
+            action: isRemove ? 'remove' : 'save'
         });
         
         // 保存更新后的历史记录
@@ -2470,10 +2503,10 @@ async function favoriteAllIframes() {
         if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         
         // 更新 UI 中的收藏按钮状态
-        updateAllIframeFavoriteButtons(true);
-        updateFavoriteAllIcon(true);
+        updateAllIframeFavoriteButtons(!isRemove);
+        updateFavoriteAllIcon(!isRemove);
         
-        console.log('✅ 已收藏当前记录的所有 iframe');
+        console.log(isRemove ? '✅ 已移除当前记录的所有收藏' : '✅ 已收藏当前记录的所有 iframe');
     } catch (error) {
         console.error('收藏所有 iframe 失败:', error);
     }
@@ -2545,34 +2578,50 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
             console.warn('没有当前历史记录 ID，无法收藏');
             return;
         }
-        
-        // 从存储中获取历史记录
+
+        // 弹窗前先读取当前收藏文件夹，作为弹窗的默认选中项
+        let currentFolderId = null;
+        {
+            const { pkHistory: ph = [] } = await chrome.storage.local.get('pkHistory');
+            const hi = ph.find(item => item.id === historyId);
+            if (hi && hi.sites) {
+                const si = hi.sites.find(s => s.name === siteName);
+                if (si && si.isFavorite) currentFolderId = si.favoriteFolder || 'default';
+            }
+        }
+
+        // 弹出文件夹选择弹窗（Save / Remove / 关闭）
+        const result = await window.showFavoriteFolderModal(
+            currentFolderId ? { defaultFolderId: currentFolderId } : {}
+        );
+        if (!result) return;
+
+        // 弹窗关闭后重新读取最新的 pkHistory，避免写入过时数据
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const historyIndex = pkHistory.findIndex(item => item.id === historyId);
-        
+
         if (historyIndex === -1) {
             console.warn(`未找到历史记录 ID: ${historyId}`);
             return;
         }
-        
+
         const historyItem = pkHistory[historyIndex];
-        
-        // 确保 sites 数组存在
-        if (!historyItem.sites) {
-            historyItem.sites = [];
-        }
-        
-        // 查找对应的站点
+        if (!historyItem.sites) historyItem.sites = [];
+
         const siteItem = historyItem.sites.find(s => s.name === siteName);
         if (!siteItem) {
             console.warn(`未找到站点: ${siteName}`);
             return;
         }
-        
-        // 切换收藏状态
-        const currentFavorite = siteItem.isFavorite || false;
-        siteItem.isFavorite = !currentFavorite;
-        
+
+        if (result.action === 'remove') {
+            siteItem.isFavorite = false;
+            delete siteItem.favoriteFolder;
+        } else {
+            siteItem.isFavorite = true;
+            siteItem.favoriteFolder = result.folderId;
+        }
+
         // 保存更新后的历史记录
         await chrome.storage.local.set({ pkHistory: pkHistory });
         if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
@@ -2584,11 +2633,9 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
                 updateFavoriteButtonState(btn, siteItem.isFavorite);
             }
         });
-        // 仅当当前记录下所有子 iframe 都被收藏时，顶部「收藏全部」图标才显示为已收藏
         const allFavorited = historyItem.sites.length > 0 && historyItem.sites.every(s => s.isFavorite);
         updateFavoriteAllIcon(allFavorited);
         
-        // 记录埋点：单个 iframe 收藏状态切换
         trackEvent('iframe_site_favorite_toggle', {
             site_name: siteName,
             is_favorite: siteItem.isFavorite
@@ -3591,6 +3638,7 @@ function initQuickTooltips() {
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
   await initializeFavorites();
+  if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
   checkForSiteConfigUpdates();
   initQuickTooltips();
   // 根据当前输入框内容同步收藏按钮显示（解决输入后按钮不显示的问题）

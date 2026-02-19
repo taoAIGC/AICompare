@@ -3,6 +3,7 @@ let allHistoryItems = [];
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
     await loadHistory();
     
     // 绑定清空历史按钮事件
@@ -166,9 +167,12 @@ function createHistoryItem(item) {
     setFavoriteButtonState(favoriteBtn, isItemFavorited(item));
     favoriteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const current = favoriteBtn.dataset.favorite === 'true';
-        const next = !current;
-        const updatedItem = await toggleHistoryItemFavorite(item.id, next);
+        if (typeof window.showFavoriteFolderModal !== 'function') return;
+        const result = await window.showFavoriteFolderModal();
+        if (!result) return;
+        const shouldFavorite = result.action !== 'remove';
+        const folderId = result.folderId || null;
+        const updatedItem = await toggleHistoryItemFavorite(item.id, shouldFavorite, folderId);
         if (updatedItem) {
             item.sites = updatedItem.sites;
             setFavoriteButtonState(favoriteBtn, isItemFavorited(updatedItem));
@@ -260,6 +264,7 @@ async function openHistoryItem(item) {
         if (siteNames.length > 0) {
             params.set('sites', siteNames.join(','));
         }
+        if (item.id) params.set('historyId', item.id);
         
         // 构建 iframe.html 的 URL
         const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
@@ -316,7 +321,7 @@ async function deleteHistoryItem(id) {
 }
 
 // 收藏或取消收藏单条历史记录（对该记录中所有站点生效）
-async function toggleHistoryItemFavorite(id, shouldFavorite) {
+async function toggleHistoryItemFavorite(id, shouldFavorite, folderId) {
     try {
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const historyIndex = pkHistory.findIndex(item => item.id === id);
@@ -327,10 +332,12 @@ async function toggleHistoryItemFavorite(id, shouldFavorite) {
         const historyItem = pkHistory[historyIndex];
         if (historyItem.sites) {
             historyItem.sites.forEach(site => {
-                if (site.isFavorite === undefined) {
-                    site.isFavorite = false;
-                }
                 site.isFavorite = shouldFavorite;
+                if (shouldFavorite && folderId) {
+                    site.favoriteFolder = folderId;
+                } else if (!shouldFavorite) {
+                    delete site.favoriteFolder;
+                }
             });
         }
         await chrome.storage.local.set({ pkHistory: pkHistory });

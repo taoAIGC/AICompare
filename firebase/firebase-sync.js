@@ -51,6 +51,75 @@ function firestoreDocPath(projectId, uid) {
 }
 
 /**
+ * 上传 favoriteFolders 到 Firestore
+ */
+async function uploadFavoriteFolders(favoriteFolders) {
+  const uid = await (typeof window !== 'undefined' && window.firebaseGetCurrentUid ? window.firebaseGetCurrentUid() : (async () => {
+    const r = await chrome.storage.local.get('firebase_uid');
+    return r.firebase_uid || null;
+  })());
+  if (!uid) return { success: false, reason: 'not_logged_in' };
+
+  const config = await getSyncConfig();
+  const projectId = config ? config.projectId : null;
+  if (!projectId) return { success: false, reason: 'no_config' };
+
+  const idToken = await getToken();
+  if (!idToken) return { success: false, reason: 'token_expired' };
+
+  const path = firestoreDocPath(projectId, uid);
+  const url = `https://firestore.googleapis.com/v1/${path}?updateMask.fieldPaths=favoriteFoldersJson&updateMask.fieldPaths=updatedAt`;
+
+  const payload = {
+    fields: {
+      favoriteFoldersJson: { stringValue: JSON.stringify(favoriteFolders || []) },
+      updatedAt: { integerValue: String(Date.now()) },
+    },
+  };
+
+  let res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (res.status === 404) {
+    const createUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/users?documentId=${encodeURIComponent(uid)}`;
+    res = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ fields: payload.fields }),
+    });
+  }
+
+  if (!res.ok) {
+    console.warn('Firebase sync upload favoriteFolders failed', res.status);
+    return { success: false, reason: 'upload_failed', status: res.status };
+  }
+  return { success: true };
+}
+
+/**
+ * 合并收藏文件夹：按 id 去重，保留云端优先
+ */
+function mergeFavoriteFolders(localList, cloudList) {
+  const byId = new Map();
+  for (const item of localList || []) {
+    if (item && item.id) byId.set(item.id, item);
+  }
+  for (const item of cloudList || []) {
+    if (item && item.id) byId.set(item.id, item);
+  }
+  return Array.from(byId.values()).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+}
+
+/**
  * 上传 pkHistory 到 Firestore
  */
 async function uploadPkHistory(pkHistory) {
@@ -173,7 +242,7 @@ async function downloadUserData() {
   });
 
   if (res.status === 404) {
-    return { pkHistory: [], favoritePrompts: [], favoriteSites: [] };
+    return { pkHistory: [], favoritePrompts: [], favoriteSites: [], favoriteFolders: [] };
   }
   if (!res.ok) {
     console.warn('Firebase sync download user data failed', res.status);
@@ -194,6 +263,7 @@ async function downloadUserData() {
     pkHistory: parseJson(fields.pkHistoryJson),
     favoritePrompts: parseJson(fields.favoritePromptsJson),
     favoriteSites: parseJson(fields.favoriteSitesJson),
+    favoriteFolders: parseJson(fields.favoriteFoldersJson),
   };
 }
 
@@ -313,10 +383,16 @@ async function mergeFromCloudAndUpload() {
   const mergedSites = mergeFavoriteSites(localSites, cloud.favoriteSites);
   await chrome.storage.sync.set({ favoritePrompts: mergedPrompts, favoriteSites: mergedSites });
 
+  // Merge favorite folders
+  const localFolders = (await chrome.storage.local.get('favoriteFolders')).favoriteFolders || [];
+  const mergedFolders = mergeFavoriteFolders(localFolders, cloud.favoriteFolders || []);
+  await chrome.storage.local.set({ favoriteFolders: mergedFolders });
+
   const upHistory = await uploadPkHistory(limitedHistory);
   const upFavorites = await uploadFavorites(mergedPrompts, mergedSites);
+  const upFolders = await uploadFavoriteFolders(mergedFolders);
   await chrome.storage.local.set({ firebase_lastSyncAt: Date.now() });
-  return upHistory.success ? upHistory : upFavorites;
+  return upHistory.success ? upHistory : (upFavorites.success ? upFavorites : upFolders);
 }
 
 /**
@@ -332,8 +408,9 @@ async function uploadPkHistoryIfLoggedIn() {
   const config = await getSyncConfig();
   if (!config || !config.projectId) return;
 
-  const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
-  await uploadPkHistory(pkHistory);
+  const data = await chrome.storage.local.get(['pkHistory', 'favoriteFolders']);
+  await uploadPkHistory(data.pkHistory || []);
+  await uploadFavoriteFolders(data.favoriteFolders || []);
 }
 
 /**
@@ -360,4 +437,5 @@ if (typeof window !== 'undefined') {
   window.firebaseSyncUploadIfLoggedIn = uploadPkHistoryIfLoggedIn;
   window.firebaseSyncUploadFavoritesIfLoggedIn = uploadFavoritesIfLoggedIn;
   window.firebaseSyncMergePkHistory = mergePkHistory;
+  window.firebaseSyncUploadFavoriteFolders = uploadFavoriteFolders;
 }

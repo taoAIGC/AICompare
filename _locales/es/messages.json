@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "No se pudo abrir el enlace de reseña"
+  },
+  "favFolderDefault": {
+    "message": "Predeterminado"
+  },
+  "favFolderSaveToFolder": {
+    "message": "Guardar en carpeta"
+  },
+  "favFolderNewFolder": {
+    "message": "Nueva carpeta"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "Nombre de la carpeta"
+  },
+  "favFolderAll": {
+    "message": "Todo"
+  },
+  "favFolderManage": {
+    "message": "Gestionar carpetas"
+  },
+  "favFolderDefaultLabel": {
+    "message": "Predeterminado"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "¿Eliminar esta carpeta? Los favoritos se moverán a la carpeta predeterminada."
+  },
+  "favFolderRemove": {
+    "message": "Eliminar"
   }
 }

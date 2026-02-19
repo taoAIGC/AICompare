@@ -288,7 +288,10 @@ async function loadSidebarFavorites() {
     if (!listEl) return;
     const tooltipEl = getSidebarFavoritesTooltip();
     try {
-        const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+        const storageData = await chrome.storage.local.get(['pkHistory', 'favoriteFolders']);
+        const pkHistory = storageData.pkHistory || [];
+        const folders = storageData.favoriteFolders || [];
+
         const favoriteItems = pkHistory
             .filter(item => item.sites && item.sites.some(site => site.isFavorite === true))
             .map(item => ({
@@ -304,26 +307,76 @@ async function loadSidebarFavorites() {
             hideSidebarFavoritesTooltip(tooltipEl);
             return;
         }
+
+        // Group by folder
+        const folderMap = {};
+        folders.forEach(f => { folderMap[f.id] = f.name; });
+        const grouped = {};
         favoriteItems.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'sidebar-favorite-item';
-            const queryText = item.query || '';
-            const textSpan = document.createElement('span');
-            textSpan.className = 'sidebar-favorite-text';
-            textSpan.textContent = queryText;
-            el.appendChild(textSpan);
-            if (queryText) el.setAttribute('aria-label', queryText);
-            el.addEventListener('click', (e) => {
-                e.preventDefault();
-                openSidebarFavoriteItem(item);
+            const fid = (item.sites[0] && item.sites[0].favoriteFolder) || 'default';
+            if (!grouped[fid]) grouped[fid] = [];
+            grouped[fid].push(item);
+        });
+
+        const folderOrder = folders.map(f => f.id);
+        Object.keys(grouped).forEach(fid => {
+            if (!folderOrder.includes(fid)) folderOrder.push(fid);
+        });
+
+        const hasMultipleFolders = Object.keys(grouped).length > 1;
+
+        folderOrder.forEach(fid => {
+            const items = grouped[fid];
+            if (!items || items.length === 0) return;
+
+            let container = listEl;
+
+            if (hasMultipleFolders) {
+                const group = document.createElement('div');
+                group.className = 'sidebar-folder-group';
+                const header = document.createElement('div');
+                header.className = 'sidebar-folder-header';
+                header.innerHTML = `<svg class="sidebar-folder-arrow" viewBox="0 0 12 12" fill="none"><path d="M3 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'sidebar-folder-name';
+                nameSpan.textContent = folderMap[fid] || fid;
+                header.appendChild(nameSpan);
+
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = 'sidebar-folder-items';
+
+                header.addEventListener('click', () => {
+                    header.classList.toggle('collapsed');
+                    itemsContainer.classList.toggle('collapsed');
+                });
+
+                group.appendChild(header);
+                group.appendChild(itemsContainer);
+                listEl.appendChild(group);
+                container = itemsContainer;
+            }
+
+            items.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'sidebar-favorite-item';
+                const queryText = item.query || '';
+                const textSpan = document.createElement('span');
+                textSpan.className = 'sidebar-favorite-text';
+                textSpan.textContent = queryText;
+                el.appendChild(textSpan);
+                if (queryText) el.setAttribute('aria-label', queryText);
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openSidebarFavoriteItem(item);
+                });
+                el.addEventListener('mouseenter', () => {
+                    showSidebarFavoritesTooltip(tooltipEl, el, queryText);
+                });
+                el.addEventListener('mouseleave', () => {
+                    hideSidebarFavoritesTooltip(tooltipEl);
+                });
+                container.appendChild(el);
             });
-            el.addEventListener('mouseenter', () => {
-                showSidebarFavoritesTooltip(tooltipEl, el, queryText);
-            });
-            el.addEventListener('mouseleave', () => {
-                hideSidebarFavoritesTooltip(tooltipEl);
-            });
-            listEl.appendChild(el);
         });
         listEl.addEventListener('scroll', () => hideSidebarFavoritesTooltip(tooltipEl), { passive: true });
     } catch (error) {
@@ -386,7 +439,7 @@ async function openSidebarFavoriteItem(item) {
 
 function bindSidebarStorageListeners() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName === 'local' && changes.pkHistory) loadSidebarFavorites();
+        if (areaName === 'local' && (changes.pkHistory || changes.favoriteFolders)) loadSidebarFavorites();
         if (areaName === 'local' && (changes.firebase_email || changes.firebase_uid)) updateSyncBar();
     });
 }

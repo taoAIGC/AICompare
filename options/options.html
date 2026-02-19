@@ -32,6 +32,10 @@
           <img class="action-link-icon" src="../icons/edit.svg" alt="" aria-hidden="true">
           <span data-i18n="promptTemplatesTitle">提示词模板</span>
         </a>
+        <a href="#data-sync" class="action-link nav-link" data-section="data-sync">
+          <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+          <span data-i18n="dataSyncTitle">数据同步</span>
+        </a>
       </div>
     </nav>
 
@@ -248,6 +252,62 @@
           </div>
         </section>
         
+        <!-- 数据同步 -->
+        <section id="data-sync" class="settings-section">
+          <h1 data-i18n="dataSyncTitle">数据同步</h1>
+          <p class="section-description" data-i18n="dataSyncDescription">跨设备同步您的所有设置与数据</p>
+
+          <!-- 同步配置卡片 -->
+          <div class="sync-card">
+            <div class="sync-enable-row">
+              <label class="sync-checkbox-label">
+                <input type="checkbox" id="syncEnabled">
+                <span data-i18n="syncEnabledLabel">启用数据同步至</span>
+              </label>
+              <select id="syncProvider" class="sync-provider-select">
+                <option value="webdav">WebDAV</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- WebDAV 连接配置 -->
+          <div class="sync-connection-table" id="syncConnectionConfig">
+            <div class="sync-table-row sync-table-header">
+              <div class="sync-table-cell" data-i18n="syncAuthType">鉴权类型</div>
+              <div class="sync-table-cell sync-cell-url">URL</div>
+              <div class="sync-table-cell" data-i18n="syncUsername">用户名</div>
+              <div class="sync-table-cell" data-i18n="syncPassword">密码</div>
+            </div>
+            <div class="sync-table-row sync-table-body">
+              <div class="sync-table-cell">
+                <select id="syncAuthType" class="sync-field-select">
+                  <option value="password" data-i18n="syncAuthPassword">password</option>
+                  <option value="token" data-i18n="syncAuthToken">token</option>
+                </select>
+              </div>
+              <div class="sync-table-cell sync-cell-url">
+                <input type="url" id="syncUrl" class="sync-field-input" placeholder="https://your-webdav-server.com/dav/" data-i18n-placeholder="syncUrlPlaceholder">
+              </div>
+              <div class="sync-table-cell">
+                <input type="text" id="syncUsername" class="sync-field-input" placeholder="" data-i18n-placeholder="syncUsernamePlaceholder">
+              </div>
+              <div class="sync-table-cell sync-cell-password">
+                <input type="password" id="syncPassword" class="sync-field-input" placeholder="••••••••" autocomplete="current-password">
+                <button class="sync-password-toggle" id="togglePassword" type="button" aria-label="Show password">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作按钮与状态 -->
+          <div class="sync-actions">
+            <button id="saveSyncConfig" class="btn-primary sync-save-btn" data-i18n="saveButton">保存</button>
+            <button id="importFromSync" class="btn-secondary" data-i18n="syncImportButton">从云端恢复</button>
+          </div>
+          <div id="syncStatus" class="sync-status" style="display:none;"></div>
+        </section>
+
         <div class="contact-info" data-i18n="contactInfo"></div>
       </div>
     </main>

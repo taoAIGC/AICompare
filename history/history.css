@@ -183,16 +183,16 @@ body {
     display: inline-flex;
     align-items: center;
     padding: 4px 12px;
-    background: #fff3cd;
+    background: #f0f0f0;
     border-radius: 16px;
     font-size: 12px;
-    color: #856404;
+    color: #666;
     transition: all 0.2s ease;
 }
 
 .site-tag:hover {
-    background: #ffeaa7;
-    color: #856404;
+    background: #e0e0e0;
+    color: #333;
 }
 
 /* 保留 favorite-tag 类以兼容旧数据，但视觉上不再区分 */

@@ -1092,6 +1092,251 @@ function initializeNavigation() {
   });
 }
 
+// ── 数据同步（WebDAV）──────────────────────────────────────────
+
+const SYNC_STORAGE_KEY = 'webdavSyncConfig';
+const SYNC_DATA_FILENAME = 'multiAI-settings.json';
+
+// 需要同步的 chrome.storage.sync 数据键
+const SYNC_KEYS = [
+  'buttonConfig',
+  'homepageInputPosition',
+  'sites',
+  'siteSettings',
+  'disabledSites',
+  'promptTemplates',
+  'favoritePrompts',
+  'favoriteSites',
+];
+
+function showSyncStatus(message, type = 'info') {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `sync-status ${type}`;
+  el.style.display = 'block';
+  if (type === 'success') {
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+}
+
+async function loadSyncConfig() {
+  const { [SYNC_STORAGE_KEY]: cfg = {} } = await chrome.storage.local.get(SYNC_STORAGE_KEY);
+  const enabled  = document.getElementById('syncEnabled');
+  const url      = document.getElementById('syncUrl');
+  const username = document.getElementById('syncUsername');
+  const password = document.getElementById('syncPassword');
+  const authType = document.getElementById('syncAuthType');
+
+  if (enabled)  enabled.checked  = !!cfg.enabled;
+  if (url)      url.value        = cfg.url      || '';
+  if (username) username.value   = cfg.username || '';
+  if (password) password.value   = cfg.password || '';
+  if (authType) authType.value   = cfg.authType || 'password';
+
+  updateConnectionTableState(!!cfg.enabled);
+}
+
+function updateConnectionTableState(enabled) {
+  const table = document.getElementById('syncConnectionConfig');
+  if (!table) return;
+  if (enabled) {
+    table.classList.remove('disabled');
+  } else {
+    table.classList.add('disabled');
+  }
+}
+
+async function saveSyncConfig() {
+  const cfg = {
+    enabled:  document.getElementById('syncEnabled')?.checked  || false,
+    authType: document.getElementById('syncAuthType')?.value   || 'password',
+    url:      (document.getElementById('syncUrl')?.value       || '').trim(),
+    username: (document.getElementById('syncUsername')?.value  || '').trim(),
+    password: document.getElementById('syncPassword')?.value   || '',
+  };
+
+  if (!cfg.url) {
+    showSyncStatus(chrome.i18n.getMessage('syncErrorNoUrl') || '请填写 WebDAV 地址', 'error');
+    document.getElementById('syncUrl')?.focus();
+    return;
+  }
+  if (!cfg.username) {
+    showSyncStatus(chrome.i18n.getMessage('syncErrorNoUsername') || '请填写用户名', 'error');
+    document.getElementById('syncUsername')?.focus();
+    return;
+  }
+  if (!cfg.password) {
+    showSyncStatus(chrome.i18n.getMessage('syncErrorNoPassword') || '请填写密码', 'error');
+    document.getElementById('syncPassword')?.focus();
+    return;
+  }
+
+  await chrome.storage.local.set({ [SYNC_STORAGE_KEY]: cfg });
+  showSyncStatus(chrome.i18n.getMessage('saveSuccess') || '已保存', 'success');
+  updateConnectionTableState(cfg.enabled);
+}
+
+function buildWebDAVHeaders(cfg) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (cfg.authType === 'token') {
+    headers['Authorization'] = `Bearer ${cfg.password}`;
+  } else {
+    headers['Authorization'] = 'Basic ' + btoa(`${cfg.username}:${cfg.password}`);
+  }
+  return headers;
+}
+
+function getWebDAVFileURL(cfg) {
+  let base = cfg.url.trim();
+  if (!base.endsWith('/')) base += '/';
+  return base + SYNC_DATA_FILENAME;
+}
+
+async function testSyncConnection() {
+  const cfg = await getSyncConfig();
+  if (!cfg || !cfg.url) {
+    showSyncStatus(chrome.i18n.getMessage('syncErrorNoUrl') || '请先填写 WebDAV 地址', 'error');
+    return;
+  }
+  showSyncStatus(chrome.i18n.getMessage('syncTesting') || '正在测试连接…', 'loading');
+  try {
+    const res = await fetch(cfg.url, {
+      method: 'PROPFIND',
+      headers: { ...buildWebDAVHeaders(cfg), 'Depth': '0' },
+    });
+    if (res.ok || res.status === 207) {
+      showSyncStatus(chrome.i18n.getMessage('syncTestSuccess') || '连接成功！', 'success');
+    } else {
+      showSyncStatus(
+        (chrome.i18n.getMessage('syncTestFailed') || '连接失败') + `: HTTP ${res.status}`,
+        'error'
+      );
+    }
+  } catch (e) {
+    showSyncStatus(
+      (chrome.i18n.getMessage('syncTestFailed') || '连接失败') + `: ${e.message}`,
+      'error'
+    );
+  }
+}
+
+async function getSyncConfig() {
+  const { [SYNC_STORAGE_KEY]: cfg = {} } = await chrome.storage.local.get(SYNC_STORAGE_KEY);
+  return cfg;
+}
+
+async function exportAllSettings() {
+  const syncData  = await chrome.storage.sync.get(SYNC_KEYS);
+  const localData = await chrome.storage.local.get('pkHistory');
+  return {
+    ...syncData,
+    pkHistory: (localData.pkHistory || []).slice(0, 500),
+    _syncVersion: 1,
+    _exportedAt: new Date().toISOString(),
+  };
+}
+
+async function syncNow() {
+  const cfg = await getSyncConfig();
+  if (!cfg.enabled || !cfg.url) {
+    showSyncStatus(chrome.i18n.getMessage('syncErrorNotConfigured') || '请先启用同步并填写 WebDAV 配置', 'error');
+    return;
+  }
+  showSyncStatus(chrome.i18n.getMessage('syncUploading') || '正在上传数据…', 'loading');
+  try {
+    const payload = await exportAllSettings();
+    const fileURL  = getWebDAVFileURL(cfg);
+    const res = await fetch(fileURL, {
+      method: 'PUT',
+      headers: buildWebDAVHeaders(cfg),
+      body: JSON.stringify(payload, null, 2),
+    });
+    if (res.ok || res.status === 201 || res.status === 204) {
+      const timeStr = new Date().toLocaleTimeString();
+      showSyncStatus(
+        (chrome.i18n.getMessage('syncSuccess') || '同步成功') + ' · ' + timeStr,
+        'success'
+      );
+    } else {
+      showSyncStatus(
+        (chrome.i18n.getMessage('syncFailed') || '同步失败') + `: HTTP ${res.status}`,
+        'error'
+      );
+    }
+  } catch (e) {
+    showSyncStatus(
+      (chrome.i18n.getMessage('syncFailed') || '同步失败') + `: ${e.message}`,
+      'error'
+    );
+  }
+}
+
+async function importFromSync() {
+  const cfg = await getSyncConfig();
+  if (!cfg.enabled || !cfg.url) {
+    showSyncStatus(chrome.i18n.getMessage('syncErrorNotConfigured') || '请先启用同步并填写 WebDAV 配置', 'error');
+    return;
+  }
+  showSyncStatus(chrome.i18n.getMessage('syncDownloading') || '正在从云端下载数据…', 'loading');
+  try {
+    const fileURL = getWebDAVFileURL(cfg);
+    const res = await fetch(fileURL, {
+      method: 'GET',
+      headers: buildWebDAVHeaders(cfg),
+    });
+    if (!res.ok) {
+      showSyncStatus(
+        (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') + `: HTTP ${res.status}`,
+        'error'
+      );
+      return;
+    }
+    const data = await res.json();
+    const { _syncVersion, _exportedAt, pkHistory, ...settingsToRestore } = data;
+
+    // 恢复 chrome.storage.sync 设置
+    const filtered = {};
+    for (const key of SYNC_KEYS) {
+      if (key in settingsToRestore) filtered[key] = settingsToRestore[key];
+    }
+    if (Object.keys(filtered).length > 0) {
+      await chrome.storage.sync.set(filtered);
+    }
+
+    // 恢复对话历史到 chrome.storage.local
+    if (Array.isArray(pkHistory) && pkHistory.length > 0) {
+      await chrome.storage.local.set({ pkHistory });
+    }
+    showSyncStatus(
+      (chrome.i18n.getMessage('syncImportSuccess') || '云端数据已恢复，请刷新页面生效') ,
+      'success'
+    );
+  } catch (e) {
+    showSyncStatus(
+      (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') + `: ${e.message}`,
+      'error'
+    );
+  }
+}
+
+function initializeDataSync() {
+  loadSyncConfig();
+
+  document.getElementById('syncEnabled')?.addEventListener('change', (e) => {
+    updateConnectionTableState(e.target.checked);
+  });
+
+  document.getElementById('saveSyncConfig')?.addEventListener('click', saveSyncConfig);
+  document.getElementById('importFromSync')?.addEventListener('click', importFromSync);
+
+  document.getElementById('togglePassword')?.addEventListener('click', () => {
+    const input = document.getElementById('syncPassword');
+    if (!input) return;
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+}
+
 // 页面初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Options page loaded');
@@ -1110,4 +1355,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 监听 hash 变化
   window.addEventListener('hashchange', handleHashNavigation);
+
+  // 初始化数据同步
+  initializeDataSync();
 });

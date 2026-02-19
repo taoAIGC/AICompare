@@ -28,5 +28,32 @@
   },
   "ratingModalNoLink": {
     "message": "تعذّر فتح رابط التقييم"
+  },
+  "favFolderDefault": {
+    "message": "الافتراضي"
+  },
+  "favFolderSaveToFolder": {
+    "message": "حفظ في مجلد"
+  },
+  "favFolderNewFolder": {
+    "message": "مجلد جديد"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "أدخل اسم المجلد"
+  },
+  "favFolderAll": {
+    "message": "الكل"
+  },
+  "favFolderManage": {
+    "message": "إدارة المجلدات"
+  },
+  "favFolderDefaultLabel": {
+    "message": "الافتراضي"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "حذف هذا المجلد؟ سيتم نقل المفضلة إلى المجلد الافتراضي."
+  },
+  "favFolderRemove": {
+    "message": "إزالة"
   }
 }

@@ -688,5 +688,116 @@
   },
   "ratingModalNoLink": {
     "message": "无法获取评分链接"
+  },
+  "dataSyncTitle": {
+    "message": "数据同步"
+  },
+  "dataSyncDescription": {
+    "message": "跨设备同步您的所有设置与数据"
+  },
+  "syncEnabledLabel": {
+    "message": "启用数据同步至"
+  },
+  "syncOnChange": {
+    "message": "自动同步"
+  },
+  "syncOnStartup": {
+    "message": "启动时同步"
+  },
+  "syncAuthType": {
+    "message": "鉴权类型"
+  },
+  "syncAuthPassword": {
+    "message": "password"
+  },
+  "syncAuthToken": {
+    "message": "token"
+  },
+  "syncUsername": {
+    "message": "用户名"
+  },
+  "syncPassword": {
+    "message": "密码"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "用户名"
+  },
+  "syncTestConnection": {
+    "message": "测试连接"
+  },
+  "syncNowButton": {
+    "message": "立即同步"
+  },
+  "syncImportButton": {
+    "message": "从云端恢复"
+  },
+  "syncTesting": {
+    "message": "正在测试连接…"
+  },
+  "syncTestSuccess": {
+    "message": "连接成功！"
+  },
+  "syncTestFailed": {
+    "message": "连接失败"
+  },
+  "syncUploading": {
+    "message": "正在上传数据…"
+  },
+  "syncSuccess": {
+    "message": "同步成功"
+  },
+  "syncFailed": {
+    "message": "同步失败"
+  },
+  "syncDownloading": {
+    "message": "正在从云端下载数据…"
+  },
+  "syncImportSuccess": {
+    "message": "云端数据已恢复，请刷新页面生效"
+  },
+  "syncImportFailed": {
+    "message": "恢复失败"
+  },
+  "syncErrorNoUrl": {
+    "message": "请填写 WebDAV 地址"
+  },
+  "syncErrorNoUsername": {
+    "message": "请填写用户名"
+  },
+  "syncErrorNoPassword": {
+    "message": "请填写密码"
+  },
+  "syncErrorNotConfigured": {
+    "message": "请先启用同步并填写 WebDAV 配置"
+  },
+  "favFolderDefault": {
+    "message": "默认收藏"
+  },
+  "favFolderSaveToFolder": {
+    "message": "保存到收藏夹"
+  },
+  "favFolderNewFolder": {
+    "message": "新建文件夹"
+  },
+  "favFolderNamePlaceholder": {
+    "message": "输入文件夹名称"
+  },
+  "favFolderAll": {
+    "message": "全部"
+  },
+  "favFolderManage": {
+    "message": "管理文件夹"
+  },
+  "favFolderDefaultLabel": {
+    "message": "默认"
+  },
+  "favFolderDeleteConfirm": {
+    "message": "删除此文件夹？其中的收藏将移至默认文件夹。"
+  },
+  "favFolderRemove": {
+    "message": "移除收藏"
   }
 }
