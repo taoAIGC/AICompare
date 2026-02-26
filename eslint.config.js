@@ -1,0 +1,133 @@
+const js = require('@eslint/js');
+
+module.exports = [
+  js.configs.recommended,
+  {
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        performance: 'readonly',
+        PerformanceObserver: 'readonly',
+        MutationObserver: 'readonly',
+        DataTransfer: 'readonly',
+        ClipboardEvent: 'readonly',
+        InputEvent: 'readonly',
+        KeyboardEvent: 'readonly',
+        CompositionEvent: 'readonly',
+        Event: 'readonly',
+        File: 'readonly',
+        Blob: 'readonly',
+        DOMParser: 'readonly',
+        Node: 'readonly',
+        history: 'readonly',
+        HTMLElement: 'readonly',
+        Promise: 'readonly',
+        confirm: 'readonly',
+        alert: 'readonly',
+        getComputedStyle: 'readonly',
+        importScripts: 'readonly',
+        // Chrome Extension API
+        chrome: 'readonly',
+        self: 'readonly',
+        // jQuery
+        $: 'readonly',
+        jQuery: 'readonly',
+        // Module system
+        module: 'readonly',
+        exports: 'readonly',
+        require: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-undef': 'error',
+      'no-console': 'off',
+      'no-prototype-builtins': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-useless-assignment': 'warn',
+      'no-redeclare': 'warn',
+    },
+  },
+  {
+    files: [
+      'config/analytics.js',
+      'homepage/homepage.js',
+      'content-scripts/float-button.js',
+      'content-scripts/selection.js',
+      'content-scripts/search-engines.js',
+      'content-scripts/site-button.js',
+      'options/options.js',
+      'iframe/inject.js',
+      'iframe/export-responses.js',
+      'debug/**',
+      'favorites/**',
+      'history/**',
+    ],
+    languageOptions: {
+      globals: {
+        AppConfigManager: 'readonly',
+        RemoteConfigManager: 'readonly',
+        getDefaultSites: 'readonly',
+        getSelectedSites: 'readonly',
+        DEV_CONFIG: 'readonly',
+        siteDetector: 'readonly',
+        SiteDetector: 'readonly',
+        compareVersions: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['iframe/iframe.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        AppConfigManager: 'readonly',
+        RemoteConfigManager: 'readonly',
+        getDefaultSites: 'readonly',
+        siteDetector: 'readonly',
+        SiteDetector: 'readonly',
+        compareVersions: 'readonly',
+        showExportModal: 'readonly',
+        siteHandlers: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['homepage/homepage.js'],
+    languageOptions: {
+      globals: {
+        AppConfigManager: 'readonly',
+        RemoteConfigManager: 'readonly',
+        getDefaultSites: 'readonly',
+        siteDetector: 'readonly',
+      },
+    },
+    rules: {
+      'no-redeclare': 'off',
+    },
+  },
+  {
+    ignores: [
+      'node_modules/**',
+      'coverage/**',
+      '_metadata/**',
+      'lib/**',
+      'tests/**',
+      'jest.config.js',
+      'eslint.config.js',
+    ],
+  },
+];

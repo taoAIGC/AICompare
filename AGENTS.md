@@ -17,11 +17,11 @@ Load `/workspace` as an unpacked extension in Chrome:
 
 After loading, the extension ID is assigned dynamically. Access the homepage at `chrome-extension://<ID>/homepage/homepage.html` or click the extension icon. The multi-AI comparison page is at `chrome-extension://<ID>/iframe/iframe.html?query=<query>&sites=<comma-separated-sites>`.
 
-### Validating changes
+### Automated testing and linting
 
-- **JSON syntax**: Validate `config/siteHandlers.json`, `config/rules.json`, and `manifest.json` with `python3 -c "import json; json.load(open('<file>'))"`.
+- **Run tests**: `npm test` (Jest, 138 tests covering config validation, version comparison, SiteDetector, DOM helpers, and HTML-to-Markdown conversion)
+- **Run lint**: `npm run lint` (ESLint; pre-existing code has ~3 errors and ~84 warnings — these are not regressions)
 - **Manual testing**: Reload the extension on `chrome://extensions/` (click the refresh icon) after making changes, then test in the browser. See `DEVELOPER_GUIDE.md` for the full testing workflow.
-- There are no automated tests or linter configurations in this project.
 
 ### Gotchas
 
