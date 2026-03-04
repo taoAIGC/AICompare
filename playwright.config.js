@@ -56,7 +56,8 @@ module.exports = defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome'
+        // 使用日常 Chrome 用户数据目录
+        userDataDir: '/Users/hasee/Library/Application Support/Google/Chrome/Default'
       }
     }
   ]

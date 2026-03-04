@@ -67,5 +67,8 @@
   },
   "removedFromFavorites": {
     "message": "已取消收藏"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "頁面載入後，點擊輸入框的🔗圖示"
   }
 }

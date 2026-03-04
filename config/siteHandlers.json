@@ -1112,8 +1112,8 @@
         "urlFeature": "-"
       },
       "userPrompt": {
-        "containerSelector": "div.agent-chat__list__item--human",
-        "textSelector": "div.agent-chat__bubble--human"
+        "containerSelector": "div.agent-chat__list__item--human, [class*=\"agent-dialogue\"][class*=\"human\"], [class*=\"chat-item\"][class*=\"human\"]",
+        "textSelector": "div.agent-chat__bubble--human, [class*=\"human-bubble\"], [class*=\"human-message\"] p, [class*=\"human-message\"] div"
       }
     },
     {
@@ -1615,8 +1615,8 @@
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "div.qwen-chat-message.qwen-chat-message-user",
-        "textSelector": "p[class*=\"user-message-content\"]"
+        "containerSelector": "[data-message-author-role=\"user\"], [class*=\"userMessage\"], [class*=\"user-message\"], div[class*=\"message-item\"][class*=\"user\"]",
+        "textSelector": "[data-message-author-role=\"user\"], [class*=\"userMessage\"] p, [class*=\"userMessage\"] div, [class*=\"message-text\"]"
       }
     },
     {
@@ -1866,8 +1866,8 @@
         "urlFeature": "/chat/"
       },
       "userPrompt": {
-        "containerSelector": "[data-message-author-role=\"user\"], .user-message",
-        "textSelector": "[data-message-author-role=\"user\"], .user-message"
+        "containerSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"], [class*=\"UserMessage\"], [class*=\"messageRow\"][class*=\"human\"]",
+        "textSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"] p, [class*=\"user-message\"] div, [class*=\"messageContent\"]"
       }
     },
     {

@@ -245,6 +245,13 @@
     display: none;
 }
 
+.sync-bar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    margin: 8px 10px 10px;
+    margin-top: auto;
+}
+
 .sync-bar {
     display: flex;
     align-items: center;
@@ -254,12 +261,11 @@
     background: #fff;
     border-top: 1px solid #e8e8e8;
     border-radius: 6px;
-    margin: 8px 10px 10px;
     transition: all 0.2s ease;
-    flex-shrink: 0;
-    margin-top: auto;
     color: #666;
     font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .sync-bar:hover {
@@ -425,4 +431,50 @@
     max-width: 240px;
     height: auto;
     display: block;
+}
+
+/* 账号下拉菜单（退出登录） */
+.sync-account-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 10px;
+    right: 10px;
+    margin-bottom: 4px;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: none;
+    z-index: 100;
+}
+
+.sync-account-dropdown.is-open {
+    display: block;
+}
+
+.sync-logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s;
+}
+
+.sync-logout-btn:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.sync-logout-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    opacity: 0.85;
 }

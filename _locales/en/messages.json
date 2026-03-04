@@ -165,6 +165,18 @@
     "message": "Enable Sync",
     "description": "Sync bar default text, click to go to login"
   },
+  "logout": {
+    "message": "Log out",
+    "description": "Logout option in account dropdown menu"
+  },
+  "syncNow": {
+    "message": "Sync Now",
+    "description": "Button to manually pull data from cloud when logged in"
+  },
+  "syncDownloadFailed": {
+    "message": "Failed to pull data from cloud. Please check network and retry.",
+    "description": "Error message when Firebase download fails"
+  },
   "noFavorites": {
     "message": "No saved prompts yet",
     "description": "Message shown when there are no saved prompts"
@@ -174,12 +186,20 @@
     "description": "Title for the favorite button"
   },
   "iframeFavoriteTitle": {
-    "message": "Save This to Favorites",
+    "message": "Save This Response to Favorites",
     "description": "Tooltip for iframe star when not favorited"
   },
   "iframeUnfavoriteTitle": {
     "message": "Remove from favorites",
     "description": "Tooltip for iframe star when favorited"
+  },
+  "refresh": {
+    "message": "Refresh",
+    "description": "Tooltip for the refresh button"
+  },
+  "openInNewTab": {
+    "message": "Open in New Tab",
+    "description": "Tooltip for the open in new tab button"
   },
   "ruleUpdateTimePrefix": {
     "message": "Rule Remote Auto Update Time: ",
@@ -456,6 +476,9 @@
   },
   "injectProgressToastNeedQuery": {
     "message": "Please enter a question"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "After the page loads, click the 🔗 icon in the input box"
   },
   "injectProgressStepInfo": {
     "message": "Step $1/$2"
@@ -825,5 +848,65 @@
   },
   "removedFromFavorites": {
     "message": "Removed from favorites"
+  },
+  "membershipTitle": {
+    "message": "Pro Membership"
+  },
+  "membershipDescription": {
+    "message": "Unlock all features and enjoy unlimited AI comparison"
+  },
+  "planMonthlyName": {
+    "message": "Monthly"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / month"
+  },
+  "planYearlyName": {
+    "message": "Yearly"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / year"
+  },
+  "planYearlySaving": {
+    "message": "Save 33%"
+  },
+  "planPopular": {
+    "message": "Most Popular"
+  },
+  "planFeature1": {
+    "message": "Unlimited AI comparisons"
+  },
+  "planFeature2": {
+    "message": "Priority support"
+  },
+  "planFeature3": {
+    "message": "Cancel anytime"
+  },
+  "planFeature4": {
+    "message": "Best value"
+  },
+  "btnUpgradeMonthly": {
+    "message": "Subscribe Monthly"
+  },
+  "btnUpgradeYearly": {
+    "message": "Subscribe Yearly"
+  },
+  "membershipProThankYou": {
+    "message": "Thank you for your support! You're a Pro member."
+  },
+  "btnManageSubscription": {
+    "message": "Manage Subscription"
+  },
+  "membershipLoading": {
+    "message": "Loading membership status…"
+  },
+  "membershipLoginHint": {
+    "message": "Please sign in with Google (Data Sync) to view your membership status."
+  },
+  "membershipExpiresOn": {
+    "message": "Renews on: "
+  },
+  "membershipPriceNotConfigured": {
+    "message": "Stripe Price ID not configured. Please set it in stripe-payment.js."
   }
 }

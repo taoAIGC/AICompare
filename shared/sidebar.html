@@ -36,9 +36,17 @@
             <div id="sidebarFavoritesList" class="sidebar-favorites-list"></div>
         </div>
     </div>
-    <div id="syncBar" class="sync-bar" role="button" tabindex="0">
-        <img class="sync-bar-icon" src="../icons/cloud-upload.svg" alt="" aria-hidden="true">
-        <span id="syncBarText" class="sync-bar-text" data-i18n="enableSync">开启同步</span>
+    <div class="sync-bar-wrap">
+        <div id="syncBar" class="sync-bar" role="button" tabindex="0">
+            <img class="sync-bar-icon" src="../icons/cloud-upload.svg" alt="" aria-hidden="true">
+            <span id="syncBarText" class="sync-bar-text" data-i18n="enableSync">开启同步</span>
+        </div>
+        <div id="syncAccountDropdown" class="sync-account-dropdown" role="menu" aria-hidden="true">
+            <button id="syncLogoutBtn" class="sync-logout-btn" type="button" role="menuitem">
+                <img class="sync-logout-icon" src="../icons/logout.svg" alt="" aria-hidden="true">
+                <span data-i18n="logout">退出登录</span>
+            </button>
+        </div>
     </div>
 </nav>
 

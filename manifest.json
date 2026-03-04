@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "2.20.1",
+  "version": "2.20.2",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -27,7 +27,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "__MSG_commandDescription__"
+    "default_title": "__MSG_appName__"
   },
   "icons": {
     "16": "icons/icon16.png",

@@ -22,7 +22,14 @@
       "WebSearch",
       "WebFetch(domain:www.npmjs.com)",
       "Bash(npm search:*)",
-      "Bash(npx @playwright/mcp --help)"
+      "Bash(npx @playwright/mcp --help)",
+      "mcp__playwright__browser_install",
+      "mcp__playwright__browser_navigate",
+      "Bash(pkill:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(''Profile info:'', json.dumps\\(data.get\\(''profile'', {}\\), indent=2\\)\\)\")",
+      "Bash(gh repo view:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": [],

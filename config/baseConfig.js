@@ -611,6 +611,36 @@ else {
   
   // 暴露 ENABLE_SITE_BUTTON 配置到 window 对象
   window.ENABLE_SITE_BUTTON = DEV_CONFIG.ENABLE_SITE_BUTTON;
+
+  /**
+   * 获取当前用户的订阅计划（代理到 stripe-payment.js 的 getUserPlan）
+   * 若 stripe-payment.js 尚未加载则返回缓存或 free
+   * @returns {Promise<{ plan: 'free'|'pro', planExpiresAt: string|null }>}
+   */
+  window.getUserPlan = async function() {
+    if (typeof window._getUserPlanImpl === 'function') {
+      return window._getUserPlanImpl();
+    }
+    // stripe-payment.js 加载后会覆盖 window.getUserPlan；这里作为兜底
+    try {
+      const stored = await chrome.storage.local.get(['_planCache', '_planCacheAt']);
+      const cacheAge = Date.now() - (stored._planCacheAt || 0);
+      if (stored._planCache && cacheAge < 5 * 60 * 1000) {
+        return JSON.parse(stored._planCache);
+      }
+    } catch (_) {}
+    return { plan: 'free', planExpiresAt: null };
+  };
+
+  /**
+   * 检查当前用户是否为 Pro 会员（快速同步版，使用缓存）
+   * 适合在内容脚本中判断功能门控
+   * @returns {Promise<boolean>}
+   */
+  window.isProUser = async function() {
+    const { plan } = await window.getUserPlan();
+    return plan === 'pro';
+  };
   
   // 标记配置已加载，避免重复声明
   if (typeof window !== 'undefined') {

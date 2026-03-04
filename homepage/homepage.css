@@ -43,6 +43,14 @@ html, body {
 }
 
 /* 底部固定：同步栏（与 action-link 样式一致） */
+.sync-bar-wrap {
+    position: relative;
+    margin-top: auto;
+    flex-shrink: 0;
+    margin: 8px 10px 10px;
+    margin-top: auto;
+}
+
 .sync-bar {
     display: flex;
     align-items: center;
@@ -52,12 +60,11 @@ html, body {
     background: #fff;
     border-top: 1px solid #e8e8e8;
     border-radius: 6px;
-    margin: 8px 10px 10px;
     transition: all 0.2s ease;
-    flex-shrink: 0;
-    margin-top: auto;
     color: #666;
     font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .sync-bar:hover {

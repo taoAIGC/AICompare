@@ -4,9 +4,6 @@ let currentButtonConfig = null;
 
 // 加载保存的配置
 async function loadConfig() {
-  // 直接从 initializeSiteConfigs 中处理站点配置加载
-  initializeSiteConfigs();
-
   chrome.storage.sync.get('buttonConfig', function(data) {
     currentButtonConfig = data.buttonConfig || window.defaultButtonConfig;
     console.log('加载的buttonConfig:', currentButtonConfig);
@@ -58,7 +55,6 @@ function initializeI18n() {
 // 等待 DOM 加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM 加载完成');
-  initializeSiteConfigs();
   initializeI18n();
   initializeRuleInfo();
   initializePromptTemplates();
@@ -146,120 +142,6 @@ async function initializeButtonConfigs() {
   }
 }
 
-async function initializeSiteConfigs() {
-  try {
-    // 使用 getDefaultSites 函数获取合并后的站点配置
-    const sites = await getDefaultSites();
-    console.log('获取到的合并站点数组:', sites);
-
-    // 过滤非隐藏的站点，并分成两组（已经按order排序了）
-    const visibleSites = sites.filter(site => site.hidden === false);
-    const standaloneSites = visibleSites.filter(site => !site.supportIframe);
-    const collectionSites = visibleSites.filter(site => site.supportIframe);
-    
-
-    // 3. 获取两个容器
-    const standaloneContainer = document.getElementById('standaloneSiteConfigs');
-    const collectionContainer = document.getElementById('collectionSiteConfigs');
-    
-    // 4. 清空容器
-    standaloneContainer.innerHTML = '';
-    collectionContainer.innerHTML = '';
-
-    // 5. 渲染独立模式站点
-    standaloneSites.forEach((site, index) => {
-      const siteDiv = document.createElement('div');
-      siteDiv.className = 'site-config';
-      siteDiv.setAttribute('data-site-name', site.name);
-      siteDiv.innerHTML = `
-        <div class="site-header">
-          <div class="drag-handle" title="拖拽调整顺序">⋮⋮</div>
-          <label class="switch">
-            <input type="checkbox" class="enable-toggle"
-              ${site.enabled ? 'checked' : ''} 
-              data-index="${index}"
-              data-mode="standalone">
-            <span class="slider round"></span>
-          </label>
-          <span class="site-name-display">${site.name}</span>
-        </div>
-      `;
-      standaloneContainer.appendChild(siteDiv);
-      
-      // 添加拖拽功能
-      addDragFunctionality(siteDiv, site.name, 'standalone');
-    });
-
-    // 6. 渲染合集模式站点
-    collectionSites.forEach((site, index) => {
-      const siteDiv = document.createElement('div');
-      siteDiv.className = 'site-config';
-      siteDiv.setAttribute('data-site-name', site.name);
-      siteDiv.innerHTML = `
-        <div class="site-header">
-          <div class="drag-handle" title="拖拽调整顺序">⋮⋮</div>
-          <label class="switch">
-            <input type="checkbox" class="enable-toggle"
-              ${site.enabled ? 'checked' : ''} 
-              data-index="${index}"
-              data-mode="collection">
-            <span class="slider round"></span>
-          </label>
-          <span class="site-name-display">${site.name}</span>
-        </div>
-      `;
-      collectionContainer.appendChild(siteDiv);
-      
-      // 添加拖拽功能
-      addDragFunctionality(siteDiv, site.name, 'collection');
-    });
-
-    // 7. 添加切换事件监听器
-    document.querySelectorAll('.enable-toggle').forEach(toggle => {
-      toggle.addEventListener('change', async function() {
-        try {
-          const siteName = this.closest('.site-config').querySelector('.site-name-display').textContent;
-          
-          // 获取当前的用户设置
-          const { siteSettings = {}, sites: userSiteSettings = {} } = await chrome.storage.sync.get(['siteSettings', 'sites']);
-          
-          // 更新用户设置
-          siteSettings[siteName] = this.checked;
-          
-          // 更新用户站点设置
-          if (!userSiteSettings[siteName]) {
-            userSiteSettings[siteName] = {};
-          }
-          userSiteSettings[siteName].enabled = this.checked;
-          
-          // 保存用户设置到 sync storage
-          await chrome.storage.sync.set({ 
-            siteSettings,
-            sites: userSiteSettings
-          });
-          
-          console.log('保存的站点设置:', siteName, this.checked);
-
-          if (chrome.runtime.lastError) {
-            showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
-            return;
-          }
-          showToast(chrome.i18n.getMessage("saveSuccess"));
-        } catch (error) {
-          console.error('保存设置失败:', error);
-          showToast('保存失败');
-          // 恢复复选框状态
-          this.checked = !this.checked;
-        }
-      });
-    });
-
-  } catch (error) {
-    console.error('初始化站点配置失败:', error);
-    showToast('加载配置失败');
-  }
-} 
-
 // 在页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
   initializeI18n();
@@ -267,190 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeNavigation();
   initializeDisabledSites();
 });
-
-// 拖拽功能实现
-function addDragFunctionality(siteDiv, siteName, mode) {
-  const dragHandle = siteDiv.querySelector('.drag-handle');
-  let isDragging = false;
-  let dragStartY = 0;
-  let initialIndex = 0;
-  let placeholder = null;
-
-  // 设置拖拽手柄样式
-  dragHandle.style.cursor = 'grab';
-  dragHandle.style.userSelect = 'none';
-
-  // 鼠标按下事件
-  dragHandle.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    isDragging = true;
-    
-    // 获取元素当前位置
-    const rect = siteDiv.getBoundingClientRect();
-    dragStartY = e.clientY;
-    
-    // 计算鼠标相对于元素的位置偏移
-    const offsetY = e.clientY - rect.top;
-    
-    // 获取当前容器在父容器中的索引
-    const container = mode === 'standalone' 
-      ? document.getElementById('standaloneSiteConfigs')
-      : document.getElementById('collectionSiteConfigs');
-    const containers = Array.from(container.children);
-    initialIndex = containers.indexOf(siteDiv);
-    
-    // 添加拖拽样式
-    siteDiv.classList.add('dragging');
-    dragHandle.style.cursor = 'grabbing';
-    
-    // 创建占位符
-    placeholder = document.createElement('div');
-    placeholder.className = 'drag-placeholder';
-    placeholder.style.height = siteDiv.offsetHeight + 'px';
-    container.insertBefore(placeholder, siteDiv.nextSibling);
-    
-    // 设置拖拽元素的样式
-    siteDiv.style.position = 'fixed';
-    siteDiv.style.zIndex = '1000';
-    siteDiv.style.opacity = '0.8';
-    siteDiv.style.transform = 'rotate(2deg)';
-    siteDiv.style.pointerEvents = 'none';
-    siteDiv.style.width = siteDiv.offsetWidth + 'px';
-    siteDiv.style.left = rect.left + 'px';
-    siteDiv.style.top = (e.clientY - offsetY) + 'px';
-    
-    // 存储偏移量供后续使用
-    siteDiv.dataset.offsetY = offsetY;
-    
-    document.addEventListener('mousemove', handleDrag);
-    document.addEventListener('mouseup', handleDragEnd);
-  });
-
-  // 拖拽过程中的处理
-  function handleDrag(e) {
-    if (!isDragging) return;
-    
-    // 获取存储的偏移量
-    const offsetY = parseFloat(siteDiv.dataset.offsetY) || 0;
-    
-    // 更新拖拽元素位置，让元素跟随鼠标
-    siteDiv.style.top = (e.clientY - offsetY) + 'px';
-    
-    // 检测是否应该移动占位符
-    const container = mode === 'standalone' 
-      ? document.getElementById('standaloneSiteConfigs')
-      : document.getElementById('collectionSiteConfigs');
-    const containers = Array.from(container.children).filter(child => 
-      child !== placeholder && child.classList.contains('site-config')
-    );
-    
-    let newIndex = initialIndex;
-    for (let i = 0; i < containers.length; i++) {
-      const rect = containers[i].getBoundingClientRect();
-      if (e.clientY < rect.top + rect.height / 2) {
-        newIndex = i;
-        break;
-      }
-      newIndex = i + 1;
-    }
-    
-    // 移动占位符到新位置
-    if (newIndex !== initialIndex) {
-      if (newIndex >= containers.length) {
-        container.appendChild(placeholder);
-      } else {
-        container.insertBefore(placeholder, containers[newIndex]);
-      }
-      initialIndex = newIndex;
-    }
-  }
-
-  // 拖拽结束处理
-  function handleDragEnd(e) {
-    if (!isDragging) return;
-    
-    isDragging = false;
-    
-    // 移除拖拽样式
-    siteDiv.classList.remove('dragging');
-    dragHandle.style.cursor = 'grab';
-    
-    // 将元素移动到占位符位置
-    if (placeholder && placeholder.parentNode) {
-      placeholder.parentNode.insertBefore(siteDiv, placeholder);
-    }
-    
-    // 恢复拖拽元素样式
-    siteDiv.style.position = '';
-    siteDiv.style.zIndex = '';
-    siteDiv.style.opacity = '';
-    siteDiv.style.transform = '';
-    siteDiv.style.pointerEvents = '';
-    siteDiv.style.left = '';
-    siteDiv.style.top = '';
-    siteDiv.style.width = '';
-    
-    // 清理存储的偏移量
-    delete siteDiv.dataset.offsetY;
-    
-    // 移除占位符
-    if (placeholder) {
-      placeholder.remove();
-      placeholder = null;
-    }
-    
-    // 更新站点顺序
-    updateSiteOrder(mode);
-    
-    // 移除事件监听器
-    document.removeEventListener('mousemove', handleDrag);
-    document.removeEventListener('mouseup', handleDragEnd);
-  }
-}
-
-// 更新站点顺序
-async function updateSiteOrder(mode) {
-  const container = mode === 'standalone' 
-    ? document.getElementById('standaloneSiteConfigs')
-    : document.getElementById('collectionSiteConfigs');
-  const containers = Array.from(container.children).filter(child => 
-    child.classList.contains('site-config')
-  );
-  
-  // 获取新的顺序
-  const newOrder = containers.map(container => {
-    return container.getAttribute('data-site-name');
-  }).filter(name => name !== null);
-  
-  console.log(`${mode}模式新的站点顺序:`, newOrder);
-  
-  // 更新存储中的站点顺序
-  try {
-    // 从 chrome.storage.sync 读取现有的用户设置
-    const { sites: existingUserSettings = {} } = await chrome.storage.sync.get('sites');
-    
-    // 更新拖拽后站点的order字段
-    const updatedUserSettings = { ...existingUserSettings };
-    newOrder.forEach((siteName, index) => {
-      if (!updatedUserSettings[siteName]) {
-        updatedUserSettings[siteName] = {};
-      }
-      updatedUserSettings[siteName].order = index;
-    });
-    
-    // 保存用户设置到 chrome.storage.sync
-    await chrome.storage.sync.set({ sites: updatedUserSettings });
-    
-    console.log(`${mode}模式站点顺序已更新`);
-    
-    showToast(chrome.i18n.getMessage("saveSuccess"));
-
-    
-  } catch (error) {
-    console.error('更新站点顺序失败:', error);
-    showToast('保存顺序失败');
-  }
-}
 
 // 初始化导航功能
 function initializeNavigation() {
@@ -1219,10 +917,11 @@ async function getSyncConfig() {
 
 async function exportAllSettings() {
   const syncData  = await chrome.storage.sync.get(SYNC_KEYS);
-  const localData = await chrome.storage.local.get('pkHistory');
+  const localData = await chrome.storage.local.get(['pkHistory', 'favoriteFolders']);
   return {
     ...syncData,
     pkHistory: (localData.pkHistory || []).slice(0, 500),
+    favoriteFolders: localData.favoriteFolders || [],
     _syncVersion: 1,
     _exportedAt: new Date().toISOString(),
   };
@@ -1271,38 +970,18 @@ async function importFromSync() {
   }
   showSyncStatus(chrome.i18n.getMessage('syncDownloading') || '正在从云端下载数据…', 'loading');
   try {
-    const fileURL = getWebDAVFileURL(cfg);
-    const res = await fetch(fileURL, {
-      method: 'GET',
-      headers: buildWebDAVHeaders(cfg),
-    });
-    if (!res.ok) {
+    // 委托 background service worker 执行 fetch，避免 options 页面跨域/CORS 限制
+    const resp = await chrome.runtime.sendMessage({ action: 'webdavImport' });
+    if (resp && resp.success) {
       showSyncStatus(
-        (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') + `: HTTP ${res.status}`,
-        'error'
+        (chrome.i18n.getMessage('syncImportSuccess') || '云端数据已恢复，请刷新页面生效'),
+        'success'
       );
-      return;
+    } else {
+      const errMsg = (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') +
+        (resp?.error ? `: ${resp.error}` : '');
+      showSyncStatus(errMsg, 'error');
     }
-    const data = await res.json();
-    const { _syncVersion, _exportedAt, pkHistory, ...settingsToRestore } = data;
-
-    // 恢复 chrome.storage.sync 设置
-    const filtered = {};
-    for (const key of SYNC_KEYS) {
-      if (key in settingsToRestore) filtered[key] = settingsToRestore[key];
-    }
-    if (Object.keys(filtered).length > 0) {
-      await chrome.storage.sync.set(filtered);
-    }
-
-    // 恢复对话历史到 chrome.storage.local
-    if (Array.isArray(pkHistory) && pkHistory.length > 0) {
-      await chrome.storage.local.set({ pkHistory });
-    }
-    showSyncStatus(
-      (chrome.i18n.getMessage('syncImportSuccess') || '云端数据已恢复，请刷新页面生效') ,
-      'success'
-    );
   } catch (e) {
     showSyncStatus(
       (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') + `: ${e.message}`,
@@ -1332,6 +1011,133 @@ function initializeDataSync() {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pro 会员 UI
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function initializeMembership() {
+  const loadingEl = document.getElementById('membershipLoadingMsg');
+  const loginHintEl = document.getElementById('membershipLoginHint');
+  const plansEl = document.getElementById('membershipPlans');
+  const proActionsEl = document.getElementById('membershipProActions');
+  const badgeEl = document.getElementById('membershipBadge');
+  const planLabelEl = document.getElementById('membershipPlanLabel');
+  const emailEl = document.getElementById('membershipEmail');
+  const expiryEl = document.getElementById('membershipExpiry');
+
+  function setLoading(show) {
+    if (loadingEl) loadingEl.style.display = show ? 'block' : 'none';
+  }
+
+  setLoading(true);
+
+  // 检查是否已登录
+  const stored = await chrome.storage.local.get(['firebase_uid', 'firebase_email']);
+  const uid = stored.firebase_uid;
+  const email = stored.firebase_email || '';
+
+  if (!uid) {
+    setLoading(false);
+    if (loginHintEl) loginHintEl.style.display = 'block';
+    return;
+  }
+
+  if (emailEl) emailEl.textContent = email;
+
+  // 读取 plan
+  let planInfo = { plan: 'free', planExpiresAt: null };
+  try {
+    if (typeof window.getUserPlan === 'function') {
+      planInfo = await window.getUserPlan();
+    }
+  } catch (e) {
+    console.warn('Failed to load plan:', e);
+  }
+
+  setLoading(false);
+
+  const isPro = planInfo.plan === 'pro';
+
+  if (badgeEl) {
+    badgeEl.className = 'membership-badge' + (isPro ? ' pro' : '');
+  }
+  if (planLabelEl) {
+    planLabelEl.textContent = isPro ? 'Pro' : 'Free';
+  }
+
+  if (isPro && planInfo.planExpiresAt && expiryEl) {
+    const expiryDate = new Date(planInfo.planExpiresAt);
+    const dateStr = expiryDate.toLocaleDateString();
+    const expiryLabel = chrome.i18n.getMessage('membershipExpiresOn') || '到期时间：';
+    expiryEl.textContent = `${expiryLabel}${dateStr}`;
+    expiryEl.style.display = 'block';
+  }
+
+  if (isPro) {
+    if (plansEl) plansEl.style.display = 'none';
+    if (proActionsEl) proActionsEl.style.display = 'block';
+  } else {
+    if (plansEl) plansEl.style.display = 'flex';
+    if (proActionsEl) proActionsEl.style.display = 'none';
+  }
+
+  // 升级按钮事件
+  const btnMonthly = document.getElementById('btnUpgradeMonthly');
+  const btnYearly = document.getElementById('btnUpgradeYearly');
+
+  async function handleUpgrade(priceId, btn) {
+    if (!priceId || priceId.startsWith('price_REPLACE')) {
+      showToast(chrome.i18n.getMessage('membershipPriceNotConfigured') || '请先配置 Stripe Price ID', 3000);
+      return;
+    }
+    if (btn) btn.disabled = true;
+    try {
+      if (typeof window.startCheckout === 'function') {
+        await window.startCheckout(priceId);
+      } else {
+        showToast('stripe-payment.js 未加载', 3000);
+      }
+    } catch (e) {
+      showToast(e.message || '跳转付款页失败', 3000);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  if (btnMonthly) {
+    btnMonthly.addEventListener('click', () => {
+      const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.monthly) || '';
+      handleUpgrade(priceId, btnMonthly);
+    });
+  }
+
+  if (btnYearly) {
+    btnYearly.addEventListener('click', () => {
+      const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.yearly) || '';
+      handleUpgrade(priceId, btnYearly);
+    });
+  }
+
+  // 管理订阅按钮
+  const btnManage = document.getElementById('btnManageSubscription');
+  if (btnManage) {
+    btnManage.addEventListener('click', async () => {
+      btnManage.disabled = true;
+      try {
+        if (typeof window.openCustomerPortal === 'function') {
+          await window.openCustomerPortal();
+        } else {
+          showToast('stripe-payment.js 未加载', 3000);
+        }
+      } catch (e) {
+        showToast(e.message || '无法打开订阅管理页', 3000);
+      } finally {
+        btnManage.disabled = false;
+      }
+    });
+  }
+}
+
 // 页面初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Options page loaded');
@@ -1353,4 +1159,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 初始化数据同步
   initializeDataSync();
+
+  // Pro 会员入口临时下线，下一版本再恢复。
 });

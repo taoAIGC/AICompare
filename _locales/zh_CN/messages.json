@@ -160,6 +160,18 @@
     "message": "开启同步",
     "description": "同步栏默认文案，点击后跳转登录"
   },
+  "logout": {
+    "message": "退出登录",
+    "description": "账号下拉菜单中的退出登录选项"
+  },
+  "syncNow": {
+    "message": "立即同步",
+    "description": "已登录状态下手动触发从云端拉取数据的按钮"
+  },
+  "syncDownloadFailed": {
+    "message": "无法从云端拉取数据，请检查网络后重试",
+    "description": "从 Firebase 下载用户数据失败时的提示"
+  },
   "noFavorites": {
     "message": "暂无收藏的提示词",
     "description": "没有保存提示词时显示的消息"
@@ -175,6 +187,14 @@
   "iframeUnfavoriteTitle": {
     "message": "取消收藏",
     "description": "子 iframe 星标已收藏时的悬停提示"
+  },
+  "refresh": {
+    "message": "刷新",
+    "description": "刷新按钮的悬停提示"
+  },
+  "openInNewTab": {
+    "message": "在新标签页打开",
+    "description": "在新标签页打开按钮的悬停提示"
   },
   "ruleUpdateTimePrefix": {
     "message": "规则远程自动更新时间：",
@@ -451,6 +471,9 @@
   },
   "injectProgressToastNeedQuery": {
     "message": "请输入问题"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "页面加载后，点击输入框的🔗图标"
   },
   "injectProgressStepInfo": {
     "message": "步骤 $1/$2"
@@ -820,5 +843,65 @@
   },
   "removedFromFavorites": {
     "message": "已取消收藏"
+  },
+  "membershipTitle": {
+    "message": "Pro 会员"
+  },
+  "membershipDescription": {
+    "message": "解锁全部功能，畅享无限 AI 对比体验"
+  },
+  "planMonthlyName": {
+    "message": "月度订阅"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / 月"
+  },
+  "planYearlyName": {
+    "message": "年度订阅"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / 年"
+  },
+  "planYearlySaving": {
+    "message": "节省 33%"
+  },
+  "planPopular": {
+    "message": "最受欢迎"
+  },
+  "planFeature1": {
+    "message": "无限制 AI 对比"
+  },
+  "planFeature2": {
+    "message": "优先客户支持"
+  },
+  "planFeature3": {
+    "message": "随时取消"
+  },
+  "planFeature4": {
+    "message": "全年最低价"
+  },
+  "btnUpgradeMonthly": {
+    "message": "按月订阅"
+  },
+  "btnUpgradeYearly": {
+    "message": "按年订阅"
+  },
+  "membershipProThankYou": {
+    "message": "感谢您的支持！您已是 Pro 会员。"
+  },
+  "btnManageSubscription": {
+    "message": "管理订阅 / 取消续费"
+  },
+  "membershipLoading": {
+    "message": "正在加载会员状态…"
+  },
+  "membershipLoginHint": {
+    "message": "请先在「数据同步」页面登录谷歌账号后查看会员状态"
+  },
+  "membershipExpiresOn": {
+    "message": "到期时间："
+  },
+  "membershipPriceNotConfigured": {
+    "message": "Stripe Price ID 未配置，请在 stripe-payment.js 中填写"
   }
 }

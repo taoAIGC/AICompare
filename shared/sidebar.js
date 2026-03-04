@@ -254,13 +254,38 @@ async function updateSyncBar() {
 
 function bindSyncBar() {
     const syncBar = document.getElementById('syncBar');
+    const dropdown = document.getElementById('syncAccountDropdown');
+    const logoutBtn = document.getElementById('syncLogoutBtn');
     if (!syncBar) return;
-    syncBar.addEventListener('click', async () => {
+
+    function closeAccountDropdown() {
+        if (dropdown) {
+            dropdown.classList.remove('is-open');
+            dropdown.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    function openAccountDropdown() {
+        if (dropdown) {
+            dropdown.classList.add('is-open');
+            dropdown.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    syncBar.addEventListener('click', async (e) => {
+        e.stopPropagation();
         safeTrackEvent('sidebar_sync_bar_click');
         const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
         if (loggedIn) {
+            const isOpen = dropdown && dropdown.classList.contains('is-open');
+            if (isOpen) {
+                closeAccountDropdown();
+            } else {
+                openAccountDropdown();
+            }
             return;
         }
+        closeAccountDropdown();
         if (!window.firebaseSignInWithGoogle || !window.firebaseSyncMergeAndUpload) {
             return;
         }
@@ -272,13 +297,44 @@ function bindSyncBar() {
                     : 'Opening Google sign-in…';
             }
             await window.firebaseSignInWithGoogle();
+            if (textEl) {
+                textEl.textContent = chrome.i18n.getUILanguage().toLowerCase().startsWith('zh')
+                    ? '正在同步云端数据…'
+                    : 'Syncing from cloud…';
+            }
             await window.firebaseSyncMergeAndUpload();
             await updateSyncBar();
+            if (typeof loadSidebarFavorites === 'function') await loadSidebarFavorites();
         } catch (e) {
             if (textEl) {
-                textEl.textContent = chrome.i18n.getMessage('enableSync') || '开启同步';
+                textEl.textContent = (e && e.message) || (chrome.i18n.getMessage('syncDownloadFailed') || '同步失败，请重试');
             }
-            console.warn('Sync sign-in failed', e);
+            console.warn('Sync sign-in or merge failed', e);
+        }
+    });
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAccountDropdown();
+            if (window.firebaseSignOut) {
+                try {
+                    await window.firebaseSignOut();
+                    await updateSyncBar();
+                } catch (err) {
+                    console.warn('Logout failed', err);
+                }
+            }
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (dropdown && dropdown.classList.contains('is-open')) {
+            const wrap = syncBar?.closest('.sync-bar-wrap');
+            if (wrap && !wrap.contains(e.target)) {
+                closeAccountDropdown();
+            }
         }
     });
 }

@@ -965,6 +965,26 @@ body.search-bar-bottom .settings-dialog {
     transition: opacity 0.3s;
 }
 
+.refresh-page-btn {
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: url('../icons/refresh-cw.svg') no-repeat center;
+    background-size: contain;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.3s;
+}
+
+/* 当 iframe-container hover 时，按钮显示并可以进一步 hover */
+.iframe-container:hover .refresh-page-btn {
+    opacity: 0.7;
+}
+
+.iframe-container:hover .refresh-page-btn:hover {
+    opacity: 1;
+}
+
 /* 当 iframe-container hover 时，按钮显示并可以进一步 hover */
 .iframe-container:hover .open-page-btn {
     opacity: 0.7;

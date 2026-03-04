@@ -176,6 +176,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeSaveSitesButton();
     
     // 侧边栏导航由 shared/sidebar.js 统一初始化
+
+    // 页面加载时，若已登录则自动同步一次
+    (async () => {
+        try {
+            // WebDAV: 首页每次打开时都尝试拉取一次（静默失败）
+            try {
+                await chrome.runtime.sendMessage({ action: 'webdavAutoDownload' });
+            } catch (_) {}
+
+            const { firebase_uid } = await chrome.storage.local.get('firebase_uid');
+            if (firebase_uid && typeof window.firebaseSyncMergeAndUpload === 'function') {
+                await window.firebaseSyncMergeAndUpload();
+            }
+        } catch (e) {
+            console.warn('Homepage auto sync failed', e);
+        }
+    })();
 });
 
 // 输入框固定在底部

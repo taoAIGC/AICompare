@@ -729,3 +729,197 @@ input:checked + .slider:before {
   opacity: 0.45;
   pointer-events: none;
 }
+
+/* ─── 会员订阅 ─────────────────────────────────────────── */
+.membership-status-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.membership-status-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.membership-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  background: #f0f0f0;
+  color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.membership-badge.pro {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+}
+
+.membership-email {
+  font-size: 14px;
+  color: #444;
+}
+
+.membership-expiry {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.membership-plans {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.plan-card {
+  flex: 1;
+  min-width: 200px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+  position: relative;
+}
+
+.plan-card-featured {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.plan-badge-popular {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.plan-header {
+  margin-bottom: 16px;
+}
+
+.plan-name {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.plan-price {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+}
+
+.plan-saving {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 600;
+  background: #e8f5e9;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+.plan-features li {
+  font-size: 13px;
+  color: #555;
+  padding: 4px 0;
+}
+
+.plan-features li::before {
+  content: '✓ ';
+  color: #4caf50;
+  font-weight: 700;
+}
+
+.btn-upgrade {
+  width: 100%;
+  padding: 10px 0;
+  border: 2px solid #667eea;
+  background: #fff;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-upgrade:hover {
+  background: #667eea;
+  color: #fff;
+}
+
+.btn-upgrade-featured {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn-upgrade-featured:hover {
+  opacity: 0.9;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+}
+
+.btn-upgrade:disabled,
+.btn-upgrade-featured:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.membership-pro-actions {
+  background: #f0f4ff;
+  border: 1px solid #c7d4fd;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.membership-pro-actions p {
+  margin: 0 0 12px;
+  color: #444;
+  font-size: 14px;
+}
+
+.membership-loading {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 16px;
+}
+
+.membership-login-hint {
+  font-size: 13px;
+  color: #888;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}

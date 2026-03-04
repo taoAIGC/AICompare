@@ -981,7 +981,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 注意：urlParams 已经在上面第 169 行声明了，这里直接使用
     if (urlParams.get('upload') === 'true') {
         // 立即显示提示，停留时间更长
-        showToast('页面加载后，点击输入框的🔗图标', 8000); // 显示 8 秒
+        showToast(t('uploadToastClickLinkIcon', 'After the page loads, click the 🔗 icon in the input box'), 8000); // 显示 8 秒
     }
 
 });
@@ -1957,10 +1957,11 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   header.innerHTML = `
     <span class="site-name">${siteName}</span>
     <div class="iframe-controls">
-      <button class="iframe-favorite-btn iframe-favorite-btn-header" title="收藏">
-        <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg" alt="收藏">
+      <button class="refresh-page-btn"></button>
+      <button class="iframe-favorite-btn iframe-favorite-btn-header">
+        <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg">
       </button>
-      <button class="open-page-btn" title="在新标签页打开"></button>
+      <button class="open-page-btn"></button>
       <button class="close-btn"></button>
     </div>
   `;
@@ -1985,23 +1986,15 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   addFavoriteButtonToIframe(iframeContainer, siteName, false);
   
   // 添加按钮事件处理
+  const refreshPageBtn = header.querySelector('.refresh-page-btn');
   const headerFavoriteBtn = header.querySelector('.iframe-favorite-btn-header');
   const openPageBtn = header.querySelector('.open-page-btn');
   const closeBtn = header.querySelector('.close-btn');
   
-  // 设置按钮的国际化标题
-  const openInNewTabTitle = chrome.i18n.getMessage('openInNewTab');
-  if (openInNewTabTitle) {
-    openPageBtn.title = openInNewTabTitle;
-  }
-  const favoriteTitle = chrome.i18n.getMessage('iframeFavoriteTitle');
-  if (favoriteTitle) {
-    headerFavoriteBtn.title = favoriteTitle;
-    const headerFavoriteIcon = headerFavoriteBtn.querySelector('.iframe-favorite-icon');
-    if (headerFavoriteIcon) {
-      headerFavoriteIcon.alt = favoriteTitle;
-    }
-  }
+  // 设置按钮提示
+  refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
+  openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
+  closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
   headerFavoriteBtn.dataset.siteName = siteName;
   updateFavoriteButtonState(headerFavoriteBtn, false);
   
@@ -2011,6 +2004,16 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     e.preventDefault();
     await toggleIframeFavorite(siteName, headerFavoriteBtn);
   });
+
+  // 刷新按钮点击事件
+  refreshPageBtn.onclick = (e) => {
+    e.stopPropagation();
+    try {
+      iframe.contentWindow?.location.reload();
+    } catch (_) {
+      iframe.src = iframe.src;
+    }
+  };
   
   // 打开页面按钮点击事件
   openPageBtn.onclick = async (e) => {
@@ -3029,32 +3032,25 @@ async function loadHistoryIframes(sites) {
       header.innerHTML = `
         <span class="site-name">${siteName}</span>
         <div class="iframe-controls">
-          <button class="iframe-favorite-btn iframe-favorite-btn-header" title="收藏">
-            <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg" alt="收藏">
+          <button class="refresh-page-btn"></button>
+          <button class="iframe-favorite-btn iframe-favorite-btn-header">
+            <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg">
           </button>
-          <button class="open-page-btn" title="在新标签页打开"></button>
+          <button class="open-page-btn"></button>
           <button class="close-btn"></button>
         </div>
       `;
       
       // 添加按钮事件
+      const refreshPageBtn = header.querySelector('.refresh-page-btn');
       const headerFavoriteBtn = header.querySelector('.iframe-favorite-btn-header');
       const openPageBtn = header.querySelector('.open-page-btn');
       const closeBtn = header.querySelector('.close-btn');
       
-      // 设置按钮的国际化标题
-      const openInNewTabTitle = chrome.i18n.getMessage('openInNewTab');
-      if (openInNewTabTitle) {
-        openPageBtn.title = openInNewTabTitle;
-      }
-      const favoriteTitle = chrome.i18n.getMessage('iframeFavoriteTitle');
-      if (favoriteTitle) {
-        headerFavoriteBtn.title = favoriteTitle;
-        const headerFavoriteIcon = headerFavoriteBtn.querySelector('.iframe-favorite-icon');
-        if (headerFavoriteIcon) {
-          headerFavoriteIcon.alt = favoriteTitle;
-        }
-      }
+      // 设置按钮提示
+      refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
+      openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
+      closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
       
       // 初始化头部收藏按钮状态
       headerFavoriteBtn.dataset.siteName = siteName;
@@ -3066,6 +3062,16 @@ async function loadHistoryIframes(sites) {
         e.preventDefault();
         await toggleIframeFavorite(siteName, headerFavoriteBtn);
       });
+
+      // 刷新按钮点击事件
+      refreshPageBtn.onclick = (e) => {
+        e.stopPropagation();
+        try {
+          iframe.contentWindow?.location.reload();
+        } catch (_) {
+          iframe.src = iframe.src;
+        }
+      };
 
       // 打开页面按钮点击事件
       openPageBtn.onclick = async (e) => {
