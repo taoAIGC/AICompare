@@ -32,6 +32,12 @@
           <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
           <span data-i18n="dataSyncTitle">数据同步</span>
         </a>
+        <!-- Pro 会员入口暂时隐藏，下版本恢复
+        <a href="#membership" class="action-link nav-link" data-section="membership">
+          <img class="action-link-icon" src="../icons/icon16.png" alt="" aria-hidden="true">
+          <span data-i18n="membershipTitle">Pro 会员</span>
+        </a>
+        -->
       </div>
     </nav>
 
@@ -287,6 +293,73 @@
           <div id="syncStatus" class="sync-status" style="display:none;"></div>
         </section>
 
+        <!-- Pro 会员配置暂时隐藏，下版本恢复
+        <section id="membership" class="settings-section">
+          <h1 data-i18n="membershipTitle">Pro 会员</h1>
+          <p class="section-description" data-i18n="membershipDescription">解锁全部功能，畅享 AI 比较体验</p>
+
+          <div id="membershipStatusCard" class="membership-status-card">
+            <div class="membership-status-inner">
+              <div class="membership-badge" id="membershipBadge">
+                <span id="membershipPlanLabel">Free</span>
+              </div>
+              <div class="membership-info">
+                <div id="membershipEmail" class="membership-email"></div>
+                <div id="membershipExpiry" class="membership-expiry" style="display:none;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="membershipPlans" class="membership-plans">
+            <div class="plan-card" id="planMonthly">
+              <div class="plan-header">
+                <span class="plan-name" data-i18n="planMonthlyName">月度订阅</span>
+                <span class="plan-price" data-i18n="planMonthlyPrice">$4.99 / 月</span>
+              </div>
+              <ul class="plan-features">
+                <li data-i18n="planFeature1">无限制 AI 对比</li>
+                <li data-i18n="planFeature2">优先客户支持</li>
+                <li data-i18n="planFeature3">随时取消</li>
+              </ul>
+              <button class="btn-upgrade" id="btnUpgradeMonthly" data-i18n="btnUpgradeMonthly">
+                按月订阅
+              </button>
+            </div>
+
+            <div class="plan-card plan-card-featured" id="planYearly">
+              <div class="plan-badge-popular" data-i18n="planPopular">最受欢迎</div>
+              <div class="plan-header">
+                <span class="plan-name" data-i18n="planYearlyName">年度订阅</span>
+                <span class="plan-price" data-i18n="planYearlyPrice">$39.99 / 年</span>
+                <span class="plan-saving" data-i18n="planYearlySaving">节省 33%</span>
+              </div>
+              <ul class="plan-features">
+                <li data-i18n="planFeature1">无限制 AI 对比</li>
+                <li data-i18n="planFeature2">优先客户支持</li>
+                <li data-i18n="planFeature4">全年最低价</li>
+              </ul>
+              <button class="btn-upgrade btn-upgrade-featured" id="btnUpgradeYearly" data-i18n="btnUpgradeYearly">
+                按年订阅
+              </button>
+            </div>
+          </div>
+
+          <div id="membershipProActions" class="membership-pro-actions" style="display:none;">
+            <p data-i18n="membershipProThankYou">感谢您的支持！</p>
+            <button class="btn-secondary" id="btnManageSubscription" data-i18n="btnManageSubscription">
+              管理订阅 / 取消续费
+            </button>
+          </div>
+
+          <div id="membershipLoadingMsg" class="membership-loading" data-i18n="membershipLoading">
+            正在加载会员状态…
+          </div>
+          <div id="membershipLoginHint" class="membership-login-hint" style="display:none;" data-i18n="membershipLoginHint">
+            请先在「数据同步」页面登录谷歌账号后查看会员状态
+          </div>
+        </section>
+        -->
+
         <div class="contact-info" data-i18n="contactInfo"></div>
       </div>
     </main>
@@ -298,7 +371,8 @@
   <script src="../config/firebaseConfig.js"></script>
   <script src="../config/baseConfig.js"></script>
   <script src="../firebase/firebase-auth.js"></script>
-  <script src="../firebase/stripe-payment.js"></script>
+  <!-- Pro 会员功能暂时隐藏，下版本恢复 -->
+  <!-- <script src="../firebase/stripe-payment.js"></script> -->
   <script src="options.js"></script>
 </body>
 </html> 

@@ -521,11 +521,13 @@ async function initSharedSidebar() {
     if (!mount) return;
     applySidebarI18n(mount);
     markActiveSidebarLink();
-    await initializeSidebarActionLinks();
-    await updateSyncBar();
     bindSyncBar();
     bindSidebarStorageListeners();
-    await loadSidebarFavorites();
+    await Promise.allSettled([
+        initializeSidebarActionLinks(),
+        updateSyncBar(),
+        loadSidebarFavorites()
+    ]);
 
     const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
     if (loggedIn && typeof window.firebaseSyncMergeAndUpload === 'function') {

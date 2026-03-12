@@ -23,6 +23,8 @@ const fs = require('fs');
 const EXTENSION_PATH = path.join(__dirname, '..');
 const TEST_DATA_PATH = path.join(__dirname, 'fixtures');
 const REPORT_PATH = path.join(__dirname, 'reports');
+const PERSISTENT_PROFILE_DIR = process.env.PLAYWRIGHT_USER_DATA_DIR ||
+  path.join(EXTENSION_PATH, '.playwright-user-data', 'automation-profile');
 
 // 测试配置
 const TEST_CONFIG = {
@@ -72,10 +74,13 @@ class ExtensionContext {
    */
   async loadExtension(extensionPath) {
     const extPath = path.join(extensionPath);
-    const context = await chromium.launchPersistentContext('', {
+    fs.mkdirSync(PERSISTENT_PROFILE_DIR, { recursive: true });
+    const context = await chromium.launchPersistentContext(PERSISTENT_PROFILE_DIR, {
       headless: TEST_CONFIG.headless,
+      ignoreDefaultArgs: ['--disable-extensions'],
       args: [
         ...TEST_CONFIG.launchOptions.args,
+        `--disable-extensions-except=${extPath}`,
         `--load-extension=${extPath}`
       ]
     });

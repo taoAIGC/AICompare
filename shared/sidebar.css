@@ -17,6 +17,8 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-nav-header {
@@ -138,13 +140,17 @@
 }
 
 .sidebar-favorites-list-wrap {
-    flex-shrink: 0;
+    flex: 1;
+    min-height: 0;
     border-top: 1px solid #e8e8e8;
     padding: 4px 10px 8px;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-favorites-list {
-    max-height: 200px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;

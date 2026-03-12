@@ -1160,5 +1160,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 初始化数据同步
   initializeDataSync();
 
-  // Pro 会员入口临时下线，下一版本再恢复。
+  // Pro 会员功能暂时隐藏，下版本恢复后再启用
+  // initializeMembership();
 });

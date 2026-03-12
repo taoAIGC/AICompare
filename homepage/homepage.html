@@ -9,7 +9,30 @@
 <body data-page="homepage">
     <div class="homepage-layout">
         <!-- 左侧导航区（共享） -->
-        <div id="appSidebarMount"></div>
+        <div id="appSidebarMount">
+            <div class="sidebar-nav sidebar-nav-skeleton" aria-hidden="true">
+                <div class="sidebar-nav-header">
+                    <div class="sidebar-skeleton-icon skeleton-block"></div>
+                    <div class="sidebar-skeleton-title skeleton-block"></div>
+                </div>
+                <div class="sidebar-nav-body sidebar-skeleton-body">
+                    <div class="sidebar-skeleton-link skeleton-block"></div>
+                    <div class="sidebar-skeleton-link skeleton-block"></div>
+                    <div class="sidebar-skeleton-link skeleton-block"></div>
+                    <div class="sidebar-skeleton-link skeleton-block"></div>
+                    <div class="sidebar-skeleton-section-title skeleton-block"></div>
+                    <div class="sidebar-skeleton-favorite skeleton-block"></div>
+                    <div class="sidebar-skeleton-favorite skeleton-block"></div>
+                    <div class="sidebar-skeleton-favorite skeleton-block"></div>
+                </div>
+                <div class="sync-bar-wrap">
+                    <div class="sync-bar sidebar-skeleton-sync">
+                        <div class="sidebar-skeleton-sync-icon skeleton-block"></div>
+                        <div class="sidebar-skeleton-sync-text skeleton-block"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- 主内容区 -->
         <div class="homepage-container">
             <!-- Pin 引导提示 -->
@@ -56,8 +79,37 @@
                     </button>
                     <span class="save-btn-tooltip" data-i18n="saveFavoriteSitesTitle">保存当前选中的站点为常用站点</span>
                 </div>
-                <div id="sitesList" class="sites-list">
-                    <!-- 站点列表将通过 JavaScript 动态添加 -->
+                <div id="sitesList" class="sites-list sites-list-skeleton" aria-busy="true">
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-drag-handle skeleton-block"></span>
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-drag-handle skeleton-block"></span>
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-drag-handle skeleton-block"></span>
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-drag-handle skeleton-block"></span>
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-drag-handle skeleton-block"></span>
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-drag-handle skeleton-block"></span>
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
                 </div>
             </div>
         </div>

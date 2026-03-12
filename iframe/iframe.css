@@ -258,6 +258,8 @@ body.search-bar-bottom .search-bar {
     align-items: flex-end; /* 内容贴底，输入框变高时只向上溢出 */
     overflow: visible;
     min-width: min(900px, calc(100vw - 24px)); /* 与未加手柄前一致，不因多出手柄而变窄 */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
 }
 
 /* 底部 search-bar 拖动手柄：仅在此模式下显示 */
@@ -286,6 +288,7 @@ body.search-bar-bottom .search-bar-drag-handle {
     flex-shrink: 0;
     user-select: none;
     -webkit-user-select: none;
+    touch-action: none;
 }
 body.search-bar-bottom .search-bar-drag-handle:active {
     cursor: grabbing;
@@ -297,6 +300,18 @@ body.search-bar-bottom .search-bar-drag-handle:hover {
 /* 拖拽时用 transform 平移，不改变 left/right 布局，保证 GPU 合成无卡顿 */
 body.search-bar-bottom .search-bar.search-bar-dragging {
     will-change: transform;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+body.search-bar-bottom .search-bar.search-bar-dragging,
+body.search-bar-bottom .search-bar.search-bar-dragging * {
+    transition: none !important;
+}
+
+body.search-bar-drag-active #iframes-container,
+body.search-bar-drag-active .ai-iframe,
+body.search-bar-drag-active iframe {
+    pointer-events: none !important;
 }
 
 body.search-bar-bottom .query-suggestions {
@@ -750,147 +765,6 @@ body.search-bar-bottom #iframes-container {
     grid-template-columns: repeat(4, 1fr);
 }
 
-.settings-icon-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;                /* 统一宽度 */
-    height: 36px;               /* 统一高度 */
-    border: none;               /* 移除默认边框 */
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    padding: 0;                 /* 移除内边距 */
-    cursor: pointer;
-    background: transparent;     /* 透明背景 */
-}
-
-.settings-icon-container:hover {
-    background: transparent;
-    transform: translateY(-1px);
-}
-
-.settings-icon {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.settings-dialog {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    width: 300px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-    margin-top: 8px;
-    padding: 0 0 16px 0;
-}
-
-body.search-bar-bottom .settings-dialog {
-    top: auto;
-    bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 8px;
-}
-
-.dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    border-bottom: 1px solid #eee;
-}
-
-.dialog-header h3 {
-    margin: 0;
-    font-size: 14px;
-    color: #333;
-    padding: 4px;
-
-}
-
-.save-settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 6px;
-    background-color: #fff !important;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.save-settings-btn:hover {
-    background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
-.save-icon {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-}
-
-.save-settings-btn:active {
-    background-color: rgba(0, 0, 0, 0.1) !important;
-    transform: scale(0.95);
-}
-
-.multi-ai-dialog .site-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 4px;
-  }
-  
-  .multi-ai-dialog .site-item {
-    color: #333;
-    background: #fff;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
-    position: relative;
-    font-size: 12px;
-  }
-  
-  .multi-ai-dialog .site-item label {
-    cursor: pointer;
-    color: #333;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    display: inline-block;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    text-align: left;
-    justify-content: flex-start;
-  }
-  
-  .multi-ai-dialog .site-item input[type="checkbox"] {
-    margin: 0;
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-  
- 
-  .multi-ai-dialog .site-item:hover {
-    background: #f5f5f5;
-  }
-  
 /* 收藏按钮容器 */
 .favorite-icon-container {
     position: relative;
@@ -925,33 +799,166 @@ body.search-bar-bottom .settings-dialog {
     cursor: pointer;
 }
 
+.nav-edge-trigger {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 28px;
+    z-index: 1090;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nav-edge-trigger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 28px;
+    height: 44px;
+    transform: translateY(-50%);
+    border: 1px solid #dddddd;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    background: #ffffff url('../icons/layout-grid.svg') center / 16px 16px no-repeat;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    pointer-events: none;
+}
+
+.nav-edge-trigger:hover::after {
+    background-color: #f7f7f7;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
 .nav {
     position: fixed;
     left: 0;
     top: 60px;
     bottom: 0;
     width: 70px;
-    padding: 20px 0;
-    overflow-y: auto;
+    padding: 10px 0 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    z-index: 1095;
+    background: rgba(255, 255, 255, 0.96);
+    border-right: 1px solid #e7e7e7;
+    transform: translateX(calc(-100% - 8px));
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav.is-visible {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.nav-controls {
+    padding: 0 6px 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #ececec;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-column-selector {
+    width: 100%;
+    justify-content: center;
+}
+
+.nav-column-current-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+}
+
+.nav-column-selector .column-dropdown {
+    top: 0;
+    left: calc(100% + 8px);
+    right: auto;
+    transform: translate(0, 0);
+    margin-top: 0;
+    min-width: 160px;
+    z-index: 1105;
+}
+
+.nav-column-selector .column-dropdown.show {
+    transform: translate(0, 0);
 }
 
 .nav-list {
     list-style: none;
-    padding: 0;
+    padding: 0 6px;
     margin: 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: visible;
 }
 
 .nav-item {
-    padding: 10px 10px;
+    padding: 8px 6px;
     cursor: pointer;
     transition: background-color 0.3s;
-    white-space: nowrap;
-    display: inline-block;
-    min-width: fit-content;
+    white-space: normal;
+    display: block;
+    text-align: center;
+    border-radius: 6px;
+}
+
+.nav-item.active {
+    background-color: #e0e0e0;
+}
+
+.nav-site-item {
+    cursor: default;
+}
+
+.nav-site-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.nav-site-checkbox {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.nav-site-icon-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid #e4e4e4;
+    border-radius: 6px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.nav-site-icon-btn:hover {
+    background: #f6f6f6;
+}
+
+.nav-site-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    display: block;
 }
 
 .open-page-btn {
@@ -1219,21 +1226,21 @@ body.search-bar-bottom .settings-dialog {
 }
 
 /* 拖拽排序样式 */
-.nav-item {
+.nav-list.drag-active .nav-item {
     cursor: move;
     transition: all 0.2s ease;
 }
 
-.nav-item:hover {
+.nav-list.drag-active .nav-item:hover {
     background-color: #f0f0f0;
 }
 
-.nav-item.dragging {
+.nav-list.drag-active .nav-item.dragging {
     opacity: 0.5;
     transform: rotate(5deg);
 }
 
-.nav-item.drag-over {
+.nav-list.drag-active .nav-item.drag-over {
     border-top: 2px solid #007bff;
 }
 

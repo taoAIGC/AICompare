@@ -31,6 +31,14 @@
   "fileUploadButtonAlt": {
     "message": "上传文件"
   },
+  "searchBarDragHandleTitle": {
+    "message": "拖动移动",
+    "description": "搜索栏拖动手柄的悬停提示"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "拖动手柄",
+    "description": "搜索栏拖动手柄的无障碍标签"
+  },
   "openSettings": {
     "message": "默认AI对比配置"
   },
@@ -91,6 +99,10 @@
   "column4": {
     "message": "4列",
     "description": "四列布局选项"
+  },
+  "columnsTitle": {
+    "message": "列数",
+    "description": "列数选择按钮的悬停提示"
   },
   "closeButton": {
     "message": "关闭",
@@ -454,11 +466,17 @@
   "injectProgressTitleRunning": {
     "message": "正在执行脚本..."
   },
+  "injectProgressTitlePageLoading": {
+    "message": "网页加载中"
+  },
   "injectProgressTitleError": {
     "message": "执行失败"
   },
   "injectProgressDetailPreparing": {
     "message": "准备中"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "网页加载中"
   },
   "injectProgressDetailRetrying": {
     "message": "重试中"

@@ -8,6 +8,23 @@ html, body {
     height: 100%;
 }
 
+.skeleton-block {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, #ececec 25%, #f5f5f5 37%, #ececec 63%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
 /* 整体布局：左侧导航 + 主内容 */
 .homepage-layout {
     display: flex;
@@ -34,12 +51,76 @@ html, body {
     flex-direction: column;
 }
 
+.sidebar-nav-skeleton {
+    border-right-color: #efefef;
+}
+
+.sidebar-skeleton-body {
+    padding: 0 14px 16px;
+}
+
+.sidebar-skeleton-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sidebar-skeleton-title {
+    height: 16px;
+    width: 88px;
+    border-radius: 999px;
+}
+
+.sidebar-skeleton-link,
+.sidebar-skeleton-favorite,
+.sidebar-skeleton-section-title,
+.sidebar-skeleton-sync-text,
+.sidebar-skeleton-sync-icon {
+    border-radius: 999px;
+}
+
+.sidebar-skeleton-link {
+    height: 14px;
+    margin: 12px 0;
+    width: 82%;
+}
+
+.sidebar-skeleton-section-title {
+    height: 12px;
+    width: 56px;
+    margin: 24px 0 12px;
+}
+
+.sidebar-skeleton-favorite {
+    height: 12px;
+    width: 100%;
+    margin: 10px 0;
+}
+
+.sidebar-skeleton-sync {
+    cursor: default;
+}
+
+.sidebar-skeleton-sync-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.sidebar-skeleton-sync-text {
+    height: 14px;
+    width: 96px;
+}
+
 /* 侧栏可滚动区域（品牌+链接+收藏），占满剩余高度，超出时内部滚动；禁止横向滚动 */
 .sidebar-nav-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 底部固定：同步栏（与 action-link 样式一致） */
@@ -559,13 +640,17 @@ body.search-bar-bottom .query-suggestions {
 
 /* 收藏下方：全部收藏历史记录列表，紧挨着 Favorites 链接 */
 .sidebar-favorites-list-wrap {
-    flex-shrink: 0;
+    flex: 1;
+    min-height: 0;
     border-top: 1px solid #e8e8e8;
     padding: 4px 10px 8px;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-favorites-list {
-    max-height: 200px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
@@ -680,6 +765,42 @@ body.search-bar-bottom .query-suggestions {
     padding: 20px;
     margin-left: auto;
     margin-right: auto;
+}
+
+.sites-list-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.site-item-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #efefef;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+.site-item-skeleton .site-drag-handle {
+    width: 12px;
+    height: 16px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.site-checkbox-skeleton {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.site-name-skeleton {
+    height: 14px;
+    width: 128px;
+    border-radius: 999px;
 }
 
 .sites-header {

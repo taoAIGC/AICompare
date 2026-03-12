@@ -70,5 +70,11 @@
   },
   "uploadToastClickLinkIcon": {
     "message": "頁面載入後，點擊輸入框的🔗圖示"
+  },
+  "injectProgressTitlePageLoading": {
+    "message": "網頁載入中"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "網頁載入中"
   }
 }

@@ -1,5 +1,11 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
+const path = require('path');
+
+const defaultPersistentProfileDir = path.join(__dirname, '.playwright-user-data', 'automation-profile');
+if (!process.env.PLAYWRIGHT_USER_DATA_DIR) {
+  process.env.PLAYWRIGHT_USER_DATA_DIR = defaultPersistentProfileDir;
+}
 
 module.exports = defineConfig({
   // 测试目录
@@ -55,9 +61,7 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: {
-        ...devices['Desktop Chrome'],
-        // 使用日常 Chrome 用户数据目录
-        userDataDir: '/Users/hasee/Library/Application Support/Google/Chrome/Default'
+        ...devices['Desktop Chrome']
       }
     }
   ]

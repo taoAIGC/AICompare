@@ -29,7 +29,12 @@
           {
             "action": "triggerEvents",
             "selector": "#prompt-textarea",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -68,19 +73,16 @@
           ".markdown.prose"
         ],
         "thinkingSelector": ":scope > div:not(.markdown)",
-        "excludeSelectors": [
-        ],
+        "excludeSelectors": [],
         "extractThinking": true,
-        "thinkingBlockFilters": [
-
-        ],
-        "fallbackSelectors": [
-
-        ],
+        "thinkingBlockFilters": [],
+        "fallbackSelectors": [],
         "urlExtractor": {
           "alternateLinkSelector": "link[rel=\"alternate\"]",
           "urlPattern": "chatgpt.com/c/",
-          "removeParams": ["locale"]
+          "removeParams": [
+            "locale"
+          ]
         }
       },
       "historyHandler": {
@@ -89,7 +91,8 @@
       "userPrompt": {
         "containerSelector": "div[class*=\"user-message-bubble-color\"]",
         "textSelector": "div.whitespace-pre-wrap"
-      }
+      },
+      "icon": "chatgpt.com.png"
     },
     {
       "name": "Gemini",
@@ -116,7 +119,12 @@
           {
             "action": "triggerEvents",
             "selector": "[contenteditable=\"true\"]",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -156,20 +164,16 @@
           "model-response .model-response-text"
         ],
         "thinkingSelector": ":scope > div:not(.model-response-text)",
-        "excludeSelectors": [
-
-        ],
+        "excludeSelectors": [],
         "extractThinking": true,
-        "thinkingBlockFilters": [
-
-        ],
-        "fallbackSelectors": [
-
-        ],
+        "thinkingBlockFilters": [],
+        "fallbackSelectors": [],
         "urlExtractor": {
           "alternateLinkSelector": "link[rel=\"alternate\"]",
           "urlPattern": "gemini.google.com/app/",
-          "removeParams": ["locale"]
+          "removeParams": [
+            "locale"
+          ]
         }
       },
       "historyHandler": {
@@ -178,7 +182,8 @@
       "userPrompt": {
         "containerSelector": "div.query-text",
         "textSelector": "p.query-text-line"
-      }
+      },
+      "icon": "gemini.google.com.png"
     },
     {
       "name": "Grok",
@@ -209,7 +214,9 @@
           {
             "action": "triggerEvents",
             "selector": "div[contenteditable=\"true\"].tiptap",
-            "events": ["input"],
+            "events": [
+              "input"
+            ],
             "maxAttempts": 5,
             "retryInterval": 200,
             "description": "触发输入事件"
@@ -217,7 +224,12 @@
           {
             "action": "triggerEvents",
             "selector": "div[contenteditable=\"true\"].tiptap",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "maxAttempts": 5,
             "retryInterval": 200,
             "description": "触发完整的输入事件序列"
@@ -300,7 +312,8 @@
       "userPrompt": {
         "containerSelector": "[id^=\"response-\"][class*=\"items-end\"]",
         "textSelector": "div[class*=\"message-bubble\"]"
-      }
+      },
+      "icon": "grok.com.png"
     },
     {
       "name": "Claude",
@@ -338,7 +351,12 @@
           {
             "action": "triggerEvents",
             "selector": "[contenteditable=\"true\"]",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "waitForElement": true,
             "maxAttempts": 5,
             "retryInterval": 200,
@@ -429,7 +447,8 @@
       "userPrompt": {
         "containerSelector": "[data-testid=\"user-message\"]",
         "textSelector": "p.whitespace-pre-wrap.break-words"
-      }
+      },
+      "icon": "claude.ai.png"
     },
     {
       "name": "AI Studio",
@@ -523,7 +542,8 @@
       "userPrompt": {
         "containerSelector": "[data-testid^=\"message-prompt\"]",
         "textSelector": "[data-testid^=\"message-prompt\"] .markdown"
-      }
+      },
+      "icon": "aistudio.google.com.png"
     },
     {
       "name": "DeepSeek",
@@ -549,7 +569,12 @@
           {
             "action": "triggerEvents",
             "selector": "textarea",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -640,7 +665,8 @@
       "userPrompt": {
         "containerSelector": "div.ds-message",
         "textSelector": "div.ds-message > div"
-      }
+      },
+      "icon": "chat.deepseek.com.png"
     },
     {
       "name": "豆包",
@@ -666,7 +692,15 @@
           {
             "action": "triggerEvents",
             "selector": "textarea[data-testid=\"chat_input_input\"]",
-            "events": ["input", "change", "blur", "focus", "keydown", "keyup", "keypress"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus",
+              "keydown",
+              "keyup",
+              "keypress"
+            ],
             "description": "触发多种输入事件"
           },
           {
@@ -755,7 +789,8 @@
       "userPrompt": {
         "containerSelector": "[data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], [data-plugin-identifier=\"block_type:10000\"].flex.justify-end [data-testid=\"message_text_content\"]",
         "textSelector": "[data-testid=\"message_text_content\"]"
-      }
+      },
+      "icon": "doubao.com.png"
     },
     {
       "name": "问小白",
@@ -781,7 +816,12 @@
           {
             "action": "triggerEvents",
             "selector": "textarea",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -800,10 +840,11 @@
       "userPrompt": {
         "containerSelector": "[class*=\"Question_question_container\"]",
         "textSelector": "pre[class*=\"Question_question_content_pre\"]"
-      }
+      },
+      "icon": "www.wenxiaobai.com.png"
     },
     {
-      "name": "秘塔AI",
+      "name": "秘塔",
       "url": "https://metaso.cn/",
       "enabled": false,
       "supportUrlQuery": false,
@@ -815,7 +856,10 @@
         "steps": [
           {
             "action": "focus",
-            "selector": ["div.MuiBox-root.css-qtri4c", ".search-consult-textarea"],
+            "selector": [
+              "div.MuiBox-root.css-qtri4c",
+              ".search-consult-textarea"
+            ],
             "description": "聚焦推荐框或输入框"
           },
           {
@@ -826,7 +870,9 @@
           {
             "action": "triggerEvents",
             "selector": ".search-consult-textarea",
-            "events": ["input"],
+            "events": [
+              "input"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -879,7 +925,8 @@
       "userPrompt": {
         "containerSelector": "span.MuiBox-root.css-403oub",
         "textSelector": "span.MuiBox-root.css-403oub > span[style*=\"margin-right\"]"
-      }
+      },
+      "icon": "metaso.cn.png"
     },
     {
       "name": "文心一言",
@@ -907,7 +954,10 @@
           {
             "action": "triggerEvents",
             "selector": ".yc-editor",
-            "events": ["input", "change"],
+            "events": [
+              "input",
+              "change"
+            ],
             "inputType": "special",
             "description": "触发特殊输入事件"
           },
@@ -1004,7 +1054,8 @@
       "userPrompt": {
         "containerSelector": "div.hyc-component-text",
         "textSelector": "div.hyc-content-text"
-      }
+      },
+      "icon": "yiyan.baidu.com.png"
     },
     {
       "name": "元宝",
@@ -1035,7 +1086,12 @@
           {
             "action": "triggerEvents",
             "selector": "[contenteditable=\"true\"]",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "maxAttempts": 5,
             "retryInterval": 200,
             "description": "触发输入事件"
@@ -1114,7 +1170,8 @@
       "userPrompt": {
         "containerSelector": "div.agent-chat__list__item--human, [class*=\"agent-dialogue\"][class*=\"human\"], [class*=\"chat-item\"][class*=\"human\"]",
         "textSelector": "div.agent-chat__bubble--human, [class*=\"human-bubble\"], [class*=\"human-message\"] p, [class*=\"human-message\"] div"
-      }
+      },
+      "icon": "yuanbao.tencent.com.png"
     },
     {
       "name": "Google",
@@ -1133,9 +1190,9 @@
             "description": "使用URL查询，无需输入框操作"
           }
         ]
-      }
+      },
+      "icon": "www.google.com.png"
     },
-   
     {
       "name": "纳米AI",
       "url": "https://nanoai.live/",
@@ -1157,7 +1214,8 @@
       "userPrompt": {
         "containerSelector": "[class*=\"user\"], [class*=\"human\"], [class*=\"question\"]",
         "textSelector": "[class*=\"user\"] p, [class*=\"human\"] p, [class*=\"question\"] p"
-      }
+      },
+      "icon": "nanoai.live.png"
     },
     {
       "name": "智谱",
@@ -1235,7 +1293,8 @@
           ".attachment",
           "[class*=\"attachment\"]"
         ]
-      }
+      },
+      "icon": "chatglm.cn.png"
     },
     {
       "name": "Kimi",
@@ -1267,7 +1326,10 @@
           {
             "action": "triggerEvents",
             "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
-            "events": ["input", "change"],
+            "events": [
+              "input",
+              "change"
+            ],
             "waitForElement": true,
             "maxAttempts": 5,
             "retryInterval": 200,
@@ -1369,9 +1431,9 @@
       },
       "historyHandler": {
         "urlFeature": "/chat/"
-      }
+      },
+      "icon": "kimi.com.png"
     },
-    
     {
       "name": "千问",
       "url": "https://www.qianwen.com/",
@@ -1492,7 +1554,8 @@
       "userPrompt": {
         "containerSelector": "[class*=\"questionItem\"]",
         "textSelector": "[class*=\"bubble\"]"
-      }
+      },
+      "icon": "chat.qwen.ai.png"
     },
     {
       "name": "Qwen",
@@ -1518,7 +1581,12 @@
           {
             "action": "triggerEvents",
             "selector": "textarea",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -1615,9 +1683,13 @@
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "[data-message-author-role=\"user\"], [class*=\"userMessage\"], [class*=\"user-message\"], div[class*=\"message-item\"][class*=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"], [class*=\"userMessage\"] p, [class*=\"userMessage\"] div, [class*=\"message-text\"]"
-      }
+        "containerSelector": "[data-message-author-role=\"user\"]",
+        "textSelector": "[data-message-author-role=\"user\"]",
+        "messageNodeSelector": "[data-testid=\"message-block-container\"], [data-message-id], [data-turn-id]",
+        "requireMessageNode": true,
+        "skipMessageIdPattern": "undefined"
+      },
+      "icon": "chat.qwen.ai.png"
     },
     {
       "name": "知乎直达",
@@ -1643,7 +1715,12 @@
           {
             "action": "triggerEvents",
             "selector": "textarea",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -1662,7 +1739,8 @@
       "userPrompt": {
         "containerSelector": "div[style*=\"padding: 12px\"][style*=\"rgba(90, 77, 248\"]",
         "textSelector": "div[dir=\"auto\"]"
-      }
+      },
+      "icon": "zhida.zhihu.com.png"
     },
     {
       "name": "小红书",
@@ -1681,7 +1759,8 @@
             "description": "使用URL查询，无需输入框操作"
           }
         ]
-      }
+      },
+      "icon": "www.xiaohongshu.com.png"
     },
     {
       "name": "百度",
@@ -1700,10 +1779,9 @@
             "description": "使用URL查询，无需输入框操作"
           }
         ]
-      }
+      },
+      "icon": "www.baidu.com.png"
     },
-    
-    
     {
       "name": "Copilot",
       "url": "https://copilot.microsoft.com/",
@@ -1728,7 +1806,12 @@
           {
             "action": "triggerEvents",
             "selector": "textarea#userInput",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -1768,7 +1851,8 @@
       "userPrompt": {
         "containerSelector": "div[class*=\"Prose_prose__\"]",
         "textSelector": "div[class*=\"Prose_prose__\"] > p"
-      }
+      },
+      "icon": "copilot.microsoft.com.png"
     },
     {
       "name": "Perplexity",
@@ -1787,9 +1871,9 @@
             "description": "使用URL查询，无需输入框操作"
           }
         ]
-      }
+      },
+      "icon": "www.perplexity.ai.png"
     },
-    
     {
       "name": "POE",
       "url": "https://poe.com/",
@@ -1811,7 +1895,9 @@
           {
             "action": "triggerEvents",
             "selector": ".GrowingTextArea_growWrap__im5W3 textarea",
-            "events": ["input"],
+            "events": [
+              "input"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -1868,7 +1954,8 @@
       "userPrompt": {
         "containerSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"], [class*=\"UserMessage\"], [class*=\"messageRow\"][class*=\"human\"]",
         "textSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"] p, [class*=\"user-message\"] div, [class*=\"messageContent\"]"
-      }
+      },
+      "icon": "poe.com.png"
     },
     {
       "name": "Z.ai",
@@ -1894,7 +1981,12 @@
           {
             "action": "triggerEvents",
             "selector": "textarea",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -1949,7 +2041,8 @@
       "userPrompt": {
         "containerSelector": "[class*=\"chat-user\"]",
         "textSelector": "[class*=\"chat-user\"] [class*=\"whitespace-pre-wrap\"], [class*=\"chat-user\"] [class*=\"rounded-xl\"]"
-      }
+      },
+      "icon": "chat.z.ai.png"
     },
     {
       "name": "Mistral",
@@ -1976,7 +2069,12 @@
           {
             "action": "triggerEvents",
             "selector": "[contenteditable=\"true\"], .ProseMirror",
-            "events": ["input", "change", "blur", "focus"],
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
             "description": "触发输入事件"
           },
           {
@@ -2031,7 +2129,8 @@
       "userPrompt": {
         "containerSelector": "[class*=\"group/message\"]:has([class*=\"ms-auto\"])",
         "textSelector": "[class*=\"whitespace-pre-wrap\"]"
-      }
+      },
+      "icon": "chat.mistral.ai.png"
     },
     {
       "name": "Bing",
@@ -2050,7 +2149,8 @@
             "description": "使用URL查询，无需输入框操作"
           }
         ]
-      }
+      },
+      "icon": "www.bing.com.png"
     }
   ]
 }

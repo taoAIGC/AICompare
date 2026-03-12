@@ -3078,30 +3078,40 @@ async function initDirectUserPromptButtons() {
     return;
   }
 
+  if (window.__aiCompareUserPromptButtonsInitialized) {
+    console.log('DirectUserPrompt: already initialized on this page, skip');
+    return;
+  }
+  window.__aiCompareUserPromptButtonsInitialized = true;
+
   const domain = window.location.hostname;
   const siteHandler = await getSiteHandler(domain);
   const siteName = siteHandler?.name || (window.getSiteNameFromDomain ? await window.getSiteNameFromDomain(domain) : domain);
   let config = siteHandler?.userPrompt || siteHandler?.userPromptButton;
-  if (!config?.textSelector) {
-    // 尝试从本地配置文件读取（兼容 remoteSiteHandlers 未更新的情况）
-    try {
-      if (chrome?.runtime?.getURL) {
-        const resp = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
-        if (resp.ok) {
-          const localConfig = await resp.json();
-          const matched = (localConfig.sites || []).find(s => {
-            try {
-              const host = new URL(s.url).hostname;
-              return host === domain || domain.includes(host) || host.includes(domain);
-            } catch (_) {
-              return false;
-            }
-          });
-          config = matched?.userPrompt || matched?.userPromptButton || config;
+  // 始终尝试合并本地配置（本地字段优先），避免远端配置滞后导致按钮逻辑不一致
+  try {
+    if (chrome?.runtime?.getURL) {
+      const resp = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
+      if (resp.ok) {
+        const localConfig = await resp.json();
+        const matched = (localConfig.sites || []).find(s => {
+          try {
+            const host = new URL(s.url).hostname;
+            return host === domain || domain.includes(host) || host.includes(domain);
+          } catch (_) {
+            return false;
+          }
+        });
+        const localPromptConfig = matched?.userPrompt || matched?.userPromptButton;
+        if (localPromptConfig) {
+          config = {
+            ...(config || {}),
+            ...localPromptConfig
+          };
         }
       }
-    } catch (_) {}
-  }
+    }
+  } catch (_) {}
   if (!config?.textSelector) {
     console.log('DirectUserPrompt: missing config, skip', { siteName });
     return;
@@ -3124,30 +3134,108 @@ async function initDirectUserPromptButtons() {
     console.warn('DirectUserPrompt: read compareButtonLang failed', e);
   }
 
-  const buttonContainers = new WeakMap();
+  const wrapToContainer = new WeakMap();
+  const containerToWrap = new WeakMap();
+  const wrapToMessageNode = new WeakMap();
+  const messageNodeToWrap = new WeakMap();
+  const messageKeyToWrap = new Map();
+  const messageNodeSelector = config.messageNodeSelector || '[data-testid="message-block-container"], [data-message-id], [data-turn-id]';
+  const requireMessageNode = !!config.requireMessageNode;
+  let skipMessageIdRegex = null;
+  if (typeof config.skipMessageIdPattern === 'string' && config.skipMessageIdPattern.trim()) {
+    try {
+      skipMessageIdRegex = new RegExp(config.skipMessageIdPattern, 'i');
+    } catch (error) {
+      console.warn('DirectUserPrompt: invalid skipMessageIdPattern', config.skipMessageIdPattern, error);
+    }
+  }
+  const getContainerMessageId = (container) => {
+    const idContainer = container.closest('[data-message-id], [id]');
+    return (idContainer?.getAttribute('data-message-id') || idContainer?.id || '').trim();
+  };
   const getPositionAnchor = (container) => {
     const msgContent = container.closest('[data-testid="message_content"]');
     return msgContent?.firstElementChild || container.closest('[data-testid="message-block-container"]') || container;
   };
+  const getMessageNode = (container) => {
+    const messageNode = container.closest(messageNodeSelector);
+    if (!messageNode && requireMessageNode) return null;
+    return messageNode || container;
+  };
+  const removeWrap = (btnWrap) => {
+    if (!btnWrap) return;
+    const container = wrapToContainer.get(btnWrap);
+    if (container && containerToWrap.get(container) === btnWrap) {
+      containerToWrap.delete(container);
+    }
+    const key = btnWrap.dataset.messageKey;
+    if (key && messageKeyToWrap.get(key) === btnWrap) {
+      messageKeyToWrap.delete(key);
+    }
+    const messageNode = wrapToMessageNode.get(btnWrap);
+    if (messageNode && messageNodeToWrap.get(messageNode) === btnWrap) {
+      messageNodeToWrap.delete(messageNode);
+    }
+    wrapToMessageNode.delete(btnWrap);
+    wrapToContainer.delete(btnWrap);
+    btnWrap.remove();
+  };
+  const isContainerVisible = (container) => {
+    try {
+      const style = window.getComputedStyle(container);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+      const rect = container.getBoundingClientRect();
+      return rect.width > 4 && rect.height > 4;
+    } catch (_) {
+      return false;
+    }
+  };
+  const getContainerMessageKey = (container, text) => {
+    const messageId = getContainerMessageId(container);
+    if (messageId) return `id:${messageId}`;
+    const anchor = getPositionAnchor(container);
+    const rect = anchor.getBoundingClientRect();
+    const shortText = (text || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    return `txt:${shortText}|x:${Math.round(rect.left / 8)}|y:${Math.round(rect.top / 8)}`;
+  };
 
   const updateFloatingPositions = () => {
     document.querySelectorAll('.ai-compare-userprompt-btn-wrap').forEach(btnWrap => {
-      const container = buttonContainers.get(btnWrap);
-      if (!container) return;
+      const container = wrapToContainer.get(btnWrap);
+      if (!container) {
+        removeWrap(btnWrap);
+        return;
+      }
       if (!document.contains(container)) {
-        container.dataset.aiCompareBtnAdded = '';
-        btnWrap.remove();
+        removeWrap(btnWrap);
         return;
       }
       const anchor = getPositionAnchor(container);
       const rect = anchor.getBoundingClientRect();
+      const vw = window.innerWidth;
       const vh = window.innerHeight;
       if (rect.top < -50 || rect.bottom > vh + 50) {
         btnWrap.style.visibility = 'hidden';
       } else {
+        const btnWidth = Math.max(btnWrap.offsetWidth || 0, 120);
+        const btnHeight = Math.max(btnWrap.offsetHeight || 0, 28);
+        const gap = 10;
+        const maxX = Math.max(8, vw - btnWidth - 8);
+        const rightX = rect.right + gap;
+        const leftX = rect.left - btnWidth - gap;
+        let x = rightX;
+        if (rightX > maxX) {
+          x = leftX >= 8 ? leftX : maxX;
+        }
+
+        const centerY = rect.top + rect.height / 2;
+        const minCenterY = 8 + btnHeight / 2;
+        const maxCenterY = vh - 8 - btnHeight / 2;
+        const y = Math.min(Math.max(centerY, minCenterY), maxCenterY);
+
         btnWrap.style.visibility = '';
-        btnWrap.style.left = `${rect.right + 23}px`;
-        btnWrap.style.top = `${rect.top + rect.height / 2}px`;
+        btnWrap.style.left = `${Math.max(8, Math.min(x, maxX))}px`;
+        btnWrap.style.top = `${y}px`;
       }
     });
   };
@@ -3156,15 +3244,42 @@ async function initDirectUserPromptButtons() {
     if (!node) return;
     const container = config.containerSelector ? node : (node.parentElement || node);
     if (!container) return;
-    if (container.dataset.aiCompareBtnAdded === '1') return;
+    if (container.closest('.ai-compare-userprompt-btn-wrap, .ai-fav-modal-overlay, dialog, [role="dialog"], [aria-modal="true"]')) return;
+    if (!isContainerVisible(container)) return;
+    const messageId = getContainerMessageId(container);
+    if (skipMessageIdRegex && messageId && skipMessageIdRegex.test(messageId)) return;
+    const messageNode = getMessageNode(container);
+    if (!messageNode) return;
+    const existingMessageWrap = messageNodeToWrap.get(messageNode);
+    if (existingMessageWrap && !document.contains(existingMessageWrap)) {
+      removeWrap(existingMessageWrap);
+    }
+    if (existingMessageWrap && document.contains(existingMessageWrap)) return;
+    const existingWrap = containerToWrap.get(container);
+    if (existingWrap && !document.contains(existingWrap)) {
+      removeWrap(existingWrap);
+    }
+    if (existingWrap && document.contains(existingWrap)) return;
+    if (existingWrap) {
+      removeWrap(existingWrap);
+    }
     const textNode = config.containerSelector ? container.querySelector(config.textSelector) : node;
     const text = ((textNode || container).textContent || '').trim();
     if (!text) return;
+    const messageKey = getContainerMessageKey(container, text);
+    const keyedWrap = messageKeyToWrap.get(messageKey);
+    if (keyedWrap && document.contains(keyedWrap)) return;
+    if (keyedWrap) messageKeyToWrap.delete(messageKey);
 
     const btnWrap = document.createElement('span');
     btnWrap.className = 'ai-compare-userprompt-btn-wrap';
+    btnWrap.dataset.messageKey = messageKey;
     btnWrap.style.cssText = 'position:fixed;transform:translateY(-50%);z-index:9999;pointer-events:auto;display:inline-flex;align-items:center;align-self:center;flex-shrink:0;height:fit-content;';
-    buttonContainers.set(btnWrap, container);
+    wrapToContainer.set(btnWrap, container);
+    containerToWrap.set(container, btnWrap);
+    wrapToMessageNode.set(btnWrap, messageNode);
+    messageNodeToWrap.set(messageNode, btnWrap);
+    messageKeyToWrap.set(messageKey, btnWrap);
 
     const btn = document.createElement('button');
     btn.className = 'ai-compare-userprompt-btn';
@@ -3225,7 +3340,6 @@ async function initDirectUserPromptButtons() {
     btnWrap.appendChild(favBtn);
 
     document.body.appendChild(btnWrap);
-    container.dataset.aiCompareBtnAdded = '1';
     updateFloatingPositions();
   };
 
@@ -3236,7 +3350,9 @@ async function initDirectUserPromptButtons() {
   window.addEventListener('resize', onScrollResize);
 
   const scan = () => {
-    const containers = document.querySelectorAll(config.containerSelector || config.textSelector);
+    const rawContainers = Array.from(document.querySelectorAll(config.containerSelector || config.textSelector));
+    // 去掉嵌套重复命中的节点，避免同一条消息出现多组按钮
+    const containers = rawContainers.filter(node => !rawContainers.some(other => other !== node && other.contains(node)));
     console.log('DirectUserPrompt: scan containers', containers.length);
     containers.forEach(node => addButtonToContainer(node));
     updateFloatingPositions();

@@ -1,6 +1,70 @@
 // 跟踪输入法组合输入状态（用于中文输入法）
 let isComposing = false;
 
+const HOMEPAGE_PERF_PREFIX = 'homepage';
+const HOMEPAGE_PERF_CACHE_KEY = '__homepagePerfMeasures';
+
+function perfMark(name) {
+    if (typeof performance === 'undefined' || typeof performance.mark !== 'function') {
+        return;
+    }
+    try {
+        performance.mark(`${HOMEPAGE_PERF_PREFIX}_${name}`);
+    } catch (_) {}
+}
+
+function perfMeasure(name, startMark, endMark) {
+    if (typeof performance === 'undefined' || typeof performance.measure !== 'function') {
+        return;
+    }
+    try {
+        performance.measure(
+            `${HOMEPAGE_PERF_PREFIX}_${name}`,
+            `${HOMEPAGE_PERF_PREFIX}_${startMark}`,
+            `${HOMEPAGE_PERF_PREFIX}_${endMark}`
+        );
+    } catch (_) {}
+}
+
+function cacheHomepagePerfMeasures(reason) {
+    if (typeof performance === 'undefined' || typeof performance.getEntriesByType !== 'function') {
+        return;
+    }
+    try {
+        const measures = performance
+            .getEntriesByType('measure')
+            .filter(entry => entry.name.startsWith(`${HOMEPAGE_PERF_PREFIX}_`))
+            .map(entry => ({
+                name: entry.name,
+                duration: Number(entry.duration.toFixed(2)),
+                startTime: Number(entry.startTime.toFixed(2))
+            }));
+        window[HOMEPAGE_PERF_CACHE_KEY] = {
+            reason,
+            capturedAt: Date.now(),
+            measures
+        };
+    } catch (_) {}
+}
+
+async function measureAsyncStep(stepName, runner) {
+    const startMark = `${stepName}_start`;
+    const endMark = `${stepName}_end`;
+    perfMark(startMark);
+    try {
+        return await runner();
+    } finally {
+        perfMark(endMark);
+        perfMeasure(`${stepName}_duration`, startMark, endMark);
+    }
+}
+
+window.getHomepagePerfMeasures = function() {
+    return window[HOMEPAGE_PERF_CACHE_KEY] || null;
+};
+
+perfMark('script_eval_start');
+
 function trackEvent(name, params = {}) {
     const analytics = window.AIShortcutsAnalytics;
     if (analytics && typeof analytics.logEvent === 'function') {
@@ -10,8 +74,13 @@ function trackEvent(name, params = {}) {
 
 // 页面加载完成后的初始化
 document.addEventListener('DOMContentLoaded', async function() {
+    perfMark('dom_content_loaded');
+    perfMeasure('script_to_dom_content_loaded_duration', 'script_eval_start', 'dom_content_loaded');
+    perfMark('dom_init_start');
+
     // 初始化自动调整高度的输入框
     const searchInput = document.getElementById('searchInput');
+    perfMark('search_input_setup_start');
     if (searchInput) {
         const inputWrapper = searchInput.closest('.input-wrapper');
         const mirror = document.createElement('div');
@@ -102,6 +171,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 初始调整
         autoResizeTextarea();
     }
+    perfMark('search_input_setup_end');
+    perfMeasure('search_input_setup_duration', 'search_input_setup_start', 'search_input_setup_end');
     
     // 检查 URL 参数，判断是否有预填充的查询和是否在侧边栏中
     const urlParams = new URLSearchParams(window.location.search);
@@ -161,24 +232,33 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // 初始化国际化
+    perfMark('i18n_init_start');
     initializeI18n();
-    
-    // 检查是否需要显示 pin 引导提示（仅首次安装时）
-    await checkAndShowPinGuide();
-    
-    // 加载提示词模板建议
-    await initializeQuerySuggestions();
-    
-    // 初始化站点列表
-    await initializeSitesList();
-    
-    // 初始化保存按钮（确保即使站点列表加载失败也能初始化）
+    perfMark('i18n_init_end');
+    perfMeasure('i18n_init_duration', 'i18n_init_start', 'i18n_init_end');
+
+    // 初始化保存按钮，避免被异步站点列表初始化阻塞
+    perfMark('save_button_init_start');
     initializeSaveSitesButton();
+    perfMark('save_button_init_end');
+    perfMeasure('save_button_init_duration', 'save_button_init_start', 'save_button_init_end');
+    
+    // 非关键初始化并行执行，减少首屏等待
+    perfMark('non_critical_init_start');
+    void Promise.allSettled([
+        measureAsyncStep('pin_guide_init', () => checkAndShowPinGuide()),
+        measureAsyncStep('query_suggestions_init', () => initializeQuerySuggestions()),
+        measureAsyncStep('sites_list_init', () => initializeSitesList())
+    ]).finally(() => {
+        perfMark('non_critical_init_end');
+        perfMeasure('non_critical_init_duration', 'non_critical_init_start', 'non_critical_init_end');
+        cacheHomepagePerfMeasures('non_critical_init_settled');
+    });
     
     // 侧边栏导航由 shared/sidebar.js 统一初始化
 
     // 页面加载时，若已登录则自动同步一次
-    (async () => {
+    void measureAsyncStep('auto_sync', async () => {
         try {
             // WebDAV: 首页每次打开时都尝试拉取一次（静默失败）
             try {
@@ -191,8 +271,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         } catch (e) {
             console.warn('Homepage auto sync failed', e);
+        } finally {
+            cacheHomepagePerfMeasures('auto_sync_finished');
         }
-    })();
+    });
+
+    perfMark('dom_init_end');
+    perfMeasure('dom_init_duration', 'dom_init_start', 'dom_init_end');
+    perfMeasure('script_eval_to_dom_init_end_duration', 'script_eval_start', 'dom_init_end');
+    cacheHomepagePerfMeasures('dom_init_finished');
 });
 
 // 输入框固定在底部
@@ -467,9 +554,13 @@ async function initializeSitesList() {
         return;
     }
     
+    perfMark('sites_list_flow_start');
     try {
         // 使用 getDefaultSites 获取合并后的站点配置
+        perfMark('sites_list_get_data_start');
         const sites = await getDefaultSites();
+        perfMark('sites_list_get_data_end');
+        perfMeasure('sites_list_get_data_duration', 'sites_list_get_data_start', 'sites_list_get_data_end');
         
         // 过滤支持 iframe 的站点
         const supportedSites = sites.filter(site => 
@@ -478,6 +569,7 @@ async function initializeSitesList() {
         const sortedSites = sortSitesFavoriteFirst(supportedSites);
         
         console.log('从getDefaultSites() 获取的可以使用的站点:', sortedSites.map(site => ({ name: site.name, enabled: site.enabled })));
+        perfMark('sites_list_render_start');
         // 清空列表
         sitesList.innerHTML = '';
         
@@ -534,6 +626,8 @@ async function initializeSitesList() {
         });
         
         sitesList.appendChild(fragment);
+        perfMark('sites_list_render_end');
+        perfMeasure('sites_list_render_duration', 'sites_list_render_start', 'sites_list_render_end');
         
         // 添加拖拽排序功能
         addDragAndDropToSitesList(sitesList, sortedSites);
@@ -543,6 +637,11 @@ async function initializeSitesList() {
         if (sitesList) {
             sitesList.innerHTML = '<div style="padding: 20px; color: #666; text-align: center;">加载站点配置失败，请刷新页面重试</div>';
         }
+    } finally {
+        sitesList.classList.remove('sites-list-skeleton');
+        sitesList.removeAttribute('aria-busy');
+        perfMark('sites_list_flow_end');
+        perfMeasure('sites_list_flow_duration', 'sites_list_flow_start', 'sites_list_flow_end');
     }
 }
 

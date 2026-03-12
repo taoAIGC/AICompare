@@ -29,7 +29,9 @@
       "Bash(npx playwright test:*)",
       "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(''Profile info:'', json.dumps\\(data.get\\(''profile'', {}\\), indent=2\\)\\)\")",
       "Bash(gh repo view:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": [],

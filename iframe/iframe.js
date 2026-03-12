@@ -274,88 +274,220 @@ async function applyIframeInputPosition() {
   document.body.classList.add('search-bar-bottom');
 }
 
-// 底部 search-bar 左右拖动：用 transform 平移，不触发布局
+// 底部 search-bar 拖动（支持左右/上下）：用 transform 平移，不触发布局
 function initSearchBarDrag() {
   const bar = document.getElementById('searchBar');
   const handle = document.getElementById('searchBarDragHandle');
   if (!bar || !handle || !document.body.classList.contains('search-bar-bottom')) return;
 
   let pointerOffsetX = 0;
+  let pointerOffsetY = 0;
+  let pointerDownX = 0;
+  let pointerDownY = 0;
   let originLeft = 0;
+  let originTop = 0;
+  let baseTranslateX = 0;
+  let baseTranslateY = 0;
   let cachedBarWidth = 0;
+  let cachedBarHeight = 0;
   let cachedViewportWidth = 0;
+  let cachedViewportHeight = 0;
+  let isPointerDown = false;
   let isDragging = false;
+  let activePointerId = null;
   let rafId = 0;
   let pendingClientX = null;
+  let pendingClientY = null;
+  const dragStartThreshold = 4;
 
   function clampTargetLeft(targetLeft) {
     const maxLeft = Math.max(0, cachedViewportWidth - cachedBarWidth);
     return Math.max(0, Math.min(maxLeft, targetLeft));
   }
 
-  function flushPosition() {
-    if (pendingClientX === null) return;
-    const x = pendingClientX;
-    pendingClientX = null;
-    rafId = 0;
-    const targetLeft = clampTargetLeft(x - pointerOffsetX);
-    const tx = targetLeft - originLeft;
-    bar.style.transform = 'translateX(' + tx + 'px)';
+  function clampTargetTop(targetTop) {
+    const maxTop = Math.max(0, cachedViewportHeight - cachedBarHeight);
+    return Math.max(0, Math.min(maxTop, targetTop));
   }
 
-  function onMouseMove(e) {
-    if (!isDragging) return;
-    if (e.buttons !== 1) {
-      endDrag();
-      return;
+  function readCurrentTranslate() {
+    const transform = (bar.style.transform || getComputedStyle(bar).transform || '').trim();
+    if (!transform || transform === 'none') {
+      return { x: 0, y: 0 };
+    }
+    if (typeof DOMMatrixReadOnly === 'function') {
+      try {
+        const matrix = new DOMMatrixReadOnly(transform);
+        return {
+          x: Number.isFinite(matrix.m41) ? matrix.m41 : 0,
+          y: Number.isFinite(matrix.m42) ? matrix.m42 : 0
+        };
+      } catch (_) {
+        // Fallback to manual parsing below.
+      }
+    }
+    const matchMatrix3d = transform.match(/^matrix3d\((.+)\)$/);
+    if (matchMatrix3d) {
+      const values = matchMatrix3d[1].split(',').map((value) => Number.parseFloat(value.trim()));
+      if (values.length === 16) {
+        return {
+          x: Number.isFinite(values[12]) ? values[12] : 0,
+          y: Number.isFinite(values[13]) ? values[13] : 0
+        };
+      }
+    }
+    const matchMatrix2d = transform.match(/^matrix\((.+)\)$/);
+    if (matchMatrix2d) {
+      const values = matchMatrix2d[1].split(',').map((value) => Number.parseFloat(value.trim()));
+      if (values.length === 6) {
+        return {
+          x: Number.isFinite(values[4]) ? values[4] : 0,
+          y: Number.isFinite(values[5]) ? values[5] : 0
+        };
+      }
+    }
+    const matchTranslate3d = transform.match(/^translate3d\((.+)\)$/);
+    if (matchTranslate3d) {
+      const values = matchTranslate3d[1].split(',').map((value) => Number.parseFloat(value.trim()));
+      if (values.length >= 2) {
+        return {
+          x: Number.isFinite(values[0]) ? values[0] : 0,
+          y: Number.isFinite(values[1]) ? values[1] : 0
+        };
+      }
+    }
+    const matchTranslate = transform.match(/^translate\((.+)\)$/);
+    if (matchTranslate) {
+      const values = matchTranslate[1].split(',').map((value) => Number.parseFloat(value.trim()));
+      if (values.length >= 1) {
+        return {
+          x: Number.isFinite(values[0]) ? values[0] : 0,
+          y: Number.isFinite(values[1]) ? values[1] : 0
+        };
+      }
+    }
+    const matchTranslateX = transform.match(/^translateX\((.+)\)$/);
+    if (matchTranslateX) {
+      const valueX = Number.parseFloat(matchTranslateX[1].trim());
+      return {
+        x: Number.isFinite(valueX) ? valueX : 0,
+        y: 0
+      };
+    }
+    const matchTranslateY = transform.match(/^translateY\((.+)\)$/);
+    if (matchTranslateY) {
+      const valueY = Number.parseFloat(matchTranslateY[1].trim());
+      return {
+        x: 0,
+        y: Number.isFinite(valueY) ? valueY : 0
+      };
+    }
+    return { x: 0, y: 0 };
+  }
+
+  function flushPosition() {
+    if (pendingClientX === null || pendingClientY === null) return;
+    const x = pendingClientX;
+    const y = pendingClientY;
+    pendingClientX = null;
+    pendingClientY = null;
+    rafId = 0;
+    const targetLeft = clampTargetLeft(x - pointerOffsetX);
+    const targetTop = clampTargetTop(y - pointerOffsetY);
+    const tx = Math.round(baseTranslateX + (targetLeft - originLeft));
+    const ty = Math.round(baseTranslateY + (targetTop - originTop));
+    bar.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0)';
+  }
+
+  function onPointerMove(e) {
+    if (!isPointerDown || e.pointerId !== activePointerId) return;
+    if (!isDragging) {
+      const movedX = Math.abs(e.clientX - pointerDownX);
+      const movedY = Math.abs(e.clientY - pointerDownY);
+      if (movedX < dragStartThreshold && movedY < dragStartThreshold) {
+        return;
+      }
+      isDragging = true;
+      bar.classList.add('search-bar-dragging');
+      document.body.classList.add('search-bar-drag-active');
     }
     pendingClientX = e.clientX;
+    pendingClientY = e.clientY;
     if (rafId === 0) {
       rafId = requestAnimationFrame(flushPosition);
     }
   }
 
   function endDrag() {
-    if (!isDragging) return;
+    if (!isPointerDown && !isDragging) return;
+    isPointerDown = false;
+    pointerDownX = 0;
+    pointerDownY = 0;
     isDragging = false;
+    activePointerId = null;
     bar.classList.remove('search-bar-dragging');
+    document.body.classList.remove('search-bar-drag-active');
     if (rafId !== 0) {
       cancelAnimationFrame(rafId);
       rafId = 0;
     }
     pendingClientX = null;
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+    pendingClientY = null;
+    handle.removeEventListener('pointermove', onPointerMove);
+    handle.removeEventListener('pointerup', onPointerUp);
+    handle.removeEventListener('pointercancel', onPointerCancel);
   }
 
-  function onMouseUp() {
+  function onPointerUp(e) {
+    if (e.pointerId !== activePointerId) return;
+    if (handle.hasPointerCapture(e.pointerId)) {
+      handle.releasePointerCapture(e.pointerId);
+    }
     endDrag();
   }
 
-  handle.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
+  function onPointerCancel(e) {
+    if (e.pointerId !== activePointerId) return;
+    endDrag();
+  }
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || isPointerDown) return;
     e.preventDefault();
     e.stopPropagation();
-    isDragging = true;
-    bar.classList.add('search-bar-dragging');
+    isPointerDown = true;
+    isDragging = false;
+    activePointerId = e.pointerId;
     pendingClientX = null;
+    pendingClientY = null;
     const rect = bar.getBoundingClientRect();
+    pointerDownX = e.clientX;
+    pointerDownY = e.clientY;
     pointerOffsetX = e.clientX - rect.left;
+    pointerOffsetY = e.clientY - rect.top;
     originLeft = rect.left;
+    originTop = rect.top;
+    const currentTranslate = readCurrentTranslate();
+    baseTranslateX = currentTranslate.x;
+    baseTranslateY = currentTranslate.y;
     cachedBarWidth = rect.width;
+    cachedBarHeight = rect.height;
     cachedViewportWidth = document.documentElement.clientWidth;
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    cachedViewportHeight = document.documentElement.clientHeight;
+    handle.setPointerCapture(e.pointerId);
+    handle.addEventListener('pointermove', onPointerMove);
+    handle.addEventListener('pointerup', onPointerUp);
+    handle.addEventListener('pointercancel', onPointerCancel);
   });
 }
 
 function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
-  overlay.className = 'inject-progress';
+  overlay.className = 'inject-progress is-visible';
   overlay.innerHTML = `
     <div class="inject-progress-content">
-      <div class="inject-progress-title">${t('injectProgressTitleRunning', '正在执行脚本...')}</div>
-      <div class="inject-progress-detail">${t('injectProgressDetailPreparing', '准备中')}</div>
+      <div class="inject-progress-title">${t('injectProgressTitlePageLoading', '网页加载中')}</div>
+      <div class="inject-progress-detail">${t('injectProgressDetailPageLoading', '网页加载中')}</div>
       <div class="inject-progress-actions">
         <button class="inject-progress-retry" type="button">${t('injectProgressButtonRetry', '重试')}</button>
         <button class="inject-progress-close" type="button">${t('injectProgressButtonClose', '关闭')}</button>
@@ -764,12 +896,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     await applyIframeInputPosition();
     initSearchBarDrag();
 
-    // 初始化列数选择
-    const columnCurrentBtn = document.getElementById('columnCurrentBtn');
-    const columnDropdown = document.getElementById('columnDropdown');
-    const columnOptionBtns = document.querySelectorAll('.column-option-btn');
-    const iframesContainer = document.getElementById('iframes-container');
-
     // 检测是否在侧边栏中打开
     const isSidePanel = window.location.href.includes('side_panel') || 
                        window.location.search.includes('side_panel') ||
@@ -941,28 +1067,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
-
-    // 当前按钮点击监听器 - 展开/收起下拉菜单
-    columnCurrentBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        toggleDropdown();
-    });
-
-    // 下拉选项点击监听器
-    columnOptionBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const columns = e.currentTarget.getAttribute('data-columns');
-            selectColumnOption(columns);
-        });
-    });
-
-    // 点击其他地方关闭下拉菜单
-    document.addEventListener('click', function(e) {
-        if (!columnDropdown.contains(e.target) && !columnCurrentBtn.contains(e.target)) {
-            closeDropdown();
-        }
-    });
 
     // 统一的文件粘贴处理 - 只添加一次监听器
     if (!filePasteHandlerAdded) {
@@ -1439,54 +1543,97 @@ function hideFileUploadProgress() {
   }
 }
 
-// 切换下拉菜单显示状态
-function toggleDropdown() {
-    const columnDropdown = document.getElementById('columnDropdown');
-    const isOpen = columnDropdown.classList.contains('show');
-    
-    if (isOpen) {
-        closeDropdown();
-    } else {
-        openDropdown();
-    }
+let currentColumnsValue = '3';
+let navColumnOutsideClickBound = false;
+
+function getColumnSvgTemplate(columns) {
+  const svgTemplates = {
+    '1': `<rect x="6" y="3" width="8" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>`,
+    '2': `<rect x="2" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+          <rect x="12" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>`,
+    '3': `<rect x="1" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+          <rect x="8" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+          <rect x="15" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>`,
+    '4': `<rect x="1" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <rect x="6" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <rect x="11" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <rect x="16" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>`
+  };
+  return svgTemplates[String(columns)] || svgTemplates['3'];
 }
 
-// 打开下拉菜单
-function openDropdown() {
-    const columnDropdown = document.getElementById('columnDropdown');
-    columnDropdown.classList.add('show');
+function setColumnCurrentButtonIcon(button, columns) {
+  if (!button) return;
+  let svg = button.querySelector('svg');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '20');
+    svg.setAttribute('height', '20');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.style.display = 'block';
+    button.innerHTML = '';
+    button.appendChild(svg);
+  }
+  svg.innerHTML = getColumnSvgTemplate(columns);
 }
 
-// 关闭下拉菜单
-function closeDropdown() {
-    const columnDropdown = document.getElementById('columnDropdown');
-    columnDropdown.classList.remove('show');
+function getColumnOptionButtons() {
+  return document.querySelectorAll('.column-option-btn');
+}
+
+function toggleNavColumnDropdown() {
+  const navDropdown = document.getElementById('navColumnDropdown');
+  if (!navDropdown) return;
+  const isOpen = navDropdown.classList.contains('show');
+  if (isOpen) {
+    closeNavColumnDropdown();
+  } else {
+    openNavColumnDropdown();
+  }
+}
+
+function openNavColumnDropdown() {
+  const navDropdown = document.getElementById('navColumnDropdown');
+  if (navDropdown) {
+    navDropdown.classList.add('show');
+  }
+}
+
+function closeNavColumnDropdown() {
+  const navDropdown = document.getElementById('navColumnDropdown');
+  if (navDropdown) {
+    navDropdown.classList.remove('show');
+  }
 }
 
 // 选择列数选项
 function selectColumnOption(columns) {
+    const normalizedColumns = String(columns);
     // 更新激活状态
-    setActiveColumnOption(columns);
+    setActiveColumnOption(normalizedColumns);
     
     // 更新当前显示
-    updateCurrentDisplay(columns);
+    updateCurrentDisplay(normalizedColumns);
     
     // 更新布局
-    updateColumns(columns);
+    updateColumns(normalizedColumns);
     
     // 保存到存储
-    chrome.storage.sync.set({ 'preferredColumns': columns });
+    chrome.storage.sync.set({ 'preferredColumns': normalizedColumns });
     
-    // 关闭下拉菜单
-    closeDropdown();
+    // 关闭 nav 下拉菜单
+    closeNavColumnDropdown();
 }
 
 // 设置激活的列数选项
 function setActiveColumnOption(columns) {
-    const columnOptionBtns = document.querySelectorAll('.column-option-btn');
+    const normalizedColumns = String(columns);
+    const columnOptionBtns = getColumnOptionButtons();
     columnOptionBtns.forEach(btn => {
         btn.classList.remove('active');
-        if (btn.getAttribute('data-columns') === columns) {
+        if (btn.getAttribute('data-columns') === normalizedColumns) {
             btn.classList.add('active');
         }
     });
@@ -1494,33 +1641,417 @@ function setActiveColumnOption(columns) {
 
 // 更新当前显示的图标
 function updateCurrentDisplay(columns) {
-    const columnCurrentBtn = document.getElementById('columnCurrentBtn');
-    const svg = columnCurrentBtn.querySelector('svg');
-    
-    // 根据列数更新 SVG 图标
-    const svgTemplates = {
-        '1': `<rect x="6" y="3" width="8" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>`,
-        '2': `<rect x="2" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-              <rect x="12" y="3" width="6" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>`,
-        '3': `<rect x="1" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-              <rect x="8" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
-              <rect x="15" y="3" width="4" height="14" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>`,
-        '4': `<rect x="1" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <rect x="6" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <rect x="11" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>
-              <rect x="16" y="3" width="3" height="14" rx="1" stroke="currentColor" stroke-width="1.8" fill="none"/>`
-    };
-    
-    if (svgTemplates[columns]) {
-        svg.innerHTML = svgTemplates[columns];
-    }
+    const normalizedColumns = String(columns);
+    const navBtn = document.getElementById('navColumnCurrentBtn');
+    setColumnCurrentButtonIcon(navBtn, normalizedColumns);
 }
 
 // 更新列数的辅助函数
 function updateColumns(columns) {
+    currentColumnsValue = String(columns);
     const iframesContainer = document.getElementById('iframes-container');
-    iframesContainer.dataset.columns = columns;
-    document.documentElement.style.setProperty('--columns', columns);
+    if (iframesContainer) {
+      iframesContainer.dataset.columns = currentColumnsValue;
+    }
+    document.documentElement.style.setProperty('--columns', currentColumnsValue);
+}
+
+function getNavColumnControlsMarkup(columns = '3') {
+  const c = String(columns);
+  const columnsTitle = chrome?.i18n?.getMessage?.('columnsTitle') || '列数';
+  const title1 = chrome?.i18n?.getMessage?.('column1') || '1列';
+  const title2 = chrome?.i18n?.getMessage?.('column2') || '2列';
+  const title3 = chrome?.i18n?.getMessage?.('column3') || '3列';
+  const title4 = chrome?.i18n?.getMessage?.('column4') || '4列';
+  return `
+    <div class="column-selector nav-column-selector">
+      <div class="column-current nav-column-current">
+        <button class="column-current-btn nav-column-current-btn" id="navColumnCurrentBtn" type="button" title="${columnsTitle}">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+            ${getColumnSvgTemplate(c)}
+          </svg>
+        </button>
+      </div>
+      <div class="column-dropdown nav-column-dropdown" id="navColumnDropdown">
+        <div class="column-options">
+          <button class="column-option-btn nav-column-option-btn" type="button" data-columns="1" title="${title1}">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+              ${getColumnSvgTemplate('1')}
+            </svg>
+          </button>
+          <button class="column-option-btn nav-column-option-btn" type="button" data-columns="2" title="${title2}">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+              ${getColumnSvgTemplate('2')}
+            </svg>
+          </button>
+          <button class="column-option-btn nav-column-option-btn" type="button" data-columns="3" title="${title3}">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+              ${getColumnSvgTemplate('3')}
+            </svg>
+          </button>
+          <button class="column-option-btn nav-column-option-btn" type="button" data-columns="4" title="${title4}">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+              ${getColumnSvgTemplate('4')}
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function initNavColumnControls() {
+  const navCurrentBtn = document.getElementById('navColumnCurrentBtn');
+  const navDropdown = document.getElementById('navColumnDropdown');
+  if (!navCurrentBtn || !navDropdown) return;
+
+  if (navCurrentBtn.dataset.bound !== '1') {
+    navCurrentBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleNavColumnDropdown();
+    });
+    navCurrentBtn.dataset.bound = '1';
+  }
+
+  const navOptionBtns = navDropdown.querySelectorAll('.nav-column-option-btn');
+  navOptionBtns.forEach((btn) => {
+    if (btn.dataset.bound === '1') return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const columns = e.currentTarget.getAttribute('data-columns');
+      selectColumnOption(columns);
+    });
+    btn.dataset.bound = '1';
+  });
+
+  if (!navColumnOutsideClickBound) {
+    document.addEventListener('click', (e) => {
+      const currentBtn = document.getElementById('navColumnCurrentBtn');
+      const dropdown = document.getElementById('navColumnDropdown');
+      if (!currentBtn || !dropdown) return;
+      if (!dropdown.contains(e.target) && !currentBtn.contains(e.target)) {
+        closeNavColumnDropdown();
+      }
+    });
+    navColumnOutsideClickBound = true;
+  }
+}
+
+const NAV_EDGE_TRIGGER_ID = 'navEdgeTrigger';
+const NAV_HIDE_DELAY_MS = 120;
+let navHideTimer = null;
+let navAvailableSitesCache = [];
+
+function clearNavHideTimer() {
+  if (navHideTimer !== null) {
+    clearTimeout(navHideTimer);
+    navHideTimer = null;
+  }
+}
+
+function showSideNav() {
+  clearNavHideTimer();
+  const nav = document.querySelector('.nav');
+  if (nav) {
+    nav.classList.add('is-visible');
+  }
+}
+
+function hideSideNav() {
+  clearNavHideTimer();
+  const nav = document.querySelector('.nav');
+  if (nav) {
+    nav.classList.remove('is-visible');
+  }
+}
+
+function scheduleHideSideNav() {
+  clearNavHideTimer();
+  navHideTimer = setTimeout(() => {
+    hideSideNav();
+  }, NAV_HIDE_DELAY_MS);
+}
+
+function deriveIconFileNameFromSite(site) {
+  try {
+    const hostname = new URL(site.url).hostname.toLowerCase();
+    return hostname.replace(/[^a-z0-9.-]/g, '_') + '.png';
+  } catch (_) {
+    return 'icon16.png';
+  }
+}
+
+function getSiteIconPath(site) {
+  if (site && typeof site.icon === 'string' && site.icon.trim()) {
+    return `../siteIcons/${site.icon.trim()}`;
+  }
+  return `../siteIcons/${deriveIconFileNameFromSite(site)}`;
+}
+
+function getOpenedSiteSet() {
+  return new Set(getOpenedSites());
+}
+
+async function getAvailableIframeSites() {
+  try {
+    const sites = await getDefaultSites();
+    const availableSites = (sites || []).filter(site => site.supportIframe !== false && !site.hidden);
+    navAvailableSitesCache = sortSitesFavoriteFirst(availableSites);
+  } catch (error) {
+    console.error('获取可用站点失败:', error);
+    navAvailableSitesCache = [];
+  }
+  return navAvailableSitesCache;
+}
+
+function getSiteFromAvailableCache(siteName) {
+  return navAvailableSitesCache.find(site => site.name === siteName) || null;
+}
+
+async function resolveAvailableSite(siteName) {
+  if (!siteName) return null;
+  let site = getSiteFromAvailableCache(siteName);
+  if (site) return site;
+  const sites = await getAvailableIframeSites();
+  site = sites.find(item => item.name === siteName);
+  return site || null;
+}
+
+function getCurrentQueryText() {
+  const searchInput = document.getElementById('searchInput');
+  return searchInput ? searchInput.value.trim() : '';
+}
+
+function buildSiteUrlForQuery(site, query) {
+  if (!site) return '';
+  if (query) {
+    return site.supportUrlQuery
+      ? site.url.replace('{query}', encodeURIComponent(query))
+      : site.url;
+  }
+  return site.url;
+}
+
+async function ensureSiteIframeByName(siteName) {
+  if (!siteName) return false;
+  const existingIframe = Array.from(document.querySelectorAll('.ai-iframe'))
+    .find(iframe => iframe.getAttribute('data-site') === siteName);
+  if (existingIframe) return true;
+
+  const site = await resolveAvailableSite(siteName);
+  if (!site) {
+    console.warn('未找到可用站点配置:', siteName);
+    return false;
+  }
+
+  const container = document.getElementById('iframes-container');
+  if (!container) {
+    console.error('未找到 iframes 容器');
+    return false;
+  }
+
+  const query = getCurrentQueryText();
+  const iframeUrl = buildSiteUrlForQuery(site, query);
+  createSingleIframe(site.name, iframeUrl, container, query, null);
+  return true;
+}
+
+function removeSiteIframeByName(siteName) {
+  if (!siteName) return false;
+  const targetIframe = Array.from(document.querySelectorAll('.ai-iframe'))
+    .find(iframe => iframe.getAttribute('data-site') === siteName);
+  if (!targetIframe) return false;
+  const iframeContainer = targetIframe.closest('.iframe-container');
+  if (!iframeContainer) return false;
+  iframeContainer.remove();
+  return true;
+}
+
+function syncNavCheckboxStates() {
+  const openedSet = getOpenedSiteSet();
+  const checkboxes = document.querySelectorAll('.nav-site-checkbox');
+  checkboxes.forEach(checkbox => {
+    const siteName = checkbox.dataset.siteName;
+    checkbox.checked = openedSet.has(siteName);
+  });
+}
+
+function getIframeContainerBySiteName(siteName, container = document.getElementById('iframes-container')) {
+  if (!container || !siteName) return null;
+  const targetIframe = Array.from(container.querySelectorAll('.ai-iframe'))
+    .find(iframe => iframe.getAttribute('data-site') === siteName);
+  return targetIframe ? targetIframe.closest('.iframe-container') : null;
+}
+
+function setActiveNavItem(activeNavItem) {
+  if (!activeNavItem) return;
+  const navList = activeNavItem.closest('.nav-list');
+  if (!navList) return;
+  navList.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  activeNavItem.classList.add('active');
+}
+
+function createNavItemElement(site, container = document.getElementById('iframes-container')) {
+  const siteName = site.name;
+  const navItem = document.createElement('li');
+  navItem.className = 'nav-item nav-site-item';
+  navItem.dataset.siteName = siteName;
+
+  const row = document.createElement('div');
+  row.className = 'nav-site-row';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'nav-site-checkbox';
+  checkbox.dataset.siteName = siteName;
+  checkbox.checked = getOpenedSiteSet().has(siteName);
+
+  const iconBtn = document.createElement('button');
+  iconBtn.type = 'button';
+  iconBtn.className = 'nav-site-icon-btn';
+  iconBtn.title = siteName;
+  iconBtn.setAttribute('aria-label', siteName);
+
+  const iconImage = document.createElement('img');
+  iconImage.className = 'nav-site-icon';
+  iconImage.src = getSiteIconPath(site);
+  iconImage.alt = siteName;
+  iconImage.loading = 'lazy';
+  iconImage.addEventListener('error', () => {
+    if (!iconImage.dataset.fallback) {
+      iconImage.dataset.fallback = '1';
+      iconImage.src = '../icons/icon16.png';
+    }
+  });
+  iconBtn.appendChild(iconImage);
+
+  row.appendChild(checkbox);
+  row.appendChild(iconBtn);
+  navItem.appendChild(row);
+
+  checkbox.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  checkbox.addEventListener('change', async (e) => {
+    const targetCheckbox = e.currentTarget;
+    const targetSiteName = targetCheckbox.dataset.siteName;
+    targetCheckbox.disabled = true;
+    try {
+      if (targetCheckbox.checked) {
+        await ensureSiteIframeByName(targetSiteName);
+      } else {
+        removeSiteIframeByName(targetSiteName);
+      }
+    } catch (error) {
+      console.error('切换导航站点失败:', error);
+    } finally {
+      targetCheckbox.disabled = false;
+      syncNavCheckboxStates();
+    }
+  });
+
+  iconBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!checkbox.checked) return;
+    setActiveNavItem(navItem);
+    const iframeContainer = getIframeContainerBySiteName(siteName, container);
+    if (iframeContainer) {
+      iframeContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  return navItem;
+}
+
+function removeNavItemBySiteName(siteName) {
+  if (!siteName) return;
+  syncNavCheckboxStates();
+}
+
+function ensureSideNavShell() {
+  const container = document.getElementById('iframes-container');
+  if (!container) return { nav: null, navList: null };
+
+  let nav = document.querySelector('.nav');
+  if (!nav) {
+    nav = document.createElement('nav');
+    nav.className = 'nav';
+    document.body.insertBefore(nav, container);
+  }
+
+  let trigger = document.getElementById(NAV_EDGE_TRIGGER_ID);
+  if (!trigger) {
+    trigger = document.createElement('div');
+    trigger.id = NAV_EDGE_TRIGGER_ID;
+    trigger.className = 'nav-edge-trigger';
+    document.body.appendChild(trigger);
+  }
+
+  if (trigger.dataset.bound !== '1') {
+    trigger.addEventListener('mouseenter', showSideNav);
+    trigger.addEventListener('mouseleave', scheduleHideSideNav);
+    trigger.dataset.bound = '1';
+  }
+
+  if (nav.dataset.bound !== '1') {
+    nav.addEventListener('mouseenter', showSideNav);
+    nav.addEventListener('mouseleave', scheduleHideSideNav);
+    nav.dataset.bound = '1';
+  }
+
+  let navControls = nav.querySelector('.nav-controls');
+  if (!navControls) {
+    navControls = document.createElement('div');
+    navControls.className = 'nav-controls';
+    navControls.innerHTML = getNavColumnControlsMarkup(currentColumnsValue);
+    nav.appendChild(navControls);
+  }
+  initNavColumnControls();
+  setActiveColumnOption(currentColumnsValue);
+  updateCurrentDisplay(currentColumnsValue);
+
+  let navList = nav.querySelector('.nav-list');
+  if (!navList) {
+    navList = document.createElement('ul');
+    navList.className = 'nav-list';
+    nav.appendChild(navList);
+  }
+
+  return { nav, navList };
+}
+
+async function renderSideNav() {
+  const { nav } = ensureSideNavShell();
+  if (!nav) return;
+
+  const sites = await getAvailableIframeSites();
+  const container = document.getElementById('iframes-container');
+  const existingNavList = nav.querySelector('.nav-list');
+  if (existingNavList) {
+    existingNavList.remove();
+  }
+
+  const navList = document.createElement('ul');
+  navList.className = 'nav-list';
+  nav.appendChild(navList);
+
+  const normalizedSites = (sites || [])
+    .map(site => typeof site === 'string' ? { name: site } : site)
+    .filter(site => site && site.name);
+
+  normalizedSites.forEach((site, index) => {
+    const navItem = createNavItemElement(site, container);
+    navItem.dataset.originalIndex = String(index);
+    navList.appendChild(navItem);
+  });
+
+  // 默认隐藏，鼠标移动到左侧热区再显示
+  hideSideNav();
+
+  // 根据当前实际 iframe 状态同步勾选
+  syncNavCheckboxStates();
 }
 
 // 监听来自 background 的消息
@@ -1599,6 +2130,8 @@ async function createIframes(query, sites) {
   } catch (error) {
     console.error('创建 iframes 失败:', error);
   }
+
+  await renderSideNav();
  
   
   // 创建导航栏
@@ -2037,12 +2570,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     // 1. 获取对应的 iframe
     iframeContainer.remove();
     // 在导航栏中找到对应的 nav-item 并删除
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-      if (item.textContent.trim() === siteName) {
-        item.remove();
-      }
-    });
+    removeNavItemBySiteName(siteName);
     
   };
 
@@ -2244,163 +2772,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 初始化站点设置的函数
-async function initializeSiteSettings() {    
-    const siteList = document.querySelector('.site-list');
-    const saveButton = document.querySelector('.save-settings-btn');
-    
-    // 设置按钮的 title 属性
-    saveButton.title = chrome.i18n.getMessage('saveSettingsTitle');
-    
-    siteList.innerHTML = '';
-    // 获取当前已打开的 iframe 站点 ID 数组
-    const openedSites = Array.from(document.querySelectorAll('.ai-iframe'))
-        .map(iframe => iframe.getAttribute('data-site'));
-    
-    try {
-        // 使用 getDefaultSites 获取合并后的站点配置
-        const sites = await getDefaultSites();
-        
-        // 过滤支持 iframe 的站点
-        const supportedSites = sites.filter(site => 
-            site.supportIframe === true && !site.hidden
-        );
-
-        const fragment = document.createDocumentFragment();
-
-        supportedSites.forEach(site => {
-            const div = document.createElement('div');
-            div.className = 'site-item';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'site-checkbox';
-            checkbox.id = `site-${site.name}`; // 为 label 的 for 属性添加 ID
-            checkbox.checked = openedSites.includes(site.name);
-            
-    
-            const nameLabel = document.createElement('label');
-            nameLabel.textContent = site.name;
-            nameLabel.htmlFor = `site-${site.name}`; // 关联到对应的 checkbox
-            
-            checkbox.addEventListener('change', (e) => {
-               console.log("用户点击新建iframe", site.name, site.url);
-
-                if (e.target.checked) {
-                    trackEvent('iframe_site_toggle', {
-                        site_name: site.name,
-                        enabled: true
-                    });
-                    const container = document.getElementById('iframes-container');
-                    if (!container) {
-                      console.error('未找到 iframes 容器');
-                      return;
-                    }
-                    createSingleIframe(site.name, site.url, container);
-                    // 为新建的 iframe 创建导航项
-                    const nav = document.querySelector('.nav-list');
-                    if (nav) {
-                        const navItem = document.createElement('li');
-                        navItem.className = 'nav-item';
-                        navItem.textContent = site.name;
-
-                        // 点击导航项时滚动到对应的iframe
-                        navItem.addEventListener('click', () => {
-                            // 移除所有激活状态
-                            nav.querySelectorAll('li').forEach(item => {
-                                item.style.backgroundColor = '';
-                                item.classList.remove('active');
-                            });
-                            
-                            // 激活当前点击项
-                            navItem.style.backgroundColor = '#e0e0e0';
-                            navItem.classList.add('active');
-                            
-                            // 滚动到对应的iframe
-                            const iframeContainer = document.querySelector(`[data-site="${site.name}"]`).closest('.iframe-container');
-                            if(iframeContainer) {
-                                iframeContainer.scrollIntoView({ behavior: 'smooth' });
-                            }
-                        });
-
-                        nav.appendChild(navItem);
-                    }
-
-                } else {
-                    trackEvent('iframe_site_toggle', {
-                        site_name: site.name,
-                        enabled: false
-                    });
-                    const iframeToRemove = document.querySelector(`[data-site="${site.name}"]`);
-                    if (iframeToRemove) {
-                        iframeToRemove.closest('.iframe-container').remove();
-                        // 移除导航项
-                        const navItems = document.querySelectorAll('.nav-item');
-                        navItems.forEach(item => {
-                          if (item.textContent.trim() === site.name) {
-                            item.remove();
-                          }
-                        });
-
-                    }
-                }
-            });
-            
-            div.appendChild(checkbox);
-            div.appendChild(nameLabel);
-            fragment.appendChild(div);
-        });
-        
-        siteList.appendChild(fragment);
-        
-        // 添加保存按钮点击事件
-        saveButton.addEventListener('click', async () => {
-            try {
-                // 获取所有复选框
-                const checkboxes = document.querySelectorAll('.site-checkbox');
-                
-                // 从 chrome.storage.sync 读取现有的用户设置
-                const { sites: existingUserSettings = {} } = await chrome.storage.sync.get('sites');
-                
-                // 合并现有设置和新的设置
-                const updatedUserSettings = { ...existingUserSettings };
-                
-                // 遍历所有复选框，保存每个站点的 enabled 状态
-                checkboxes.forEach(checkbox => {
-                    // 从 checkbox 的 ID 中提取站点名称 (格式: site-{siteName})
-                    const siteName = checkbox.id.replace('site-', '');
-                    if (siteName) {
-                        // 如果站点在 sync 中不存在，创建新条目
-                        if (!updatedUserSettings[siteName]) {
-                            updatedUserSettings[siteName] = {};
-                        }
-                        // 更新 enabled 状态，保留其他字段（如 order）
-                        updatedUserSettings[siteName].enabled = checkbox.checked;
-                    }
-                });
-                
-                // 保存用户设置到 sync storage
-                await chrome.storage.sync.set({ sites: updatedUserSettings });
-                
-                // 显示成功提示
-                showToast(chrome.i18n.getMessage('saveSuccess') || '设置已保存');
-                
-                console.log('站点设置已更新:', updatedUserSettings);
-                
-            } catch (error) {
-                console.error('保存站点设置失败:', error);
-                showToast(chrome.i18n.getMessage('saveFailed') || '保存设置失败');
-            }
-        });
-        
-    } catch (error) {
-        console.error('获取站点配置失败:', error);
-        if (siteList) {
-            siteList.innerHTML = '<div class="error-message">加载站点配置失败，请刷新页面重试</div>';
-        }
-    }
-}
-
 // Toast 提示函数
 function showToast(message, duration = 2000) {
     const toast = document.createElement('div');
@@ -2416,30 +2787,6 @@ function showToast(message, duration = 2000) {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, duration);
-}
-
-// 设置图标和对话框的事件处理
-const settingsIcon = document.querySelector('.settings-icon');
-const settingsDialog = document.querySelector('.settings-dialog');
-
-if (settingsIcon && settingsDialog) {
-    // 点击设置图标时初始化并显示对话框
-    settingsIcon.addEventListener('click', async () => {
-        try {
-            await initializeSiteSettings();
-            settingsDialog.style.display = 'block';
-        } catch (error) {
-            console.error('初始化站点设置失败:', error);
-        }
-    });
-
-    // 点击其他地方关闭对话框
-    document.addEventListener('click', (event) => {
-        if (!settingsDialog.contains(event.target) && 
-            !settingsIcon.contains(event.target)) {
-            settingsDialog.style.display = 'none';
-        }
-    });
 }
 
 // 收藏当前记录的所有 iframe
@@ -2701,6 +3048,15 @@ function initializeI18n() {
         const message = chrome.i18n.getMessage(key);
         if (message) {
             element.alt = message;
+        }
+    });
+
+    // 处理 data-i18n-aria-label：设置元素的 aria-label 属性
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+        const key = element.getAttribute('data-i18n-aria-label');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.setAttribute('aria-label', message);
         }
     });
     
@@ -2995,12 +3351,6 @@ async function loadHistoryIframes(sites) {
     // 清空现有 iframe
     container.innerHTML = '';
     
-    // 移除现有的导航栏
-    const existingNav = document.querySelector('.nav');
-    if (existingNav) {
-      existingNav.remove();
-    }
-    
     // 调整主容器样式以适应导航栏
     // container.style.marginLeft = '72px';
     
@@ -3094,12 +3444,7 @@ async function loadHistoryIframes(sites) {
       // 关闭按钮事件
       closeBtn.onclick = () => {
         iframeContainer.remove();
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-          if (item.textContent.trim() === siteName) {
-            item.remove();
-          }
-        });
+        removeNavItemBySiteName(siteName);
       };
       
       // 组装元素
@@ -3115,6 +3460,7 @@ async function loadHistoryIframes(sites) {
     // 仅当当前记录下所有子 iframe 都被收藏时，顶部「收藏全部」图标才显示为已收藏
     const allFavorited = sites.length > 0 && sites.every(s => s.isFavorite);
     updateFavoriteAllIcon(allFavorited);
+    await renderSideNav();
     
     // 创建导航栏
     // const nav = document.createElement('nav');
@@ -4446,7 +4792,7 @@ async function reorderIframes(fromIndex, toIndex) {
     
     // 为每个iframe容器设置CSS order属性，避免移动DOM元素
     navItems.forEach((navItem, index) => {
-      const siteName = navItem.textContent;
+      const siteName = navItem.dataset.siteName || navItem.textContent.trim();
       const iframeContainer = iframeContainers.find(container => {
         const iframe = container.querySelector('iframe');
         return iframe && iframe.getAttribute('data-site') === siteName;

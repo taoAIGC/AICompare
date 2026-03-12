@@ -4,6 +4,24 @@ AI比一比 使用 **Stripe + Firebase Cloud Functions** 实现 Pro 会员订阅
 
 ---
 
+## 常见错误：测试密钥 vs 正式密钥
+
+**报错示例**：`No such customer: 'cus_xxx'; a similar object exists in live mode, but a test mode key was used to make this request.`
+
+**原因**：客户是在 Stripe **正式环境（Live）** 创建的，但 `functions/.env` 里填的是 **测试密钥** `sk_test_xxx`。测试/正式数据隔离，用测试密钥查不到正式环境的客户。
+
+**解决**：若已上线、用户用真实付款，请把 **正式密钥** 填到 `functions/.env`：
+
+- 打开 [Stripe Dashboard](https://dashboard.stripe.com) → **Developers** → **API keys**
+- 若在测试模式，点击 **“切换到正式模式”**（或 View live data）
+- 复制 **Secret key**（以 `sk_live_` 开头）
+- 编辑 `multi-AI/functions/.env`，把 `STRIPE_SECRET_KEY` 改为 `sk_live_xxx`
+- 重新部署：`firebase deploy --only functions`
+
+同时确认 **Webhook** 和 **Price ID**（`stripe-payment.js` 里的月付/年付）也使用正式环境的 ID。
+
+---
+
 ## 第一步：Stripe Dashboard 配置
 
 ### 1.1 创建订阅商品

@@ -1,0 +1,351 @@
+
+
+
+
+
+<!DOCTYPE html> 
+<html data-theme="light" class="qwen-root">
+
+<head>
+    <meta charSet="utf-8" />
+    <meta property="og:title" content="千问-Qwen最新模型体验-通义千问官网">
+    <meta property="og:description" content="千问是阿里通义千问大模型打造的AI对话助手，通义千问支持问答、写作、代码、翻译、录音、PPT创作、文档处理、音视频速读。">
+    <meta property="og:image"
+        content="https://img.alicdn.com/imgextra/i2/O1CN01FPcQDy1WTPjPX6IH9_!!6000000002789-2-tps-96-96.png">
+    <meta name="description" content="千问是阿里通义千问大模型打造的AI对话助手，通义千问支持问答、写作、代码、翻译、录音、PPT创作、文档处理、音视频速读。">
+    <meta name="keywords" content="通义千问,通义,千问,Qwen,千问网页版,千问官网,通义网页版">
+    <meta name="onepub-render" />    
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta name="ice-meta-count" content="0" />
+    <title>千问-Qwen最新模型体验-通义千问官网</title>
+    <meta name="aplus-core" content="aplus.js">
+    <meta name="aplus-waiting" content="MAN">
+    <meta name="data-spm" content="5176" />
+    <meta name="google-site-verification" content="QPG97RgMVxnzyF0b3ZDpfo0T4wDGeuuFflk5pb2RVLg" />
+    <meta name="baidu-site-verification" content="codeva-483uMre2dh" />
+    <link rel="canonical" href="https://www.qianwen.com/" />
+    <link rel="shortcut icon" href="https://img.alicdn.com/imgextra/i2/O1CN01FPcQDy1WTPjPX6IH9_!!6000000002789-2-tps-96-96.png">
+    <link rel="preconnect" href="https://passport.qianwen.com" >
+    <link rel="preconnect" href="https://umdc.alibaba-inc.com" >
+    <link rel="preconnect" href="https://alidt.alicdn.com" >
+    <link rel="preload" href="//at.alicdn.com/wf/webfont/c8Rw3f0HBOjE/dRhOcc1ogpnU.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+    <style>
+        @font-face {
+            font-family: 'PlusJakartaSans';
+            src: url('https://g.alicdn.com/tongyi-fe/fonts/0.0.2/PlusJakartaSans/PlusJakartaSans-Bold.ttf') format('truetype');
+            font-display: swap;
+            font-weight: 700;
+            font-style: bold;
+        }
+        @font-face {
+            font-family: 'PlusJakartaSans';
+            src: url('https://g.alicdn.com/tongyi-fe/fonts/0.0.2/PlusJakartaSans/PlusJakartaSans-Medium.ttf') format('truetype');
+            font-display: swap;
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'PlusJakartaSans';
+            src: url('https://g.alicdn.com/tongyi-fe/fonts/0.0.2/PlusJakartaSans/PlusJakartaSans-SemiBold.ttf') format('truetype');
+            font-display: swap;
+            font-weight: 600;
+            font-style: normal;
+        }
+    </style>
+    <script >
+        // 全局vm数据
+        var csrfToken = "5f7c87a6-e156-4631-aac6-5e57863dda31";
+        var errorCode = "";
+        var errorMsg = [""];
+        var statusCode = "0";
+        var empId = "";
+        var applyWaitCount = "";
+        var warnSessionContextCount = "60";
+        var authCodes = ["share_ability"];
+        var certificationStatus = "";
+        var accountType = "";
+        var phoneNumber = "";
+        var skipUserCheck = "true";
+        var sign = "0";
+        var globalThis = window;
+        var originUA = "Mozilla/5.0";
+        window._USER_ = {
+            avatarUrl: "https://img.alicdn.com/imgextra/i3/O1CN01QLt9r31b7x4MN6qUL_!!6000000003419-2-tps-116-116.png",
+            showName: "",
+            userId: '',
+            aliyunUid: '',
+        }
+    </script>
+    <script >
+        var guestChatRounds = 1;
+        var guestChatCount = 1;
+        var contactUsQrCode = "https://img.alicdn.com/imgextra/i4/O1CN01ECAmPu1xZokj2mC8a_!!6000000006458-0-tps-452-452.jpg"
+    </script>
+    <script  defer="defer">
+        (function(d)  {
+            var cookies=d.cookie.split(';').map(function(item){return item.trim().split('=')});
+            function getcookie(name){
+                var item=cookies.find(function(item){return item[0]==name});
+                return item?encodeURIComponent(item[1]):'';
+            }
+            var t=d.createElement("script");t.type="text/javascript";t.async=true;t.id="tb-beacon-aplus";
+            var env = /^pre-/.test(location.host)?'pre':'online'
+            t.setAttribute("exparams","category=&userid="+window.empId+"&aplus&yunid="+getcookie("login_aliyunid")+"&yunpk="+getcookie("login_tongyi_ticket")+"&channel="+getcookie("channel")+"&cps="+getcookie("cps")+"&pid=tongyiqianwen&orgid=tongyi&typarm1=web&typarm2=&typarm3="+env+"&typarm4=tongyi");
+            t.src="//g.alicdn.com/alilog/mlog/aplus_v2.js";
+            d.getElementsByTagName("head")[0].appendChild(t);
+        })(document);
+    </script>
+    <script  defer="defer">
+        !(function(j,a,g){j.__itrace_conf={bid:"66ur41cs-cntu1744",rel:"26.305.194211",uid:"",spa:true,plugins:["flow",{id:'perf',enableLCP:true},"resource","interface",'jserror','blank','fluency'],beforeSend:function(params){return!(params&&['//127.0.0.1','//localhost'].some(function(h){return params.w_res&&params.w_res.indexOf(h)>-1}))}};var b=a.createElement("script");var d=a.getElementsByTagName("script")[0];b.type="text/javascript";b.crossorigin=true;b.onload=function(){j.__itrace&&j.__itrace.setReady()};d.parentNode.insertBefore(b,d);b.src=g})(window,document,"https://g.alicdn.com/woodpeckerx/itrace-next/??itrace-jserror.iife.js,itrace-interface.iife.js,itrace-perf.iife.js,itrace-flow.iife.js,itrace-blank.iife.js,itrace-resource.iife.js,itrace-fluency.iife.js,itrace.iife.js","__itrace");
+    </script>
+    <script defer="defer" crossorigin="anonymous" src="https://g.alicdn.com/code/lib/react/18.2.0/umd/react.production.min.js" ></script>
+    <script defer="defer" crossorigin="anonymous" src="https://g.alicdn.com/code/lib/react-dom/18.2.0/umd/react-dom.production.min.js" ></script>
+    <script >
+        window.VERSION_SWITCHER_CONFIG = {
+            "portal": "code/npm/@ali/tongyi-app-portal-web/26.305.194211",
+            "efficiency": "code/npm/@ali/tongyi-app-efficiency/26.305.194211",
+            "knowledge": "code/npm/@ali/tongyi-app-knowledge/26.305.194211",
+            "ppt": "code/npm/@ali/tongyi-app-ppt-app/26.305.194211",
+        }
+        window.__TONGYI_RETRY_CONFIG__ = {"sse":{"disable":false,"initialInterval":2000,"exponentialThreshold":6000,"linearIncrement":1000,"maxInterval":10000,"maxRetries":1},"http":{"disable":true,"retryTimes":3},"rmb":{"disable":false}}
+        window.__TONGYI_SSE_SNAP_INTERVAL_CONFIG__ = {"initialInterval":2000,"exponentialThreshold":6000,"linearIncrement":1000,"maxInterval":10000,"mosInterval":5000}
+        window.HTML_GLOBAL_CONFIG = {"show_pc_download_page":true,"download":{"windows":"https://qianwen-portal-cdn.tongyi.com/native/app/2.3.1/win32/x64/qwenclient_setup_2.3.1.2602272243.exe","mac":"https://qianwen-portal-cdn.tongyi.com/native/app/2.3.1/darwin/universal/qwenclient_setup_2.3.1.2602272247.dmg","extension":"https://document-ai-public-prod.oss-cn-beijing.aliyuncs.com/plugins/%E9%80%9A%E4%B9%89%E6%95%88%E7%8E%87-%E4%BD%A0%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%AD%A6%E4%B9%A0%E5%8A%A9%E6%89%8B.zip"},"show_domain_change_modal":true,"show_selected_model_version_tag":true,"inner_feedback_url":"https://m.tongyi.com/app/tongyi/tongyi-hybrid/our-feedback","survey_url":"https://survey.alibaba.com/apps/zhiliao/UXaBbrz0q"}
+    </script>
+    <script crossorigin="anonymous"  src="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/js/core-libs.js" defer="defer"></script>
+    <script crossorigin="anonymous"  src="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/js/vendor.js" defer="defer"></script>
+    <script crossorigin="anonymous"  src="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/js/main.js" defer="defer"></script>
+    <script defer="defer"  src="https://g.alicdn.com/code/npm/@ali/tongyi-support-checker/0.0.5/esm/index.js"></script>
+    <link rel="preload" as="style" href="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/css/core-libs.css" />
+    <link rel="stylesheet" href="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/css/core-libs.css" />
+    <link rel="preload" as="style" href="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/css/vendor.css" />
+    <link rel="stylesheet" href="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/css/vendor.css" />
+    <link rel="preload" as="style" href="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/css/main.css" />
+    <link rel="stylesheet" href="https://g.alicdn.com/code/npm/@ali/tongyi-app-portal-web/26.305.194211/css/main.css" />
+
+
+    <script  src="//g.alicdn.com/aes/??tracker/3.3.9/index.js,tracker-plugin-pv/3.0.6/index.js,tracker-plugin-event/3.0.0/index.js,tracker-plugin-jserror/3.0.3/index.js,tracker-plugin-api/3.1.3/index.js,tracker-plugin-resourceError/3.0.4/index.js,tracker-plugin-perf/3.1.0/index.js,tracker-plugin-eventTiming/3.0.0/index.js,tracker-plugin-autolog/3.0.13/index.js,tracker-plugin-blank/3.0.1/index.js,tracker-plugin-longtask/3.0.1/index.js"></script>
+    <script  defer="defer">
+        const aes = new AES({
+            pid: "HstAjZ",
+            user_type: "6",
+            uid: "",
+            phone: "",
+            dim1: "main"
+        });
+        window.aes = aes;
+
+        var AES_PLUGINS = aes.use([AESPluginPV,AESPluginResourceError,AESPluginAutolog,AESPluginEventTiming]);
+        
+        aes.use(AESPluginPerf, {
+            plugin_perf_enableUserTimingObserve: true,
+            plugin_perf_enableResourceTiming: true,
+            plugin_perf_resourceTimingThreshhold: 10000,
+            plugin_perf_resourceTimingSampling: 0.1,
+        });
+
+        aes.use(AESPluginBlank, {
+            plugin_blank_target: '#ice-container',
+            plugin_blank_when: ['error', 'leave'],
+            plugin_blank_tester: function(target) {
+                if (target) {
+                    if (target.children.length === 0) return false;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+
+        window.aesSendError = aes.use(AESPluginJSError, {
+            disable_unhandled_rejection: true,
+        }).sendError;
+        aesSendError();
+
+        window.aesSendApi = aes.use(AESPluginAPI, {
+            sendResponseOnSuccess: false,
+        }).sendApi;
+
+        window.aesSendEvent = aes.use(AESPluginEvent);
+
+        window.addEventListener('error', function(e) {
+            if (!(e instanceof ErrorEvent)) {
+                var target = e.target;
+                var src = target.src || target.href;
+                if(!src || src.indexOf('.mmstat.com') !== -1 || /aes-\d+\.cn-wulanchabu\.log\.aliyuncs\.com/.test(src)){
+                    return;
+                }
+                var a = document.createElement('a');
+                a.href = src;
+
+                try {
+                    aesSendEvent('resource_error', {
+                        et: 'OTHER',
+                        c1: a.host,
+                        c2: src,
+                    });
+                }
+                catch(e) {
+                    console.error(e);
+                }
+            }
+        }, true)
+
+        window.addEventListener('unhandledrejection', function(e) {
+            var info = e.reason;
+
+            if (info instanceof Error) {
+                aesSendError(info);
+            } else if (info) {
+                var traceId = info.traceId;
+                var errorCode = info.errorCode;
+                var data = info.data;
+                
+                delete info.traceId;
+                delete info.errorCode;
+                delete info.data;
+
+                try {
+                    info = typeof info === 'string' ? info : JSON.stringify(info);
+                } catch (e) {
+                    info = 'JSON.stringify error';
+                }
+
+                aesSendError({
+                    type: 'rejection_error',
+                    message: info,
+                });
+
+                if (traceId || errorCode || data) {
+                    aesSendEvent('rejection_error', {
+                        et: 'OTHER',
+                        c1: errorCode,
+                        c2: traceId,
+                        c3: data ? JSON.stringify(data) : '',
+                    });
+                }
+            } else {
+                aesSendError({
+                    type: 'rejection_error',
+                    message: info,
+                });
+            }
+        });
+    </script>
+    <!-- 友盟数据统计 -->
+    <script  defer="defer">
+        var _czc = _czc || [];
+        (function () {
+            var um = document.createElement("script");
+            um.src = "https://o.alicdn.com/tongyi-fe/lib/cnzz/z.js?id=1281448031&async=1";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(um, s);
+        })();
+    </script>
+</head>
+
+<body data-spm="28103460">
+    <div id="ice-container"></div>
+    <style>
+        .skeleton {
+            border-radius: 8px;
+            background: var(--linear-gradient);
+            background-size: 400% 100%;
+            animation-name: skeleton-loading;
+            animation-duration: 1.4s;
+            animation-timing-function: ease;
+            animation-iteration-count: infinite;
+        }
+        @keyframes skeleton-loading {
+            0% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0 50%;
+            }
+        }
+    </style>
+    <div
+        id="skeleton"
+        style="
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            left: 0;
+            top: 0;
+        "
+    >
+        <div style="flex: 1; overflow: hidden; display: flex">
+            <div
+                style="
+                    padding: 16px 12px;
+                    background: var(--background-pc-sidebar);
+                    position: relative;
+                "
+                >
+                <div class="skeleton" style="width: 32px; height: 32px; margin-bottom: 20px"></div>
+                <div class="skeleton" style="width: 232px; height: 36px; margin-bottom: 12px"></div>
+                <div class="skeleton" style="width: 232px; height: 20px; margin-bottom: 12px"></div>
+                <div class="skeleton" style="width: 160px; height: 20px; margin-bottom: 12px"></div>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column">
+            <div style="flex: 1; padding: 116px 101px 0 133px; background: var(--background-primary)">
+                <div class="skeleton" style="width: 100%; height: 20px; margin-bottom: 20px"></div>
+                <div class="skeleton" style="width: 38.88%; height: 20px; margin-bottom: 12px"></div>
+            </div>
+        </div>
+    </div>
+
+    <script >
+        if (originUA.toLowerCase().includes('ucbrowser')) {
+            localStorage.setItem('tongyi-theme-preference', 'auto');
+        }
+
+        const mode = localStorage.getItem('tongyi-theme-preference') || 'auto';
+        const actualMode = mode === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
+
+        const backgroundPrimary = { light: '#fff', dark: '#151515', }[actualMode];
+        const backgroundPCSidebar = { light: '#f8f8f9', dark: '#0f0f0f', }[actualMode];
+        const linearGradient = { 
+            light: 'linear-gradient(86deg, rgba(17, 17, 51, 0.03) 38%, rgba(17, 17, 51, 0.06) 51%, rgba(17, 17, 51, 0.03) 66%)', 
+            dark: 'linear-gradient(90deg, #212121 28%, #2C2C2C 53%, #212121 81%)',
+        }[actualMode]
+
+        const skeletonDom = document.querySelector('#skeleton');
+        if(skeletonDom) {
+            skeletonDom.style.setProperty('--background-pc-sidebar', backgroundPCSidebar);
+            skeletonDom.style.setProperty('--linear-gradient', linearGradient);
+        }
+        const body = document.querySelector('body');
+        body.style.setProperty('--background-primary', backgroundPrimary);
+        body.style.setProperty('background-color', 'var()');
+    </script>
+
+    <script >
+        function hideSkeleton() {
+            const $skeleton = document.querySelector('#skeleton');
+            if($skeleton && $skeleton.remove) {
+                $skeleton.remove();
+            }
+        }
+        if (window.MutationObserver) {
+            const observer = new MutationObserver(() => {
+                const root = document.querySelector('#ice-container');
+                if (root && root.children.length > 0) {
+                    hideSkeleton();
+                    observer.disconnect();
+                }
+            });
+
+            observer.observe(document.querySelector('#ice-container'), { childList: true });
+        } else {
+            window.addEventListener('DOMContentLoaded', function() {
+                hideSkeleton();
+            })
+        }
+    </script>
+</body>
+
+</html>

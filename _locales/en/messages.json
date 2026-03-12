@@ -31,6 +31,14 @@
   "fileUploadButtonAlt": {
     "message": "Upload file"
   },
+  "searchBarDragHandleTitle": {
+    "message": "Drag to move",
+    "description": "Tooltip for dragging the search bar"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "Drag handle",
+    "description": "ARIA label for the search bar drag handle"
+  },
   "openSettings": {
     "message": "AI Compare Settings"
   },
@@ -96,6 +104,10 @@
   "column4": {
     "message": "4 Cols",
     "description": "Four columns layout option"
+  },
+  "columnsTitle": {
+    "message": "Columns",
+    "description": "Tooltip for the columns selector button"
   },
   "closeButton": {
     "message": "Close",
@@ -459,11 +471,17 @@
   "injectProgressTitleRunning": {
     "message": "Running script..."
   },
+  "injectProgressTitlePageLoading": {
+    "message": "Page loading..."
+  },
   "injectProgressTitleError": {
     "message": "Execution failed"
   },
   "injectProgressDetailPreparing": {
     "message": "Preparing"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "Page loading..."
   },
   "injectProgressDetailRetrying": {
     "message": "Retrying"
