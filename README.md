@@ -220,3 +220,23 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 ### 开源协议
 
 本项目采用 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html) 协议。
+
+---
+
+<!-- AUTO-README-STATUS:START -->
+## Development Snapshot / 开发快照
+
+Last auto-update / 最近自动更新：2026-03-17 15:04:17 UTC+08:00
+
+### Staged changes for this commit / 本次提交暂存变更
+- No staged file changes detected besides `README.md`.
+
+### Recent commits / 最近提交
+- `dfb1aed` 2026-03-12 V 2.20.3 优化站点导航、输入框大小和脚本进度提示
+- `929ca23` 2026-03-04 V2.20.2 修复同步功能
+- `720c4ca` 2026-02-20 V2.20.1 修复webdav 和若干问题
+- `5c83c89` 2026-02-19 V2.20 支持收藏时选择文件夹；支持 webdav 同步功能
+- `63a3658` 2026-02-17 V2.19 修复千问 输入框移动到下面
+
+_This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
+<!-- AUTO-README-STATUS:END -->
