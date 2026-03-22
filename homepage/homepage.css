@@ -818,6 +818,37 @@ body.search-bar-bottom .query-suggestions {
     margin: 0;
 }
 
+.site-type-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.site-type-tab {
+    border: 1px solid #e3e3e3;
+    background: #f7f7f7;
+    color: #666;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.site-type-tab:hover {
+    color: #333;
+    border-color: #cfcfcf;
+    background: #f0f0f0;
+}
+
+.site-type-tab.active {
+    background: #222;
+    border-color: #222;
+    color: #fff;
+}
+
 .save-settings-btn {
     position: absolute;
     right: 0;
@@ -952,6 +983,17 @@ body.search-bar-bottom .query-suggestions {
     cursor: pointer;
     margin: 0;
     flex-shrink: 0;
+}
+
+.site-list-empty {
+    grid-column: 1 / -1;
+    padding: 24px 12px;
+    border: 1px dashed #e0e0e0;
+    border-radius: 8px;
+    text-align: center;
+    color: #888;
+    background: #fafafa;
+    font-size: 14px;
 }
 
 /* 微信号弹窗 */

@@ -1860,9 +1860,9 @@
       "enabled": true,
       "supportUrlQuery": true,
       "region": "US",
-      "hidden": true,
+      "hidden": false,
       "supportIframe": false,
-      "note": "iframe页面下，打不开网页了，暂时无法使用",
+      "note": "",
       "searchHandler": {
         "steps": [
           {

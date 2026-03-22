@@ -1,0 +1,40 @@
+[
+  {
+    "site": "Dreamina",
+    "targetUrl": "https://dreamina.capcut.com/",
+    "initialTitle": "Dreamina: Create realistic talking avatars with AI avatar generator",
+    "initialUrl": "https://dreamina.capcut.com/ai-tool/home/",
+    "title": "Dreamina: Create realistic talking avatars with AI avatar generator",
+    "url": "https://dreamina.capcut.com/ai-tool/home/",
+    "selectorChecks": [
+      {
+        "action": "custom",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "description": "站点已接入，自动提问待后续完善",
+        "note": "no-selector"
+      }
+    ],
+    "translationValidation": null
+  },
+  {
+    "site": "Pika",
+    "targetUrl": "https://pika.art/",
+    "initialTitle": "Pika",
+    "initialUrl": "https://pika.art/",
+    "title": "Pika",
+    "url": "https://pika.art/",
+    "selectorChecks": [
+      {
+        "action": "custom",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "description": "站点已接入，自动提问待后续完善",
+        "note": "no-selector"
+      }
+    ],
+    "translationValidation": null
+  }
+]

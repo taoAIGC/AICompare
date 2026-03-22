@@ -31,7 +31,10 @@
       "Bash(gh repo view:*)",
       "WebFetch(domain:github.com)",
       "Bash(git clone:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git -C \"/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts\" diff:*)",
+      "Bash(python3:*)",
+      "Bash(PLAYWRIGHT_EXTENSION_SITE_NAMES=\"Qwen,元宝\" npx playwright test:*)"
     ],
     "deny": [],
     "ask": [],

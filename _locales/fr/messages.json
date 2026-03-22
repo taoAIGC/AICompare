@@ -8,6 +8,715 @@
   "extDescription": {
     "message": "AI Compare vous aide à trouver rapidement la meilleure réponse parmi plusieurs IA."
   },
+  "configTitle": {
+    "message": "Sites IA"
+  },
+  "saveSuccess": {
+    "message": "Configuration enregistree"
+  },
+  "saveFailed": {
+    "message": "Echec de l enregistrement : $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "inputPlaceholder": {
+    "message": "Saisissez le contenu a rechercher..."
+  },
+  "fileUploadButtonTitle": {
+    "message": "Televerser un fichier vers tous les sites IA"
+  },
+  "fileUploadButtonAlt": {
+    "message": "Televerser un fichier"
+  },
+  "searchBarDragHandleTitle": {
+    "message": "Faites glisser pour deplacer",
+    "description": "Tooltip for dragging the search bar"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "Poignee de deplacement",
+    "description": "ARIA label for the search bar drag handle"
+  },
+  "openSettings": {
+    "message": "Parametres AI Compare"
+  },
+  "searchWithMultiAI": {
+    "message": "Rechercher avec AI Compare"
+  },
+  "compareButtonLabel": {
+    "message": "AICompare"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "Langue du bouton de comparaison"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "Systeme"
+  },
+  "compareButtonLanguageZh": {
+    "message": "Chinois"
+  },
+  "compareButtonLanguageEn": {
+    "message": "Anglais"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "Bilingue"
+  },
+  "startCompare": {
+    "message": "PK",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "openPage": {
+    "message": "Mode onglet"
+  },
+  "commandDescription": {
+    "message": "Raccourci : (⌘+M sur Mac, Ctrl+M sur Windows)"
+  },
+  "contactInfo": {
+    "message": "Si vous souhaitez ajouter plus de sites, contactez-moi a AIShortcuts@outlook.com"
+  },
+  "popupTitle": {
+    "message": "AI Compare"
+  },
+  "column1": {
+    "message": "1 col",
+    "description": "Single column layout option"
+  },
+  "column2": {
+    "message": "2 cols",
+    "description": "Two columns layout option"
+  },
+  "column3": {
+    "message": "3 cols",
+    "description": "Three columns layout option"
+  },
+  "column4": {
+    "message": "4 cols",
+    "description": "Four columns layout option"
+  },
+  "columnsTitle": {
+    "message": "Colonnes",
+    "description": "Tooltip for the columns selector button"
+  },
+  "closeButton": {
+    "message": "Fermer",
+    "description": "Close button text"
+  },
+  "iframeSiteSettings": {
+    "message": "Parametres du mode collection",
+    "description": "Title of the site settings dialog"
+  },
+  "standaloneModeTitle": {
+    "message": "Mode page autonome",
+    "description": "Title for standalone page mode section"
+  },
+  "collectionModeTitle": {
+    "message": "Mode collection",
+    "description": "Title for collection mode section"
+  },
+  "configButtonTitle": {
+    "message": "Configuration des raccourcis",
+    "description": "Title for shortcut entry configuration"
+  },
+  "inputPositionTitle": {
+    "message": "Position du champ",
+    "description": "Input position section title"
+  },
+  "inputPositionDescription": {
+    "message": "Choisissez d afficher le champ en haut ou fixe en bas",
+    "description": "Input position section description"
+  },
+  "inputPositionTop": {
+    "message": "Haut de la page",
+    "description": "Input position top option"
+  },
+  "inputPositionBottom": {
+    "message": "Fixe en bas",
+    "description": "Input position bottom option"
+  },
+  "comingSoonNotice": {
+    "message": "En cours de developpement, pas encore disponible",
+    "description": "Feature coming soon notice"
+  },
+  "floatButton": {
+    "message": "Bouton flottant",
+    "description": "The name for the float button"
+  },
+  "selectionSearch": {
+    "message": "Recherche de selection",
+    "description": "The name for the selection search"
+  },
+  "contextMenu": {
+    "message": "Menu contextuel",
+    "description": "The name for the context menu"
+  },
+  "searchEngine": {
+    "message": "Moteur de recherche",
+    "description": "The name for the search engine"
+  },
+  "deleteConfirm": {
+    "message": "Voulez-vous vraiment supprimer ce prompt ?",
+    "description": "Confirmation message for deleting a prompt"
+  },
+  "favoritesTitle": {
+    "message": "Favoris de prompts",
+    "description": "Title for the favorites section"
+  },
+  "enableSync": {
+    "message": "Activer la synchronisation",
+    "description": "Sync bar default text, click to go to login"
+  },
+  "logout": {
+    "message": "Se deconnecter",
+    "description": "Logout option in account dropdown menu"
+  },
+  "syncNow": {
+    "message": "Synchroniser maintenant",
+    "description": "Button to manually pull data from cloud when logged in"
+  },
+  "syncDownloadFailed": {
+    "message": "Impossible de recuperer les donnees depuis le cloud. Verifiez le reseau et reessayez.",
+    "description": "Error message when Firebase download fails"
+  },
+  "noFavorites": {
+    "message": "Aucun prompt enregistre pour le moment",
+    "description": "Message shown when there are no saved prompts"
+  },
+  "favoriteButton": {
+    "message": "Enregistrer le prompt",
+    "description": "Title for the favorite button"
+  },
+  "iframeFavoriteTitle": {
+    "message": "Enregistrer cette reponse dans les favoris",
+    "description": "Tooltip for iframe star when not favorited"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "Retirer des favoris",
+    "description": "Tooltip for iframe star when favorited"
+  },
+  "refresh": {
+    "message": "Actualiser",
+    "description": "Tooltip for the refresh button"
+  },
+  "openInNewTab": {
+    "message": "Ouvrir dans un nouvel onglet",
+    "description": "Tooltip for the open in new tab button"
+  },
+  "ruleUpdateTimePrefix": {
+    "message": "Heure de mise a jour automatique distante des regles : ",
+    "description": "Prefix text for rule update time"
+  },
+  "ruleUpdateTimeNotAvailable": {
+    "message": "Heure de mise a jour automatique distante des regles : indisponible",
+    "description": "Message shown when rule update time is not available"
+  },
+  "ruleUpdateTimeError": {
+    "message": "Heure de mise a jour automatique distante des regles : echec de recuperation",
+    "description": "Message shown when failed to get rule update time"
+  },
+  "participateRuleDev": {
+    "message": "Participer au developpement des regles",
+    "description": "Text for the participate in rule development button"
+  },
+  "recentUpdateRecords": {
+    "message": "Historique recent des mises a jour"
+  },
+  "noUpdateHistory": {
+    "message": "Aucun historique de mise a jour disponible"
+  },
+  "newSitesCount": {
+    "message": "$COUNT$ nouveaux sites ajoutes",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "updatedSitesCount": {
+    "message": "$COUNT$ sites mis a jour",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "totalSitesCount": {
+    "message": "$COUNT$ sites au total",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "participateAISiteRuleDev": {
+    "message": "Participer au developpement des regles de sites IA"
+  },
+  "checkUpdates": {
+    "message": "Verifier les mises a jour"
+  },
+  "unknownTime": {
+    "message": "Heure inconnue"
+  },
+  "disabledSitesTitle": {
+    "message": "Sites avec bouton flottant desactive"
+  },
+  "disabledSitesDescription": {
+    "message": "Gerez les sites web ou le bouton flottant est desactive. Vous pouvez le reactiver ici."
+  },
+  "searchProviderName": {
+    "message": "AI Compare"
+  },
+  "searchProviderDescription": {
+    "message": "Comparez les reponses de plusieurs plateformes IA avec AI Compare"
+  },
+  "promptTemplatesTitle": {
+    "message": "Modeles de prompt"
+  },
+  "promptTemplatesLabel": {
+    "message": "Modele :"
+  },
+  "promptTemplatesDescription": {
+    "message": "Personnalisez les modeles de prompt pour la recherche comparative IA"
+  },
+  "addTemplateButton": {
+    "message": "Ajouter un nouveau modele"
+  },
+  "addTemplateTitle": {
+    "message": "Ajouter un modele de prompt"
+  },
+  "editTemplateTitle": {
+    "message": "Modifier le modele de prompt"
+  },
+  "templateNameLabel": {
+    "message": "Nom du modele"
+  },
+  "templateNameHelp": {
+    "message": "Texte affiche sur le bouton"
+  },
+  "templateQueryLabel": {
+    "message": "Modele de requete"
+  },
+  "templateQueryHelp": {
+    "message": "Utilisez {query} comme espace reserve pour la saisie utilisateur"
+  },
+  "templateOrderLabel": {
+    "message": "Ordre d affichage"
+  },
+  "templateOrderHelp": {
+    "message": "Les nombres plus petits apparaissent en premier"
+  },
+  "cancelButton": {
+    "message": "Annuler"
+  },
+  "saveButton": {
+    "message": "Enregistrer"
+  },
+  "favButtonSaved": {
+    "message": "Enregistre"
+  },
+  "editButton": {
+    "message": "Modifier"
+  },
+  "deleteButton": {
+    "message": "Supprimer"
+  },
+  "confirmDeleteTemplate": {
+    "message": "Voulez-vous vraiment supprimer ce modele ?"
+  },
+  "templateSavedSuccess": {
+    "message": "Modele enregistre avec succes"
+  },
+  "templateDeletedSuccess": {
+    "message": "Modele supprime avec succes"
+  },
+  "templateNameRequired": {
+    "message": "Veuillez saisir un nom de modele"
+  },
+  "templateQueryRequired": {
+    "message": "Veuillez saisir un modele de requete"
+  },
+  "localFileDetected": {
+    "message": "Fichier local detecte"
+  },
+  "browserSecurityRestriction": {
+    "message": "Restriction de securite du navigateur"
+  },
+  "localFileSecurityMessage": {
+    "message": "Lors de la copie de fichiers locaux, les navigateurs peuvent acceder uniquement au chemin du fichier, pas a son contenu."
+  },
+  "suggestedActions": {
+    "message": "Actions suggerees :"
+  },
+  "uploadFileAction": {
+    "message": "Cliquez sur le <strong>bouton de televersement de fichier</strong> en haut pour selectionner des fichiers"
+  },
+  "dismissWarning": {
+    "message": "Compris"
+  },
+  "exportResponses": {
+    "message": "Exporter les resultats de AI Compare"
+  },
+  "exportResponsesTitle": {
+    "message": "Exporter toutes les reponses IA"
+  },
+  "historyTitle": {
+    "message": "Historique"
+  },
+  "historyMaxRecordsTip": {
+    "message": "Seuls les $COUNT$ derniers enregistrements sont conserves",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "exportModalTitle": {
+    "message": "Exporter les resultats de AI Compare"
+  },
+  "exportFormat": {
+    "message": "Format d export"
+  },
+  "selectSites": {
+    "message": "Selectionner des sites"
+  },
+  "preview": {
+    "message": "Apercu"
+  },
+  "export": {
+    "message": "Exporter"
+  },
+  "cancel": {
+    "message": "Annuler"
+  },
+  "exportSuccess": {
+    "message": "Export reussi"
+  },
+  "exportFailed": {
+    "message": "Echec de l export"
+  },
+  "selectSitesToExport": {
+    "message": "Veuillez selectionner les sites a exporter"
+  },
+  "noContentFound": {
+    "message": "Aucun contenu a exporter"
+  },
+  "contentExtractionFailed": {
+    "message": "Echec de l extraction du contenu"
+  },
+  "devNotice": {
+    "message": "Fonction en cours de developpement, peut contenir des erreurs ou des limitations"
+  },
+  "pinGuideTitle": {
+    "message": "Epinglez l extension pour un acces rapide"
+  },
+  "pinGuideSteps": {
+    "message": "Cliquez sur l icone puzzle dans la barre d outils -> Trouvez \"AI Compare\" -> Cliquez sur l icone d epinglage"
+  },
+  "settingsLink": {
+    "message": "Parametres"
+  },
+  "historyLink": {
+    "message": "Historique"
+  },
+  "favoritesLink": {
+    "message": "Favoris"
+  },
+  "userFeedback": {
+    "message": "Suggestions"
+  },
+  "reviewLink": {
+    "message": "Notez-nous"
+  },
+  "coffeeLink": {
+    "message": "Offrez-moi un cafe"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "WeChat"
+  },
+  "wechatModalTitle": {
+    "message": "Identifiant WeChat"
+  },
+  "coffeeModalText": {
+    "message": "Votre soutien est la force motrice du developpement continu du projet"
+  },
+  "saveFavoriteSites": {
+    "message": "Enregistrer"
+  },
+  "saveFavoriteSitesTitle": {
+    "message": "Enregistrer les sites selectionnes comme favoris"
+  },
+  "favoriteSitesSaved": {
+    "message": "Sites favoris enregistres"
+  },
+  "noSitesSelected": {
+    "message": "Veuillez selectionner au moins un site"
+  },
+  "automationNotice": {
+    "message": "Si un site web est mis a jour, sa fonction de requete automatique peut cesser de fonctionner. Nous nous excusons pour la gene occasionnee. Si vous remarquez qu elle ne fonctionne plus, contactez-nous pour une mise a jour."
+  },
+  "injectProgressTitleRunning": {
+    "message": "Execution du script..."
+  },
+  "injectProgressTitlePageLoading": {
+    "message": "Chargement de la page..."
+  },
+  "injectProgressTitleError": {
+    "message": "Execution echouee"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "Preparation"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "Chargement de la page..."
+  },
+  "injectProgressDetailRetrying": {
+    "message": "Nouvelle tentative"
+  },
+  "injectProgressButtonRetry": {
+    "message": "Reessayer"
+  },
+  "injectProgressButtonClose": {
+    "message": "Fermer"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "Veuillez saisir une question"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "Apres le chargement de la page, cliquez sur l icone 🔗 dans le champ de saisie"
+  },
+  "injectProgressStepInfo": {
+    "message": "Etape $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "Execution interrompue"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "En cours"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "Element introuvable"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "Configuration du gestionnaire invalide"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "Le bouton est reste desactive apres le nombre maximal de tentatives"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "Delai depasse a l etape"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "Gestionnaire du site introuvable"
+  },
+  "injectProgressRetryInfo": {
+    "message": "Nouvelle tentative $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "Cliquer"
+  },
+  "injectStepActionFocus": {
+    "message": "Mettre le focus"
+  },
+  "injectStepActionSetValue": {
+    "message": "Définir la valeur"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "Déclencher les événements"
+  },
+  "injectStepActionSendKeys": {
+    "message": "Envoyer les touches"
+  },
+  "injectStepActionReplace": {
+    "message": "Remplacer"
+  },
+  "injectStepActionWait": {
+    "message": "Attendre"
+  },
+  "injectStepActionCustom": {
+    "message": "Action personnalisée"
+  },
+  "injectStepActionPaste": {
+    "message": "Coller"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "Utiliser le parametre d URL, aucune interaction avec le champ n est necessaire"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "Envoyer ⌘ + Enter (Mac) ou Ctrl + Enter (Windows) pour soumettre le prompt"
+  },
+  "injectStepDescSendEnter": {
+    "message": "Envoyer la touche Entree"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "Envoyer Entree pour soumettre"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "Envoyer un message a la fenetre parente"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "Executer le collage de fichier"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "Cliquer sur le bouton d envoi de Claude"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "Cliquer sur le bouton d envoi de Poe"
+  },
+  "injectStepDescClickSend": {
+    "message": "Cliquer sur le bouton d envoi"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "Cliquer sur le bouton d envoi de Doubao"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "Le gestionnaire du site n est pas encore implemente"
+  },
+  "injectStepDescWait100ms": {
+    "message": "Attendre 100 ms"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "Attendre 200 ms pour garantir le focus"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "Attendre 200 ms pour garantir la fin de la detection des changements Angular"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "Attendre 400 ms pour que Slate/React se mette a jour et active le bouton d envoi"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "Mettre le focus sur le champ de l editeur Lexical"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "Mettre le focus sur le champ de prompt d AI Studio"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "Mettre le focus sur le champ d AI Studio pour coller des fichiers"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "Mettre le focus sur le champ de ChatGPT"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "Mettre le focus sur le champ de ChatGPT pour coller des fichiers"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "Mettre le focus sur le champ de Claude pour coller des fichiers"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "Mettre le focus sur le champ de Copilot"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "Mettre le focus sur le champ de Copilot pour coller des fichiers"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "Mettre le focus sur le champ de Gemini pour coller des fichiers"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "Mettre le focus sur le champ de Grok pour coller des fichiers"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "Mettre le focus sur le champ Lexical de Kimi pour coller des fichiers"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "Mettre le focus sur le champ de Poe pour coller des fichiers"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "Mettre le focus sur le champ de Qwen pour coller des fichiers"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "Mettre le focus sur la zone editable"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "Mettre le focus sur la zone editable pour coller des fichiers"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "Mettre le focus sur la zone de suggestion ou le champ de saisie"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "Mettre le focus sur l editeur Wenxin"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "Mettre le focus sur l editeur Wenxin pour coller des fichiers"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "Mettre le focus sur le champ de Metaso pour coller des fichiers"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "Mettre le focus sur le champ de Doubao"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "Mettre le focus sur le champ de Doubao pour coller des fichiers"
+  },
+  "injectStepDescFocusInput": {
+    "message": "Mettre le focus sur le champ de saisie"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "Mettre le focus sur le champ de saisie pour coller des fichiers"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "Mettre le focus sur le champ de saisie (editeur Slate)"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "Mettre le focus sur le champ de Tongyi Qianwen pour coller des fichiers"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "Declencher plusieurs evenements de saisie"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "Declencher la sequence complete des evenements de saisie"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "Declencher des evenements de saisie speciaux"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "Declencher les evenements de saisie"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "Declencher les evenements de saisie (avec texte InputEvent pour synchroniser React)"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "Definir le contenu de l editeur Lexical (creer automatiquement span[data-lexical-text])"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "Definir la saisie AI Studio (Angular FormControl)"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "Definir le contenu du champ ChatGPT"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "Definir la valeur du champ Copilot"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "Definir la valeur speciale du champ Poe"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "Definir le contenu de la zone editable"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "Definir le contenu special de l editeur Wenxin"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "Definir la valeur du champ Metaso"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "Definir la valeur du champ Doubao"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "Definir la valeur du champ"
+  },
   "ratingModalClose": {
     "message": "Fermer"
   },
@@ -28,6 +737,96 @@
   },
   "ratingModalNoLink": {
     "message": "Impossible d'ouvrir le lien d'avis"
+  },
+  "dataSyncTitle": {
+    "message": "Synchronisation des donnees"
+  },
+  "dataSyncDescription": {
+    "message": "Synchronisez tous vos parametres entre appareils (beta, peut contenir des erreurs)"
+  },
+  "syncEnabledLabel": {
+    "message": "Activer la synchronisation vers"
+  },
+  "syncOnChange": {
+    "message": "Synchronisation automatique"
+  },
+  "syncOnStartup": {
+    "message": "Synchroniser au demarrage"
+  },
+  "syncAuthType": {
+    "message": "Type d authentification"
+  },
+  "syncAuthPassword": {
+    "message": "mot de passe"
+  },
+  "syncAuthToken": {
+    "message": "token"
+  },
+  "syncUsername": {
+    "message": "Nom d utilisateur"
+  },
+  "syncPassword": {
+    "message": "Mot de passe"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "Nom d utilisateur"
+  },
+  "syncTestConnection": {
+    "message": "Tester la connexion"
+  },
+  "syncNowButton": {
+    "message": "Synchroniser maintenant"
+  },
+  "syncImportButton": {
+    "message": "Restaurer depuis le cloud"
+  },
+  "syncTesting": {
+    "message": "Test de la connexion..."
+  },
+  "syncTestSuccess": {
+    "message": "Connexion reussie"
+  },
+  "syncTestFailed": {
+    "message": "Echec de la connexion"
+  },
+  "syncUploading": {
+    "message": "Televersement des donnees..."
+  },
+  "syncSuccess": {
+    "message": "Synchronisation reussie"
+  },
+  "syncFailed": {
+    "message": "Echec de la synchronisation"
+  },
+  "syncDownloading": {
+    "message": "Telechargement depuis le cloud..."
+  },
+  "syncImportSuccess": {
+    "message": "Donnees restaurees depuis le cloud. Rechargez la page pour appliquer les changements."
+  },
+  "syncImportFailed": {
+    "message": "Echec de la restauration"
+  },
+  "syncTokenPlaceholder": {
+    "message": "Saisissez le token"
+  },
+  "syncErrorNoToken": {
+    "message": "Veuillez saisir un token"
+  },
+  "syncErrorNoUrl": {
+    "message": "Veuillez saisir une URL WebDAV"
+  },
+  "syncErrorNoUsername": {
+    "message": "Veuillez saisir un nom d utilisateur"
+  },
+  "syncErrorNoPassword": {
+    "message": "Veuillez saisir un mot de passe"
+  },
+  "syncErrorNotConfigured": {
+    "message": "Veuillez activer la synchronisation et renseigner la configuration WebDAV"
   },
   "favFolderDefault": {
     "message": "Par défaut"
@@ -67,5 +866,65 @@
   },
   "removedFromFavorites": {
     "message": "Retiré des favoris"
+  },
+  "membershipTitle": {
+    "message": "Abonnement Pro"
+  },
+  "membershipDescription": {
+    "message": "Debloquez toutes les fonctionnalites et profitez de comparaisons IA illimitees"
+  },
+  "planMonthlyName": {
+    "message": "Mensuel"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / mois"
+  },
+  "planYearlyName": {
+    "message": "Annuel"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / an"
+  },
+  "planYearlySaving": {
+    "message": "Economisez 33%"
+  },
+  "planPopular": {
+    "message": "Le plus populaire"
+  },
+  "planFeature1": {
+    "message": "Comparaisons IA illimitees"
+  },
+  "planFeature2": {
+    "message": "Support prioritaire"
+  },
+  "planFeature3": {
+    "message": "Annulation a tout moment"
+  },
+  "planFeature4": {
+    "message": "Meilleur rapport qualite-prix"
+  },
+  "btnUpgradeMonthly": {
+    "message": "S abonner au mensuel"
+  },
+  "btnUpgradeYearly": {
+    "message": "S abonner a l annuel"
+  },
+  "membershipProThankYou": {
+    "message": "Merci pour votre soutien. Vous etes membre Pro."
+  },
+  "btnManageSubscription": {
+    "message": "Gerer l abonnement"
+  },
+  "membershipLoading": {
+    "message": "Chargement du statut d abonnement..."
+  },
+  "membershipLoginHint": {
+    "message": "Veuillez vous connecter avec Google (synchronisation des donnees) pour voir votre statut d abonnement."
+  },
+  "membershipExpiresOn": {
+    "message": "Renouvellement le : "
+  },
+  "membershipPriceNotConfigured": {
+    "message": "L identifiant Stripe Price n est pas configure. Merci de le definir dans stripe-payment.js."
   }
 }

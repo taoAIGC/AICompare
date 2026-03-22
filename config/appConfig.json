@@ -19,6 +19,11 @@
     "feedbackEmail": "AIShortcuts@outlook.com",
     "reviewLink": "https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews"
   },
+  "contact": {
+    "wechat": "aipmgpt",
+    "github": "https://github.com/taoAIGC/AICompare",
+    "email": "AIShortcuts@outlook.com"
+  },
   "analytics": {
     "enabled": false,
     "measurementId": "G-JP9L38KMWN",

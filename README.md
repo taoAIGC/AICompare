@@ -226,17 +226,145 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-03-17 15:04:17 UTC+08:00
+Last auto-update / 最近自动更新：2026-03-22 12:03:36 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- No staged file changes detected besides `README.md`.
+- `M` `.DS_Store`
+- `M` `.claude/settings.local.json`
+- `A` `.githooks/pre-commit`
+- `M` `.gitignore`
+- `A` `AGENTS.md`
+- `M` `CLAUDE.md`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
+- `M` `_locales/zh_TW/messages.json`
+- `M` `config/appConfig.json`
+- `M` `config/baseConfig.js`
+- `M` `config/siteHandlers.json`
+- `A` `contact/contact.css`
+- `A` `contact/contact.html`
+- `A` `contact/contact.js`
+- `A` `debug/capture-site-screenshot.js`
+- `A` `debug/fill-missing-locales.js`
+- `A` `debug/inspect-new-sites.js`
+- `A` `debug/inspect-site-controls.js`
+- `A` `debug/inspect-user-chrome-dom.js`
+- `A` `debug/output/perplexity-iframe-test/perplexity-iframe-1774150863403.png`
+- `A` `debug/output/site-inspection/Canva.png`
+- `A` `debug/output/site-inspection/Character-AI.png`
+- `A` `debug/output/site-inspection/DeepL.png`
+- `A` `debug/output/site-inspection/Dreamina.png`
+- `A` `debug/output/site-inspection/ElevenLabs.png`
+- `A` `debug/output/site-inspection/Fish-Audio.png`
+- `A` `debug/output/site-inspection/Flowith.png`
+- `A` `debug/output/site-inspection/Gamma.png`
+- `A` `debug/output/site-inspection/GenSpark.png`
+- `A` `debug/output/site-inspection/Google-Translate.png`
+- `A` `debug/output/site-inspection/HailuoAI.png`
+- `A` `debug/output/site-inspection/HeyGen.png`
+- `A` `debug/output/site-inspection/Lovable.png`
+- `A` `debug/output/site-inspection/Manus.png`
+- `A` `debug/output/site-inspection/Midjourney.png`
+- `A` `debug/output/site-inspection/NotebookLM.png`
+- `A` `debug/output/site-inspection/Pika.png`
+- `A` `debug/output/site-inspection/Runway.png`
+- `A` `debug/output/site-inspection/SeaArt.png`
+- `A` `debug/output/site-inspection/Sora.png`
+- `A` `debug/output/site-inspection/Suno.png`
+- `A` `debug/output/site-inspection/Vidu.png`
+- `A` `debug/output/site-inspection/Wan.png`
+- `A` `debug/output/site-inspection/results-1773735031269.json`
+- `A` `debug/output/site-inspection/results-1773735356967.json`
+- `A` `debug/output/user-chrome-tests/results-1773744272780.json`
+- `A` `debug/output/user-chrome-tests/results-1773744423012.json`
+- `A` `debug/output/user-chrome-tests/results-1773744842549.json`
+- `A` `debug/output/user-chrome-tests/results-1773745146578.json`
+- `A` `debug/output/user-chrome-tests/results-1773745160356.json`
+- `A` `debug/output/user-chrome-tests/results-1773745165015.json`
+- `A` `debug/output/user-chrome-tests/results-1773745207399.json`
+- `A` `debug/output/user-chrome-tests/results-1773745247486.json`
+- `A` `debug/output/user-chrome-tests/results-1773745417369.json`
+- `A` `debug/output/user-chrome-tests/results-1773747528654.json`
+- `A` `debug/output/user-chrome-tests/results-1773748208641.json`
+- `A` `debug/output/user-chrome-tests/results-1773748280445.json`
+- `A` `debug/output/user-chrome-tests/results-1773749750907.json`
+- `A` `debug/output/user-chrome-tests/results-1773804796863.json`
+- `A` `debug/output/user-chrome-tests/results-1773911410410.json`
+- `A` `debug/output/user-chrome-tests/results-1773915902509.json`
+- `A` `debug/output/user-chrome-tests/results-1773916103503.json`
+- `A` `debug/output/user-chrome-tests/results-1773916335829.json`
+- `A` `debug/output/user-chrome-tests/results-1773989374105.json`
+- `A` `debug/output/user-chrome-tests/results-1773989934935.json`
+- `A` `debug/output/user-chrome-tests/results-1774149434815.json`
+- `A` `debug/test-iframe-page-selection.js`
+- `A` `debug/test-perplexity-iframe.js`
+- `A` `debug/test-user-chrome-sites.js`
+- `A` `debug/verify-bing-translate.js`
+- `A` `debug/verify-deepl-translate.js`
+- `A` `debug/verify-dreamina-input.js`
+- `A` `debug/verify-pika-input.js`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.js`
+- `M` `manifest.json`
+- `M` `package.json`
+- `A` `playwright-report/data/146b60e5e97deed1ff3255715facd62f9891db0b.png`
+- `A` `playwright-report/data/75fab12801e2d948ddb8b23d24ebf00b6d592d50.png`
+- `A` `playwright-report/data/f3ba4e9df1709b479589e158b1eac07d9b389710.png`
+- `M` `playwright-report/index.html`
+- `M` `playwright-report/test-results.json`
+- `M` `playwright.config.js`
+- `A` `scripts/update-readme.js`
+- `M` `shared/sidebar.html`
+- `M` `shared/sidebar.js`
+- `A` `siteIcons/app.heygen.com.png`
+- `A` `siteIcons/app.klingai.com.png`
+- `A` `siteIcons/app.runwayml.com.png`
+- `A` `siteIcons/character.ai.png`
+- `A` `siteIcons/dreamina.capcut.com.png`
+- `A` `siteIcons/elevenlabs.io.png`
+- `A` `siteIcons/fish.audio.png`
+- `A` `siteIcons/flowith.io.png`
+- `A` `siteIcons/gamma.app.png`
+- `A` `siteIcons/hailuoai.video.png`
+- `A` `siteIcons/lovable.dev.png`
+- `A` `siteIcons/manus.im.png`
+- `A` `siteIcons/notebooklm.google.com.png`
+- `A` `siteIcons/pika.art.png`
+- `A` `siteIcons/sora.com.png`
+- `A` `siteIcons/suno.com.png`
+- `A` `siteIcons/translate.google.com.png`
+- `A` `siteIcons/wan.video.png`
+- `A` `siteIcons/www.canva.com.png`
+- `A` `siteIcons/www.deepl.com.png`
+- `A` `siteIcons/www.genspark.ai.png`
+- `A` `siteIcons/www.midjourney.com.png`
+- `A` `siteIcons/www.seaart.ai.png`
+- `A` `siteIcons/www.vidu.com.png`
+- `M` `test-results/.last-run.json`
+- `A` `test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/Qwen-direct-userprompt.png`
+- `A` `test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/attachments/screenshot-Qwen-1d8ff195b674dddf13e6f91fa6b57b76d1f9cee1.png`
+- `A` `test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/test-failed-1.png`
+- `A` `test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/test-failed-2.png`
+- `M` `tests/e2e/ai-sites-inject.test.js`
+- `M` `tests/setup.js`
+- `M` `tests/utils/test-utils.js`
+- `A` `userprompt-buttons-qwen-1774110837909.png`
+- `A` `userprompt-buttons-yuanbao-1774110762697.png`
 
 ### Recent commits / 最近提交
+- `0d7ece6` 2026-03-17 V 2.20.4 翻译更多站点
 - `dfb1aed` 2026-03-12 V 2.20.3 优化站点导航、输入框大小和脚本进度提示
 - `929ca23` 2026-03-04 V2.20.2 修复同步功能
 - `720c4ca` 2026-02-20 V2.20.1 修复webdav 和若干问题
 - `5c83c89` 2026-02-19 V2.20 支持收藏时选择文件夹；支持 webdav 同步功能
-- `63a3658` 2026-02-17 V2.19 修复千问 输入框移动到下面
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

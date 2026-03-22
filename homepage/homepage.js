@@ -3,6 +3,24 @@ let isComposing = false;
 
 const HOMEPAGE_PERF_PREFIX = 'homepage';
 const HOMEPAGE_PERF_CACHE_KEY = '__homepagePerfMeasures';
+const DEFAULT_SITE_GROUP = 'chat';
+const SITE_GROUP_LABELS = {
+    chat: 'Chat',
+    image: 'Image',
+    video: 'Video',
+    audio: 'Audio',
+    agents: 'Agents',
+    translation: 'Translation',
+    ppt: 'PPT',
+    other: 'Other'
+};
+
+const homepageSitesState = {
+    supportedSites: [],
+    selectedSites: new Map(),
+    activeGroup: DEFAULT_SITE_GROUP,
+    dragAndDropBound: false
+};
 
 function perfMark(name) {
     if (typeof performance === 'undefined' || typeof performance.mark !== 'function') {
@@ -70,6 +88,150 @@ function trackEvent(name, params = {}) {
     if (analytics && typeof analytics.logEvent === 'function') {
         analytics.logEvent(name, params);
     }
+}
+
+function getSiteGroup(site) {
+    const group = site?.type || site?.category || 'other';
+    return String(group).trim().toLowerCase() || 'other';
+}
+
+function getSiteGroupLabel(groupKey) {
+    const normalizedGroup = String(groupKey || '').trim().toLowerCase();
+    if (SITE_GROUP_LABELS[normalizedGroup]) {
+        return SITE_GROUP_LABELS[normalizedGroup];
+    }
+    if (!normalizedGroup) {
+        return SITE_GROUP_LABELS.other;
+    }
+    return normalizedGroup.charAt(0).toUpperCase() + normalizedGroup.slice(1);
+}
+
+function getAvailableSiteGroups(sites) {
+    const groups = Array.from(new Set(
+        sites.map(site => getSiteGroup(site)).filter(Boolean)
+    ));
+    const preferredOrder = ['chat', 'image', 'video', 'audio', 'agents', 'translation', 'ppt', 'other'];
+    groups.sort((a, b) => {
+        const aIndex = preferredOrder.indexOf(a);
+        const bIndex = preferredOrder.indexOf(b);
+        if (aIndex !== -1 || bIndex !== -1) {
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        }
+        return a.localeCompare(b);
+    });
+    return groups;
+}
+
+function getFilteredSites() {
+    if (!homepageSitesState.activeGroup) {
+        return homepageSitesState.supportedSites;
+    }
+    return homepageSitesState.supportedSites.filter(
+        site => getSiteGroup(site) === homepageSitesState.activeGroup
+    );
+}
+
+function renderSiteTypeTabs() {
+    const tabsContainer = document.getElementById('siteTypeTabs');
+    if (!tabsContainer) {
+        return;
+    }
+
+    const availableGroups = getAvailableSiteGroups(homepageSitesState.supportedSites);
+    if (!availableGroups.includes(homepageSitesState.activeGroup)) {
+        homepageSitesState.activeGroup = availableGroups.includes(DEFAULT_SITE_GROUP)
+            ? DEFAULT_SITE_GROUP
+            : (availableGroups[0] || '');
+    }
+
+    tabsContainer.innerHTML = '';
+
+    const fragment = document.createDocumentFragment();
+    availableGroups.forEach(groupKey => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'site-type-tab';
+        button.textContent = getSiteGroupLabel(groupKey);
+        button.dataset.group = groupKey;
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(groupKey === homepageSitesState.activeGroup));
+        button.classList.toggle('active', groupKey === homepageSitesState.activeGroup);
+        button.addEventListener('click', () => {
+            if (homepageSitesState.activeGroup === groupKey) {
+                return;
+            }
+            homepageSitesState.activeGroup = groupKey;
+            renderSiteTypeTabs();
+            renderSitesList();
+        });
+        fragment.appendChild(button);
+    });
+
+    tabsContainer.appendChild(fragment);
+}
+
+function renderSitesList() {
+    const sitesList = document.getElementById('sitesList');
+    if (!sitesList) {
+        return;
+    }
+
+    const filteredSites = getFilteredSites();
+    sitesList.innerHTML = '';
+
+    if (filteredSites.length === 0) {
+        sitesList.innerHTML = '<div class="site-list-empty">No sites in this type yet</div>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    filteredSites.forEach(site => {
+        const div = document.createElement('div');
+        div.className = 'site-item';
+        div.draggable = true;
+        div.dataset.siteName = site.name;
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'site-drag-handle';
+        dragHandle.setAttribute('aria-hidden', 'true');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'site-checkbox';
+        checkbox.id = `site-${site.name}`;
+        checkbox.checked = homepageSitesState.selectedSites.get(site.name) === true;
+
+        checkbox.addEventListener('change', () => {
+            homepageSitesState.selectedSites.set(site.name, checkbox.checked);
+            trackEvent('homepage_site_toggle', {
+                site_name: site.name,
+                enabled: checkbox.checked
+            });
+        });
+
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = site.name;
+        nameLabel.htmlFor = `site-${site.name}`;
+
+        div.addEventListener('click', (e) => {
+            if (sitesList.classList.contains('drag-active')) {
+                return;
+            }
+            if (e.target !== checkbox && e.target !== nameLabel && e.target !== dragHandle) {
+                checkbox.click();
+            }
+        });
+
+        div.appendChild(dragHandle);
+        div.appendChild(checkbox);
+        div.appendChild(nameLabel);
+        fragment.appendChild(div);
+    });
+
+    sitesList.appendChild(fragment);
 }
 
 // 页面加载完成后的初始化
@@ -444,7 +606,10 @@ async function showQuerySuggestions(query) {
 async function checkAndShowPinGuide() {
     try {
         // 检查是否已经显示过引导
+        perfMark('pin_guide_storage_get_start');
         const { pinGuideShown } = await chrome.storage.local.get(['pinGuideShown']);
+        perfMark('pin_guide_storage_get_end');
+        perfMeasure('pin_guide_storage_get_duration', 'pin_guide_storage_get_start', 'pin_guide_storage_get_end');
         
         // 如果已经显示过，不显示
         if (pinGuideShown === true) {
@@ -504,6 +669,9 @@ function handleQuery(query) {
         // 传递选中的站点名称列表
         params.set('sites', selectedSites.join(','));
     }
+    if (homepageSitesState.activeGroup) {
+        params.set('type', homepageSitesState.activeGroup);
+    }
     // 如果当前页面在侧边栏中，也传递 side_panel 参数
     if (isSidePanel) {
         params.set('side_panel', 'true');
@@ -529,8 +697,9 @@ function handleQuery(query) {
 
 // 获取选中的站点名称列表
 function getSelectedSites() {
-    const checkboxes = document.querySelectorAll('#sitesList .site-checkbox:checked');
-    return Array.from(checkboxes).map(checkbox => checkbox.id.replace('site-', ''));
+    return getFilteredSites()
+        .filter(site => homepageSitesState.selectedSites.get(site.name) === true)
+        .map(site => site.name);
 }
 
 // 常用站点优先排序（enabled=true 在前，再按 order 排序）
@@ -562,75 +731,32 @@ async function initializeSitesList() {
         perfMark('sites_list_get_data_end');
         perfMeasure('sites_list_get_data_duration', 'sites_list_get_data_start', 'sites_list_get_data_end');
         
-        // 过滤支持 iframe 的站点
+        // homepage 站点列表只按可见性过滤，
+        // 不再因为 supportIframe 或 enabled 把站点挡掉。
         const supportedSites = sites.filter(site => 
-            site.supportIframe === true && !site.hidden
+            !site.hidden
         );
         const sortedSites = sortSitesFavoriteFirst(supportedSites);
+        homepageSitesState.supportedSites = sortedSites;
+        homepageSitesState.selectedSites = new Map(
+            sortedSites.map(site => [site.name, site.enabled === true])
+        );
+        homepageSitesState.activeGroup = getAvailableSiteGroups(sortedSites).includes(DEFAULT_SITE_GROUP)
+            ? DEFAULT_SITE_GROUP
+            : (getAvailableSiteGroups(sortedSites)[0] || '');
         
         console.log('从getDefaultSites() 获取的可以使用的站点:', sortedSites.map(site => ({ name: site.name, enabled: site.enabled })));
         perfMark('sites_list_render_start');
-        // 清空列表
-        sitesList.innerHTML = '';
-        
-        // 创建站点项
-        const fragment = document.createDocumentFragment();
-        
-        sortedSites.forEach(site => {
-            const div = document.createElement('div');
-            div.className = 'site-item';
-            div.draggable = true;
-            div.dataset.siteName = site.name;
-
-            const dragHandle = document.createElement('span');
-            dragHandle.className = 'site-drag-handle';
-            dragHandle.setAttribute('aria-hidden', 'true');
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'site-checkbox';
-            checkbox.id = `site-${site.name}`;
-            
-            // 直接使用 getDefaultSites() 返回的 site.enabled 值（已合并用户设置和基础配置）
-            checkbox.checked = site.enabled === true;
-            // 调试日志
-            if (site.name === 'ChatGPT') {
-                console.log('ChatGPT enabled 值:', site.enabled, '类型:', typeof site.enabled, '严格等于true:', site.enabled === true, 'checkbox.checked:', checkbox.checked);
-            }
-
-            checkbox.addEventListener('change', () => {
-                trackEvent('homepage_site_toggle', {
-                    site_name: site.name,
-                    enabled: checkbox.checked
-                });
-            });
-            
-            const nameLabel = document.createElement('label');
-            nameLabel.textContent = site.name;
-            nameLabel.htmlFor = `site-${site.name}`;
-            
-            // 点击整个 item 也能切换复选框
-            div.addEventListener('click', (e) => {
-                if (sitesList.classList.contains('drag-active')) {
-                    return;
-                }
-                if (e.target !== checkbox && e.target !== nameLabel && e.target !== dragHandle) {
-                    checkbox.click();
-                }
-            });
-            
-            div.appendChild(dragHandle);
-            div.appendChild(checkbox);
-            div.appendChild(nameLabel);
-            fragment.appendChild(div);
-        });
-        
-        sitesList.appendChild(fragment);
+        renderSiteTypeTabs();
+        renderSitesList();
         perfMark('sites_list_render_end');
         perfMeasure('sites_list_render_duration', 'sites_list_render_start', 'sites_list_render_end');
         
         // 添加拖拽排序功能
-        addDragAndDropToSitesList(sitesList, sortedSites);
+        if (!homepageSitesState.dragAndDropBound) {
+            addDragAndDropToSitesList(sitesList);
+            homepageSitesState.dragAndDropBound = true;
+        }
         
     } catch (error) {
         console.error('获取站点配置失败:', error);
@@ -646,7 +772,7 @@ async function initializeSitesList() {
 }
 
 // 为站点列表添加拖拽排序功能
-function addDragAndDropToSitesList(listEl, supportedSites) {
+function addDragAndDropToSitesList(listEl) {
     let draggedElement = null;
     let draggedIndex = null;
     
@@ -703,7 +829,7 @@ function addDragAndDropToSitesList(listEl, supportedSites) {
         if (!draggedElement) return;
         const newIndex = Array.from(listEl.children).indexOf(draggedElement);
         if (newIndex !== draggedIndex) {
-            await updateHomepageSitesOrder(listEl, supportedSites);
+            await updateHomepageSitesOrder(listEl);
             console.log('主页站点顺序已更新并保存');
         }
     });
@@ -723,14 +849,25 @@ function getSitesDragAfterElement(container, y) {
 }
 
 // 保存主页站点排序到 storage
-async function updateHomepageSitesOrder(listEl, supportedSites) {
+async function updateHomepageSitesOrder(listEl) {
     try {
-        const orderedNames = Array.from(listEl.children)
+        const visibleNames = Array.from(listEl.children)
             .map(el => el.dataset.siteName)
             .filter(Boolean);
+        const visibleNameSet = new Set(visibleNames);
+        let visibleIndex = 0;
+        const orderedNames = homepageSitesState.supportedSites.map(site => {
+            if (!visibleNameSet.has(site.name)) {
+                return site.name;
+            }
+            const nextName = visibleNames[visibleIndex];
+            visibleIndex += 1;
+            return nextName;
+        });
         
         const { sites: existingUserSettings = {} } = await chrome.storage.sync.get('sites');
         const updatedUserSettings = { ...existingUserSettings };
+        const orderMap = new Map(orderedNames.map((name, index) => [name, index]));
         
         orderedNames.forEach((name, index) => {
             if (!updatedUserSettings[name]) {
@@ -741,14 +878,9 @@ async function updateHomepageSitesOrder(listEl, supportedSites) {
         
         await chrome.storage.sync.set({ sites: updatedUserSettings });
         
-        // 同步内存中的顺序，防止后续逻辑依赖旧顺序
-        if (supportedSites && Array.isArray(supportedSites)) {
-            supportedSites.sort((a, b) => {
-                const orderA = orderedNames.indexOf(a.name);
-                const orderB = orderedNames.indexOf(b.name);
-                return orderA - orderB;
-            });
-        }
+        homepageSitesState.supportedSites.sort(
+            (a, b) => (orderMap.get(a.name) ?? 999) - (orderMap.get(b.name) ?? 999)
+        );
 
         showToast(chrome.i18n.getMessage('saveSuccess') || '配置已保存');
     } catch (error) {
@@ -851,6 +983,9 @@ document.getElementById('fileUploadButton').addEventListener('click', () => {
     const selectedSites = getSelectedSites();
     if (selectedSites.length > 0) {
         urlParams.set('sites', selectedSites.join(','));
+    }
+    if (homepageSitesState.activeGroup) {
+        urlParams.set('type', homepageSitesState.activeGroup);
     }
     
     // 检查当前页面是否在侧边栏中

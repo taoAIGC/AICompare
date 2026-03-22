@@ -862,7 +862,9 @@ body.search-bar-bottom #iframes-container {
     margin-bottom: 8px;
     border-bottom: 1px solid #ececec;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 }
 
 .nav-column-selector {

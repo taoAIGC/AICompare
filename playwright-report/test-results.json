@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 5
+      "actualWorkers": 1
     },
     "preserveOutput": "always",
     "projects": [
@@ -20,16 +20,34 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 5
+          "actualWorkers": 1
         },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests",
-        "testIgnore": [],
+        "testIgnore": [
+          "/tests\\/e2e\\/ai-sites-inject\\.test\\.js/"
+        ],
         "testMatch": [
           "**/*.test.js"
         ],
-        "timeout": 30000
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "extension-direct-sites",
+        "name": "extension-direct-sites",
+        "testDir": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/tests\\/e2e\\/ai-sites-inject\\.test\\.js/"
+        ],
+        "timeout": 120000
       }
     ],
     "quiet": false,
@@ -73,504 +91,128 @@
       "specs": [],
       "suites": [
         {
-          "title": "AI站点注入脚本测试",
+          "title": "AI direct-site user prompt buttons",
           "file": "e2e/ai-sites-inject.test.js",
-          "line": 8,
-          "column": 1,
+          "line": 54,
+          "column": 6,
           "specs": [
             {
-              "title": "ChatGPT - 注入脚本和User Prompt测试",
-              "ok": true,
+              "title": "Qwen shows compare and favorite buttons beside user prompt",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
+                  "projectId": "extension-direct-sites",
+                  "projectName": "extension-direct-sites",
                   "results": [
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 5438,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 ChatGPT ===\n"
+                      "status": "failed",
+                      "duration": 24581,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"hhkhgpadepocnmjfpohcmjdcgkmfnadi\"\u001b[39m\nReceived: \u001b[31m\"e89cca61-9b65-4b36-a649-322031857d0b\"\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"hhkhgpadepocnmjfpohcmjdcgkmfnadi\"\u001b[39m\nReceived: \u001b[31m\"e89cca61-9b65-4b36-a649-322031857d0b\"\u001b[39m\n    at /Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests/e2e/ai-sites-inject.test.js:122:61",
+                        "location": {
+                          "file": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests/e2e/ai-sites-inject.test.js",
+                          "column": 61,
+                          "line": 122
                         },
+                        "snippet": "  120 |         expect(buttonDiagnostics.compareVisibleCount).toBeGreaterThan(0);\n  121 |         expect(buttonDiagnostics.favoriteVisibleCount).toBeGreaterThan(0);\n> 122 |         expect(buttonDiagnostics.detectedButtonExtensionId).toBe(extensionId);\n      |                                                             ^\n  123 |\n  124 |         const compareResult = await openComparePage(context, page, '.ai-compare-userprompt-btn');\n  125 |         diagnostics.compareClicked = compareResult.clicked;"
+                      },
+                      "errors": [
                         {
-                          "text": "✓ 已打开 ChatGPT\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: true\n"
-                        },
-                        {
-                          "text": "✓ 已输入测试文本\n"
-                        },
-                        {
-                          "text": "✓ 输入内容验证通过\n"
-                        },
-                        {
-                          "text": "✓ User Prompt选择器测试结果: {\n  containerFound: \u001b[33mfalse\u001b[39m,\n  textFound: \u001b[33mfalse\u001b[39m,\n  containerHTML: \u001b[32m'N/A'\u001b[39m,\n  textContent: \u001b[32m'N/A'\u001b[39m\n}\n"
+                          "location": {
+                            "file": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests/e2e/ai-sites-inject.test.js",
+                            "column": 61,
+                            "line": 122
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"hhkhgpadepocnmjfpohcmjdcgkmfnadi\"\u001b[39m\nReceived: \u001b[31m\"e89cca61-9b65-4b36-a649-322031857d0b\"\u001b[39m\n\n  120 |         expect(buttonDiagnostics.compareVisibleCount).toBeGreaterThan(0);\n  121 |         expect(buttonDiagnostics.favoriteVisibleCount).toBeGreaterThan(0);\n> 122 |         expect(buttonDiagnostics.detectedButtonExtensionId).toBe(extensionId);\n      |                                                             ^\n  123 |\n  124 |         const compareResult = await openComparePage(context, page, '.ai-compare-userprompt-btn');\n  125 |         diagnostics.compareClicked = compareResult.clicked;\n    at /Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests/e2e/ai-sites-inject.test.js:122:61"
                         }
                       ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-02-21T01:35:30.024Z",
+                      "startTime": "2026-03-16T00:41:46.726Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "extension-context.json",
+                          "contentType": "application/json",
+                          "body": "ewogICJleHRlbnNpb25JZCI6ICJoaGtoZ3BhZGVwb2NubWpmcG9oY21qZGNna21mbmFkaSIsCiAgInNlcnZpY2VXb3JrZXJVcmwiOiAiY2hyb21lLWV4dGVuc2lvbjovL2hoa2hncGFkZXBvY25tamZwb2hjbWpkY2drbWZuYWRpL2JhY2tncm91bmQuanMiLAogICJzZWVkUHJvZmlsZURpciI6ICIvVXNlcnMvaGFzZWUvRG9jdW1lbnRzL+WQjOatpeaWh+eovy9tdWx0aS1BSS9BSVNob3J0Y3V0cy8ucGxheXdyaWdodC11c2VyLWRhdGEvYXV0b21hdGlvbi1wcm9maWxlIiwKICAidXNlckRhdGFEaXIiOiAiL1VzZXJzL2hhc2VlL0RvY3VtZW50cy/lkIzmraXmlofnqL8vbXVsdGktQUkvQUlTaG9ydGN1dHMvLnBsYXl3cmlnaHQtdXNlci1kYXRhL2V4dGVuc2lvbi1ydW5zL2V4dGVuc2lvbi1kaXJlY3Qtc2l0ZXMtUXdlbi1zaG93cy1jb21wYXJlLWFuZC1mYXZvcml0ZS1idXR0b25zLWJlc2lkZS11c2VyLXByb21wdC0wLTE3NzM2MjE3MDY3MzMiCn0="
+                        },
+                        {
+                          "name": "screenshot-Qwen",
+                          "contentType": "image/png",
+                          "path": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/attachments/screenshot-Qwen-1d8ff195b674dddf13e6f91fa6b57b76d1f9cee1.png"
+                        },
+                        {
+                          "name": "Qwen-diagnostics.json",
+                          "contentType": "application/json",
+                          "body": "ewogICJzaXRlIjogIlF3ZW4iLAogICJ0YXJnZXRVcmwiOiAiaHR0cHM6Ly9jaGF0LnF3ZW4uYWkvIiwKICAiZXh0ZW5zaW9uSWQiOiAiaGhraGdwYWRlcG9jbm1qZnBvaGNtamRjZ2ttZm5hZGkiLAogICJzZXJ2aWNlV29ya2VyVXJsIjogImNocm9tZS1leHRlbnNpb246Ly9oaGtoZ3BhZGVwb2NubWpmcG9oY21qZGNna21mbmFkaS9iYWNrZ3JvdW5kLmpzIiwKICAiY29udGFpbmVyU2VsZWN0b3IiOiAiW2RhdGEtbWVzc2FnZS1hdXRob3Itcm9sZT1cInVzZXJcIl0iLAogICJ0ZXh0U2VsZWN0b3IiOiAiW2RhdGEtbWVzc2FnZS1hdXRob3Itcm9sZT1cInVzZXJcIl0iLAogICJwcm9tcHRDb250YWluZXJzQmVmb3JlIjogMCwKICAiZXhpc3RpbmdQcm9tcHRUZXh0IjogIiIsCiAgImluamVjdGVkV29ya2Zsb3dQcm9tcHQiOiB0cnVlLAogICJpbmplY3RSZWFzb24iOiAicXdlbi1zcGVjaWFsIiwKICAid29ya2Zsb3dQcm9tcHRUZXh0IjogIlBsYXl3cmlnaHQgZGlyZWN0LXNpdGUgcHJvbXB0IFF3ZW4gMTc3MzYyMTcxMzkzMSIsCiAgImNvbXBhcmVDbGlja2VkIjogZmFsc2UsCiAgImNvbXBhcmVPcGVuZWQiOiBmYWxzZSwKICAiY29tcGFyZVVybCI6ICIiLAogICJjb21wYXJlUXVlcnkiOiAiIiwKICAiZmF2b3JpdGVTdGF0ZUJlZm9yZSI6IG51bGwsCiAgImZhdm9yaXRlQ2xpY2tlZCI6IGZhbHNlLAogICJmYXZvcml0ZU1vZGFsT3BlbmVkIjogZmFsc2UsCiAgImZhdm9yaXRlU3RhdGVBZnRlciI6IG51bGwsCiAgImZhdm9yaXRlU3RhdGVDaGFuZ2VkIjogZmFsc2UsCiAgInNjcmVlbnNob3QiOiAiL1VzZXJzL2hhc2VlL0RvY3VtZW50cy/lkIzmraXmlofnqL8vbXVsdGktQUkvQUlTaG9ydGN1dHMvdGVzdC1yZXN1bHRzL2UyZS1haS1zaXRlcy1pbmplY3QtQUktZGlyLTc4ZTMwLS1idXR0b25zLWJlc2lkZS11c2VyLXByb21wdC1leHRlbnNpb24tZGlyZWN0LXNpdGVzL1F3ZW4tZGlyZWN0LXVzZXJwcm9tcHQucG5nIiwKICAicGFnZVVybCI6ICJodHRwczovL2NoYXQucXdlbi5haS8iLAogICJjb21wYXJlQnV0dG9uQ291bnQiOiAxLAogICJmYXZvcml0ZUJ1dHRvbkNvdW50IjogMSwKICAiY29tcGFyZVZpc2libGVDb3VudCI6IDEsCiAgImZhdm9yaXRlVmlzaWJsZUNvdW50IjogMSwKICAid3JhcFZpc2libGVDb3VudCI6IDEsCiAgImRldGVjdGVkQnV0dG9uRXh0ZW5zaW9uSWQiOiAiZTg5Y2NhNjEtOWI2NS00YjM2LWE2NDktMzIyMDMxODU3ZDBiIiwKICAid3JhcERlYnVnIjogWwogICAgewogICAgICAiaW5kZXgiOiAwLAogICAgICAibWVzc2FnZUtleSI6ICJpZDptb2NrLXF3ZW4tMTc3MzYyMTcyMzUxOSIsCiAgICAgICJ2aXNpYmxlIjogdHJ1ZSwKICAgICAgImNvbXBhcmVUZXh0IjogIkFJQ29tcGFyZSIsCiAgICAgICJmYXZvcml0ZVRleHQiOiAiU2F2ZSIsCiAgICAgICJsZWZ0IjogNTQzLAogICAgICAidG9wIjogMjc4LAogICAgICAid2lkdGgiOiAxNjAsCiAgICAgICJoZWlnaHQiOiAyMgogICAgfQogIF0sCiAgImVycm9yIjogIkVycm9yOiBcdTAwMWJbMm1leHBlY3QoXHUwMDFiWzIybVx1MDAxYlszMW1yZWNlaXZlZFx1MDAxYlszOW1cdTAwMWJbMm0pLlx1MDAxYlsyMm10b0JlXHUwMDFiWzJtKFx1MDAxYlsyMm1cdTAwMWJbMzJtZXhwZWN0ZWRcdTAwMWJbMzltXHUwMDFiWzJtKSAvLyBPYmplY3QuaXMgZXF1YWxpdHlcdTAwMWJbMjJtXG5cbkV4cGVjdGVkOiBcdTAwMWJbMzJtXCJoaGtoZ3BhZGVwb2NubWpmcG9oY21qZGNna21mbmFkaVwiXHUwMDFiWzM5bVxuUmVjZWl2ZWQ6IFx1MDAxYlszMW1cImU4OWNjYTYxLTliNjUtNGIzNi1hNjQ5LTMyMjAzMTg1N2QwYlwiXHUwMDFiWzM5bVxuICAgIGF0IC9Vc2Vycy9oYXNlZS9Eb2N1bWVudHMv5ZCM5q2l5paH56i/L211bHRpLUFJL0FJU2hvcnRjdXRzL3Rlc3RzL2UyZS9haS1zaXRlcy1pbmplY3QudGVzdC5qczoxMjI6NjEiCn0="
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/test-failed-2.png"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/test-results/e2e-ai-sites-inject-AI-dir-78e30--buttons-beside-user-prompt-extension-direct-sites/test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/tests/e2e/ai-sites-inject.test.js",
+                        "column": 61,
+                        "line": 122
+                      }
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "f5733e64e7845d5efa87-4931039fbf5414883b58",
+              "id": "f5733e64e7845d5efa87-58dfcd290189d5b38e44",
               "file": "e2e/ai-sites-inject.test.js",
-              "line": 13,
-              "column": 3
+              "line": 58,
+              "column": 5
             },
             {
-              "title": "Gemini - 注入脚本和User Prompt测试",
+              "title": "元宝 shows compare and favorite buttons beside user prompt",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
+                  "projectId": "extension-direct-sites",
+                  "projectName": "extension-direct-sites",
                   "results": [
                     {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 4909,
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
                       "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 Gemini ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 Gemini\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: false\n"
-                        }
-                      ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-02-21T01:35:30.055Z",
+                      "startTime": "2026-03-16T00:42:11.324Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "expected"
+                  "status": "skipped"
                 }
               ],
-              "id": "f5733e64e7845d5efa87-4553dc146add02af9df1",
+              "id": "f5733e64e7845d5efa87-cc5c687710dd05dea5ed",
               "file": "e2e/ai-sites-inject.test.js",
-              "line": 64,
-              "column": 3
-            },
-            {
-              "title": "Grok - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 2,
-                      "parallelIndex": 2,
-                      "status": "passed",
-                      "duration": 9427,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 Grok ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 Grok\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: false\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:30.045Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-fbac9cfa52a9a31ffcdf",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 111,
-              "column": 3
-            },
-            {
-              "title": "Claude - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 3,
-                      "status": "passed",
-                      "duration": 7095,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 Claude ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 Claude\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: false\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:30.043Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-24f489227be386c08325",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 158,
-              "column": 3
-            },
-            {
-              "title": "DeepSeek - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 4,
-                      "parallelIndex": 4,
-                      "status": "passed",
-                      "duration": 2647,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 DeepSeek ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 DeepSeek\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: false\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:30.038Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-c318e6debb3016ad932a",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 205,
-              "column": 3
-            },
-            {
-              "title": "Kimi - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 4,
-                      "parallelIndex": 4,
-                      "status": "passed",
-                      "duration": 8086,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 Kimi ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 Kimi\n"
-                        },
-                        {
-                          "text": "✓ Lexical编辑器存在: true\n"
-                        },
-                        {
-                          "text": "✓ 已输入测试文本\n"
-                        },
-                        {
-                          "text": "✓ 输入内容验证通过\n"
-                        },
-                        {
-                          "text": "✓ User Prompt选择器测试结果: {\n  containerFound: \u001b[33mfalse\u001b[39m,\n  textFound: \u001b[33mfalse\u001b[39m,\n  containerHTML: \u001b[32m'N/A'\u001b[39m,\n  textContent: \u001b[32m'N/A'\u001b[39m\n}\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:33.490Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-60941930cd1ab5dbc35e",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 252,
-              "column": 3
-            },
-            {
-              "title": "豆包 - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 2830,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 豆包 ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 豆包\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: true\n"
-                        },
-                        {
-                          "text": "✓ 已输入测试文本\n"
-                        },
-                        {
-                          "text": "✓ 输入内容验证通过\n"
-                        },
-                        {
-                          "text": "✓ User Prompt选择器测试结果: {\n  containerFound: \u001b[33mfalse\u001b[39m,\n  textFound: \u001b[33mfalse\u001b[39m,\n  containerHTML: \u001b[32m'N/A'\u001b[39m,\n  textContent: \u001b[32m'N/A'\u001b[39m\n}\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:35.750Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-81e1794ca2ef428add90",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 299,
-              "column": 3
-            },
-            {
-              "title": "千问 - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2567,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 千问 ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 千问\n"
-                        },
-                        {
-                          "text": "✓ Slate编辑器存在: true\n"
-                        },
-                        {
-                          "text": "✓ 已输入测试文本\n"
-                        },
-                        {
-                          "text": "✓ 输入内容验证通过\n"
-                        },
-                        {
-                          "text": "✓ User Prompt选择器测试结果: {\n  containerFound: \u001b[33mfalse\u001b[39m,\n  textFound: \u001b[33mfalse\u001b[39m,\n  containerHTML: \u001b[32m'N/A'\u001b[39m,\n  textContent: \u001b[32m'N/A'\u001b[39m\n}\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:36.276Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-529dc6d8cadfe779b32b",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 346,
-              "column": 3
-            },
-            {
-              "title": "Qwen - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 3,
-                      "status": "passed",
-                      "duration": 11058,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 Qwen ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 Qwen\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: true\n"
-                        },
-                        {
-                          "text": "✓ 已输入测试文本\n"
-                        },
-                        {
-                          "text": "✓ 输入内容验证通过\n"
-                        },
-                        {
-                          "text": "✓ User Prompt选择器测试结果: {\n  containerFound: \u001b[33mfalse\u001b[39m,\n  textFound: \u001b[33mfalse\u001b[39m,\n  containerHTML: \u001b[32m'N/A'\u001b[39m,\n  textContent: \u001b[32m'N/A'\u001b[39m\n}\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:37.931Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-dc876a18ebffcbce4f87",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 393,
-              "column": 3
-            },
-            {
-              "title": "元宝 - 注入脚本和User Prompt测试",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 2457,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "\n=== 测试 元宝 ===\n"
-                        },
-                        {
-                          "text": "✓ 已打开 元宝\n"
-                        },
-                        {
-                          "text": "✓ 输入框存在: true\n"
-                        },
-                        {
-                          "text": "✓ 已输入测试文本\n"
-                        },
-                        {
-                          "text": "✓ 输入内容验证通过\n"
-                        },
-                        {
-                          "text": "✓ User Prompt选择器测试结果: {\n  containerFound: \u001b[33mfalse\u001b[39m,\n  textFound: \u001b[33mfalse\u001b[39m,\n  containerHTML: \u001b[32m'N/A'\u001b[39m,\n  textContent: \u001b[32m'N/A'\u001b[39m\n}\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-02-21T01:35:38.585Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "f5733e64e7845d5efa87-5078ec4a8018a159301a",
-              "file": "e2e/ai-sites-inject.test.js",
-              "line": 440,
-              "column": 3
+              "line": 58,
+              "column": 5
             }
           ]
         }
@@ -579,11 +221,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-02-21T01:35:29.433Z",
-    "duration": 19583.105000000003,
-    "expected": 10,
-    "skipped": 0,
-    "unexpected": 0,
+    "startTime": "2026-03-16T00:41:46.237Z",
+    "duration": 25100.695,
+    "expected": 0,
+    "skipped": 1,
+    "unexpected": 1,
     "flaky": 0
   }
 }

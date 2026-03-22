@@ -1,0 +1,46 @@
+[
+  {
+    "site": "Fish Audio",
+    "targetUrl": "https://fish.audio/",
+    "title": "Best AI Text To Speech & Free Voice Cloning | Fish Audio",
+    "url": "https://fish.audio/",
+    "selectorChecks": [
+      {
+        "action": "focus",
+        "selector": "textarea[aria-label=\"The text to be converted to speech\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "So, [inhale] the [emphasis] key to effective noise reduction is... um... [pause] understanding signal processing at a fu",
+        "firstPlaceholder": "The text to be converted to speech",
+        "firstAriaLabel": "The text to be converted to speech",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "textarea[aria-label=\"The text to be converted to speech\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "So, [inhale] the [emphasis] key to effective noise reduction is... um... [pause] understanding signal processing at a fu",
+        "firstPlaceholder": "The text to be converted to speech",
+        "firstAriaLabel": "The text to be converted to speech",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "textarea[aria-label=\"The text to be converted to speech\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "So, [inhale] the [emphasis] key to effective noise reduction is... um... [pause] understanding signal processing at a fu",
+        "firstPlaceholder": "The text to be converted to speech",
+        "firstAriaLabel": "The text to be converted to speech",
+        "firstAriaLabelledby": ""
+      }
+    ]
+  }
+]

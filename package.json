@@ -4,6 +4,7 @@
   "description": "AI Compare Chrome Extension Test Suite",
   "main": "tests/setup.js",
   "scripts": {
+    "setup:hooks": "git config core.hooksPath .githooks",
     "test": "playwright test",
     "test:unit": "playwright test tests/unit",
     "test:integration": "playwright test tests/integration",
@@ -11,7 +12,8 @@
     "test:ui": "playwright test tests/ui",
     "test:report": "playwright show-report",
     "test:debug": "playwright test --debug",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "update:readme": "node scripts/update-readme.js"
   },
   "keywords": [
     "chrome-extension",

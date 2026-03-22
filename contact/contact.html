@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Contact Me</title>
+    <link rel="stylesheet" href="../shared/sidebar.css">
+    <link rel="stylesheet" href="contact.css">
+</head>
+<body data-page="contact">
+    <div class="page-layout">
+        <div id="appSidebarMount"></div>
+        <main class="main-content">
+            <div class="container">
+                <section class="settings-section">
+                    <h1>Contact Me</h1>
+                    <div id="contactList" class="contact-list" aria-live="polite"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="../config/baseConfig.js"></script>
+    <script src="../config/analytics.js"></script>
+    <script src="../config/firebaseConfig.js"></script>
+    <script src="../firebase/firebase-auth.js"></script>
+    <script src="../firebase/firebase-sync.js"></script>
+    <script src="../shared/sidebar.js"></script>
+    <script src="contact.js"></script>
+</body>
+</html>

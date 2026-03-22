@@ -3,63 +3,52 @@ const { defineConfig, devices } = require('@playwright/test');
 const path = require('path');
 
 const defaultPersistentProfileDir = path.join(__dirname, '.playwright-user-data', 'automation-profile');
+if (!process.env.PLAYWRIGHT_EXTENSION_SEED_PROFILE_DIR) {
+  process.env.PLAYWRIGHT_EXTENSION_SEED_PROFILE_DIR = process.env.PLAYWRIGHT_USER_DATA_DIR || defaultPersistentProfileDir;
+}
 if (!process.env.PLAYWRIGHT_USER_DATA_DIR) {
-  process.env.PLAYWRIGHT_USER_DATA_DIR = defaultPersistentProfileDir;
+  process.env.PLAYWRIGHT_USER_DATA_DIR = process.env.PLAYWRIGHT_EXTENSION_SEED_PROFILE_DIR;
 }
 
+const extensionDirectSitesSpec = /tests\/e2e\/ai-sites-inject\.test\.js/;
+
 module.exports = defineConfig({
-  // 测试目录
   testDir: './tests',
-
-  // 测试匹配模式
   testMatch: '**/*.test.js',
-
-  // 全局超时
-  timeout: 30000,
-
-  // 全局期望超时
+  timeout: 120000,
   expect: {
-    timeout: 5000
+    timeout: 10000
   },
-
-  // 完全并行运行
   fullyParallel: true,
-
-  // CI环境禁止fork
   forbidOnly: !!process.env.CI,
-
-  // 重试次数
   retries: process.env.CI ? 2 : 0,
-
-  // 并行工作数
-  workers: process.env.CI ? 1 : undefined,
-
-  // 报告器
+  workers: process.env.PLAYWRIGHT_EXTENSION_E2E === '1'
+    ? 1
+    : (process.env.CI ? 1 : undefined),
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['json', { outputFile: 'playwright-report/test-results.json' }],
     ['list']
   ],
-
-  // 共享设置
   use: {
-    // 基础URL
     baseURL: 'data:text/html',
-
-    // 收集失败测试的追踪
     trace: 'on-first-retry',
-
-    // 截图模式
     screenshot: 'only-on-failure',
-
-    // 视频模式
     video: 'retain-on-failure'
   },
-
-  // 项目配置
   projects: [
     {
       name: 'chromium',
+      testIgnore: [extensionDirectSitesSpec],
+      use: {
+        ...devices['Desktop Chrome']
+      }
+    },
+    {
+      name: 'extension-direct-sites',
+      testMatch: [extensionDirectSitesSpec],
+      fullyParallel: false,
+      retries: 0,
       use: {
         ...devices['Desktop Chrome']
       }

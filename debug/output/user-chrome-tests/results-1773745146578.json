@@ -1,0 +1,46 @@
+[
+  {
+    "site": "DeepL",
+    "targetUrl": "https://www.deepl.com/en/translator",
+    "title": "DeepL Translate: The world's most accurate translator",
+    "url": "https://www.deepl.com/en/translator",
+    "selectorChecks": [
+      {
+        "action": "setValue",
+        "selector": "div[role=\"textbox\"][contenteditable=\"true\"][aria-labelledby=\"translation-source-heading\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": "translation-source-heading"
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "div[role=\"textbox\"][contenteditable=\"true\"][aria-labelledby=\"translation-source-heading\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": "translation-source-heading"
+      },
+      {
+        "action": "extractContent",
+        "selector": "div[role=\"textbox\"][contenteditable=\"true\"][aria-labelledby=\"translation-target-heading\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": "translation-target-heading"
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "site": "Perplexity",
+    "targetUrl": "https://www.perplexity.ai/search?q={query}",
+    "initialTitle": "Just a moment...",
+    "initialUrl": "https://www.perplexity.ai/search/new?q={query}",
+    "title": "Just a moment...",
+    "url": "https://www.perplexity.ai/search/new?q={query}",
+    "selectorChecks": [
+      {
+        "action": "custom",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "description": "使用URL查询，无需输入框操作",
+        "note": "no-selector"
+      }
+    ],
+    "translationValidation": null
+  }
+]

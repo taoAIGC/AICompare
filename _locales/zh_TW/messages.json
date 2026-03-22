@@ -1,33 +1,832 @@
 {
   "shortName": {
-    "message": "AI Compare"
+    "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI Compare - 一鍵比較 ChatGPT、Gemini、Grok 等。"
+    "message": "AI 比一比 - 一鍵對比 ChatGPT、Gemini、Grok 等多個 AI"
   },
   "extDescription": {
-    "message": "AI Compare 可協助你快速從多個 AI 中找到最佳答案。"
+    "message": "幫你從十多個 AI 中快速找到最佳答案。"
+  },
+  "configTitle": {
+    "message": "AI站點設定"
+  },
+  "saveSuccess": {
+    "message": "設定已儲存"
+  },
+  "saveFailed": {
+    "message": "儲存失敗: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "inputPlaceholder": {
+    "message": "輸入要搜尋的內容"
+  },
+  "fileUploadButtonTitle": {
+    "message": "上傳檔案到所有AI站點"
+  },
+  "fileUploadButtonAlt": {
+    "message": "上傳檔案"
+  },
+  "searchBarDragHandleTitle": {
+    "message": "拖曳移動",
+    "description": "Tooltip for dragging the search bar"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "拖曳手柄",
+    "description": "ARIA label for the search bar drag handle"
+  },
+  "openSettings": {
+    "message": "預設AI對比設定"
+  },
+  "searchWithMultiAI": {
+    "message": "使用AI 比一比搜尋"
+  },
+  "compareButtonLabel": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "對比按鈕語言"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "跟隨系统"
+  },
+  "compareButtonLanguageZh": {
+    "message": "中文"
+  },
+  "compareButtonLanguageEn": {
+    "message": "English"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "雙語"
+  },
+  "startCompare": {
+    "message": "PK",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "openPage": {
+    "message": "标签页模式"
+  },
+  "commandDescription": {
+    "message": "快捷鍵(Mac下 ⌘+M , Windows下 Ctrl+M)"
+  },
+  "contactInfo": {
+    "message": "如果你想增加更多站點，可以与我聯絡 AIShortcuts@outlook.com"
+  },
+  "popupTitle": {
+    "message": "AI 比一比"
+  },
+  "column1": {
+    "message": "1列",
+    "description": "Single column layout option"
+  },
+  "column2": {
+    "message": "2列",
+    "description": "Two columns layout option"
+  },
+  "column3": {
+    "message": "3列",
+    "description": "Three columns layout option"
+  },
+  "column4": {
+    "message": "4列",
+    "description": "Four columns layout option"
+  },
+  "columnsTitle": {
+    "message": "欄數",
+    "description": "Tooltip for the columns selector button"
+  },
+  "closeButton": {
+    "message": "关闭",
+    "description": "Close button text"
+  },
+  "iframeSiteSettings": {
+    "message": "合集模式設定",
+    "description": "Title of the site settings dialog"
+  },
+  "standaloneModeTitle": {
+    "message": "独立頁面模式",
+    "description": "Title for standalone page mode section"
+  },
+  "collectionModeTitle": {
+    "message": "合集模式",
+    "description": "Title for collection mode section"
+  },
+  "configButtonTitle": {
+    "message": "快捷入口設定",
+    "description": "Title for shortcut entry configuration"
+  },
+  "inputPositionTitle": {
+    "message": "輸入框位置",
+    "description": "Input position section title"
+  },
+  "inputPositionDescription": {
+    "message": "选择輸入框顯示在頁面頂部或固定在底部",
+    "description": "Input position section description"
+  },
+  "inputPositionTop": {
+    "message": "頁面頂部",
+    "description": "Input position top option"
+  },
+  "inputPositionBottom": {
+    "message": "固定在底部",
+    "description": "Input position bottom option"
+  },
+  "comingSoonNotice": {
+    "message": "開發中，暫不可用",
+    "description": "Feature coming soon notice"
+  },
+  "floatButton": {
+    "message": "懸浮球",
+    "description": "The name for the float button"
+  },
+  "selectionSearch": {
+    "message": "劃詞搜尋",
+    "description": "The name for the selection search"
+  },
+  "contextMenu": {
+    "message": "右键選單",
+    "description": "The name for the context menu"
+  },
+  "searchEngine": {
+    "message": "搜尋引擎",
+    "description": "The name for the search engine"
+  },
+  "deleteConfirm": {
+    "message": "確定要刪除这个提示詞吗？",
+    "description": "Confirmation message for deleting a prompt"
+  },
+  "favoritesTitle": {
+    "message": "提示詞收藏夾",
+    "description": "Title for the favorites section"
+  },
+  "enableSync": {
+    "message": "開啟同步",
+    "description": "Sync bar default text, click to go to login"
+  },
+  "logout": {
+    "message": "登出",
+    "description": "Logout option in account dropdown menu"
+  },
+  "syncNow": {
+    "message": "立即同步",
+    "description": "Button to manually pull data from cloud when logged in"
+  },
+  "syncDownloadFailed": {
+    "message": "無法从雲端拉取資料，請检查網路后重試",
+    "description": "Error message when Firebase download fails"
+  },
+  "noFavorites": {
+    "message": "暫無收藏的提示詞",
+    "description": "Message shown when there are no saved prompts"
+  },
+  "favoriteButton": {
+    "message": "收藏提示詞",
+    "description": "Title for the favorite button"
+  },
+  "iframeFavoriteTitle": {
+    "message": "收藏",
+    "description": "Tooltip for iframe star when not favorited"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "取消收藏",
+    "description": "Tooltip for iframe star when favorited"
+  },
+  "refresh": {
+    "message": "重新整理",
+    "description": "Tooltip for the refresh button"
+  },
+  "openInNewTab": {
+    "message": "在新标签页打开",
+    "description": "Tooltip for the open in new tab button"
+  },
+  "ruleUpdateTimePrefix": {
+    "message": "規則遠端自動更新時間：",
+    "description": "Prefix text for rule update time"
+  },
+  "ruleUpdateTimeNotAvailable": {
+    "message": "規則遠端自動更新時間：未取得",
+    "description": "Message shown when rule update time is not available"
+  },
+  "ruleUpdateTimeError": {
+    "message": "規則遠端自動更新時間：取得失敗",
+    "description": "Message shown when failed to get rule update time"
+  },
+  "participateRuleDev": {
+    "message": "參與規則开发",
+    "description": "Text for the participate in rule development button"
+  },
+  "recentUpdateRecords": {
+    "message": "最近更新记录"
+  },
+  "noUpdateHistory": {
+    "message": "暫無更新歷史記錄"
+  },
+  "newSitesCount": {
+    "message": "新增 $COUNT$ 个站點",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "updatedSitesCount": {
+    "message": "更新 $COUNT$ 个站點",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "totalSitesCount": {
+    "message": "總計 $COUNT$ 个站點",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "participateAISiteRuleDev": {
+    "message": "參與AI站點規則开发"
+  },
+  "checkUpdates": {
+    "message": "檢查更新"
+  },
+  "unknownTime": {
+    "message": "未知時間"
+  },
+  "disabledSitesTitle": {
+    "message": "懸浮球禁用網站"
+  },
+  "disabledSitesDescription": {
+    "message": "管理懸浮球被禁用的網站，您可以在这里重新啟用懸浮球"
+  },
+  "searchProviderName": {
+    "message": "AI Compare"
+  },
+  "searchProviderDescription": {
+    "message": "使用AI 比一比进行多AI對比搜尋"
+  },
+  "promptTemplatesTitle": {
+    "message": "提示詞範本管理"
+  },
+  "promptTemplatesLabel": {
+    "message": "範本："
+  },
+  "promptTemplatesDescription": {
+    "message": "自訂搜尋建議按鈕的提示詞範本"
+  },
+  "addTemplateButton": {
+    "message": "新增新範本"
+  },
+  "addTemplateTitle": {
+    "message": "新增提示詞範本"
+  },
+  "editTemplateTitle": {
+    "message": "編輯提示詞範本"
+  },
+  "templateNameLabel": {
+    "message": "範本名稱"
+  },
+  "templateNameHelp": {
+    "message": "顯示在按鈕上的文字"
+  },
+  "templateQueryLabel": {
+    "message": "查询範本"
+  },
+  "templateQueryHelp": {
+    "message": "使用 {query} 作为用户輸入的佔位符"
+  },
+  "templateOrderLabel": {
+    "message": "顯示順序"
+  },
+  "templateOrderHelp": {
+    "message": "數字越小越靠前顯示"
+  },
+  "cancelButton": {
+    "message": "取消"
+  },
+  "saveButton": {
+    "message": "儲存"
+  },
+  "favButtonSaved": {
+    "message": "已收藏"
+  },
+  "editButton": {
+    "message": "編輯"
+  },
+  "deleteButton": {
+    "message": "刪除"
+  },
+  "confirmDeleteTemplate": {
+    "message": "確定要刪除这个範本吗？"
+  },
+  "templateSavedSuccess": {
+    "message": "範本儲存成功"
+  },
+  "templateDeletedSuccess": {
+    "message": "範本刪除成功"
+  },
+  "templateNameRequired": {
+    "message": "請輸入範本名稱"
+  },
+  "templateQueryRequired": {
+    "message": "請輸入查询範本"
+  },
+  "localFileDetected": {
+    "message": "偵測到本機檔案"
+  },
+  "browserSecurityRestriction": {
+    "message": "瀏覽器安全限制"
+  },
+  "localFileSecurityMessage": {
+    "message": "複製本機檔案时，瀏覽器只能获取檔案路徑，無法读取檔案內容。"
+  },
+  "suggestedActions": {
+    "message": "建議操作："
+  },
+  "uploadFileAction": {
+    "message": "點擊頂部 <strong>檔案上傳按鈕</strong> 選擇檔案"
+  },
+  "dismissWarning": {
+    "message": "知道了"
+  },
+  "exportResponses": {
+    "message": "匯出AI 比一比结果"
+  },
+  "exportResponsesTitle": {
+    "message": "匯出所有AI回答"
+  },
+  "historyTitle": {
+    "message": "歷史記錄"
+  },
+  "historyMaxRecordsTip": {
+    "message": "只儲存最近的$COUNT$条记录",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "exportModalTitle": {
+    "message": "匯出AI 比一比结果"
+  },
+  "exportFormat": {
+    "message": "匯出格式"
+  },
+  "selectSites": {
+    "message": "选择站點"
+  },
+  "preview": {
+    "message": "預覽"
+  },
+  "export": {
+    "message": "匯出"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "exportSuccess": {
+    "message": "匯出成功！"
+  },
+  "exportFailed": {
+    "message": "匯出失敗"
+  },
+  "selectSitesToExport": {
+    "message": "請選擇要匯出的站點"
+  },
+  "noContentFound": {
+    "message": "找不到可匯出的內容"
+  },
+  "contentExtractionFailed": {
+    "message": "內容擷取失敗"
+  },
+  "devNotice": {
+    "message": "功能在开发中，可能会有错误或不足"
+  },
+  "pinGuideTitle": {
+    "message": "将扩展固定到工具列，方便快速访问"
+  },
+  "pinGuideSteps": {
+    "message": "點擊工具列的拼图圖示 → 找到「AI 比一比」→ 點擊固定圖示"
+  },
+  "settingsLink": {
+    "message": "設定"
+  },
+  "historyLink": {
+    "message": "历史"
+  },
+  "favoritesLink": {
+    "message": "收藏"
+  },
+  "userFeedback": {
+    "message": "建議"
+  },
+  "reviewLink": {
+    "message": "五星好評"
+  },
+  "coffeeLink": {
+    "message": "請我喝咖啡"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "微信"
+  },
+  "wechatModalTitle": {
+    "message": "微信號"
+  },
+  "coffeeModalText": {
+    "message": "您的贊助是專案持續发展的动力"
+  },
+  "saveFavoriteSites": {
+    "message": "儲存"
+  },
+  "saveFavoriteSitesTitle": {
+    "message": "儲存当前选中的站點为常用站點"
+  },
+  "favoriteSitesSaved": {
+    "message": "常用站點已儲存"
+  },
+  "noSitesSelected": {
+    "message": "請至少选择一个站點"
+  },
+  "automationNotice": {
+    "message": "如果網站更新，对应的自動化提问功能会失效，敬請谅解。发现失效，可以与我聯絡更新。"
+  },
+  "injectProgressTitleRunning": {
+    "message": "正在執行腳本..."
+  },
+  "injectProgressTitlePageLoading": {
+    "message": "网页載入中"
+  },
+  "injectProgressTitleError": {
+    "message": "執行失敗"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "準備中"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "网页載入中"
+  },
+  "injectProgressDetailRetrying": {
+    "message": "重試中"
+  },
+  "injectProgressButtonRetry": {
+    "message": "重試"
+  },
+  "injectProgressButtonClose": {
+    "message": "关闭"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "請輸入问题"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "頁面載入后，點擊輸入框的🔗圖示"
+  },
+  "injectProgressStepInfo": {
+    "message": "步骤 $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "執行中断"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "執行中"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "未找到元素"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "無效的处理器設定"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "按鈕达到最大重試次数仍被禁用"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "步驟逾時"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "未找到站點处理器"
+  },
+  "injectProgressRetryInfo": {
+    "message": "重試 $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "點擊"
+  },
+  "injectStepActionFocus": {
+    "message": "聚焦"
+  },
+  "injectStepActionSetValue": {
+    "message": "設定內容"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "触发事件"
+  },
+  "injectStepActionSendKeys": {
+    "message": "傳送按键"
+  },
+  "injectStepActionReplace": {
+    "message": "替换元素"
+  },
+  "injectStepActionWait": {
+    "message": "等待"
+  },
+  "injectStepActionCustom": {
+    "message": "自訂操作"
+  },
+  "injectStepActionPaste": {
+    "message": "貼上"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "使用URL查询，无需輸入框操作"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "傳送 ⌘ + Enter (Mac) 或 Ctrl + Enter (Windows) 送出Prompt"
+  },
+  "injectStepDescSendEnter": {
+    "message": "傳送回车键"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "傳送回车键送出"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "傳送消息给父窗口"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "執行檔案貼上操作"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "點擊Claude傳送按鈕"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "點擊POE傳送按鈕"
+  },
+  "injectStepDescClickSend": {
+    "message": "點擊傳送按鈕"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "點擊豆包傳送按鈕"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "站點暂未实现搜尋处理器"
+  },
+  "injectStepDescWait100ms": {
+    "message": "等待100ms"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "等待200ms確保聚焦完成"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "等待200ms，確保Angular变更偵測完成"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "等待400ms让 Slate/React 狀態更新并啟用傳送按鈕后再傳送"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "聚焦 Lexical 編輯器輸入框"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "聚焦AI Studio提示輸入区域"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "聚焦AI Studio輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "聚焦ChatGPT輸入框"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "聚焦ChatGPT輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "聚焦Claude輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "聚焦Copilot輸入框"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "聚焦Copilot輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "聚焦Gemini輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "聚焦Grok輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "聚焦Kimi Lexical編輯器輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "聚焦POE輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "聚焦Qwen輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "聚焦可編輯区域"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "聚焦可編輯区域準備檔案貼上"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "聚焦推荐框或輸入框"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "聚焦文心一言編輯器"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "聚焦文心一言編輯器準備檔案貼上"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "聚焦秘塔AI輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "聚焦豆包輸入框"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "聚焦豆包輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusInput": {
+    "message": "聚焦輸入框"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "聚焦輸入框準備檔案貼上"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "聚焦輸入框（Slate 編輯器）"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "聚焦通义千问輸入框準備檔案貼上"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "触发多种輸入事件"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "触发完整的輸入事件序列"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "触发特殊輸入事件"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "触发輸入事件"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "触发輸入事件（含 InputEvent 文本，同步 React 狀態以啟用傳送按鈕）"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "設定 Lexical 編輯器內容（自動创建 span[data-lexical-text] 结构）"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "設定AI Studio輸入內容（Angular FormControl）"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "設定ChatGPT輸入框內容"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "設定Copilot輸入框的值"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "設定POE特殊輸入框的值"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "設定可編輯区域內容"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "設定文心一言特殊編輯器內容"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "設定秘塔輸入框的值"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "設定豆包輸入框的值"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "設定輸入框的值"
   },
   "ratingModalClose": {
-    "message": "關閉"
+    "message": "关闭"
   },
   "ratingModalTitle": {
-    "message": "喜歡這個擴充功能嗎？"
+    "message": "喜欢这个插件吗？"
   },
   "ratingModalSubtitle": {
-    "message": "如果它幫到你，給我們一個五星好評吧！"
+    "message": "如果它帮到你，给我们一个五星好評吧！"
   },
   "ratingModalStars": {
     "message": "五星好評"
   },
   "ratingModalLater": {
-    "message": "以後再說"
+    "message": "以后再说"
   },
   "ratingModalGoRate": {
-    "message": "去評分"
+    "message": "去评分"
   },
   "ratingModalNoLink": {
-    "message": "無法取得評分連結"
+    "message": "無法获取评分链接"
+  },
+  "dataSyncTitle": {
+    "message": "資料同步"
+  },
+  "dataSyncDescription": {
+    "message": "跨裝置同步您的所有設定与資料（Beta - 功能开发中，可能存在 bug）"
+  },
+  "syncEnabledLabel": {
+    "message": "啟用資料同步至"
+  },
+  "syncOnChange": {
+    "message": "自動同步"
+  },
+  "syncOnStartup": {
+    "message": "启动时同步"
+  },
+  "syncAuthType": {
+    "message": "鉴权类型"
+  },
+  "syncAuthPassword": {
+    "message": "password"
+  },
+  "syncAuthToken": {
+    "message": "token"
+  },
+  "syncUsername": {
+    "message": "使用者名稱"
+  },
+  "syncPassword": {
+    "message": "密碼"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "使用者名稱"
+  },
+  "syncTestConnection": {
+    "message": "測試連線"
+  },
+  "syncNowButton": {
+    "message": "立即同步"
+  },
+  "syncImportButton": {
+    "message": "从雲端恢復"
+  },
+  "syncTesting": {
+    "message": "正在測試連線…"
+  },
+  "syncTestSuccess": {
+    "message": "連線成功！"
+  },
+  "syncTestFailed": {
+    "message": "連線失敗"
+  },
+  "syncUploading": {
+    "message": "正在上傳資料…"
+  },
+  "syncSuccess": {
+    "message": "同步成功"
+  },
+  "syncFailed": {
+    "message": "同步失敗"
+  },
+  "syncDownloading": {
+    "message": "正在从雲端下載資料…"
+  },
+  "syncImportSuccess": {
+    "message": "雲端資料已恢復，請重新整理頁面生效"
+  },
+  "syncImportFailed": {
+    "message": "恢復失敗"
+  },
+  "syncTokenPlaceholder": {
+    "message": "輸入 Token"
+  },
+  "syncErrorNoToken": {
+    "message": "請填寫 Token"
+  },
+  "syncErrorNoUrl": {
+    "message": "請填寫 WebDAV 地址"
+  },
+  "syncErrorNoUsername": {
+    "message": "請填寫使用者名稱"
+  },
+  "syncErrorNoPassword": {
+    "message": "請填寫密碼"
+  },
+  "syncErrorNotConfigured": {
+    "message": "請先啟用同步并填寫 WebDAV 設定"
   },
   "favFolderDefault": {
     "message": "預設收藏"
@@ -36,22 +835,22 @@
     "message": "儲存到收藏夾"
   },
   "favFolderNewFolder": {
-    "message": "新建資料夾"
+    "message": "新建檔案夹"
   },
   "favFolderNamePlaceholder": {
-    "message": "輸入資料夾名稱"
+    "message": "輸入檔案夹名稱"
   },
   "favFolderAll": {
     "message": "全部"
   },
   "favFolderManage": {
-    "message": "管理資料夾"
+    "message": "管理檔案夹"
   },
   "favFolderDefaultLabel": {
     "message": "預設"
   },
   "favFolderDeleteConfirm": {
-    "message": "刪除此資料夾？其中的收藏將移至預設資料夾。"
+    "message": "刪除此檔案夹？其中的收藏将移至預設檔案夹。"
   },
   "favFolderRemove": {
     "message": "移除收藏"
@@ -68,13 +867,64 @@
   "removedFromFavorites": {
     "message": "已取消收藏"
   },
-  "uploadToastClickLinkIcon": {
-    "message": "頁面載入後，點擊輸入框的🔗圖示"
+  "membershipTitle": {
+    "message": "Pro 會員"
   },
-  "injectProgressTitlePageLoading": {
-    "message": "網頁載入中"
+  "membershipDescription": {
+    "message": "解鎖全部功能，暢享無限 AI 對比體驗"
   },
-  "injectProgressDetailPageLoading": {
-    "message": "網頁載入中"
+  "planMonthlyName": {
+    "message": "月度訂閱"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / 月"
+  },
+  "planYearlyName": {
+    "message": "年度訂閱"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / 年"
+  },
+  "planYearlySaving": {
+    "message": "节省 33%"
+  },
+  "planPopular": {
+    "message": "最受歡迎"
+  },
+  "planFeature1": {
+    "message": "無限制 AI 對比"
+  },
+  "planFeature2": {
+    "message": "優先客户支持"
+  },
+  "planFeature3": {
+    "message": "隨時取消"
+  },
+  "planFeature4": {
+    "message": "全年最低價"
+  },
+  "btnUpgradeMonthly": {
+    "message": "按月訂閱"
+  },
+  "btnUpgradeYearly": {
+    "message": "按年訂閱"
+  },
+  "membershipProThankYou": {
+    "message": "感謝您的支持！您已是 Pro 會員。"
+  },
+  "btnManageSubscription": {
+    "message": "管理訂閱 / 取消续费"
+  },
+  "membershipLoading": {
+    "message": "正在載入會員狀態…"
+  },
+  "membershipLoginHint": {
+    "message": "請先在「資料同步」頁面登入谷歌账号后查看會員狀態"
+  },
+  "membershipExpiresOn": {
+    "message": "到期时间："
+  },
+  "membershipPriceNotConfigured": {
+    "message": "Stripe Price ID 未設定，請在 stripe-payment.js 中填寫"
   }
 }

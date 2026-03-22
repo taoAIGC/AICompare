@@ -1,0 +1,132 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+    color: #333;
+}
+
+code {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #f3f4f6;
+    font-size: 0.95em;
+}
+
+.page-layout {
+    display: flex;
+    height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-section {
+    margin-bottom: 0;
+}
+
+h1 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 24px;
+}
+
+.section-description {
+    color: #666;
+    margin: 0 0 20px 0;
+    font-size: 14px;
+}
+
+.contact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.contact-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.contact-item:hover {
+    border-color: #c9d8ee;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.contact-item-label {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.contact-item-value,
+.contact-item-link {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+    word-break: break-word;
+}
+
+.contact-item-link {
+    text-decoration: none;
+}
+
+.contact-item-link:hover {
+    color: #4a90e2;
+    text-decoration: underline;
+}
+
+.contact-empty {
+    padding: 16px;
+    border: 1px dashed #d0d7de;
+    border-radius: 8px;
+    color: #666;
+    background: #fafafa;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        overflow: auto;
+    }
+
+    .page-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .main-content {
+        height: auto;
+        overflow-y: visible;
+    }
+}

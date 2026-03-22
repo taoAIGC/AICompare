@@ -1,0 +1,98 @@
+[
+  {
+    "site": "NotebookLM",
+    "targetUrl": "https://notebooklm.google.com/",
+    "initialTitle": "NotebookLM",
+    "initialUrl": "https://notebooklm.google.com/",
+    "title": "NotebookLM",
+    "url": "https://notebooklm.google.com/notebook/6081bc1c-8108-4dc2-afdc-bbea0ed3358c?addSource=true",
+    "selectorChecks": [
+      {
+        "action": "click",
+        "selector": "button.create-new-button",
+        "description": "点击 NotebookLM 新建笔记本",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "button",
+        "firstText": "add 新建",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "新建笔记本",
+        "firstAriaLabelledby": "",
+        "executed": true,
+        "clickedTag": "button",
+        "clickedText": "add 新建"
+      },
+      {
+        "action": "wait",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "duration": 1500,
+        "description": "等待 NotebookLM 新建页加载",
+        "note": "wait-step"
+      },
+      {
+        "action": "focus",
+        "selector": "textarea[formcontrolname=\"discoverSourcesQuery\"]",
+        "description": "聚焦 NotebookLM 来源发现输入框",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "textarea[formcontrolname=\"discoverSourcesQuery\"]",
+        "description": "设置 NotebookLM 来源发现输入框内容",
+        "matched": true,
+        "count": 2,
+        "visibleCount": 2,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "在网络中搜索新来源",
+        "firstAriaLabel": "基于输入的查询发现来源",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "textarea[formcontrolname=\"discoverSourcesQuery\"]",
+        "description": "触发 NotebookLM 输入事件",
+        "matched": true,
+        "count": 2,
+        "visibleCount": 2,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "在网络中搜索新来源",
+        "firstAriaLabel": "基于输入的查询发现来源",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "wait",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "duration": 300,
+        "description": "等待 NotebookLM 提交按钮激活",
+        "note": "wait-step"
+      },
+      {
+        "action": "click",
+        "selector": "button.actions-enter-button:not(.mat-mdc-button-disabled):not([disabled])",
+        "description": "点击 NotebookLM 来源发现提交按钮",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      }
+    ]
+  }
+]

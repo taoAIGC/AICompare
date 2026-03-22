@@ -1,0 +1,52 @@
+[
+  {
+    "site": "Dreamina",
+    "targetUrl": "https://dreamina.capcut.com/",
+    "initialTitle": "Dreamina: Create realistic talking avatars with AI avatar generator",
+    "initialUrl": "https://dreamina.capcut.com/ai-tool/home/",
+    "title": "Dreamina: Create realistic talking avatars with AI avatar generator",
+    "url": "https://dreamina.capcut.com/ai-tool/home/",
+    "selectorChecks": [
+      {
+        "action": "focus",
+        "selector": "div[contenteditable=\"true\"][role=\"textbox\"].tiptap.ProseMirror",
+        "description": "聚焦 Dreamina 提示词输入框",
+        "matched": true,
+        "count": 4,
+        "visibleCount": 2,
+        "firstTag": "div",
+        "firstText": "Start with an idea, or upload references and describe to create interactions",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "div[contenteditable=\"true\"][role=\"textbox\"].tiptap.ProseMirror",
+        "description": "设置 Dreamina 提示词内容",
+        "matched": true,
+        "count": 4,
+        "visibleCount": 2,
+        "firstTag": "div",
+        "firstText": "Start with an idea, or upload references and describe to create interactions",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "div[contenteditable=\"true\"][role=\"textbox\"].tiptap.ProseMirror",
+        "description": "触发 Dreamina 输入事件",
+        "matched": true,
+        "count": 4,
+        "visibleCount": 2,
+        "firstTag": "div",
+        "firstText": "Start with an idea, or upload references and describe to create interactions",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      }
+    ],
+    "translationValidation": null
+  }
+]

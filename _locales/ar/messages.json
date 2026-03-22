@@ -8,6 +8,715 @@
   "extDescription": {
     "message": "يساعدك AI Compare على العثور بسرعة على أفضل إجابة من عدة نماذج ذكاء اصطناعي."
   },
+  "configTitle": {
+    "message": "مواقع الذكاء الاصطناعي"
+  },
+  "saveSuccess": {
+    "message": "تم حفظ الاعدادات"
+  },
+  "saveFailed": {
+    "message": "فشل الحفظ: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "inputPlaceholder": {
+    "message": "ادخل المحتوى الذي تريد البحث عنه..."
+  },
+  "fileUploadButtonTitle": {
+    "message": "رفع ملف الى جميع مواقع الذكاء الاصطناعي"
+  },
+  "fileUploadButtonAlt": {
+    "message": "رفع ملف"
+  },
+  "searchBarDragHandleTitle": {
+    "message": "اسحب للتحريك",
+    "description": "Tooltip for dragging the search bar"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "مقبض السحب",
+    "description": "ARIA label for the search bar drag handle"
+  },
+  "openSettings": {
+    "message": "اعدادات AI Compare"
+  },
+  "searchWithMultiAI": {
+    "message": "ابحث باستخدام AI Compare"
+  },
+  "compareButtonLabel": {
+    "message": "AICompare"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "لغة زر المقارنة"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "النظام"
+  },
+  "compareButtonLanguageZh": {
+    "message": "الصينية"
+  },
+  "compareButtonLanguageEn": {
+    "message": "الانجليزية"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "ثنائي اللغة"
+  },
+  "startCompare": {
+    "message": "PK",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "openPage": {
+    "message": "وضع علامة التبويب"
+  },
+  "commandDescription": {
+    "message": "الاختصار: (⌘+M على Mac و Ctrl+M على Windows)"
+  },
+  "contactInfo": {
+    "message": "اذا كنت تريد اضافة المزيد من المواقع، فتواصل معي عبر AIShortcuts@outlook.com"
+  },
+  "popupTitle": {
+    "message": "AI Compare"
+  },
+  "column1": {
+    "message": "عمود 1",
+    "description": "Single column layout option"
+  },
+  "column2": {
+    "message": "عمودان",
+    "description": "Two columns layout option"
+  },
+  "column3": {
+    "message": "3 اعمدة",
+    "description": "Three columns layout option"
+  },
+  "column4": {
+    "message": "4 اعمدة",
+    "description": "Four columns layout option"
+  },
+  "columnsTitle": {
+    "message": "الاعمدة",
+    "description": "Tooltip for the columns selector button"
+  },
+  "closeButton": {
+    "message": "اغلاق",
+    "description": "Close button text"
+  },
+  "iframeSiteSettings": {
+    "message": "اعدادات وضع التجميع",
+    "description": "Title of the site settings dialog"
+  },
+  "standaloneModeTitle": {
+    "message": "وضع الصفحة المستقلة",
+    "description": "Title for standalone page mode section"
+  },
+  "collectionModeTitle": {
+    "message": "وضع التجميع",
+    "description": "Title for collection mode section"
+  },
+  "configButtonTitle": {
+    "message": "اعدادات الوصول السريع",
+    "description": "Title for shortcut entry configuration"
+  },
+  "inputPositionTitle": {
+    "message": "موضع حقل الادخال",
+    "description": "Input position section title"
+  },
+  "inputPositionDescription": {
+    "message": "اختر عرض الحقل في الاعلى او تثبيته في الاسفل",
+    "description": "Input position section description"
+  },
+  "inputPositionTop": {
+    "message": "اعلى الصفحة",
+    "description": "Input position top option"
+  },
+  "inputPositionBottom": {
+    "message": "مثبت في الاسفل",
+    "description": "Input position bottom option"
+  },
+  "comingSoonNotice": {
+    "message": "قيد التطوير وغير متاح بعد",
+    "description": "Feature coming soon notice"
+  },
+  "floatButton": {
+    "message": "الزر العائم",
+    "description": "The name for the float button"
+  },
+  "selectionSearch": {
+    "message": "بحث التحديد",
+    "description": "The name for the selection search"
+  },
+  "contextMenu": {
+    "message": "قائمة السياق",
+    "description": "The name for the context menu"
+  },
+  "searchEngine": {
+    "message": "محرك البحث",
+    "description": "The name for the search engine"
+  },
+  "deleteConfirm": {
+    "message": "هل انت متاكد من حذف هذا الموجه؟",
+    "description": "Confirmation message for deleting a prompt"
+  },
+  "favoritesTitle": {
+    "message": "الموجهات المفضلة",
+    "description": "Title for the favorites section"
+  },
+  "enableSync": {
+    "message": "تفعيل المزامنة",
+    "description": "Sync bar default text, click to go to login"
+  },
+  "logout": {
+    "message": "تسجيل الخروج",
+    "description": "Logout option in account dropdown menu"
+  },
+  "syncNow": {
+    "message": "زامن الان",
+    "description": "Button to manually pull data from cloud when logged in"
+  },
+  "syncDownloadFailed": {
+    "message": "تعذر سحب البيانات من السحابة. يرجى التحقق من الشبكة والمحاولة مرة اخرى.",
+    "description": "Error message when Firebase download fails"
+  },
+  "noFavorites": {
+    "message": "لا توجد موجهات محفوظة بعد",
+    "description": "Message shown when there are no saved prompts"
+  },
+  "favoriteButton": {
+    "message": "حفظ الموجه",
+    "description": "Title for the favorite button"
+  },
+  "iframeFavoriteTitle": {
+    "message": "احفظ هذه الاستجابة في المفضلة",
+    "description": "Tooltip for iframe star when not favorited"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "ازالة من المفضلة",
+    "description": "Tooltip for iframe star when favorited"
+  },
+  "refresh": {
+    "message": "تحديث",
+    "description": "Tooltip for the refresh button"
+  },
+  "openInNewTab": {
+    "message": "فتح في علامة تبويب جديدة",
+    "description": "Tooltip for the open in new tab button"
+  },
+  "ruleUpdateTimePrefix": {
+    "message": "وقت التحديث التلقائي البعيد للقواعد: ",
+    "description": "Prefix text for rule update time"
+  },
+  "ruleUpdateTimeNotAvailable": {
+    "message": "وقت التحديث التلقائي البعيد للقواعد: غير متاح",
+    "description": "Message shown when rule update time is not available"
+  },
+  "ruleUpdateTimeError": {
+    "message": "وقت التحديث التلقائي البعيد للقواعد: فشل الجلب",
+    "description": "Message shown when failed to get rule update time"
+  },
+  "participateRuleDev": {
+    "message": "المشاركة في تطوير القواعد",
+    "description": "Text for the participate in rule development button"
+  },
+  "recentUpdateRecords": {
+    "message": "سجلات التحديث الاخيرة"
+  },
+  "noUpdateHistory": {
+    "message": "لا يوجد سجل تحديث متاح"
+  },
+  "newSitesCount": {
+    "message": "تمت اضافة $COUNT$ مواقع جديدة",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "updatedSitesCount": {
+    "message": "تم تحديث $COUNT$ مواقع",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "totalSitesCount": {
+    "message": "اجمالي $COUNT$ مواقع",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "participateAISiteRuleDev": {
+    "message": "المشاركة في تطوير قواعد مواقع الذكاء الاصطناعي"
+  },
+  "checkUpdates": {
+    "message": "التحقق من التحديثات"
+  },
+  "unknownTime": {
+    "message": "وقت غير معروف"
+  },
+  "disabledSitesTitle": {
+    "message": "المواقع التي تم تعطيل الزر العائم فيها"
+  },
+  "disabledSitesDescription": {
+    "message": "ادِر المواقع التي تم تعطيل الزر العائم فيها. يمكنك اعادة تفعيله هنا."
+  },
+  "searchProviderName": {
+    "message": "AI Compare"
+  },
+  "searchProviderDescription": {
+    "message": "قارن الردود من منصات ذكاء اصطناعي متعددة باستخدام AI Compare"
+  },
+  "promptTemplatesTitle": {
+    "message": "قوالب الموجهات"
+  },
+  "promptTemplatesLabel": {
+    "message": "القالب:"
+  },
+  "promptTemplatesDescription": {
+    "message": "خصص قوالب الموجهات لبحث مقارنة الذكاء الاصطناعي"
+  },
+  "addTemplateButton": {
+    "message": "اضافة قالب جديد"
+  },
+  "addTemplateTitle": {
+    "message": "اضافة قالب موجه"
+  },
+  "editTemplateTitle": {
+    "message": "تحرير قالب الموجه"
+  },
+  "templateNameLabel": {
+    "message": "اسم القالب"
+  },
+  "templateNameHelp": {
+    "message": "النص الذي يظهر على الزر"
+  },
+  "templateQueryLabel": {
+    "message": "قالب الاستعلام"
+  },
+  "templateQueryHelp": {
+    "message": "استخدم {query} كعنصر نائب لادخال المستخدم"
+  },
+  "templateOrderLabel": {
+    "message": "ترتيب العرض"
+  },
+  "templateOrderHelp": {
+    "message": "تظهر الارقام الاصغر اولا"
+  },
+  "cancelButton": {
+    "message": "الغاء"
+  },
+  "saveButton": {
+    "message": "حفظ"
+  },
+  "favButtonSaved": {
+    "message": "تم الحفظ"
+  },
+  "editButton": {
+    "message": "تحرير"
+  },
+  "deleteButton": {
+    "message": "حذف"
+  },
+  "confirmDeleteTemplate": {
+    "message": "هل انت متاكد من حذف هذا القالب؟"
+  },
+  "templateSavedSuccess": {
+    "message": "تم حفظ القالب بنجاح"
+  },
+  "templateDeletedSuccess": {
+    "message": "تم حذف القالب بنجاح"
+  },
+  "templateNameRequired": {
+    "message": "يرجى ادخال اسم القالب"
+  },
+  "templateQueryRequired": {
+    "message": "يرجى ادخال قالب الاستعلام"
+  },
+  "localFileDetected": {
+    "message": "تم اكتشاف ملف محلي"
+  },
+  "browserSecurityRestriction": {
+    "message": "قيد امان المتصفح"
+  },
+  "localFileSecurityMessage": {
+    "message": "عند نسخ الملفات المحلية، لا يمكن للمتصفحات الوصول الا الى مسارات الملفات وليس المحتوى."
+  },
+  "suggestedActions": {
+    "message": "اجراءات مقترحة:"
+  },
+  "uploadFileAction": {
+    "message": "انقر على <strong>زر رفع الملف</strong> في الاعلى لاختيار الملفات"
+  },
+  "dismissWarning": {
+    "message": "فهمت"
+  },
+  "exportResponses": {
+    "message": "تصدير نتائج AI Compare"
+  },
+  "exportResponsesTitle": {
+    "message": "تصدير جميع ردود الذكاء الاصطناعي"
+  },
+  "historyTitle": {
+    "message": "السجل"
+  },
+  "historyMaxRecordsTip": {
+    "message": "يتم حفظ اخر $COUNT$ سجلات فقط",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "exportModalTitle": {
+    "message": "تصدير نتائج AI Compare"
+  },
+  "exportFormat": {
+    "message": "تنسيق التصدير"
+  },
+  "selectSites": {
+    "message": "اختر المواقع"
+  },
+  "preview": {
+    "message": "معاينة"
+  },
+  "export": {
+    "message": "تصدير"
+  },
+  "cancel": {
+    "message": "الغاء"
+  },
+  "exportSuccess": {
+    "message": "تم التصدير بنجاح"
+  },
+  "exportFailed": {
+    "message": "فشل التصدير"
+  },
+  "selectSitesToExport": {
+    "message": "يرجى اختيار المواقع المراد تصديرها"
+  },
+  "noContentFound": {
+    "message": "لم يتم العثور على محتوى للتصدير"
+  },
+  "contentExtractionFailed": {
+    "message": "فشل استخراج المحتوى"
+  },
+  "devNotice": {
+    "message": "الميزة قيد التطوير وقد تحتوي على اخطاء او قيود"
+  },
+  "pinGuideTitle": {
+    "message": "ثبّت الاضافة للوصول السريع"
+  },
+  "pinGuideSteps": {
+    "message": "انقر على ايقونة القطعة في شريط الادوات -> ابحث عن \"AI Compare\" -> انقر على ايقونة التثبيت"
+  },
+  "settingsLink": {
+    "message": "الاعدادات"
+  },
+  "historyLink": {
+    "message": "السجل"
+  },
+  "favoritesLink": {
+    "message": "المفضلة"
+  },
+  "userFeedback": {
+    "message": "اقتراحات"
+  },
+  "reviewLink": {
+    "message": "قيّمنا"
+  },
+  "coffeeLink": {
+    "message": "اشتر لي قهوة"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "WeChat"
+  },
+  "wechatModalTitle": {
+    "message": "معرّف WeChat"
+  },
+  "coffeeModalText": {
+    "message": "دعمك هو القوة الدافعة لاستمرار تطوير المشروع"
+  },
+  "saveFavoriteSites": {
+    "message": "حفظ"
+  },
+  "saveFavoriteSitesTitle": {
+    "message": "احفظ المواقع المحددة كمفضلة"
+  },
+  "favoriteSitesSaved": {
+    "message": "تم حفظ المواقع المفضلة"
+  },
+  "noSitesSelected": {
+    "message": "يرجى اختيار موقع واحد على الاقل"
+  },
+  "automationNotice": {
+    "message": "اذا تم تحديث موقع ويب فقد تتوقف ميزة الاستعلام التلقائي فيه عن العمل. نعتذر عن اي ازعاج. اذا لاحظت انها توقفت عن العمل، فيرجى التواصل معنا لتحديثها."
+  },
+  "injectProgressTitleRunning": {
+    "message": "جار تشغيل السكربت..."
+  },
+  "injectProgressTitlePageLoading": {
+    "message": "جار تحميل الصفحة..."
+  },
+  "injectProgressTitleError": {
+    "message": "فشل التنفيذ"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "جار التحضير"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "جار تحميل الصفحة..."
+  },
+  "injectProgressDetailRetrying": {
+    "message": "جار اعادة المحاولة"
+  },
+  "injectProgressButtonRetry": {
+    "message": "اعادة المحاولة"
+  },
+  "injectProgressButtonClose": {
+    "message": "اغلاق"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "يرجى ادخال سؤال"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "بعد تحميل الصفحة، انقر على ايقونة 🔗 داخل حقل الادخال"
+  },
+  "injectProgressStepInfo": {
+    "message": "الخطوة $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "تمت مقاطعة التنفيذ"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "جار التنفيذ"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "العنصر غير موجود"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "اعداد معالج غير صالح"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "ظل الزر معطلا بعد الحد الاقصى من اعادات المحاولة"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "انتهت مهلة الخطوة"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "لم يتم العثور على معالج الموقع"
+  },
+  "injectProgressRetryInfo": {
+    "message": "اعادة المحاولة $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "انقر"
+  },
+  "injectStepActionFocus": {
+    "message": "تركيز"
+  },
+  "injectStepActionSetValue": {
+    "message": "تعيين القيمة"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "تشغيل الأحداث"
+  },
+  "injectStepActionSendKeys": {
+    "message": "إرسال المفاتيح"
+  },
+  "injectStepActionReplace": {
+    "message": "استبدال"
+  },
+  "injectStepActionWait": {
+    "message": "انتظار"
+  },
+  "injectStepActionCustom": {
+    "message": "إجراء مخصص"
+  },
+  "injectStepActionPaste": {
+    "message": "لصق"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "استخدم استعلام الرابط، ولا حاجة للتفاعل مع حقل الادخال"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "ارسال ⌘ + Enter (Mac) او Ctrl + Enter (Windows) لارسال الموجه"
+  },
+  "injectStepDescSendEnter": {
+    "message": "ارسال مفتاح Enter"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "ارسال Enter للتقديم"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "ارسال رسالة الى النافذة الاب"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "تنفيذ لصق الملف"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "انقر على زر ارسال Claude"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "انقر على زر ارسال Poe"
+  },
+  "injectStepDescClickSend": {
+    "message": "انقر على زر الارسال"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "انقر على زر ارسال Doubao"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "لم يتم تنفيذ معالج الموقع بعد"
+  },
+  "injectStepDescWait100ms": {
+    "message": "انتظار 100 مللي ثانية"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "انتظار 200 مللي ثانية لضمان التركيز"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "انتظار 200 مللي ثانية لضمان اكتمال اكتشاف تغييرات Angular"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "انتظار 400 مللي ثانية حتى يتم تحديث Slate/React وتفعيل زر الارسال"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "التركيز على حقل محرر Lexical"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "التركيز على حقل موجه AI Studio"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "التركيز على حقل AI Studio للصق الملفات"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "التركيز على حقل ChatGPT"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "التركيز على حقل ChatGPT للصق الملفات"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "التركيز على حقل Claude للصق الملفات"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "التركيز على حقل Copilot"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "التركيز على حقل Copilot للصق الملفات"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "التركيز على حقل Gemini للصق الملفات"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "التركيز على حقل Grok للصق الملفات"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "التركيز على حقل Kimi Lexical للصق الملفات"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "التركيز على حقل Poe للصق الملفات"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "التركيز على حقل Qwen للصق الملفات"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "التركيز على المنطقة القابلة للتحرير"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "التركيز على المنطقة القابلة للتحرير للصق الملفات"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "التركيز على مربع الاقتراحات او حقل الادخال"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "التركيز على محرر Wenxin"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "التركيز على محرر Wenxin للصق الملفات"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "التركيز على حقل Metaso للصق الملفات"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "التركيز على حقل Doubao"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "التركيز على حقل Doubao للصق الملفات"
+  },
+  "injectStepDescFocusInput": {
+    "message": "التركيز على حقل الادخال"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "التركيز على حقل الادخال للصق الملفات"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "التركيز على حقل الادخال (محرر Slate)"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "التركيز على حقل Tongyi Qianwen للصق الملفات"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "تشغيل عدة احداث ادخال"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "تشغيل التسلسل الكامل لاحداث الادخال"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "تشغيل احداث ادخال خاصة"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "تشغيل احداث الادخال"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "تشغيل احداث الادخال (مع نص InputEvent لمزامنة React)"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "تعيين محتوى محرر Lexical (انشاء span[data-lexical-text] تلقائيا)"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "تعيين ادخال AI Studio (Angular FormControl)"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "تعيين محتوى ادخال ChatGPT"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "تعيين قيمة ادخال Copilot"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "تعيين قيمة الادخال الخاصة في Poe"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "تعيين محتوى المنطقة القابلة للتحرير"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "تعيين المحتوى الخاص لمحرر Wenxin"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "تعيين قيمة ادخال Metaso"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "تعيين قيمة ادخال Doubao"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "تعيين قيمة حقل الادخال"
+  },
   "ratingModalClose": {
     "message": "إغلاق"
   },
@@ -28,6 +737,96 @@
   },
   "ratingModalNoLink": {
     "message": "تعذّر فتح رابط التقييم"
+  },
+  "dataSyncTitle": {
+    "message": "مزامنة البيانات"
+  },
+  "dataSyncDescription": {
+    "message": "زامن جميع اعداداتك بين الاجهزة (اصدار تجريبي وقد يحتوي على اخطاء)"
+  },
+  "syncEnabledLabel": {
+    "message": "تفعيل المزامنة الى"
+  },
+  "syncOnChange": {
+    "message": "مزامنة تلقائية"
+  },
+  "syncOnStartup": {
+    "message": "المزامنة عند التشغيل"
+  },
+  "syncAuthType": {
+    "message": "نوع المصادقة"
+  },
+  "syncAuthPassword": {
+    "message": "كلمة المرور"
+  },
+  "syncAuthToken": {
+    "message": "رمز"
+  },
+  "syncUsername": {
+    "message": "اسم المستخدم"
+  },
+  "syncPassword": {
+    "message": "كلمة المرور"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "اسم المستخدم"
+  },
+  "syncTestConnection": {
+    "message": "اختبار الاتصال"
+  },
+  "syncNowButton": {
+    "message": "زامن الان"
+  },
+  "syncImportButton": {
+    "message": "استعادة من السحابة"
+  },
+  "syncTesting": {
+    "message": "جار اختبار الاتصال..."
+  },
+  "syncTestSuccess": {
+    "message": "تم الاتصال بنجاح"
+  },
+  "syncTestFailed": {
+    "message": "فشل الاتصال"
+  },
+  "syncUploading": {
+    "message": "جار رفع البيانات..."
+  },
+  "syncSuccess": {
+    "message": "تمت المزامنة بنجاح"
+  },
+  "syncFailed": {
+    "message": "فشلت المزامنة"
+  },
+  "syncDownloading": {
+    "message": "جار التنزيل من السحابة..."
+  },
+  "syncImportSuccess": {
+    "message": "تمت استعادة البيانات من السحابة. اعد تحميل الصفحة لتطبيق التغييرات."
+  },
+  "syncImportFailed": {
+    "message": "فشلت الاستعادة"
+  },
+  "syncTokenPlaceholder": {
+    "message": "ادخل الرمز"
+  },
+  "syncErrorNoToken": {
+    "message": "يرجى ادخال رمز"
+  },
+  "syncErrorNoUrl": {
+    "message": "يرجى ادخال رابط WebDAV"
+  },
+  "syncErrorNoUsername": {
+    "message": "يرجى ادخال اسم المستخدم"
+  },
+  "syncErrorNoPassword": {
+    "message": "يرجى ادخال كلمة المرور"
+  },
+  "syncErrorNotConfigured": {
+    "message": "يرجى تفعيل المزامنة وملء اعدادات WebDAV"
   },
   "favFolderDefault": {
     "message": "الافتراضي"
@@ -67,5 +866,65 @@
   },
   "removedFromFavorites": {
     "message": "تمت الإزالة من المفضلة"
+  },
+  "membershipTitle": {
+    "message": "عضوية Pro"
+  },
+  "membershipDescription": {
+    "message": "افتح جميع الميزات واستمتع بمقارنات ذكاء اصطناعي غير محدودة"
+  },
+  "planMonthlyName": {
+    "message": "شهري"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / شهر"
+  },
+  "planYearlyName": {
+    "message": "سنوي"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / سنة"
+  },
+  "planYearlySaving": {
+    "message": "وفر 33%"
+  },
+  "planPopular": {
+    "message": "الاكثر شعبية"
+  },
+  "planFeature1": {
+    "message": "مقارنات ذكاء اصطناعي غير محدودة"
+  },
+  "planFeature2": {
+    "message": "دعم ذو اولوية"
+  },
+  "planFeature3": {
+    "message": "الالغاء في اي وقت"
+  },
+  "planFeature4": {
+    "message": "افضل قيمة"
+  },
+  "btnUpgradeMonthly": {
+    "message": "الاشتراك الشهري"
+  },
+  "btnUpgradeYearly": {
+    "message": "الاشتراك السنوي"
+  },
+  "membershipProThankYou": {
+    "message": "شكرا لدعمك! انت عضو Pro."
+  },
+  "btnManageSubscription": {
+    "message": "ادارة الاشتراك"
+  },
+  "membershipLoading": {
+    "message": "جار تحميل حالة العضوية..."
+  },
+  "membershipLoginHint": {
+    "message": "يرجى تسجيل الدخول باستخدام Google (مزامنة البيانات) لعرض حالة عضويتك."
+  },
+  "membershipExpiresOn": {
+    "message": "يتجدد في: "
+  },
+  "membershipPriceNotConfigured": {
+    "message": "لم يتم تكوين Stripe Price ID. يرجى ضبطه في stripe-payment.js."
   }
 }

@@ -8,6 +8,715 @@
   "extDescription": {
     "message": "AI Compare는 여러 AI의 답변 중 최상의 답을 빠르게 찾도록 도와줍니다."
   },
+  "configTitle": {
+    "message": "AI 사이트"
+  },
+  "saveSuccess": {
+    "message": "설정이 저장되었습니다"
+  },
+  "saveFailed": {
+    "message": "저장 실패: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "inputPlaceholder": {
+    "message": "검색할 내용을 입력하세요..."
+  },
+  "fileUploadButtonTitle": {
+    "message": "모든 AI 사이트에 파일 업로드"
+  },
+  "fileUploadButtonAlt": {
+    "message": "파일 업로드"
+  },
+  "searchBarDragHandleTitle": {
+    "message": "드래그하여 이동",
+    "description": "Tooltip for dragging the search bar"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "드래그 핸들",
+    "description": "ARIA label for the search bar drag handle"
+  },
+  "openSettings": {
+    "message": "AI Compare 설정"
+  },
+  "searchWithMultiAI": {
+    "message": "AI Compare로 검색"
+  },
+  "compareButtonLabel": {
+    "message": "AICompare"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "비교 버튼 언어"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "시스템"
+  },
+  "compareButtonLanguageZh": {
+    "message": "중국어"
+  },
+  "compareButtonLanguageEn": {
+    "message": "영어"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "이중 언어"
+  },
+  "startCompare": {
+    "message": "PK",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "openPage": {
+    "message": "탭 모드"
+  },
+  "commandDescription": {
+    "message": "단축키: (Mac은 ⌘+M, Windows는 Ctrl+M)"
+  },
+  "contactInfo": {
+    "message": "더 많은 사이트를 추가하고 싶다면 AIShortcuts@outlook.com 으로 연락해 주세요"
+  },
+  "popupTitle": {
+    "message": "AI Compare"
+  },
+  "column1": {
+    "message": "1열",
+    "description": "Single column layout option"
+  },
+  "column2": {
+    "message": "2열",
+    "description": "Two columns layout option"
+  },
+  "column3": {
+    "message": "3열",
+    "description": "Three columns layout option"
+  },
+  "column4": {
+    "message": "4열",
+    "description": "Four columns layout option"
+  },
+  "columnsTitle": {
+    "message": "열 수",
+    "description": "Tooltip for the columns selector button"
+  },
+  "closeButton": {
+    "message": "닫기",
+    "description": "Close button text"
+  },
+  "iframeSiteSettings": {
+    "message": "모음 모드 설정",
+    "description": "Title of the site settings dialog"
+  },
+  "standaloneModeTitle": {
+    "message": "독립 페이지 모드",
+    "description": "Title for standalone page mode section"
+  },
+  "collectionModeTitle": {
+    "message": "모음 모드",
+    "description": "Title for collection mode section"
+  },
+  "configButtonTitle": {
+    "message": "바로가기 설정",
+    "description": "Title for shortcut entry configuration"
+  },
+  "inputPositionTitle": {
+    "message": "입력창 위치",
+    "description": "Input position section title"
+  },
+  "inputPositionDescription": {
+    "message": "입력창을 페이지 상단에 표시할지, 하단에 고정할지 선택하세요",
+    "description": "Input position section description"
+  },
+  "inputPositionTop": {
+    "message": "페이지 상단",
+    "description": "Input position top option"
+  },
+  "inputPositionBottom": {
+    "message": "하단 고정",
+    "description": "Input position bottom option"
+  },
+  "comingSoonNotice": {
+    "message": "개발 중이며 아직 사용할 수 없습니다",
+    "description": "Feature coming soon notice"
+  },
+  "floatButton": {
+    "message": "플로팅 버튼",
+    "description": "The name for the float button"
+  },
+  "selectionSearch": {
+    "message": "선택 검색",
+    "description": "The name for the selection search"
+  },
+  "contextMenu": {
+    "message": "컨텍스트 메뉴",
+    "description": "The name for the context menu"
+  },
+  "searchEngine": {
+    "message": "검색 엔진",
+    "description": "The name for the search engine"
+  },
+  "deleteConfirm": {
+    "message": "이 프롬프트를 삭제하시겠습니까?",
+    "description": "Confirmation message for deleting a prompt"
+  },
+  "favoritesTitle": {
+    "message": "프롬프트 즐겨찾기",
+    "description": "Title for the favorites section"
+  },
+  "enableSync": {
+    "message": "동기화 활성화",
+    "description": "Sync bar default text, click to go to login"
+  },
+  "logout": {
+    "message": "로그아웃",
+    "description": "Logout option in account dropdown menu"
+  },
+  "syncNow": {
+    "message": "지금 동기화",
+    "description": "Button to manually pull data from cloud when logged in"
+  },
+  "syncDownloadFailed": {
+    "message": "클라우드에서 데이터를 가져오지 못했습니다. 네트워크를 확인한 뒤 다시 시도하세요.",
+    "description": "Error message when Firebase download fails"
+  },
+  "noFavorites": {
+    "message": "저장된 프롬프트가 아직 없습니다",
+    "description": "Message shown when there are no saved prompts"
+  },
+  "favoriteButton": {
+    "message": "프롬프트 저장",
+    "description": "Title for the favorite button"
+  },
+  "iframeFavoriteTitle": {
+    "message": "이 응답을 즐겨찾기에 저장",
+    "description": "Tooltip for iframe star when not favorited"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "즐겨찾기에서 제거",
+    "description": "Tooltip for iframe star when favorited"
+  },
+  "refresh": {
+    "message": "새로고침",
+    "description": "Tooltip for the refresh button"
+  },
+  "openInNewTab": {
+    "message": "새 탭에서 열기",
+    "description": "Tooltip for the open in new tab button"
+  },
+  "ruleUpdateTimePrefix": {
+    "message": "규칙 원격 자동 업데이트 시간: ",
+    "description": "Prefix text for rule update time"
+  },
+  "ruleUpdateTimeNotAvailable": {
+    "message": "규칙 원격 자동 업데이트 시간: 사용할 수 없음",
+    "description": "Message shown when rule update time is not available"
+  },
+  "ruleUpdateTimeError": {
+    "message": "규칙 원격 자동 업데이트 시간: 가져오기 실패",
+    "description": "Message shown when failed to get rule update time"
+  },
+  "participateRuleDev": {
+    "message": "규칙 개발에 참여",
+    "description": "Text for the participate in rule development button"
+  },
+  "recentUpdateRecords": {
+    "message": "최근 업데이트 기록"
+  },
+  "noUpdateHistory": {
+    "message": "업데이트 기록이 없습니다"
+  },
+  "newSitesCount": {
+    "message": "$COUNT$개의 새 사이트가 추가됨",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "updatedSitesCount": {
+    "message": "$COUNT$개의 사이트가 업데이트됨",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "totalSitesCount": {
+    "message": "총 $COUNT$개의 사이트",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "participateAISiteRuleDev": {
+    "message": "AI 사이트 규칙 개발에 참여"
+  },
+  "checkUpdates": {
+    "message": "업데이트 확인"
+  },
+  "unknownTime": {
+    "message": "알 수 없는 시간"
+  },
+  "disabledSitesTitle": {
+    "message": "플로팅 버튼이 비활성화된 사이트"
+  },
+  "disabledSitesDescription": {
+    "message": "플로팅 버튼이 비활성화된 웹사이트를 관리합니다. 여기서 다시 활성화할 수 있습니다."
+  },
+  "searchProviderName": {
+    "message": "AI Compare"
+  },
+  "searchProviderDescription": {
+    "message": "AI Compare로 여러 AI 플랫폼의 응답을 비교하세요"
+  },
+  "promptTemplatesTitle": {
+    "message": "프롬프트 템플릿"
+  },
+  "promptTemplatesLabel": {
+    "message": "템플릿:"
+  },
+  "promptTemplatesDescription": {
+    "message": "AI 비교 검색용 프롬프트 템플릿을 사용자 지정합니다"
+  },
+  "addTemplateButton": {
+    "message": "새 템플릿 추가"
+  },
+  "addTemplateTitle": {
+    "message": "프롬프트 템플릿 추가"
+  },
+  "editTemplateTitle": {
+    "message": "프롬프트 템플릿 편집"
+  },
+  "templateNameLabel": {
+    "message": "템플릿 이름"
+  },
+  "templateNameHelp": {
+    "message": "버튼에 표시되는 텍스트"
+  },
+  "templateQueryLabel": {
+    "message": "쿼리 템플릿"
+  },
+  "templateQueryHelp": {
+    "message": "사용자 입력 자리표시자로 {query} 를 사용하세요"
+  },
+  "templateOrderLabel": {
+    "message": "표시 순서"
+  },
+  "templateOrderHelp": {
+    "message": "숫자가 작을수록 먼저 표시됩니다"
+  },
+  "cancelButton": {
+    "message": "취소"
+  },
+  "saveButton": {
+    "message": "저장"
+  },
+  "favButtonSaved": {
+    "message": "저장됨"
+  },
+  "editButton": {
+    "message": "편집"
+  },
+  "deleteButton": {
+    "message": "삭제"
+  },
+  "confirmDeleteTemplate": {
+    "message": "이 템플릿을 삭제하시겠습니까?"
+  },
+  "templateSavedSuccess": {
+    "message": "템플릿이 저장되었습니다"
+  },
+  "templateDeletedSuccess": {
+    "message": "템플릿이 삭제되었습니다"
+  },
+  "templateNameRequired": {
+    "message": "템플릿 이름을 입력하세요"
+  },
+  "templateQueryRequired": {
+    "message": "쿼리 템플릿을 입력하세요"
+  },
+  "localFileDetected": {
+    "message": "로컬 파일 감지됨"
+  },
+  "browserSecurityRestriction": {
+    "message": "브라우저 보안 제한"
+  },
+  "localFileSecurityMessage": {
+    "message": "로컬 파일을 복사할 때 브라우저는 파일 내용이 아니라 파일 경로에만 접근할 수 있습니다."
+  },
+  "suggestedActions": {
+    "message": "권장 작업:"
+  },
+  "uploadFileAction": {
+    "message": "상단의 <strong>파일 업로드 버튼</strong>을 클릭하여 파일을 선택하세요"
+  },
+  "dismissWarning": {
+    "message": "확인"
+  },
+  "exportResponses": {
+    "message": "AI Compare 결과 내보내기"
+  },
+  "exportResponsesTitle": {
+    "message": "모든 AI 응답 내보내기"
+  },
+  "historyTitle": {
+    "message": "기록"
+  },
+  "historyMaxRecordsTip": {
+    "message": "최신 $COUNT$개 기록만 저장됩니다",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "exportModalTitle": {
+    "message": "AI Compare 결과 내보내기"
+  },
+  "exportFormat": {
+    "message": "내보내기 형식"
+  },
+  "selectSites": {
+    "message": "사이트 선택"
+  },
+  "preview": {
+    "message": "미리보기"
+  },
+  "export": {
+    "message": "내보내기"
+  },
+  "cancel": {
+    "message": "취소"
+  },
+  "exportSuccess": {
+    "message": "내보내기에 성공했습니다"
+  },
+  "exportFailed": {
+    "message": "내보내기에 실패했습니다"
+  },
+  "selectSitesToExport": {
+    "message": "내보낼 사이트를 선택하세요"
+  },
+  "noContentFound": {
+    "message": "내보낼 콘텐츠를 찾을 수 없습니다"
+  },
+  "contentExtractionFailed": {
+    "message": "콘텐츠 추출에 실패했습니다"
+  },
+  "devNotice": {
+    "message": "개발 중인 기능으로 오류나 제한이 있을 수 있습니다"
+  },
+  "pinGuideTitle": {
+    "message": "빠른 접근을 위해 확장 프로그램을 고정하세요"
+  },
+  "pinGuideSteps": {
+    "message": "도구 모음의 퍼즐 아이콘 클릭 -> \"AI Compare\" 찾기 -> 고정 아이콘 클릭"
+  },
+  "settingsLink": {
+    "message": "설정"
+  },
+  "historyLink": {
+    "message": "기록"
+  },
+  "favoritesLink": {
+    "message": "즐겨찾기"
+  },
+  "userFeedback": {
+    "message": "제안"
+  },
+  "reviewLink": {
+    "message": "평가하기"
+  },
+  "coffeeLink": {
+    "message": "커피 사주기"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "WeChat"
+  },
+  "wechatModalTitle": {
+    "message": "WeChat ID"
+  },
+  "coffeeModalText": {
+    "message": "여러분의 후원이 프로젝트의 지속적인 개발을 이끄는 힘입니다"
+  },
+  "saveFavoriteSites": {
+    "message": "저장"
+  },
+  "saveFavoriteSitesTitle": {
+    "message": "선택한 사이트를 즐겨찾기로 저장"
+  },
+  "favoriteSitesSaved": {
+    "message": "즐겨찾는 사이트가 저장되었습니다"
+  },
+  "noSitesSelected": {
+    "message": "최소 한 개의 사이트를 선택하세요"
+  },
+  "automationNotice": {
+    "message": "웹사이트가 업데이트되면 자동 질의 기능이 더 이상 동작하지 않을 수 있습니다. 불편을 드려 죄송합니다. 작동이 멈춘 것을 확인하면 업데이트를 위해 저희에게 알려 주세요."
+  },
+  "injectProgressTitleRunning": {
+    "message": "스크립트 실행 중..."
+  },
+  "injectProgressTitlePageLoading": {
+    "message": "페이지 로딩 중..."
+  },
+  "injectProgressTitleError": {
+    "message": "실행에 실패했습니다"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "준비 중"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "페이지 로딩 중..."
+  },
+  "injectProgressDetailRetrying": {
+    "message": "재시도 중"
+  },
+  "injectProgressButtonRetry": {
+    "message": "재시도"
+  },
+  "injectProgressButtonClose": {
+    "message": "닫기"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "질문을 입력하세요"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "페이지가 로드된 후 입력창의 🔗 아이콘을 클릭하세요"
+  },
+  "injectProgressStepInfo": {
+    "message": "단계 $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "실행이 중단되었습니다"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "실행 중"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "요소를 찾을 수 없습니다"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "잘못된 핸들러 구성입니다"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "최대 재시도 후에도 버튼이 비활성화된 상태였습니다"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "단계 시간이 초과되었습니다"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "사이트 핸들러를 찾을 수 없습니다"
+  },
+  "injectProgressRetryInfo": {
+    "message": "재시도 $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "클릭"
+  },
+  "injectStepActionFocus": {
+    "message": "포커스"
+  },
+  "injectStepActionSetValue": {
+    "message": "값 설정"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "이벤트 발생"
+  },
+  "injectStepActionSendKeys": {
+    "message": "키 전송"
+  },
+  "injectStepActionReplace": {
+    "message": "교체"
+  },
+  "injectStepActionWait": {
+    "message": "대기"
+  },
+  "injectStepActionCustom": {
+    "message": "사용자 지정 작업"
+  },
+  "injectStepActionPaste": {
+    "message": "붙여넣기"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "URL 쿼리를 사용하므로 입력창과 상호작용할 필요가 없습니다"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "⌘ + Enter(Mac) 또는 Ctrl + Enter(Windows)를 보내 프롬프트를 제출"
+  },
+  "injectStepDescSendEnter": {
+    "message": "Enter 키 전송"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "Enter 를 전송해 제출"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "부모 창으로 메시지 전송"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "파일 붙여넣기 실행"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "Claude 전송 버튼 클릭"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "Poe 전송 버튼 클릭"
+  },
+  "injectStepDescClickSend": {
+    "message": "전송 버튼 클릭"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "Doubao 전송 버튼 클릭"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "사이트 핸들러가 아직 구현되지 않았습니다"
+  },
+  "injectStepDescWait100ms": {
+    "message": "100ms 대기"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "포커스를 보장하기 위해 200ms 대기"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "Angular 변경 감지가 완료되도록 200ms 대기"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "Slate/React 가 업데이트되고 전송 버튼이 활성화되도록 400ms 대기"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "Lexical 편집기 입력창에 포커스"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "AI Studio 프롬프트 입력창에 포커스"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "파일 붙여넣기를 위해 AI Studio 입력창에 포커스"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "ChatGPT 입력창에 포커스"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "파일 붙여넣기를 위해 ChatGPT 입력창에 포커스"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Claude 입력창에 포커스"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "Copilot 입력창에 포커스"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Copilot 입력창에 포커스"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Gemini 입력창에 포커스"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Grok 입력창에 포커스"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Kimi Lexical 입력창에 포커스"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Poe 입력창에 포커스"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Qwen 입력창에 포커스"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "편집 가능한 영역에 포커스"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "파일 붙여넣기를 위해 편집 가능한 영역에 포커스"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "추천 상자 또는 입력창에 포커스"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "Wenxin 편집기에 포커스"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "파일 붙여넣기를 위해 Wenxin 편집기에 포커스"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Metaso 입력창에 포커스"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "Doubao 입력창에 포커스"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Doubao 입력창에 포커스"
+  },
+  "injectStepDescFocusInput": {
+    "message": "입력창에 포커스"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "파일 붙여넣기를 위해 입력창에 포커스"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "입력창 (Slate 편집기)에 포커스"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "파일 붙여넣기를 위해 Tongyi Qianwen 입력창에 포커스"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "여러 입력 이벤트 발생"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "전체 입력 이벤트 시퀀스 발생"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "특수 입력 이벤트 발생"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "입력 이벤트 발생"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "입력 이벤트 발생 (React 동기화를 위해 InputEvent 텍스트 사용)"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "Lexical 편집기 내용 설정 (span[data-lexical-text] 자동 생성)"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "AI Studio 입력 설정 (Angular FormControl)"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "ChatGPT 입력 내용 설정"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "Copilot 입력값 설정"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "Poe 특수 입력값 설정"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "편집 가능한 영역 내용 설정"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "Wenxin 특수 편집기 내용 설정"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "Metaso 입력값 설정"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "Doubao 입력값 설정"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "입력값 설정"
+  },
   "ratingModalClose": {
     "message": "닫기"
   },
@@ -28,6 +737,96 @@
   },
   "ratingModalNoLink": {
     "message": "리뷰 링크를 열 수 없습니다"
+  },
+  "dataSyncTitle": {
+    "message": "데이터 동기화"
+  },
+  "dataSyncDescription": {
+    "message": "모든 설정을 기기 간에 동기화합니다(베타 버전으로 버그가 있을 수 있습니다)"
+  },
+  "syncEnabledLabel": {
+    "message": "다음 위치로 동기화 활성화"
+  },
+  "syncOnChange": {
+    "message": "자동 동기화"
+  },
+  "syncOnStartup": {
+    "message": "시작 시 동기화"
+  },
+  "syncAuthType": {
+    "message": "인증 유형"
+  },
+  "syncAuthPassword": {
+    "message": "비밀번호"
+  },
+  "syncAuthToken": {
+    "message": "토큰"
+  },
+  "syncUsername": {
+    "message": "사용자 이름"
+  },
+  "syncPassword": {
+    "message": "비밀번호"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "사용자 이름"
+  },
+  "syncTestConnection": {
+    "message": "연결 테스트"
+  },
+  "syncNowButton": {
+    "message": "지금 동기화"
+  },
+  "syncImportButton": {
+    "message": "클라우드에서 복원"
+  },
+  "syncTesting": {
+    "message": "연결 테스트 중..."
+  },
+  "syncTestSuccess": {
+    "message": "연결 성공"
+  },
+  "syncTestFailed": {
+    "message": "연결 실패"
+  },
+  "syncUploading": {
+    "message": "데이터 업로드 중..."
+  },
+  "syncSuccess": {
+    "message": "동기화 성공"
+  },
+  "syncFailed": {
+    "message": "동기화 실패"
+  },
+  "syncDownloading": {
+    "message": "클라우드에서 다운로드 중..."
+  },
+  "syncImportSuccess": {
+    "message": "클라우드에서 데이터를 복원했습니다. 변경 사항을 적용하려면 페이지를 새로고침하세요."
+  },
+  "syncImportFailed": {
+    "message": "복원 실패"
+  },
+  "syncTokenPlaceholder": {
+    "message": "토큰 입력"
+  },
+  "syncErrorNoToken": {
+    "message": "토큰을 입력하세요"
+  },
+  "syncErrorNoUrl": {
+    "message": "WebDAV URL 을 입력하세요"
+  },
+  "syncErrorNoUsername": {
+    "message": "사용자 이름을 입력하세요"
+  },
+  "syncErrorNoPassword": {
+    "message": "비밀번호를 입력하세요"
+  },
+  "syncErrorNotConfigured": {
+    "message": "동기화를 활성화하고 WebDAV 설정을 입력하세요"
   },
   "favFolderDefault": {
     "message": "기본"
@@ -67,5 +866,65 @@
   },
   "removedFromFavorites": {
     "message": "즐겨찾기에서 삭제됨"
+  },
+  "membershipTitle": {
+    "message": "Pro 멤버십"
+  },
+  "membershipDescription": {
+    "message": "모든 기능을 잠금 해제하고 무제한 AI 비교를 즐기세요"
+  },
+  "planMonthlyName": {
+    "message": "월간"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / 월"
+  },
+  "planYearlyName": {
+    "message": "연간"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / 년"
+  },
+  "planYearlySaving": {
+    "message": "33% 절약"
+  },
+  "planPopular": {
+    "message": "가장 인기"
+  },
+  "planFeature1": {
+    "message": "무제한 AI 비교"
+  },
+  "planFeature2": {
+    "message": "우선 지원"
+  },
+  "planFeature3": {
+    "message": "언제든지 해지 가능"
+  },
+  "planFeature4": {
+    "message": "최고의 가성비"
+  },
+  "btnUpgradeMonthly": {
+    "message": "월간 구독"
+  },
+  "btnUpgradeYearly": {
+    "message": "연간 구독"
+  },
+  "membershipProThankYou": {
+    "message": "지원해 주셔서 감사합니다. Pro 멤버입니다."
+  },
+  "btnManageSubscription": {
+    "message": "구독 관리"
+  },
+  "membershipLoading": {
+    "message": "멤버십 상태를 불러오는 중..."
+  },
+  "membershipLoginHint": {
+    "message": "멤버십 상태를 보려면 Google(데이터 동기화)로 로그인하세요."
+  },
+  "membershipExpiresOn": {
+    "message": "갱신일: "
+  },
+  "membershipPriceNotConfigured": {
+    "message": "Stripe Price ID 가 설정되지 않았습니다. stripe-payment.js 에서 설정하세요."
   }
 }

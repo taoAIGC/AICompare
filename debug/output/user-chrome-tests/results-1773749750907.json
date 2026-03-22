@@ -1,0 +1,95 @@
+[
+  {
+    "site": "NotebookLM",
+    "targetUrl": "https://notebooklm.google.com/",
+    "initialTitle": "NotebookLM",
+    "initialUrl": "https://notebooklm.google.com/",
+    "title": "NotebookLM",
+    "url": "https://notebooklm.google.com/",
+    "selectorChecks": [
+      {
+        "action": "click",
+        "selector": "button.create-new-button",
+        "description": "点击 NotebookLM 新建笔记本",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "wait",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "duration": 1500,
+        "description": "等待 NotebookLM 新建页加载",
+        "note": "wait-step"
+      },
+      {
+        "action": "focus",
+        "selector": "textarea[formcontrolname=\"discoverSourcesQuery\"]",
+        "description": "聚焦 NotebookLM 来源发现输入框",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "textarea[formcontrolname=\"discoverSourcesQuery\"]",
+        "description": "设置 NotebookLM 来源发现输入框内容",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "textarea[formcontrolname=\"discoverSourcesQuery\"]",
+        "description": "触发 NotebookLM 输入事件",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "wait",
+        "selector": "",
+        "matched": true,
+        "visible": true,
+        "duration": 300,
+        "description": "等待 NotebookLM 提交按钮激活",
+        "note": "wait-step"
+      },
+      {
+        "action": "click",
+        "selector": "button.actions-enter-button:not(.mat-mdc-button-disabled):not([disabled])",
+        "description": "点击 NotebookLM 来源发现提交按钮",
+        "matched": false,
+        "count": 0,
+        "visibleCount": 0,
+        "firstTag": "",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      }
+    ]
+  }
+]

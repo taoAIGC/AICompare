@@ -22,6 +22,10 @@ const ratingReminderState = {
   reminderTargetCount: 10
 };
 
+// Keep iframe permissions narrow to avoid cross-site browser permission prompts
+// when opening many third-party AI sites in parallel.
+const IFRAME_ALLOW_PERMISSIONS = 'clipboard-read; clipboard-write; autoplay; fullscreen; picture-in-picture';
+
 async function getReviewUrlFromConfig() {
   const fallbackUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
   try {
@@ -483,11 +487,11 @@ function initSearchBarDrag() {
 
 function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
-  overlay.className = 'inject-progress is-visible';
+  overlay.className = 'inject-progress';
   overlay.innerHTML = `
     <div class="inject-progress-content">
-      <div class="inject-progress-title">${t('injectProgressTitlePageLoading', '网页加载中')}</div>
-      <div class="inject-progress-detail">${t('injectProgressDetailPageLoading', '网页加载中')}</div>
+      <div class="inject-progress-title">${t('injectProgressTitleRunning', '正在执行脚本...')}</div>
+      <div class="inject-progress-detail">${t('injectProgressDetailPreparing', '准备中')}</div>
       <div class="inject-progress-actions">
         <button class="inject-progress-retry" type="button">${t('injectProgressButtonRetry', '重试')}</button>
         <button class="inject-progress-close" type="button">${t('injectProgressButtonClose', '关闭')}</button>
@@ -623,10 +627,6 @@ function setInjectProgressState(overlay, payload) {
   const retrySuffix = retryInfo ? `（${retryInfo}）` : '';
 
   if (status === 'error') {
-    if (payload.manualRetryRequired !== true) {
-      overlay.classList.remove('is-visible', 'is-error');
-      return;
-    }
     overlay.classList.add('is-visible', 'is-error');
     if (titleEl) titleEl.textContent = t('injectProgressTitleError', '执行失败');
     const stepInfo = payload.stepIndex && payload.totalSteps
@@ -958,8 +958,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (selectedSiteNames && selectedSiteNames.length > 0) {
                         let availableSites = sites.filter(site => 
                             selectedSiteNames.includes(site.name) &&
-                            site.supportIframe !== false && 
-                            !site.hidden
+                            !site.hidden &&
+                            siteMatchesRequestedType(site)
                         );
                         availableSites = sortSitesFavoriteFirst(availableSites);
                         console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
@@ -974,8 +974,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // 如果没有指定站点列表，使用默认过滤（需要 enabled）
                         let availableSites = sites.filter(site => 
                             site.enabled && 
-                            site.supportIframe !== false && 
-                            !site.hidden
+                            !site.hidden &&
+                            siteMatchesRequestedType(site)
                         );
                         availableSites = sortSitesFavoriteFirst(availableSites);
 
@@ -997,8 +997,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     if (selectedSiteNames && selectedSiteNames.length > 0) {
                         let availableSites = sites.filter(site => 
                             selectedSiteNames.includes(site.name) &&
-                            site.supportIframe !== false && 
-                            !site.hidden
+                            !site.hidden &&
+                            siteMatchesRequestedType(site)
                         );
                         availableSites = sortSitesFavoriteFirst(availableSites);
                         console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
@@ -1013,8 +1013,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // 如果没有指定站点列表，使用默认过滤（需要 enabled）
                         let availableSites = sites.filter(site => 
                             site.enabled && 
-                            site.supportIframe !== false && 
-                            !site.hidden
+                            !site.hidden &&
+                            siteMatchesRequestedType(site)
                         );
                         availableSites = sortSitesFavoriteFirst(availableSites);
 
@@ -1036,8 +1036,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (selectedSiteNames && selectedSiteNames.length > 0) {
                     let availableSites = sites.filter(site => 
                         selectedSiteNames.includes(site.name) &&
-                        site.supportIframe !== false && 
-                        !site.hidden
+                        !site.hidden &&
+                        siteMatchesRequestedType(site)
                     );
                     availableSites = sortSitesFavoriteFirst(availableSites);
                     console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
@@ -1052,8 +1052,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // 如果没有指定站点列表，使用默认过滤（需要 enabled）
                     let availableSites = sites.filter(site => 
                         site.enabled && 
-                        site.supportIframe !== false && 
-                        !site.hidden
+                        !site.hidden &&
+                        siteMatchesRequestedType(site)
                     );
                     availableSites = sortSitesFavoriteFirst(availableSites);
 
@@ -1545,6 +1545,50 @@ function hideFileUploadProgress() {
 
 let currentColumnsValue = '3';
 let navColumnOutsideClickBound = false;
+let requestedIframeSiteType = '';
+
+function normalizeSiteTypeValue(rawValue) {
+  const normalized = String(rawValue || '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'agent' || normalized === 'agents') return 'agents';
+  if (normalized === 'translation') return 'translation';
+  if (normalized === 'image') return 'image';
+  if (normalized === 'video') return 'video';
+  if (normalized === 'audio') return 'audio';
+  if (normalized === 'ppt') return 'ppt';
+  if (normalized === 'chat') return 'chat';
+  if (normalized === 'other') return 'other';
+  return normalized;
+}
+
+function normalizeSiteCategory(site) {
+  return normalizeSiteTypeValue(site?.category || site?.type) || 'other';
+}
+
+function getRequestedIframeSiteType() {
+  if (requestedIframeSiteType) {
+    return requestedIframeSiteType;
+  }
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    requestedIframeSiteType = normalizeSiteTypeValue(urlParams.get('type'));
+  } catch (_) {
+    requestedIframeSiteType = '';
+  }
+  return requestedIframeSiteType;
+}
+
+function siteMatchesRequestedType(site) {
+  const requestedType = getRequestedIframeSiteType();
+  if (!requestedType) {
+    return true;
+  }
+  return normalizeSiteCategory(site) === requestedType;
+}
+
+function getFilteredNavSites(sites = []) {
+  return (sites || []).filter(siteMatchesRequestedType);
+}
 
 function getColumnSvgTemplate(columns) {
   const svgTemplates = {
@@ -1795,7 +1839,9 @@ function getOpenedSiteSet() {
 async function getAvailableIframeSites() {
   try {
     const sites = await getDefaultSites();
-    const availableSites = (sites || []).filter(site => site.supportIframe !== false && !site.hidden);
+    const availableSites = (sites || [])
+      .filter(site => !site.hidden)
+      .filter(siteMatchesRequestedType);
     navAvailableSitesCache = sortSitesFavoriteFirst(availableSites);
   } catch (error) {
     console.error('获取可用站点失败:', error);
@@ -2005,12 +2051,8 @@ function ensureSideNavShell() {
   if (!navControls) {
     navControls = document.createElement('div');
     navControls.className = 'nav-controls';
-    navControls.innerHTML = getNavColumnControlsMarkup(currentColumnsValue);
     nav.appendChild(navControls);
   }
-  initNavColumnControls();
-  setActiveColumnOption(currentColumnsValue);
-  updateCurrentDisplay(currentColumnsValue);
 
   let navList = nav.querySelector('.nav-list');
   if (!navList) {
@@ -2027,6 +2069,16 @@ async function renderSideNav() {
   if (!nav) return;
 
   const sites = await getAvailableIframeSites();
+
+  const navControls = nav.querySelector('.nav-controls');
+  if (navControls) {
+    navControls.innerHTML = getNavColumnControlsMarkup(currentColumnsValue);
+  }
+
+  initNavColumnControls();
+  setActiveColumnOption(currentColumnsValue);
+  updateCurrentDisplay(currentColumnsValue);
+
   const container = document.getElementById('iframes-container');
   const existingNavList = nav.querySelector('.nav-list');
   if (existingNavList) {
@@ -2323,7 +2375,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   // 临时移除 sandbox 属性以测试剪贴板权限
   // iframe.sandbox = 'allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation';
   
-  iframe.allow = 'clipboard-read; clipboard-write; microphone; camera; geolocation; autoplay; fullscreen; picture-in-picture; storage-access; web-share';
+  iframe.allow = IFRAME_ALLOW_PERMISSIONS;
   
   // 记录是否已经处理过点击事件
   let clickHandlerAdded = false;
@@ -3373,7 +3425,7 @@ async function loadHistoryIframes(sites) {
       const iframe = document.createElement('iframe');
       iframe.className = 'ai-iframe';
       iframe.setAttribute('data-site', siteName);
-      iframe.allow = 'clipboard-read; clipboard-write; microphone; camera; geolocation; autoplay; fullscreen; picture-in-picture; storage-access; web-share';
+      iframe.allow = IFRAME_ALLOW_PERMISSIONS;
       iframe.src = url; // 直接使用历史记录中的 URL
       
       // 创建 header

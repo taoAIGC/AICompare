@@ -1,294 +1,215 @@
-/**
- * AI Compare Chrome Extension - Playwright Test Suite
- *
- * 测试架构说明：
- * 1. Unit Tests: 测试配置解析、工具函数等
- * 2. Integration Tests: 测试Chrome Storage、消息通信等
- * 3. E2E Tests: 测试用户完整操作流程
- * 4. UI Tests: 测试各页面的UI渲染和交互
- *
- * 运行命令：
- *   npm test           // 运行所有测试
- *   npm run test:unit  // 运行单元测试
- *   npm run test:e2e   // 运行E2E测试
- *   npm run test:ui    // 运行UI测试
- *   npm run test:report // 生成测试报告
- */
-
-const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const base = require('@playwright/test');
+const { chromium } = require('playwright');
+const {
+  getExtensionPath,
+  validateExtensionStructure,
+  sanitizePathSegment,
+  ensureDirectory,
+  copyDirectory,
+  removeDirectory
+} = require('./utils/test-utils');
 
-// 配置常量
-const EXTENSION_PATH = path.join(__dirname, '..');
-const TEST_DATA_PATH = path.join(__dirname, 'fixtures');
-const REPORT_PATH = path.join(__dirname, 'reports');
-const PERSISTENT_PROFILE_DIR = process.env.PLAYWRIGHT_USER_DATA_DIR ||
-  path.join(EXTENSION_PATH, '.playwright-user-data', 'automation-profile');
+const EXTENSION_PATH = getExtensionPath();
+const USER_DATA_ROOT = path.join(EXTENSION_PATH, '.playwright-user-data');
+const DEFAULT_SEED_PROFILE_DIR = process.env.PLAYWRIGHT_EXTENSION_SEED_PROFILE_DIR ||
+  process.env.PLAYWRIGHT_USER_DATA_DIR ||
+  path.join(USER_DATA_ROOT, 'automation-profile');
+const RUN_PROFILE_ROOT = path.join(USER_DATA_ROOT, 'extension-runs');
 
-// 测试配置
-const TEST_CONFIG = {
-  headless: process.env.CI === 'true',
-  timeout: 30000,
-  viewport: { width: 1280, height: 800 },
-  permissions: ['storage', 'clipboardRead', 'contextMenus'],
-  launchOptions: {
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      // 禁用CSP以支持测试环境
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process'
-    ]
+function resolveHeadless() {
+  if (process.env.PLAYWRIGHT_EXTENSION_HEADLESS != null) {
+    return process.env.PLAYWRIGHT_EXTENSION_HEADLESS === '1';
   }
-};
-
-/**
- * 扩展上下文工具类
- */
-class ExtensionContext {
-  constructor() {
-    this.browser = null;
-    this.context = null;
-    this.extensionId = null;
-    this.pages = {};
-  }
-
-  /**
-   * 初始化浏览器和扩展
-   */
-  async init() {
-    this.browser = await chromium.launch(TEST_CONFIG);
-    this.context = await this.browser.newContext(TEST_CONFIG);
-
-    // 加载扩展
-    const extensionPath = path.join(EXTENSION_PATH);
-    this.extensionId = await this.loadExtension(extensionPath);
-
-    return this;
-  }
-
-  /**
-   * 加载扩展并获取ID
-   */
-  async loadExtension(extensionPath) {
-    const extPath = path.join(extensionPath);
-    fs.mkdirSync(PERSISTENT_PROFILE_DIR, { recursive: true });
-    const context = await chromium.launchPersistentContext(PERSISTENT_PROFILE_DIR, {
-      headless: TEST_CONFIG.headless,
-      ignoreDefaultArgs: ['--disable-extensions'],
-      args: [
-        ...TEST_CONFIG.launchOptions.args,
-        `--disable-extensions-except=${extPath}`,
-        `--load-extension=${extPath}`
-      ]
-    });
-
-    // 获取扩展页面
-    const extPage = await context.newPage();
-    await extPage.goto(`chrome-extension://${this.getExtensionIdFromPath(extPath)}/`);
-
-    return this.getExtensionIdFromPath(extPath);
-  }
-
-  /**
-   * 从路径获取扩展ID
-   */
-  getExtensionIdFromPath(extensionPath) {
-    // 实际测试时动态获取
-    return 'temporary-extension-id';
-  }
-
-  /**
-   * 打开侧边栏
-   */
-  async openSidePanel() {
-    const page = await this.context.newPage();
-    await page.goto(`chrome-extension://${this.extensionId}/iframe/iframe.html`);
-    this.pages.sidePanel = page;
-    return page;
-  }
-
-  /**
-   * 打开选项页面
-   */
-  async openOptionsPage() {
-    const page = await this.context.newPage();
-    await page.goto(`chrome-extension://${this.extensionId}/options/options.html`);
-    this.pages.options = page;
-    return page;
-  }
-
-  /**
-   * 打开首页
-   */
-  async openHomepage() {
-    const page = await this.context.newPage();
-    await page.goto(`chrome-extension://${this.extensionId}/homepage/homepage.html`);
-    this.pages.homepage = page;
-    return page;
-  }
-
-  /**
-   * 打开历史记录页面
-   */
-  async openHistoryPage() {
-    const page = await this.context.newPage();
-    await page.goto(`chrome-extension://${this.extensionId}/history/history.html`);
-    this.pages.history = page;
-    return page;
-  }
-
-  /**
-   * 打开收藏页面
-   */
-  async openFavoritesPage() {
-    const page = await this.context.newPage();
-    await page.goto(`chrome-extension://${this.extensionId}/favorites/favorites.html`);
-    this.pages.favorites = page;
-    return page;
-  }
-
-  /**
-   * 清理资源
-   */
-  async cleanup() {
-    if (this.pages.sidePanel) await this.pages.sidePanel.close();
-    if (this.pages.options) await this.pages.options.close();
-    if (this.pages.homepage) await this.pages.homepage.close();
-    if (this.pages.history) await this.pages.history.close();
-    if (this.pages.favorites) await this.pages.favorites.close();
-    if (this.context) await this.context.close();
-    if (this.browser) await this.browser.close();
-  }
+  return process.env.CI === 'true';
 }
 
-// 工具函数
-const utils = {
-  /**
-   * 等待元素出现
-   */
-  async waitForSelector(page, selector, timeout = 5000) {
-    await page.waitForSelector(selector, { timeout, state: 'attached' });
-  },
+function resolveChannel() {
+  const channel = process.env.CHROME_CHANNEL || 'chromium';
+  return channel === 'chromium' ? undefined : channel;
+}
 
-  /**
-   * 点击并等待
-   */
-  async clickAndWait(page, selector, waitForSelector = null) {
-    await page.click(selector);
-    if (waitForSelector) {
-      await this.waitForSelector(page, waitForSelector);
+function getExtensionLaunchArgs() {
+  return [
+    `--disable-extensions-except=${EXTENSION_PATH}`,
+    `--load-extension=${EXTENSION_PATH}`,
+    '--no-first-run',
+    '--no-default-browser-check'
+  ];
+}
+
+async function waitForExtensionServiceWorker(context, timeout = 20000) {
+  const existingWorker = context
+    .serviceWorkers()
+    .find((worker) => worker.url().startsWith('chrome-extension://'));
+
+  if (existingWorker) {
+    return existingWorker;
+  }
+
+  const warmupPage = await context.newPage();
+  try {
+    await warmupPage.goto('about:blank');
+    await warmupPage.waitForTimeout(1000);
+  } finally {
+    await warmupPage.close().catch(() => {});
+  }
+
+  const workerAfterWarmup = context
+    .serviceWorkers()
+    .find((worker) => worker.url().startsWith('chrome-extension://'));
+
+  if (workerAfterWarmup) {
+    return workerAfterWarmup;
+  }
+
+  return context.waitForEvent('serviceworker', {
+    timeout,
+    predicate: (worker) => worker.url().startsWith('chrome-extension://')
+  });
+}
+
+function getExtensionIdFromWorker(worker) {
+  return new URL(worker.url()).host;
+}
+
+function getSeedProfileDir() {
+  return DEFAULT_SEED_PROFILE_DIR;
+}
+
+async function prepareRunProfile(testInfo) {
+  ensureDirectory(RUN_PROFILE_ROOT);
+
+  const runId = sanitizePathSegment([
+    testInfo.project.name,
+    testInfo.title,
+    testInfo.retry,
+    Date.now()
+  ].join('-'));
+
+  const userDataDir = path.join(RUN_PROFILE_ROOT, runId);
+  const seedProfileDir = getSeedProfileDir();
+  if (!fs.existsSync(seedProfileDir)) {
+    throw new Error(
+      `Missing extension seed profile: ${seedProfileDir}. Set PLAYWRIGHT_EXTENSION_SEED_PROFILE_DIR to a logged-in Chrome profile copy before running extension-direct-sites tests.`
+    );
+  }
+
+  await copyDirectory(seedProfileDir, userDataDir);
+
+  return {
+    seedProfileDir,
+    userDataDir
+  };
+}
+
+async function launchExtensionContext(testInfo) {
+  const structure = validateExtensionStructure(EXTENSION_PATH);
+  if (!structure.valid) {
+    throw new Error(`Extension structure invalid: ${structure.missingFiles.join(', ')}`);
+  }
+
+  const profile = await prepareRunProfile(testInfo);
+  const context = await chromium.launchPersistentContext(profile.userDataDir, {
+    channel: resolveChannel(),
+    headless: resolveHeadless(),
+    viewport: { width: 1440, height: 960 },
+    args: getExtensionLaunchArgs(),
+    ignoreDefaultArgs: ['--disable-extensions'],
+    chromiumSandbox: false
+  });
+
+  const worker = await waitForExtensionServiceWorker(context);
+  const extensionId = getExtensionIdFromWorker(worker);
+
+  return {
+    ...profile,
+    context,
+    extensionId,
+    serviceWorkerUrl: worker.url(),
+    async newPage() {
+      return context.newPage();
+    },
+    async openExtensionPage(relativePath = 'iframe/iframe.html') {
+      const page = await context.newPage();
+      await page.goto(`chrome-extension://${extensionId}/${relativePath}`);
+      return page;
+    },
+    async cleanup() {
+      await context.close();
+    }
+  };
+}
+
+const test = base.test.extend({
+  extensionContextInfo: async ({}, use, testInfo) => {
+    const info = await launchExtensionContext(testInfo);
+
+    await testInfo.attach('extension-context.json', {
+      body: Buffer.from(JSON.stringify({
+        extensionId: info.extensionId,
+        serviceWorkerUrl: info.serviceWorkerUrl,
+        seedProfileDir: info.seedProfileDir,
+        userDataDir: info.userDataDir
+      }, null, 2)),
+      contentType: 'application/json'
+    });
+
+    try {
+      await use(info);
+    } finally {
+      await info.cleanup().catch(() => {});
+
+      const shouldKeepProfile = process.env.PLAYWRIGHT_KEEP_EXTENSION_PROFILE === '1' ||
+        (testInfo.status && testInfo.status !== 'passed');
+
+      if (!shouldKeepProfile) {
+        await removeDirectory(info.userDataDir).catch(() => {});
+      }
     }
   },
 
-  /**
-   * 填写表单
-   */
-  async fillForm(page, data) {
-    for (const [selector, value] of Object.entries(data)) {
-      await page.fill(selector, value);
+  context: async ({ extensionContextInfo }, use) => {
+    await use(extensionContextInfo.context);
+  },
+
+  extensionId: async ({ extensionContextInfo }, use) => {
+    await use(extensionContextInfo.extensionId);
+  },
+
+  serviceWorkerUrl: async ({ extensionContextInfo }, use) => {
+    await use(extensionContextInfo.serviceWorkerUrl);
+  },
+
+  newExtensionPage: async ({ extensionContextInfo }, use) => {
+    await use(extensionContextInfo.newPage);
+  },
+
+  openExtensionPage: async ({ extensionContextInfo }, use) => {
+    await use(extensionContextInfo.openExtensionPage);
+  },
+
+  page: async ({ context }, use) => {
+    const page = await context.newPage();
+    try {
+      await use(page);
+    } finally {
+      await page.close().catch(() => {});
     }
-  },
-
-  /**
-   * 模拟发送消息
-   */
-  async sendMessage(page, message) {
-    return await page.evaluate((msg) => {
-      return new Promise((resolve) => {
-        chrome.runtime.sendMessage(msg, resolve);
-      });
-    }, message);
-  },
-
-  /**
-   * 等待存储数据
-   */
-  async waitForStorage(keys, timeout = 5000) {
-    return new Promise((resolve, reject) => {
-      const check = async () => {
-        const result = await chrome.storage.local.get(keys);
-        if (keys.every(key => result[key] !== undefined)) {
-          resolve(result);
-        } else {
-          setTimeout(check, 100);
-        }
-      };
-      setTimeout(() => reject(new Error('Storage wait timeout')), timeout);
-      check();
-    });
-  },
-
-  /**
-   * 清除所有存储数据
-   */
-  async clearStorage() {
-    await chrome.storage.local.clear();
-    await chrome.storage.sync.clear();
-  },
-
-  /**
-   * 设置存储数据
-   */
-  async setStorage(data) {
-    return await chrome.storage.local.set(data);
-  },
-
-  /**
-   * 生成测试数据
-   */
-  generateTestData() {
-    return {
-      sites: [
-        { id: 'chatgpt', name: 'ChatGPT', enabled: true },
-        { id: 'gemini', name: 'Gemini', enabled: true },
-        { id: 'grok', name: 'Grok', enabled: false }
-      ],
-      history: [
-        { id: '1', query: '什么是AI？', timestamp: Date.now(), responses: [] },
-        { id: '2', query: '如何学习编程？', timestamp: Date.now(), responses: [] }
-      ],
-      favorites: [
-        { id: '1', query: '常用提示词', folderId: null },
-        { id: '2', query: '代码生成', folderId: 'folder1' }
-      ]
-    };
-  },
-
-  /**
-   * 模拟AI站点响应
-   */
-  mockAIResponse(page, siteId, response) {
-    return page.evaluate(({ siteId, response }) => {
-      // 模拟AI站点回答
-      window.mockResponses = window.mockResponses || {};
-      window.mockResponses[siteId] = response;
-    }, { siteId, response });
   }
-};
-
-// 测试基类
-class BaseTest {
-  constructor() {
-    this.ctx = null;
-    this.currentPage = null;
-  }
-
-  async setup() {
-    this.ctx = new ExtensionContext();
-    await this.ctx.init();
-  }
-
-  async teardown() {
-    await this.ctx.cleanup();
-  }
-}
+});
 
 module.exports = {
-  TEST_CONFIG,
-  ExtensionContext,
-  BaseTest,
-  utils
+  test,
+  expect: base.expect,
+  chromium,
+  EXTENSION_PATH,
+  USER_DATA_ROOT,
+  RUN_PROFILE_ROOT,
+  getSeedProfileDir,
+  getExtensionLaunchArgs,
+  waitForExtensionServiceWorker,
+  getExtensionIdFromWorker,
+  launchExtensionContext
 };

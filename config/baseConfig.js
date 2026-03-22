@@ -71,6 +71,12 @@ const AppConfigManager = {
     const config = await this.loadConfig();
     return config.externalLinks || {};
   },
+
+  // 获取联系信息
+  async getContactInfo() {
+    const config = await this.loadConfig();
+    return config.contact || {};
+  },
   
   // 获取支持的文件类型
   async getSupportedFileTypes() {
@@ -134,6 +140,34 @@ const AppConfigManager = {
     return `${baseName}.${extension}`;
   }
 };
+
+async function loadLocalSitesConfig() {
+  const response = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
+  if (!response.ok) {
+    throw new Error(`加载本地站点配置失败: HTTP ${response.status}`);
+  }
+  const localConfig = await response.json();
+  return Array.isArray(localConfig?.sites) ? localConfig.sites : [];
+}
+
+function mergeSitesWithUserSettings(baseSites, userSettings = {}) {
+  const mergedSites = (baseSites || []).map(site => {
+    const userSiteData = userSettings[site.name] || {};
+    return {
+      ...site,
+      order: userSiteData.order !== undefined ? userSiteData.order : site.order,
+      enabled: userSiteData.enabled !== undefined ? userSiteData.enabled : site.enabled
+    };
+  });
+
+  mergedSites.sort((a, b) => {
+    const orderA = a.order !== undefined ? a.order : 999;
+    const orderB = b.order !== undefined ? b.order : 999;
+    return orderA - orderB;
+  });
+
+  return mergedSites;
+}
 
 // 版本号比较函数
 function compareVersions(version1, version2) {
@@ -412,7 +446,22 @@ if (typeof window === 'undefined') {
   // 动态获取站点配置
   self.getDefaultSites = async function() {
     try {
-      
+      let userSettings = {};
+      try {
+        const { sites: userSiteSettings = {} } = await chrome.storage.sync.get('sites');
+        userSettings = userSiteSettings;
+        console.log('从 chrome.storage.sync 加载用户设置成功');
+        console.log('chrome.storage.sync 加载的用户设置:', Object.keys(userSettings).map(name => ({ name, enabled: userSettings[name]?.enabled })));
+      } catch (error) {
+        console.error('从 chrome.storage.sync 读取用户设置失败:', error);
+      }
+
+      if (DEV_CONFIG.FORCE_LOCAL_CONFIG || DEV_CONFIG.SKIP_REMOTE_CONFIG) {
+        console.log('开发模式：强制优先使用本地站点配置');
+        const localSites = await loadLocalSitesConfig();
+        return mergeSitesWithUserSettings(localSites, userSettings);
+      }
+
       //1 从 remoteSiteHandlers 读取基础配置
       console.log('尝试从 remoteSiteHandlers 读取站点配置...');
       let baseSites = [];
@@ -426,36 +475,9 @@ if (typeof window === 'undefined') {
       } catch (error) {
         console.error('从 remoteSiteHandlers 读取配置失败:', error);
       }
-      
-      // 2. 从 chrome.storage.sync 读取用户设置（顺序、启用状态等）
-      let userSettings = {};
-      try {
-        const { sites: userSiteSettings = {} } = await chrome.storage.sync.get('sites');
-        userSettings = userSiteSettings;
-        console.log('从 chrome.storage.sync 加载用户设置成功');
-        console.log('chrome.storage.sync 加载的用户设置:', Object.keys(userSettings).map(name => ({ name, enabled: userSettings[name]?.enabled })));
-      } catch (error) {
-        console.error('从 chrome.storage.sync 读取用户设置失败:', error);
-      }
-      
-      // 3. 合并配置：基础配置 + 用户设置
+
       if (baseSites && baseSites.length > 0) {
-        const mergedSites = baseSites.map(site => {
-          const userSiteData = userSettings[site.name] || {};
-          return {
-            ...site,
-            order: userSiteData.order !== undefined ? userSiteData.order : site.order,
-            enabled: userSiteData.enabled !== undefined ? userSiteData.enabled : site.enabled
-          };
-        });
-        
-        // 按用户设置的顺序排序
-        mergedSites.sort((a, b) => {
-          const orderA = a.order !== undefined ? a.order : 999;
-          const orderB = b.order !== undefined ? b.order : 999;
-          return orderA - orderB;
-        });
-        
+        const mergedSites = mergeSitesWithUserSettings(baseSites, userSettings);
         console.log('合并配置成功，站点数量:', mergedSites.length);
         console.log('合并配置成功，站点配置:', mergedSites.map(site => ({ name: site.name, enabled: site.enabled })));
         return mergedSites;
@@ -464,13 +486,10 @@ if (typeof window === 'undefined') {
       // 4. 如果远程配置不可用，尝试从本地文件加载
       console.log('remoteSiteHandlers 中无数据，尝试从本地文件加载...');
       try {
-        const response = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
-        if (response.ok) {
-          const localConfig = await response.json();
-          if (localConfig.sites && localConfig.sites.length > 0) {
-            console.log('从本地文件加载站点配置成功');
-            return localConfig.sites;
-          }
+        const localSites = await loadLocalSitesConfig();
+        if (localSites.length > 0) {
+          console.log('从本地文件加载站点配置成功');
+          return mergeSitesWithUserSettings(localSites, userSettings);
         }
       } catch (error) {
         console.error('从本地文件加载配置失败:', error);
@@ -508,6 +527,28 @@ if (typeof window === 'undefined') {
 else {
   const language = navigator.language.toLowerCase();
   console.log('当前语言:', language);
+
+  function markHomepagePerf(name) {
+    if (typeof performance === 'undefined' || typeof performance.mark !== 'function') {
+      return;
+    }
+    try {
+      performance.mark(`homepage_${name}`);
+    } catch (_) {}
+  }
+
+  function measureHomepagePerf(name, startMark, endMark) {
+    if (typeof performance === 'undefined' || typeof performance.measure !== 'function') {
+      return;
+    }
+    try {
+      performance.measure(
+        `homepage_${name}`,
+        `homepage_${startMark}`,
+        `homepage_${endMark}`
+      );
+    } catch (_) {}
+  }
   
   // 动态获取站点配置
   window.getDefaultSites = async function() {
@@ -516,12 +557,58 @@ else {
         console.warn('⚠️ chrome API 不可用，返回空站点列表');
         return [];
       }
+
+      markHomepagePerf('get_default_sites_total_start');
       
+      let userSettings = {};
+      try {
+        if (chrome.storage?.sync) {
+          markHomepagePerf('get_default_sites_sync_storage_start');
+          const { sites: userSiteSettings = {} } = await chrome.storage.sync.get('sites');
+          markHomepagePerf('get_default_sites_sync_storage_end');
+          measureHomepagePerf(
+            'get_default_sites_sync_storage_duration',
+            'get_default_sites_sync_storage_start',
+            'get_default_sites_sync_storage_end'
+          );
+          userSettings = userSiteSettings;
+          console.log('从 chrome.storage.sync 加载用户设置成功');
+        }
+      } catch (error) {
+        console.error('从 chrome.storage.sync 读取用户设置失败:', error);
+      }
+
+      if (DEV_CONFIG.FORCE_LOCAL_CONFIG || DEV_CONFIG.SKIP_REMOTE_CONFIG) {
+        markHomepagePerf('get_default_sites_fallback_fetch_start');
+        const localSites = await loadLocalSitesConfig();
+        markHomepagePerf('get_default_sites_fallback_fetch_end');
+        measureHomepagePerf(
+          'get_default_sites_fallback_fetch_duration',
+          'get_default_sites_fallback_fetch_start',
+          'get_default_sites_fallback_fetch_end'
+        );
+        const mergedSites = mergeSitesWithUserSettings(localSites, userSettings);
+        markHomepagePerf('get_default_sites_total_end');
+        measureHomepagePerf(
+          'get_default_sites_total_duration',
+          'get_default_sites_total_start',
+          'get_default_sites_total_end'
+        );
+        return mergedSites;
+      }
+
       // 生产环境：从 remoteSiteHandlers 读取基础配置
       let baseSites = [];
       try {
         if (chrome.storage?.local) {
+          markHomepagePerf('get_default_sites_local_storage_start');
           const result = await chrome.storage.local.get('remoteSiteHandlers');
+          markHomepagePerf('get_default_sites_local_storage_end');
+          measureHomepagePerf(
+            'get_default_sites_local_storage_duration',
+            'get_default_sites_local_storage_start',
+            'get_default_sites_local_storage_end'
+          );
           if (result.remoteSiteHandlers && result.remoteSiteHandlers.sites && result.remoteSiteHandlers.sites.length > 0) {
             baseSites = result.remoteSiteHandlers.sites;
             console.log('从 remoteSiteHandlers 加载站点配置成功');
@@ -530,60 +617,74 @@ else {
       } catch (error) {
         console.error('从 remoteSiteHandlers 读取配置失败:', error);
       }
-      
-      // 2. 从 chrome.storage.sync 读取用户设置（顺序、启用状态等）
-      let userSettings = {};
-      try {
-        if (chrome.storage?.sync) {
-          const { sites: userSiteSettings = {} } = await chrome.storage.sync.get('sites');
-          userSettings = userSiteSettings;
-          console.log('从 chrome.storage.sync 加载用户设置成功');
-        }
-      } catch (error) {
-        console.error('从 chrome.storage.sync 读取用户设置失败:', error);
-      }
-      
-      // 3. 合并配置：基础配置 + 用户设置
+
       if (baseSites && baseSites.length > 0) {
-        const mergedSites = baseSites.map(site => {
-          const userSiteData = userSettings[site.name] || {};
-          return {
-            ...site,
-            order: userSiteData.order !== undefined ? userSiteData.order : site.order,
-            enabled: userSiteData.enabled !== undefined ? userSiteData.enabled : site.enabled
-          };
-        });
-        
-        // 按用户设置的顺序排序
-        mergedSites.sort((a, b) => {
-          const orderA = a.order !== undefined ? a.order : 999;
-          const orderB = b.order !== undefined ? b.order : 999;
-          return orderA - orderB;
-        });
+        markHomepagePerf('get_default_sites_merge_start');
+        const mergedSites = mergeSitesWithUserSettings(baseSites, userSettings);
+        markHomepagePerf('get_default_sites_merge_end');
+        measureHomepagePerf(
+          'get_default_sites_merge_duration',
+          'get_default_sites_merge_start',
+          'get_default_sites_merge_end'
+        );
         
         console.log('合并配置成功，站点数量:', mergedSites.length);
+        markHomepagePerf('get_default_sites_total_end');
+        measureHomepagePerf(
+          'get_default_sites_total_duration',
+          'get_default_sites_total_start',
+          'get_default_sites_total_end'
+        );
         return mergedSites;
       }
       
       // 4. 如果远程配置不可用，尝试从本地文件加载
       try {
         if (chrome.runtime?.getURL) {
-          const response = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
-          if (response.ok) {
-            const localConfig = await response.json();
-            if (localConfig.sites && localConfig.sites.length > 0) {
-              console.log('从本地文件加载站点配置成功');
-              return localConfig.sites;
-            }
+          markHomepagePerf('get_default_sites_fallback_fetch_start');
+          const localSites = await loadLocalSitesConfig();
+          if (localSites.length > 0) {
+            console.log('从本地文件加载站点配置成功');
+            markHomepagePerf('get_default_sites_fallback_fetch_end');
+            measureHomepagePerf(
+              'get_default_sites_fallback_fetch_duration',
+              'get_default_sites_fallback_fetch_start',
+              'get_default_sites_fallback_fetch_end'
+            );
+            markHomepagePerf('get_default_sites_total_end');
+            measureHomepagePerf(
+              'get_default_sites_total_duration',
+              'get_default_sites_total_start',
+              'get_default_sites_total_end'
+            );
+            return mergeSitesWithUserSettings(localSites, userSettings);
           }
+          markHomepagePerf('get_default_sites_fallback_fetch_end');
+          measureHomepagePerf(
+            'get_default_sites_fallback_fetch_duration',
+            'get_default_sites_fallback_fetch_start',
+            'get_default_sites_fallback_fetch_end'
+          );
         }
       } catch (error) {
         console.error('从本地文件加载配置失败:', error);
       }
       
+      markHomepagePerf('get_default_sites_total_end');
+      measureHomepagePerf(
+        'get_default_sites_total_duration',
+        'get_default_sites_total_start',
+        'get_default_sites_total_end'
+      );
       return [];
     } catch (error) {
       console.error('获取默认站点配置失败:', error);
+      markHomepagePerf('get_default_sites_total_end');
+      measureHomepagePerf(
+        'get_default_sites_total_duration',
+        'get_default_sites_total_start',
+        'get_default_sites_total_end'
+      );
       return [];
     }
   };

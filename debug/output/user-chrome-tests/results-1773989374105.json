@@ -1,0 +1,52 @@
+[
+  {
+    "site": "Pika",
+    "targetUrl": "https://pika.art/",
+    "initialTitle": "Pika",
+    "initialUrl": "https://pika.art/",
+    "title": "Pika",
+    "url": "https://pika.art/",
+    "selectorChecks": [
+      {
+        "action": "focus",
+        "selector": "textarea#promptText",
+        "description": "聚焦 Pika 首页提示词输入框",
+        "matched": true,
+        "count": 2,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "Describe your story",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "textarea#promptText",
+        "description": "设置 Pika 首页提示词内容",
+        "matched": true,
+        "count": 2,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "Describe your story",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "textarea#promptText",
+        "description": "触发 Pika 首页输入事件",
+        "matched": true,
+        "count": 2,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "Describe your story",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      }
+    ],
+    "translationValidation": null
+  }
+]

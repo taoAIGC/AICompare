@@ -91,14 +91,14 @@ async function initializeSidebarActionLinks() {
             });
         }
 
-        const feedbackLink = document.getElementById('feedbackLink');
-        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
-        if (feedbackLink && feedbackEmailTooltip) {
-            const feedbackEmail = externalLinks.feedbackEmail || 'AIShortcuts@outlook.com';
-            feedbackLink.href = 'mailto:' + feedbackEmail;
-            feedbackEmailTooltip.textContent = feedbackEmail;
-            feedbackLink.addEventListener('click', () => {
-                safeTrackEvent('sidebar_feedback_click', { feedback_email: feedbackEmail });
+        const contactLink = document.getElementById('contactLink');
+        if (contactLink) {
+            contactLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                safeTrackEvent('sidebar_contact_click', {
+                    has_contact_config: Boolean(config.contact)
+                });
+                window.location.href = chrome.runtime.getURL('contact/contact.html');
             });
         }
 
@@ -148,12 +148,12 @@ async function initializeSidebarActionLinks() {
             });
         }
 
-        const feedbackLink = document.getElementById('feedbackLink');
-        const feedbackEmailTooltip = document.getElementById('feedbackEmailTooltip');
-        if (feedbackLink && feedbackEmailTooltip) {
-            const feedbackEmail = 'AIShortcuts@outlook.com';
-            feedbackLink.href = 'mailto:' + feedbackEmail;
-            feedbackEmailTooltip.textContent = feedbackEmail;
+        const contactLink = document.getElementById('contactLink');
+        if (contactLink) {
+            contactLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = chrome.runtime.getURL('contact/contact.html');
+            });
         }
 
         const reviewLink = document.getElementById('reviewLink');
@@ -504,6 +504,7 @@ function markActiveSidebarLink() {
     const page = document.body?.dataset?.page;
     if (!page) return;
     const linkMap = {
+        contact: 'contactLink',
         favorites: 'favoritesLink',
         history: 'historyLink',
         settings: 'settingsLink'

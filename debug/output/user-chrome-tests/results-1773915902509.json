@@ -1,0 +1,130 @@
+[
+  {
+    "site": "Bing Translate",
+    "targetUrl": "https://www.bing.com/translator",
+    "initialTitle": "Microsoft Translator",
+    "initialUrl": "https://www.bing.com/translator",
+    "title": "Microsoft Translator",
+    "url": "https://www.bing.com/translator",
+    "selectorChecks": [
+      {
+        "action": "focus",
+        "selector": "#tta_input_ta",
+        "description": "聚焦 Bing Translate 源文本输入框",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "Input text area",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "#tta_input_ta",
+        "description": "设置 Bing Translate 源文本内容（contenteditable 文本节点）",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "Input text area",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "#tta_input_ta",
+        "description": "触发 Bing Translate 输入事件",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "Input text area",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "extractContent",
+        "selector": "#tta_output_ta",
+        "description": "contentExtractor selector",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "div",
+        "firstText": "",
+        "firstPlaceholder": "",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      }
+    ],
+    "translationValidation": {
+      "mode": "translation",
+      "query": "你好世界",
+      "expectedPattern": "/hello(?:,\\s*|\\s+)world/i",
+      "stepExecutions": [
+        {
+          "action": "focus",
+          "selector": "#tta_input_ta",
+          "ok": true,
+          "description": "聚焦 Bing Translate 源文本输入框",
+          "active": true,
+          "tag": "div",
+          "textContent": "",
+          "innerText": "",
+          "value": null,
+          "isContentEditable": true,
+          "innerHTML": ""
+        },
+        {
+          "action": "setValue",
+          "selector": "#tta_input_ta",
+          "ok": true,
+          "description": "设置 Bing Translate 源文本内容（contenteditable 文本节点）",
+          "inputType": "special",
+          "tag": "div",
+          "textContent": "你好世界",
+          "innerText": "你好世界",
+          "value": null,
+          "isContentEditable": true,
+          "innerHTML": "你好世界"
+        },
+        {
+          "action": "triggerEvents",
+          "selector": "#tta_input_ta",
+          "ok": true,
+          "description": "触发 Bing Translate 输入事件",
+          "events": [
+            "input",
+            "change",
+            "blur",
+            "focus"
+          ],
+          "tag": "div",
+          "textContent": "你好世界",
+          "innerText": "你好世界",
+          "value": null,
+          "isContentEditable": true,
+          "innerHTML": "你好世界"
+        }
+      ],
+      "selectorSnapshots": [
+        {
+          "selector": "#tta_output_ta",
+          "matched": true,
+          "count": 1,
+          "text": "Hello, World",
+          "innerText": "Hello, World",
+          "textContent": "Hello, World",
+          "value": null,
+          "innerHTML": "Hello, World"
+        }
+      ],
+      "finalOutput": "Hello, World",
+      "success": true,
+      "reason": "validated"
+    }
+  }
+]

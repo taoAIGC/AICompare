@@ -1,0 +1,46 @@
+[
+  {
+    "site": "HailuoAI",
+    "targetUrl": "https://hailuoai.video/",
+    "title": "Hailuo AI: AI Video Generator from Text & Image",
+    "url": "https://hailuoai.video/zh-Intl",
+    "selectorChecks": [
+      {
+        "action": "focus",
+        "selector": "textarea[placeholder^=\"描述您想要生成的视频内容\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "描述您想要生成的视频内容，例如，“一个孩子在公园里放风筝，金色阳光，镜头上移。”",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "setValue",
+        "selector": "textarea[placeholder^=\"描述您想要生成的视频内容\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "描述您想要生成的视频内容，例如，“一个孩子在公园里放风筝，金色阳光，镜头上移。”",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      },
+      {
+        "action": "triggerEvents",
+        "selector": "textarea[placeholder^=\"描述您想要生成的视频内容\"]",
+        "matched": true,
+        "count": 1,
+        "visibleCount": 1,
+        "firstTag": "textarea",
+        "firstText": "",
+        "firstPlaceholder": "描述您想要生成的视频内容，例如，“一个孩子在公园里放风筝，金色阳光，镜头上移。”",
+        "firstAriaLabel": "",
+        "firstAriaLabelledby": ""
+      }
+    ]
+  }
+]

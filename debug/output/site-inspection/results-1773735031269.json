@@ -1,0 +1,2941 @@
+[
+  {
+    "site": "Midjourney",
+    "targetUrl": "https://www.midjourney.com/",
+    "finalUrl": "https://www.midjourney.com/",
+    "title": "Just a moment...",
+    "inputs": [],
+    "buttons": [],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Midjourney.png",
+    "error": ""
+  },
+  {
+    "site": "SeaArt",
+    "targetUrl": "https://www.seaart.ai/",
+    "finalUrl": "https://www.seaart.ai/",
+    "title": "AI Creativity Community for Art, Video, Chat & Tools | SeaArt AI",
+    "inputs": [
+      {
+        "selector": "input[placeholder=\"Please select\"]",
+        "tag": "input",
+        "type": "text",
+        "role": "",
+        "placeholder": "Please select",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 615,
+          "y": 12,
+          "width": 140,
+          "height": 40
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "button.arrow-btn.is-visible",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 550,
+          "y": 21,
+          "width": 22,
+          "height": 22
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/SeaArt.png",
+    "error": ""
+  },
+  {
+    "site": "Dreamina",
+    "targetUrl": "https://dreamina.capcut.com/",
+    "finalUrl": "https://dreamina.capcut.com/",
+    "title": "Dreamina image generator & video generator: All-in-one AI creative suite",
+    "inputs": [],
+    "buttons": [
+      {
+        "selector": "button.dreamina-header-button-container.dreamina-header-secondary-button",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "EN",
+        "contenteditable": "",
+        "rect": {
+          "x": 1131,
+          "y": 16,
+          "width": 77,
+          "height": 36
+        }
+      },
+      {
+        "selector": "#loginButton",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign in",
+        "contenteditable": "",
+        "rect": {
+          "x": 1216,
+          "y": 16,
+          "width": 76,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button.dreamina-header-primary-button",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Create now",
+        "contenteditable": "",
+        "rect": {
+          "x": 1308,
+          "y": 16,
+          "width": 108,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button.base-button.base-button-default.dreamina-try-it-now",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Try it now",
+        "contenteditable": "",
+        "rect": {
+          "x": 880,
+          "y": 2300,
+          "width": 300,
+          "height": 60
+        }
+      },
+      {
+        "selector": "button.base-button.base-button-default.dreamina-try-it-now",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Try it now",
+        "contenteditable": "",
+        "rect": {
+          "x": 160,
+          "y": 3114,
+          "width": 300,
+          "height": 60
+        }
+      },
+      {
+        "selector": "button.base-button.base-button-default.dreamina-try-it-now",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Try it now",
+        "contenteditable": "",
+        "rect": {
+          "x": 570,
+          "y": 4212,
+          "width": 300,
+          "height": 60
+        }
+      },
+      {
+        "selector": "button.base-button.base-button-default",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Get inspired",
+        "contenteditable": "",
+        "rect": {
+          "x": 570,
+          "y": 5342,
+          "width": 300,
+          "height": 60
+        }
+      },
+      {
+        "selector": "button.scale-button",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Start now",
+        "contenteditable": "",
+        "rect": {
+          "x": 570,
+          "y": 6124,
+          "width": 300,
+          "height": 60
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Dreamina.png",
+    "error": ""
+  },
+  {
+    "site": "GenSpark",
+    "targetUrl": "https://www.genspark.ai/",
+    "finalUrl": "https://www.genspark.ai/",
+    "title": "Just a moment...",
+    "inputs": [],
+    "buttons": [],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/GenSpark.png",
+    "error": ""
+  },
+  {
+    "site": "Manus",
+    "targetUrl": "https://manus.im/",
+    "finalUrl": "https://manus.im/",
+    "title": "Manus: Hands On AI",
+    "inputs": [
+      {
+        "selector": "div.tiptap.ProseMirror.ProseMirror-focused",
+        "tag": "div",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "true",
+        "rect": {
+          "x": 353,
+          "y": 393,
+          "width": 742,
+          "height": 24
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "button.inline-flex.items-center.justify-center",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign in",
+        "contenteditable": "",
+        "rect": {
+          "x": 1098,
+          "y": 12,
+          "width": 64,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.inline-flex.items-center.justify-center",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign up",
+        "contenteditable": "",
+        "rect": {
+          "x": 1170,
+          "y": 12,
+          "width": 66,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.rounded-full.border.border-\\[var\\(--border-main\\)\\]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 349,
+          "y": 463,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.inline-flex.items-center.justify-center",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1059,
+          "y": 463,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Create slides",
+        "contenteditable": "",
+        "rect": {
+          "x": 409,
+          "y": 528,
+          "width": 140,
+          "height": 40
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Build website",
+        "contenteditable": "",
+        "rect": {
+          "x": 557,
+          "y": 528,
+          "width": 142,
+          "height": 40
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Develop apps",
+        "contenteditable": "",
+        "rect": {
+          "x": 707,
+          "y": 528,
+          "width": 144,
+          "height": 40
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Design",
+        "contenteditable": "",
+        "rect": {
+          "x": 859,
+          "y": 528,
+          "width": 101,
+          "height": 40
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "More",
+        "contenteditable": "",
+        "rect": {
+          "x": 968,
+          "y": 528,
+          "width": 63,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button.w-\\[max-content\\].hover\\:bg-\\[var\\(--fill-tsp-gray-main\\)\\].cursor-pointer",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 1110,
+          "y": 1544,
+          "width": 126,
+          "height": 36
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Manus.png",
+    "error": ""
+  },
+  {
+    "site": "Flowith",
+    "targetUrl": "https://flowith.io/",
+    "finalUrl": "https://flowith.io/",
+    "title": "Flowith - Think, Create, Execute, AI flow in one",
+    "inputs": [],
+    "buttons": [
+      {
+        "selector": "button.nav-item",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Features",
+        "contenteditable": "",
+        "rect": {
+          "x": 527,
+          "y": 10,
+          "width": 70,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.nav-item",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Resources",
+        "contenteditable": "",
+        "rect": {
+          "x": 671,
+          "y": 10,
+          "width": 81,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.nav-item",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Community",
+        "contenteditable": "",
+        "rect": {
+          "x": 760,
+          "y": 10,
+          "width": 87,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.btn-signin",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign in",
+        "contenteditable": "",
+        "rect": {
+          "x": 1270,
+          "y": 10,
+          "width": 68,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button.btn-signup",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign up",
+        "contenteditable": "",
+        "rect": {
+          "x": 1345,
+          "y": 10,
+          "width": 71,
+          "height": 32
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Flowith.png",
+    "error": ""
+  },
+  {
+    "site": "Character AI",
+    "targetUrl": "https://character.ai/",
+    "finalUrl": "https://character.ai/",
+    "title": "Attention Required! | Cloudflare",
+    "inputs": [],
+    "buttons": [
+      {
+        "selector": "#cf-footer-ip-reveal",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Click to reveal",
+        "contenteditable": "",
+        "rect": {
+          "x": 705,
+          "y": 956,
+          "width": 85,
+          "height": 20
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Character-AI.png",
+    "error": ""
+  },
+  {
+    "site": "NotebookLM",
+    "targetUrl": "https://notebooklm.google.com/",
+    "finalUrl": "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fnotebooklm.google.com%2F&dsh=S-180504788%3A1773734917862241&followup=https%3A%2F%2Fnotebooklm.google.com%2F&ifkv=ASfE1-o8KKrdYEQm-7hwl14IYarzeeLSxHP-R7pocDHlDSIn-4uu7olr4XBkpbitr1VSJeVTkAd8gA&osid=1&passive=1209600&flowName=WebLiteSignIn&flowEntry=ServiceLogin",
+    "title": "Sign in - Google Accounts",
+    "inputs": [],
+    "buttons": [
+      {
+        "selector": "#identifierNext",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "action",
+        "text": "Next",
+        "contenteditable": "",
+        "rect": {
+          "x": 827,
+          "y": 618,
+          "width": 77,
+          "height": 36
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/NotebookLM.png",
+    "error": ""
+  },
+  {
+    "site": "Suno",
+    "targetUrl": "https://suno.com/",
+    "finalUrl": "https://suno.com/",
+    "title": "Suno | AI Music Generator",
+    "inputs": [
+      {
+        "selector": "textarea[placeholder=\"Chat to make music\"]",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "Chat to make music",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 361,
+          "y": 559,
+          "width": 718,
+          "height": 32
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "button.relative.inline-block.font-sans",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign In",
+        "contenteditable": "",
+        "rect": {
+          "x": 1251,
+          "y": 20,
+          "width": 76,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button.relative.inline-block.font-sans",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign Up",
+        "contenteditable": "",
+        "rect": {
+          "x": 1337,
+          "y": 20,
+          "width": 83,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button.jsx-bcbfb8bf8f3589d5.flex.h-9",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 361,
+          "y": 599,
+          "width": 36,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button.jsx-bcbfb8bf8f3589d5.flex.h-9",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Advanced",
+        "contenteditable": "",
+        "rect": {
+          "x": 405,
+          "y": 599,
+          "width": 107,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button.jsx-bcbfb8bf8f3589d5.flex.h-9",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 940,
+          "y": 599,
+          "width": 36,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button.p-4.font-sans.text-\\[16px\\]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Create",
+        "contenteditable": "",
+        "rect": {
+          "x": 984,
+          "y": 599,
+          "width": 95,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "3.0K",
+        "contenteditable": "",
+        "rect": {
+          "x": 684,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "1.2K",
+        "contenteditable": "",
+        "rect": {
+          "x": 950,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "2.6K",
+        "contenteditable": "",
+        "rect": {
+          "x": 1219,
+          "y": 1600,
+          "width": 61,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "3.5K",
+        "contenteditable": "",
+        "rect": {
+          "x": 1486,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "873",
+        "contenteditable": "",
+        "rect": {
+          "x": 1747,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "5.5K",
+        "contenteditable": "",
+        "rect": {
+          "x": 2020,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "10K",
+        "contenteditable": "",
+        "rect": {
+          "x": 2288,
+          "y": 1600,
+          "width": 57,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "5.3K",
+        "contenteditable": "",
+        "rect": {
+          "x": 2551,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "5.1K",
+        "contenteditable": "",
+        "rect": {
+          "x": 2821,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "6.0K",
+        "contenteditable": "",
+        "rect": {
+          "x": 3087,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "4.2K",
+        "contenteditable": "",
+        "rect": {
+          "x": 3355,
+          "y": 1600,
+          "width": 61,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "769",
+        "contenteditable": "",
+        "rect": {
+          "x": 3614,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "1.6K",
+        "contenteditable": "",
+        "rect": {
+          "x": 3884,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "4.5K",
+        "contenteditable": "",
+        "rect": {
+          "x": 4153,
+          "y": 1600,
+          "width": 61,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "829",
+        "contenteditable": "",
+        "rect": {
+          "x": 4414,
+          "y": 1600,
+          "width": 59,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "1.1K",
+        "contenteditable": "",
+        "rect": {
+          "x": 4684,
+          "y": 1600,
+          "width": 55,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "791",
+        "contenteditable": "",
+        "rect": {
+          "x": 4951,
+          "y": 1600,
+          "width": 54,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "294",
+        "contenteditable": "",
+        "rect": {
+          "x": 5214,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "4.6K",
+        "contenteditable": "",
+        "rect": {
+          "x": 5486,
+          "y": 1600,
+          "width": 61,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "294",
+        "contenteditable": "",
+        "rect": {
+          "x": 5745,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "5.0K",
+        "contenteditable": "",
+        "rect": {
+          "x": 6019,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "879",
+        "contenteditable": "",
+        "rect": {
+          "x": 6283,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "555",
+        "contenteditable": "",
+        "rect": {
+          "x": 6546,
+          "y": 1600,
+          "width": 58,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "4.3K",
+        "contenteditable": "",
+        "rect": {
+          "x": 6818,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "3.6K",
+        "contenteditable": "",
+        "rect": {
+          "x": 7085,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "9.9K",
+        "contenteditable": "",
+        "rect": {
+          "x": 7349,
+          "y": 1600,
+          "width": 61,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "4.3K",
+        "contenteditable": "",
+        "rect": {
+          "x": 7617,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "70",
+        "contenteditable": "",
+        "rect": {
+          "x": 148,
+          "y": 1600,
+          "width": 50,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Like button with like count\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Like button with like count",
+        "name": "",
+        "text": "5.0K",
+        "contenteditable": "",
+        "rect": {
+          "x": 421,
+          "y": 1600,
+          "width": 62,
+          "height": 30
+        }
+      },
+      {
+        "selector": "button[role=\"radio\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "radio",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Monthly",
+        "contenteditable": "",
+        "rect": {
+          "x": 606,
+          "y": 4026,
+          "width": 79,
+          "height": 24
+        }
+      },
+      {
+        "selector": "button[role=\"radio\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "radio",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Yearly SAVE 20%",
+        "contenteditable": "",
+        "rect": {
+          "x": 701,
+          "y": 4026,
+          "width": 133,
+          "height": 24
+        }
+      },
+      {
+        "selector": "button.relative.inline-block.font-sans",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Sign Up",
+        "contenteditable": "",
+        "rect": {
+          "x": 129,
+          "y": 4274,
+          "width": 345,
+          "height": 56
+        }
+      },
+      {
+        "selector": "button.relative.inline-block.font-sans",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Subscribe",
+        "contenteditable": "",
+        "rect": {
+          "x": 547,
+          "y": 4273,
+          "width": 347,
+          "height": 56
+        }
+      },
+      {
+        "selector": "button.relative.inline-block.font-sans",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Subscribe",
+        "contenteditable": "",
+        "rect": {
+          "x": 966,
+          "y": 4274,
+          "width": 345,
+          "height": 56
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Suno.png",
+    "error": ""
+  },
+  {
+    "site": "ElevenLabs",
+    "targetUrl": "https://elevenlabs.io/",
+    "finalUrl": "https://elevenlabs.io/",
+    "title": "Free AI Voice Generator & Voice Agents Platform | ElevenLabs",
+    "inputs": [
+      {
+        "selector": "textarea[aria-label=\"Enter your text here, ElevenLabs AI Voice Generator will read it for you\"]",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Enter your text here, ElevenLabs AI Voice Generator will read it for you",
+        "name": "",
+        "text": "In the ancient land of Eldoria, where skies shimmered and forests, whispered secrets to the wind, lived a dragon named Z",
+        "contenteditable": "",
+        "rect": {
+          "x": 720,
+          "y": 543,
+          "width": 416,
+          "height": 216
+        }
+      },
+      {
+        "selector": "textarea[aria-label=\"Enter your text here, ElevenLabs AI Voice Generator will read it for you\"]",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Enter your text here, ElevenLabs AI Voice Generator will read it for you",
+        "name": "",
+        "text": "In the ancient land of Eldoria, where skies shimmered and forests, whispered secrets to the wind, lived a dragon named Z",
+        "contenteditable": "",
+        "rect": {
+          "x": 756,
+          "y": 2736,
+          "width": 507,
+          "height": 136
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "button.cb-orb-button",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1379,
+          "y": 678,
+          "width": 20,
+          "height": 20
+        }
+      },
+      {
+        "selector": "#CybotCookiebotDialogBodyButtonDecline",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "REJECT ALL",
+        "contenteditable": "",
+        "rect": {
+          "x": 939,
+          "y": 879,
+          "width": 123,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button.cb-btn.cb-btn-customize",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "CUSTOMIZE",
+        "contenteditable": "",
+        "rect": {
+          "x": 1077,
+          "y": 879,
+          "width": 119,
+          "height": 40
+        }
+      },
+      {
+        "selector": "#CybotCookiebotDialogBodyButtonAccept",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "ACCEPT ALL COOKIES",
+        "contenteditable": "",
+        "rect": {
+          "x": 1204,
+          "y": 879,
+          "width": 195,
+          "height": 40
+        }
+      },
+      {
+        "selector": "a[role=\"button\"]",
+        "tag": "a",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "ElevenCreative",
+        "contenteditable": "",
+        "rect": {
+          "x": 285,
+          "y": 14,
+          "width": 123,
+          "height": 36
+        }
+      },
+      {
+        "selector": "a[role=\"button\"]",
+        "tag": "a",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "ElevenAgents",
+        "contenteditable": "",
+        "rect": {
+          "x": 408,
+          "y": 14,
+          "width": 114,
+          "height": 36
+        }
+      },
+      {
+        "selector": "a[role=\"button\"]",
+        "tag": "a",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "ElevenAPI",
+        "contenteditable": "",
+        "rect": {
+          "x": 522,
+          "y": 14,
+          "width": 90,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button.tw-group.tw-flex.tw-items-center",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Resources",
+        "contenteditable": "",
+        "rect": {
+          "x": 612,
+          "y": 14,
+          "width": 94,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Preview\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Preview",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 664,
+          "y": 528,
+          "width": 36,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Previous\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Previous",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 636,
+          "y": 783,
+          "width": 36,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Next\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Next",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 672,
+          "y": 783,
+          "width": 36,
+          "height": 36
+        }
+      },
+      {
+        "selector": "#react-aria-_R_4clanqrqlq5mkinqbpgpfivbH2_",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Language",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 732,
+          "y": 783,
+          "width": 120,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Play\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Play",
+        "name": "",
+        "text": "Play",
+        "contenteditable": "",
+        "rect": {
+          "x": 1066,
+          "y": 783,
+          "width": 58,
+          "height": 36
+        }
+      },
+      {
+        "selector": "#react-aria-_R_hil55qhmkinqbpgpfivbH2_",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Language",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 768,
+          "y": 2896,
+          "width": 120,
+          "height": 36
+        }
+      },
+      {
+        "selector": "#react-aria-_R_iil55qhmkinqbpgpfivbH2_",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Voice",
+        "name": "",
+        "text": "Spuds Oxley",
+        "contenteditable": "",
+        "rect": {
+          "x": 888,
+          "y": 2896,
+          "width": 158,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Play\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Play",
+        "name": "",
+        "text": "Play",
+        "contenteditable": "",
+        "rect": {
+          "x": 1193,
+          "y": 2896,
+          "width": 58,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Previous\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Previous",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 272,
+          "y": 7494,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Next\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Next",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1128,
+          "y": 7494,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "#react-aria779903498-_r_2_",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Select language",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 124,
+          "y": 9829,
+          "width": 114,
+          "height": 28
+        }
+      },
+      {
+        "selector": "button.tw-block.tw-w-fit.tw-rounded",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Cookie Settings",
+        "contenteditable": "",
+        "rect": {
+          "x": 426,
+          "y": 10384,
+          "width": 120,
+          "height": 28
+        }
+      },
+      {
+        "selector": "button.pointer-events-auto.flex.items-center",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Voice chat",
+        "contenteditable": "",
+        "rect": {
+          "x": 1271,
+          "y": 892,
+          "width": 153,
+          "height": 52
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/ElevenLabs.png",
+    "error": ""
+  },
+  {
+    "site": "Canva",
+    "targetUrl": "https://www.canva.com/",
+    "finalUrl": "https://www.canva.com/",
+    "title": "Just a moment...",
+    "inputs": [],
+    "buttons": [],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Canva.png",
+    "error": ""
+  },
+  {
+    "site": "Gamma",
+    "targetUrl": "https://gamma.app/",
+    "finalUrl": "https://gamma.app/",
+    "title": "Just a moment...",
+    "inputs": [],
+    "buttons": [],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Gamma.png",
+    "error": ""
+  },
+  {
+    "site": "DeepL",
+    "targetUrl": "https://www.deepl.com/",
+    "finalUrl": "https://www.deepl.com/en",
+    "title": "DeepL AI Platform: Translation, Voice & Agentic Workflows",
+    "inputs": [
+      {
+        "selector": "#source-text-area",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "Type or paste text to translate",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 181,
+          "y": 506,
+          "width": 526,
+          "height": 189
+        }
+      },
+      {
+        "selector": "#target-text-area",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 741,
+          "y": 506,
+          "width": 526,
+          "height": 189
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "#cookie-banner-lax-close-button",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Close",
+        "contenteditable": "",
+        "rect": {
+          "x": 1290,
+          "y": 888,
+          "width": 88,
+          "height": 50
+        }
+      },
+      {
+        "selector": "button.flex.size-12.items-center",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1362,
+          "y": 8,
+          "width": 46,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#personalized-navi-products-flyout-button",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Products",
+        "contenteditable": "",
+        "rect": {
+          "x": 180,
+          "y": 64,
+          "width": 90,
+          "height": 60
+        }
+      },
+      {
+        "selector": "#personalized-navi-solutions-flyout-button",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Solutions",
+        "contenteditable": "",
+        "rect": {
+          "x": 302,
+          "y": 64,
+          "width": 93,
+          "height": 60
+        }
+      },
+      {
+        "selector": "#personalized-navi-apps-flyout-button",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Apps",
+        "contenteditable": "",
+        "rect": {
+          "x": 508,
+          "y": 64,
+          "width": 63,
+          "height": 60
+        }
+      },
+      {
+        "selector": "#personalized-navi-resources-flyout-button",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Resources",
+        "contenteditable": "",
+        "rect": {
+          "x": 603,
+          "y": 64,
+          "width": 101,
+          "height": 60
+        }
+      },
+      {
+        "selector": "#product-updates-button",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Product updates",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1110,
+          "y": 75,
+          "width": 52,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[data-testid=\"menu-account-out-btn\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Log in",
+        "contenteditable": "",
+        "rect": {
+          "x": 1170,
+          "y": 72,
+          "width": 81,
+          "height": 45
+        }
+      },
+      {
+        "selector": "button[role=\"tab\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Translate text",
+        "contenteditable": "",
+        "rect": {
+          "x": 322,
+          "y": 356,
+          "width": 156,
+          "height": 41
+        }
+      },
+      {
+        "selector": "button[role=\"tab\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Translate files",
+        "contenteditable": "",
+        "rect": {
+          "x": 482,
+          "y": 356,
+          "width": 159,
+          "height": 41
+        }
+      },
+      {
+        "selector": "button[role=\"tab\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Translate speech",
+        "contenteditable": "",
+        "rect": {
+          "x": 644,
+          "y": 356,
+          "width": 177,
+          "height": 41
+        }
+      },
+      {
+        "selector": "button[role=\"tab\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Use API",
+        "contenteditable": "",
+        "rect": {
+          "x": 826,
+          "y": 356,
+          "width": 120,
+          "height": 41
+        }
+      },
+      {
+        "selector": "button[role=\"tab\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Automate tasks",
+        "contenteditable": "",
+        "rect": {
+          "x": 949,
+          "y": 356,
+          "width": 169,
+          "height": 41
+        }
+      },
+      {
+        "selector": "button.Button.as-ghost.as-small",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Select source language. Currently selected: Detect language",
+        "contenteditable": "",
+        "rect": {
+          "x": 540,
+          "y": 437,
+          "width": 152,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Switch languages\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Switch languages",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 700,
+          "y": 433,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button.Button.as-ghost.as-small",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "English (American)",
+        "contenteditable": "",
+        "rect": {
+          "x": 748,
+          "y": 437,
+          "width": 169,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Listen to text\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Listen to text",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 181,
+          "y": 703,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Listen to text\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Listen to text",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 741,
+          "y": 703,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Pause logo animation\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Pause logo animation",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1364,
+          "y": 1304,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "a[aria-label=\"Customer Story Paysend: 10% - increase in customer satisfaction in a single quarter thanks to faster support resolutions - homeExperience_ariaLabel_linkInNewTab\"]",
+        "tag": "a",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Customer Story Paysend: 10% - increase in customer satisfaction in a single quarter thanks to faster support resolutions - homeExperience_ariaLabel_linkInNewTab",
+        "name": "",
+        "text": "10% increase in customer satisfaction in a single quarter thanks to faster support resolutions",
+        "contenteditable": "",
+        "rect": {
+          "x": 1340,
+          "y": 2175,
+          "width": 416,
+          "height": 368
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Move backward navigation\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Move backward navigation",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 44,
+          "y": 2591,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Move forward navigation\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Move forward navigation",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 92,
+          "y": 2591,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Translator",
+        "contenteditable": "",
+        "rect": {
+          "x": 61,
+          "y": 3208,
+          "width": 251,
+          "height": 460
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Voice",
+        "contenteditable": "",
+        "rect": {
+          "x": 328,
+          "y": 3208,
+          "width": 251,
+          "height": 460
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Write",
+        "contenteditable": "",
+        "rect": {
+          "x": 595,
+          "y": 3208,
+          "width": 251,
+          "height": 460
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Documents",
+        "contenteditable": "",
+        "rect": {
+          "x": 861,
+          "y": 3208,
+          "width": 251,
+          "height": 460
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "API",
+        "contenteditable": "",
+        "rect": {
+          "x": 1128,
+          "y": 3208,
+          "width": 251,
+          "height": 460
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Move backward navigation\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Move backward navigation",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 44,
+          "y": 5464,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Move forward navigation\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Move forward navigation",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 92,
+          "y": 5464,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "#page-footer-language-selector",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "English",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 32,
+          "y": 7488,
+          "width": 99,
+          "height": 42
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/DeepL.png",
+    "error": ""
+  },
+  {
+    "site": "Lovable",
+    "targetUrl": "https://lovable.dev/",
+    "finalUrl": "https://lovable.dev/",
+    "title": "Lovable - Vibe Code Apps & Websites with AI, Fast",
+    "inputs": [
+      {
+        "selector": "#chatinput",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "Ask Lovable to create a blo",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 349,
+          "y": 466,
+          "width": 742,
+          "height": 80
+        }
+      },
+      {
+        "selector": "#chatinput",
+        "tag": "textarea",
+        "type": "",
+        "role": "",
+        "placeholder": "Ask Lovable to create ",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 445,
+          "y": 3960,
+          "width": 550,
+          "height": 80
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "#radix-_R_ipicsmcdcnqbtalb_-trigger-radix-_R_3ipicsmcdcnqbtalb_",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Solutions",
+        "contenteditable": "",
+        "rect": {
+          "x": 321,
+          "y": 22,
+          "width": 77,
+          "height": 21
+        }
+      },
+      {
+        "selector": "#radix-_R_ipicsmcdcnqbtalb_-trigger-radix-_R_5ipicsmcdcnqbtalb_",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Resources",
+        "contenteditable": "",
+        "rect": {
+          "x": 422,
+          "y": 22,
+          "width": 85,
+          "height": 21
+        }
+      },
+      {
+        "selector": "#login-link",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Log in",
+        "contenteditable": "",
+        "rect": {
+          "x": 1100,
+          "y": 16,
+          "width": 70,
+          "height": 32
+        }
+      },
+      {
+        "selector": "#signup-link",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Get started",
+        "contenteditable": "",
+        "rect": {
+          "x": 1179,
+          "y": 16,
+          "width": 101,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Additional actions\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Additional actions",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 349,
+          "y": 554,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Enable plan mode\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Enable plan mode",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 983,
+          "y": 554,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Start voice recording\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Start voice recording",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1019,
+          "y": 554,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "#chatinput-send-message-button",
+        "tag": "button",
+        "type": "submit",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1059,
+          "y": 554,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Start with an idea Describe the app or website you want to create or drop in screenshots and docs",
+        "contenteditable": "",
+        "rect": {
+          "x": 768,
+          "y": 1308,
+          "width": 512,
+          "height": 97
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Watch it come to life See your vision transform into a working prototype in real-time as AI builds it for you",
+        "contenteditable": "",
+        "rect": {
+          "x": 768,
+          "y": 1437,
+          "width": 512,
+          "height": 97
+        }
+      },
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Refine and ship Iterate on your creation with simple feedback and deploy it to the world with one click",
+        "contenteditable": "",
+        "rect": {
+          "x": 768,
+          "y": 1566,
+          "width": 512,
+          "height": 97
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Additional actions\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Additional actions",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 445,
+          "y": 4048,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Enable plan mode\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Enable plan mode",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 887,
+          "y": 4048,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Start voice recording\"]",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Start voice recording",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 923,
+          "y": 4048,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "#chatinput-send-message-button",
+        "tag": "button",
+        "type": "submit",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 963,
+          "y": 4048,
+          "width": 32,
+          "height": 32
+        }
+      },
+      {
+        "selector": "#radix-_R_essmcdcnqbtalb_",
+        "tag": "button",
+        "type": "button",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "EN",
+        "contenteditable": "",
+        "rect": {
+          "x": 137,
+          "y": 4792,
+          "width": 37,
+          "height": 21
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Lovable.png",
+    "error": ""
+  },
+  {
+    "site": "Google Translate",
+    "targetUrl": "https://translate.google.com/",
+    "finalUrl": "https://translate.google.com/?sl=auto&tl=en&op=translate",
+    "title": "Google Translate",
+    "inputs": [
+      {
+        "selector": "textarea[role=\"combobox\"]",
+        "tag": "textarea",
+        "type": "",
+        "role": "combobox",
+        "placeholder": "",
+        "ariaLabel": "Source text",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 97,
+          "y": 193,
+          "width": 566,
+          "height": 32
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "selector": "div[role=\"button\"]",
+        "tag": "div",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "Main menu",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 12,
+          "y": 8,
+          "width": 48,
+          "height": 48
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Settings\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Settings",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1233,
+          "y": 8,
+          "width": 48,
+          "height": 48
+        }
+      },
+      {
+        "selector": "a[role=\"button\"]",
+        "tag": "a",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "Google apps",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 1283,
+          "y": 13,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Text translation\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Text translation",
+        "name": "",
+        "text": "Text",
+        "contenteditable": "",
+        "rect": {
+          "x": 80,
+          "y": 80,
+          "width": 80,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Image translation\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Image translation",
+        "name": "",
+        "text": "Images",
+        "contenteditable": "",
+        "rect": {
+          "x": 168,
+          "y": 80,
+          "width": 100,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Document translation\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Document translation",
+        "name": "",
+        "text": "Documents",
+        "contenteditable": "",
+        "rect": {
+          "x": 276,
+          "y": 80,
+          "width": 128,
+          "height": 36
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Website translation\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Website translation",
+        "name": "",
+        "text": "Websites",
+        "contenteditable": "",
+        "rect": {
+          "x": 412,
+          "y": 80,
+          "width": 113,
+          "height": 36
+        }
+      },
+      {
+        "selector": "#i11",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Detect language",
+        "contenteditable": "",
+        "rect": {
+          "x": 88,
+          "y": 132,
+          "width": 127,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#i12",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 215,
+          "y": 132,
+          "width": 64,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#i13",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Spanish",
+        "contenteditable": "",
+        "rect": {
+          "x": 279,
+          "y": 132,
+          "width": 69,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#i14",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "French",
+        "contenteditable": "",
+        "rect": {
+          "x": 348,
+          "y": 132,
+          "width": 62,
+          "height": 48
+        }
+      },
+      {
+        "selector": "button[aria-label=\"More source languages\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "More source languages",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 422,
+          "y": 136,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Swap languages (Cmd+Shift+S)\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Swap languages (Cmd+Shift+S)",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 696,
+          "y": 132,
+          "width": 48,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#i15",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "English",
+        "contenteditable": "",
+        "rect": {
+          "x": 752,
+          "y": 132,
+          "width": 64,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#i16",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Spanish",
+        "contenteditable": "",
+        "rect": {
+          "x": 816,
+          "y": 132,
+          "width": 69,
+          "height": 48
+        }
+      },
+      {
+        "selector": "#i17",
+        "tag": "button",
+        "type": "",
+        "role": "tab",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "Arabic",
+        "contenteditable": "",
+        "rect": {
+          "x": 885,
+          "y": 132,
+          "width": 60,
+          "height": 48
+        }
+      },
+      {
+        "selector": "button[aria-label=\"More target languages\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "More target languages",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 957,
+          "y": 136,
+          "width": 40,
+          "height": 40
+        }
+      },
+      {
+        "selector": "button[aria-label=\"Translate by voice\"]",
+        "tag": "button",
+        "type": "",
+        "role": "",
+        "placeholder": "",
+        "ariaLabel": "Translate by voice",
+        "name": "",
+        "text": "Busy...",
+        "contenteditable": "",
+        "rect": {
+          "x": 85,
+          "y": 293,
+          "width": 48,
+          "height": 48
+        }
+      },
+      {
+        "selector": "a[role=\"button\"]",
+        "tag": "a",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "",
+        "name": "",
+        "text": "",
+        "contenteditable": "",
+        "rect": {
+          "x": 662,
+          "y": 302,
+          "width": 33,
+          "height": 27
+        }
+      },
+      {
+        "selector": "span[role=\"button\"]",
+        "tag": "span",
+        "type": "",
+        "role": "button",
+        "placeholder": "",
+        "ariaLabel": "Send feedback",
+        "name": "",
+        "text": "Send feedback",
+        "contenteditable": "",
+        "rect": {
+          "x": 1288,
+          "y": 354,
+          "width": 72,
+          "height": 13
+        }
+      }
+    ],
+    "screenshot": "/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/debug/output/site-inspection/Google-Translate.png",
+    "error": ""
+  }
+]

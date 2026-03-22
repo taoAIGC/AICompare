@@ -8,6 +8,715 @@
   "extDescription": {
     "message": "AI Compareは複数のAIの回答から最適な答えをすばやく見つけるのに役立ちます。"
   },
+  "configTitle": {
+    "message": "AI サイト"
+  },
+  "saveSuccess": {
+    "message": "設定を保存しました"
+  },
+  "saveFailed": {
+    "message": "保存に失敗しました: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "inputPlaceholder": {
+    "message": "検索したい内容を入力してください..."
+  },
+  "fileUploadButtonTitle": {
+    "message": "すべての AI サイトにファイルをアップロード"
+  },
+  "fileUploadButtonAlt": {
+    "message": "ファイルをアップロード"
+  },
+  "searchBarDragHandleTitle": {
+    "message": "ドラッグして移動",
+    "description": "Tooltip for dragging the search bar"
+  },
+  "searchBarDragHandleAriaLabel": {
+    "message": "ドラッグハンドル",
+    "description": "ARIA label for the search bar drag handle"
+  },
+  "openSettings": {
+    "message": "AI Compare の設定"
+  },
+  "searchWithMultiAI": {
+    "message": "AI Compare で検索"
+  },
+  "compareButtonLabel": {
+    "message": "AICompare"
+  },
+  "compareButtonLabelZh": {
+    "message": "AI 比一比"
+  },
+  "compareButtonLabelEn": {
+    "message": "AICompare"
+  },
+  "compareButtonLanguageTitle": {
+    "message": "比較ボタンの言語"
+  },
+  "compareButtonLanguageAuto": {
+    "message": "システム"
+  },
+  "compareButtonLanguageZh": {
+    "message": "中国語"
+  },
+  "compareButtonLanguageEn": {
+    "message": "英語"
+  },
+  "compareButtonLanguageBilingual": {
+    "message": "二言語"
+  },
+  "startCompare": {
+    "message": "PK",
+    "placeholders": {
+      "n": {
+        "content": "$1"
+      }
+    }
+  },
+  "openPage": {
+    "message": "タブモード"
+  },
+  "commandDescription": {
+    "message": "ショートカット: (Mac は ⌘+M、Windows は Ctrl+M)"
+  },
+  "contactInfo": {
+    "message": "さらに多くのサイトを追加したい場合は AIShortcuts@outlook.com までご連絡ください"
+  },
+  "popupTitle": {
+    "message": "AI Compare"
+  },
+  "column1": {
+    "message": "1 列",
+    "description": "Single column layout option"
+  },
+  "column2": {
+    "message": "2 列",
+    "description": "Two columns layout option"
+  },
+  "column3": {
+    "message": "3 列",
+    "description": "Three columns layout option"
+  },
+  "column4": {
+    "message": "4 列",
+    "description": "Four columns layout option"
+  },
+  "columnsTitle": {
+    "message": "列数",
+    "description": "Tooltip for the columns selector button"
+  },
+  "closeButton": {
+    "message": "閉じる",
+    "description": "Close button text"
+  },
+  "iframeSiteSettings": {
+    "message": "コレクションモード設定",
+    "description": "Title of the site settings dialog"
+  },
+  "standaloneModeTitle": {
+    "message": "単独ページモード",
+    "description": "Title for standalone page mode section"
+  },
+  "collectionModeTitle": {
+    "message": "コレクションモード",
+    "description": "Title for collection mode section"
+  },
+  "configButtonTitle": {
+    "message": "ショートカット設定",
+    "description": "Title for shortcut entry configuration"
+  },
+  "inputPositionTitle": {
+    "message": "入力欄の位置",
+    "description": "Input position section title"
+  },
+  "inputPositionDescription": {
+    "message": "入力欄をページ上部に表示するか、下部に固定するかを選択します",
+    "description": "Input position section description"
+  },
+  "inputPositionTop": {
+    "message": "ページ上部",
+    "description": "Input position top option"
+  },
+  "inputPositionBottom": {
+    "message": "下部に固定",
+    "description": "Input position bottom option"
+  },
+  "comingSoonNotice": {
+    "message": "開発中のため、まだ利用できません",
+    "description": "Feature coming soon notice"
+  },
+  "floatButton": {
+    "message": "フロートボタン",
+    "description": "The name for the float button"
+  },
+  "selectionSearch": {
+    "message": "選択テキスト検索",
+    "description": "The name for the selection search"
+  },
+  "contextMenu": {
+    "message": "コンテキストメニュー",
+    "description": "The name for the context menu"
+  },
+  "searchEngine": {
+    "message": "検索エンジン",
+    "description": "The name for the search engine"
+  },
+  "deleteConfirm": {
+    "message": "このプロンプトを削除してもよろしいですか？",
+    "description": "Confirmation message for deleting a prompt"
+  },
+  "favoritesTitle": {
+    "message": "プロンプトのお気に入り",
+    "description": "Title for the favorites section"
+  },
+  "enableSync": {
+    "message": "同期を有効化",
+    "description": "Sync bar default text, click to go to login"
+  },
+  "logout": {
+    "message": "ログアウト",
+    "description": "Logout option in account dropdown menu"
+  },
+  "syncNow": {
+    "message": "今すぐ同期",
+    "description": "Button to manually pull data from cloud when logged in"
+  },
+  "syncDownloadFailed": {
+    "message": "クラウドからデータを取得できませんでした。ネットワークを確認して再試行してください。",
+    "description": "Error message when Firebase download fails"
+  },
+  "noFavorites": {
+    "message": "保存されたプロンプトはまだありません",
+    "description": "Message shown when there are no saved prompts"
+  },
+  "favoriteButton": {
+    "message": "プロンプトを保存",
+    "description": "Title for the favorite button"
+  },
+  "iframeFavoriteTitle": {
+    "message": "この回答をお気に入りに保存",
+    "description": "Tooltip for iframe star when not favorited"
+  },
+  "iframeUnfavoriteTitle": {
+    "message": "お気に入りから削除",
+    "description": "Tooltip for iframe star when favorited"
+  },
+  "refresh": {
+    "message": "更新",
+    "description": "Tooltip for the refresh button"
+  },
+  "openInNewTab": {
+    "message": "新しいタブで開く",
+    "description": "Tooltip for the open in new tab button"
+  },
+  "ruleUpdateTimePrefix": {
+    "message": "ルールのリモート自動更新時刻: ",
+    "description": "Prefix text for rule update time"
+  },
+  "ruleUpdateTimeNotAvailable": {
+    "message": "ルールのリモート自動更新時刻: 利用できません",
+    "description": "Message shown when rule update time is not available"
+  },
+  "ruleUpdateTimeError": {
+    "message": "ルールのリモート自動更新時刻: 取得に失敗しました",
+    "description": "Message shown when failed to get rule update time"
+  },
+  "participateRuleDev": {
+    "message": "ルール開発に参加",
+    "description": "Text for the participate in rule development button"
+  },
+  "recentUpdateRecords": {
+    "message": "最近の更新履歴"
+  },
+  "noUpdateHistory": {
+    "message": "更新履歴はありません"
+  },
+  "newSitesCount": {
+    "message": "$COUNT$ 件の新しいサイトを追加",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "updatedSitesCount": {
+    "message": "$COUNT$ 件のサイトを更新",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "totalSitesCount": {
+    "message": "合計 $COUNT$ 件のサイト",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "participateAISiteRuleDev": {
+    "message": "AI サイトルール開発に参加"
+  },
+  "checkUpdates": {
+    "message": "更新を確認"
+  },
+  "unknownTime": {
+    "message": "不明な時刻"
+  },
+  "disabledSitesTitle": {
+    "message": "フロートボタンを無効化したサイト"
+  },
+  "disabledSitesDescription": {
+    "message": "フロートボタンが無効になっているサイトを管理します。ここで再度有効化できます。"
+  },
+  "searchProviderName": {
+    "message": "AI Compare"
+  },
+  "searchProviderDescription": {
+    "message": "AI Compare で複数の AI プラットフォームの回答を比較します"
+  },
+  "promptTemplatesTitle": {
+    "message": "プロンプトテンプレート"
+  },
+  "promptTemplatesLabel": {
+    "message": "テンプレート:"
+  },
+  "promptTemplatesDescription": {
+    "message": "AI 比較検索用のプロンプトテンプレートをカスタマイズします"
+  },
+  "addTemplateButton": {
+    "message": "新しいテンプレートを追加"
+  },
+  "addTemplateTitle": {
+    "message": "プロンプトテンプレートを追加"
+  },
+  "editTemplateTitle": {
+    "message": "プロンプトテンプレートを編集"
+  },
+  "templateNameLabel": {
+    "message": "テンプレート名"
+  },
+  "templateNameHelp": {
+    "message": "ボタンに表示されるテキスト"
+  },
+  "templateQueryLabel": {
+    "message": "クエリテンプレート"
+  },
+  "templateQueryHelp": {
+    "message": "ユーザー入力のプレースホルダーとして {query} を使用します"
+  },
+  "templateOrderLabel": {
+    "message": "表示順"
+  },
+  "templateOrderHelp": {
+    "message": "数値が小さいほど先に表示されます"
+  },
+  "cancelButton": {
+    "message": "キャンセル"
+  },
+  "saveButton": {
+    "message": "保存"
+  },
+  "favButtonSaved": {
+    "message": "保存済み"
+  },
+  "editButton": {
+    "message": "編集"
+  },
+  "deleteButton": {
+    "message": "削除"
+  },
+  "confirmDeleteTemplate": {
+    "message": "このテンプレートを削除してもよろしいですか？"
+  },
+  "templateSavedSuccess": {
+    "message": "テンプレートを保存しました"
+  },
+  "templateDeletedSuccess": {
+    "message": "テンプレートを削除しました"
+  },
+  "templateNameRequired": {
+    "message": "テンプレート名を入力してください"
+  },
+  "templateQueryRequired": {
+    "message": "クエリテンプレートを入力してください"
+  },
+  "localFileDetected": {
+    "message": "ローカルファイルを検出"
+  },
+  "browserSecurityRestriction": {
+    "message": "ブラウザのセキュリティ制限"
+  },
+  "localFileSecurityMessage": {
+    "message": "ローカルファイルをコピーするとき、ブラウザはファイル内容ではなくファイルパスにしかアクセスできません。"
+  },
+  "suggestedActions": {
+    "message": "推奨アクション:"
+  },
+  "uploadFileAction": {
+    "message": "上部の<strong>ファイルアップロードボタン</strong>をクリックしてファイルを選択してください"
+  },
+  "dismissWarning": {
+    "message": "了解"
+  },
+  "exportResponses": {
+    "message": "AI Compare の結果をエクスポート"
+  },
+  "exportResponsesTitle": {
+    "message": "すべての AI 回答をエクスポート"
+  },
+  "historyTitle": {
+    "message": "履歴"
+  },
+  "historyMaxRecordsTip": {
+    "message": "保存されるのは最新の $COUNT$ 件のみです",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "exportModalTitle": {
+    "message": "AI Compare の結果をエクスポート"
+  },
+  "exportFormat": {
+    "message": "エクスポート形式"
+  },
+  "selectSites": {
+    "message": "サイトを選択"
+  },
+  "preview": {
+    "message": "プレビュー"
+  },
+  "export": {
+    "message": "エクスポート"
+  },
+  "cancel": {
+    "message": "キャンセル"
+  },
+  "exportSuccess": {
+    "message": "エクスポートに成功しました"
+  },
+  "exportFailed": {
+    "message": "エクスポートに失敗しました"
+  },
+  "selectSitesToExport": {
+    "message": "エクスポートするサイトを選択してください"
+  },
+  "noContentFound": {
+    "message": "エクスポートする内容が見つかりません"
+  },
+  "contentExtractionFailed": {
+    "message": "内容の抽出に失敗しました"
+  },
+  "devNotice": {
+    "message": "開発中の機能のため、エラーや制限がある場合があります"
+  },
+  "pinGuideTitle": {
+    "message": "すぐに使えるように拡張機能を固定してください"
+  },
+  "pinGuideSteps": {
+    "message": "ツールバーのパズルアイコンをクリック -> \"AI Compare\" を探す -> ピンアイコンをクリック"
+  },
+  "settingsLink": {
+    "message": "設定"
+  },
+  "historyLink": {
+    "message": "履歴"
+  },
+  "favoritesLink": {
+    "message": "お気に入り"
+  },
+  "userFeedback": {
+    "message": "ご提案"
+  },
+  "reviewLink": {
+    "message": "評価する"
+  },
+  "coffeeLink": {
+    "message": "コーヒーをごちそうする"
+  },
+  "XLink": {
+    "message": "X"
+  },
+  "wechatLink": {
+    "message": "WeChat"
+  },
+  "wechatModalTitle": {
+    "message": "WeChat ID"
+  },
+  "coffeeModalText": {
+    "message": "あなたの支援がプロジェクト継続開発の原動力です"
+  },
+  "saveFavoriteSites": {
+    "message": "保存"
+  },
+  "saveFavoriteSitesTitle": {
+    "message": "選択したサイトをお気に入りとして保存"
+  },
+  "favoriteSitesSaved": {
+    "message": "お気に入りサイトを保存しました"
+  },
+  "noSitesSelected": {
+    "message": "少なくとも 1 つのサイトを選択してください"
+  },
+  "automationNotice": {
+    "message": "Web サイトが更新されると、自動問い合わせ機能が動作しなくなる場合があります。ご不便をおかけして申し訳ありません。動作しなくなった場合は、更新のためにご連絡ください。"
+  },
+  "injectProgressTitleRunning": {
+    "message": "スクリプトを実行中..."
+  },
+  "injectProgressTitlePageLoading": {
+    "message": "ページを読み込み中..."
+  },
+  "injectProgressTitleError": {
+    "message": "実行に失敗しました"
+  },
+  "injectProgressDetailPreparing": {
+    "message": "準備中"
+  },
+  "injectProgressDetailPageLoading": {
+    "message": "ページを読み込み中..."
+  },
+  "injectProgressDetailRetrying": {
+    "message": "再試行中"
+  },
+  "injectProgressButtonRetry": {
+    "message": "再試行"
+  },
+  "injectProgressButtonClose": {
+    "message": "閉じる"
+  },
+  "injectProgressToastNeedQuery": {
+    "message": "質問を入力してください"
+  },
+  "uploadToastClickLinkIcon": {
+    "message": "ページの読み込み後、入力欄の 🔗 アイコンをクリックしてください"
+  },
+  "injectProgressStepInfo": {
+    "message": "ステップ $1/$2"
+  },
+  "injectProgressStepInfoFallback": {
+    "message": "実行が中断されました"
+  },
+  "injectProgressStepInfoFallbackProgress": {
+    "message": "実行中"
+  },
+  "injectProgressErrorElementNotFound": {
+    "message": "要素が見つかりません"
+  },
+  "injectProgressErrorInvalidHandler": {
+    "message": "無効なハンドラー設定です"
+  },
+  "injectProgressErrorButtonDisabled": {
+    "message": "最大回数まで再試行してもボタンが無効のままでした"
+  },
+  "injectProgressErrorStepTimeout": {
+    "message": "ステップがタイムアウトしました"
+  },
+  "injectProgressErrorNoSiteHandler": {
+    "message": "サイトハンドラーが見つかりません"
+  },
+  "injectProgressRetryInfo": {
+    "message": "再試行 $1/$2"
+  },
+  "injectStepActionClick": {
+    "message": "クリック"
+  },
+  "injectStepActionFocus": {
+    "message": "フォーカス"
+  },
+  "injectStepActionSetValue": {
+    "message": "値を設定"
+  },
+  "injectStepActionTriggerEvents": {
+    "message": "イベントを発火"
+  },
+  "injectStepActionSendKeys": {
+    "message": "キー送信"
+  },
+  "injectStepActionReplace": {
+    "message": "置換"
+  },
+  "injectStepActionWait": {
+    "message": "待機"
+  },
+  "injectStepActionCustom": {
+    "message": "カスタム操作"
+  },
+  "injectStepActionPaste": {
+    "message": "貼り付け"
+  },
+  "injectStepDescUrlQueryNoInput": {
+    "message": "URL クエリを使用するため、入力欄の操作は不要です"
+  },
+  "injectStepDescSendCmdOrCtrlEnter": {
+    "message": "⌘ + Enter（Mac）または Ctrl + Enter（Windows）でプロンプトを送信"
+  },
+  "injectStepDescSendEnter": {
+    "message": "Enter キーを送信"
+  },
+  "injectStepDescSendEnterSubmit": {
+    "message": "Enter を送信して送信する"
+  },
+  "injectStepDescSendMessageToParent": {
+    "message": "親ウィンドウにメッセージを送信"
+  },
+  "injectStepDescExecuteFilePaste": {
+    "message": "ファイル貼り付けを実行"
+  },
+  "injectStepDescClickClaudeSend": {
+    "message": "Claude の送信ボタンをクリック"
+  },
+  "injectStepDescClickPoeSend": {
+    "message": "Poe の送信ボタンをクリック"
+  },
+  "injectStepDescClickSend": {
+    "message": "送信ボタンをクリック"
+  },
+  "injectStepDescClickDoubaoSend": {
+    "message": "Doubao の送信ボタンをクリック"
+  },
+  "injectStepDescHandlerNotImplemented": {
+    "message": "サイトハンドラーはまだ実装されていません"
+  },
+  "injectStepDescWait100ms": {
+    "message": "100ms 待機"
+  },
+  "injectStepDescWait200msEnsureFocus": {
+    "message": "フォーカスを確実にするため 200ms 待機"
+  },
+  "injectStepDescWait200msAngular": {
+    "message": "Angular の変更検知完了を待つため 200ms 待機"
+  },
+  "injectStepDescWait400msSlateReact": {
+    "message": "Slate/React の更新と送信ボタンの有効化を待つため 400ms 待機"
+  },
+  "injectStepDescFocusLexicalInput": {
+    "message": "Lexical エディタの入力欄にフォーカス"
+  },
+  "injectStepDescFocusAIStudioPrompt": {
+    "message": "AI Studio のプロンプト入力欄にフォーカス"
+  },
+  "injectStepDescFocusAIStudioInputForPaste": {
+    "message": "ファイル貼り付けのためにAI Studio の入力欄にフォーカス"
+  },
+  "injectStepDescFocusChatGPTInput": {
+    "message": "ChatGPT の入力欄にフォーカス"
+  },
+  "injectStepDescFocusChatGPTInputForPaste": {
+    "message": "ファイル貼り付けのためにChatGPT の入力欄にフォーカス"
+  },
+  "injectStepDescFocusClaudeInputForPaste": {
+    "message": "ファイル貼り付けのためにClaude の入力欄にフォーカス"
+  },
+  "injectStepDescFocusCopilotInput": {
+    "message": "Copilot の入力欄にフォーカス"
+  },
+  "injectStepDescFocusCopilotInputForPaste": {
+    "message": "ファイル貼り付けのためにCopilot の入力欄にフォーカス"
+  },
+  "injectStepDescFocusGeminiInputForPaste": {
+    "message": "ファイル貼り付けのためにGemini の入力欄にフォーカス"
+  },
+  "injectStepDescFocusGrokInputForPaste": {
+    "message": "ファイル貼り付けのためにGrok の入力欄にフォーカス"
+  },
+  "injectStepDescFocusKimiLexicalInputForPaste": {
+    "message": "ファイル貼り付けのためにKimi Lexical の入力欄にフォーカス"
+  },
+  "injectStepDescFocusPoeInputForPaste": {
+    "message": "ファイル貼り付けのためにPoe の入力欄にフォーカス"
+  },
+  "injectStepDescFocusQwenInputForPaste": {
+    "message": "ファイル貼り付けのためにQwen の入力欄にフォーカス"
+  },
+  "injectStepDescFocusEditableArea": {
+    "message": "編集可能エリアにフォーカス"
+  },
+  "injectStepDescFocusEditableAreaForPaste": {
+    "message": "ファイル貼り付けのために編集可能エリアにフォーカス"
+  },
+  "injectStepDescFocusSuggestionOrInput": {
+    "message": "候補ボックスまたは入力欄にフォーカス"
+  },
+  "injectStepDescFocusWenxinEditor": {
+    "message": "Wenxin エディタにフォーカス"
+  },
+  "injectStepDescFocusWenxinEditorForPaste": {
+    "message": "ファイル貼り付けのためにWenxin エディタにフォーカス"
+  },
+  "injectStepDescFocusMetasoInputForPaste": {
+    "message": "ファイル貼り付けのためにMetaso の入力欄にフォーカス"
+  },
+  "injectStepDescFocusDoubaoInput": {
+    "message": "Doubao の入力欄にフォーカス"
+  },
+  "injectStepDescFocusDoubaoInputForPaste": {
+    "message": "ファイル貼り付けのためにDoubao の入力欄にフォーカス"
+  },
+  "injectStepDescFocusInput": {
+    "message": "入力欄にフォーカス"
+  },
+  "injectStepDescFocusInputForPaste": {
+    "message": "ファイル貼り付けのために入力欄にフォーカス"
+  },
+  "injectStepDescFocusInputSlate": {
+    "message": "入力欄（Slate エディタ）にフォーカス"
+  },
+  "injectStepDescFocusTongyiInputForPaste": {
+    "message": "ファイル貼り付けのためにTongyi Qianwen の入力欄にフォーカス"
+  },
+  "injectStepDescTriggerMultipleInputEvents": {
+    "message": "複数の入力イベントを発火"
+  },
+  "injectStepDescTriggerFullInputEventSequence": {
+    "message": "入力イベントの完全なシーケンスを発火"
+  },
+  "injectStepDescTriggerSpecialInputEvents": {
+    "message": "特殊な入力イベントを発火"
+  },
+  "injectStepDescTriggerInputEvents": {
+    "message": "入力イベントを発火"
+  },
+  "injectStepDescTriggerInputEventsWithInputEvent": {
+    "message": "入力イベントを発火（React 同期のため InputEvent テキスト付き）"
+  },
+  "injectStepDescSetLexicalContent": {
+    "message": "Lexical エディタの内容を設定（span[data-lexical-text] を自動生成）"
+  },
+  "injectStepDescSetAIStudioInputAngular": {
+    "message": "AI Studio の入力を設定（Angular FormControl）"
+  },
+  "injectStepDescSetChatGPTInputContent": {
+    "message": "ChatGPT の入力内容を設定"
+  },
+  "injectStepDescSetCopilotInputValue": {
+    "message": "Copilot の入力値を設定"
+  },
+  "injectStepDescSetPoeSpecialInputValue": {
+    "message": "Poe の特別な入力値を設定"
+  },
+  "injectStepDescSetEditableAreaContent": {
+    "message": "編集可能エリアの内容を設定"
+  },
+  "injectStepDescSetWenxinSpecialEditorContent": {
+    "message": "Wenxin 特殊エディタの内容を設定"
+  },
+  "injectStepDescSetMetasoInputValue": {
+    "message": "Metaso の入力値を設定"
+  },
+  "injectStepDescSetDoubaoInputValue": {
+    "message": "Doubao の入力値を設定"
+  },
+  "injectStepDescSetInputValue": {
+    "message": "入力値を設定"
+  },
   "ratingModalClose": {
     "message": "閉じる"
   },
@@ -28,6 +737,96 @@
   },
   "ratingModalNoLink": {
     "message": "レビューリンクを開けません"
+  },
+  "dataSyncTitle": {
+    "message": "データ同期"
+  },
+  "dataSyncDescription": {
+    "message": "すべての設定をデバイス間で同期します（ベータ版のため不具合が含まれる場合があります）"
+  },
+  "syncEnabledLabel": {
+    "message": "同期先を有効化"
+  },
+  "syncOnChange": {
+    "message": "自動同期"
+  },
+  "syncOnStartup": {
+    "message": "起動時に同期"
+  },
+  "syncAuthType": {
+    "message": "認証方式"
+  },
+  "syncAuthPassword": {
+    "message": "パスワード"
+  },
+  "syncAuthToken": {
+    "message": "トークン"
+  },
+  "syncUsername": {
+    "message": "ユーザー名"
+  },
+  "syncPassword": {
+    "message": "パスワード"
+  },
+  "syncUrlPlaceholder": {
+    "message": "https://your-webdav-server.com/dav/"
+  },
+  "syncUsernamePlaceholder": {
+    "message": "ユーザー名"
+  },
+  "syncTestConnection": {
+    "message": "接続をテスト"
+  },
+  "syncNowButton": {
+    "message": "今すぐ同期"
+  },
+  "syncImportButton": {
+    "message": "クラウドから復元"
+  },
+  "syncTesting": {
+    "message": "接続をテスト中..."
+  },
+  "syncTestSuccess": {
+    "message": "接続に成功しました"
+  },
+  "syncTestFailed": {
+    "message": "接続に失敗しました"
+  },
+  "syncUploading": {
+    "message": "データをアップロード中..."
+  },
+  "syncSuccess": {
+    "message": "同期に成功しました"
+  },
+  "syncFailed": {
+    "message": "同期に失敗しました"
+  },
+  "syncDownloading": {
+    "message": "クラウドからダウンロード中..."
+  },
+  "syncImportSuccess": {
+    "message": "クラウドからデータを復元しました。変更を反映するにはページを再読み込みしてください。"
+  },
+  "syncImportFailed": {
+    "message": "復元に失敗しました"
+  },
+  "syncTokenPlaceholder": {
+    "message": "トークンを入力"
+  },
+  "syncErrorNoToken": {
+    "message": "トークンを入力してください"
+  },
+  "syncErrorNoUrl": {
+    "message": "WebDAV URL を入力してください"
+  },
+  "syncErrorNoUsername": {
+    "message": "ユーザー名を入力してください"
+  },
+  "syncErrorNoPassword": {
+    "message": "パスワードを入力してください"
+  },
+  "syncErrorNotConfigured": {
+    "message": "同期を有効にして WebDAV 設定を入力してください"
   },
   "favFolderDefault": {
     "message": "デフォルト"
@@ -67,5 +866,65 @@
   },
   "removedFromFavorites": {
     "message": "お気に入りから削除しました"
+  },
+  "membershipTitle": {
+    "message": "Pro メンバーシップ"
+  },
+  "membershipDescription": {
+    "message": "すべての機能を解放し、無制限の AI 比較を利用できます"
+  },
+  "planMonthlyName": {
+    "message": "月額"
+  },
+  "planMonthlyPrice": {
+    "message": "$4.99 / 月"
+  },
+  "planYearlyName": {
+    "message": "年額"
+  },
+  "planYearlyPrice": {
+    "message": "$39.99 / 年"
+  },
+  "planYearlySaving": {
+    "message": "33% お得"
+  },
+  "planPopular": {
+    "message": "一番人気"
+  },
+  "planFeature1": {
+    "message": "AI 比較が無制限"
+  },
+  "planFeature2": {
+    "message": "優先サポート"
+  },
+  "planFeature3": {
+    "message": "いつでも解約可能"
+  },
+  "planFeature4": {
+    "message": "最もお得"
+  },
+  "btnUpgradeMonthly": {
+    "message": "月額プランに登録"
+  },
+  "btnUpgradeYearly": {
+    "message": "年額プランに登録"
+  },
+  "membershipProThankYou": {
+    "message": "ご支援ありがとうございます。あなたは Pro メンバーです。"
+  },
+  "btnManageSubscription": {
+    "message": "サブスクリプションを管理"
+  },
+  "membershipLoading": {
+    "message": "メンバーシップ状態を読み込み中..."
+  },
+  "membershipLoginHint": {
+    "message": "メンバーシップ状態を表示するには Google（データ同期）でサインインしてください。"
+  },
+  "membershipExpiresOn": {
+    "message": "更新日: "
+  },
+  "membershipPriceNotConfigured": {
+    "message": "Stripe Price ID が設定されていません。stripe-payment.js で設定してください。"
   }
 }
