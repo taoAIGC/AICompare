@@ -10,6 +10,7 @@
   "buttonConfig": {
     "floatButton": false,
     "selectionSearch": true,
+    "selectionQuickSearch": true,
     "contextMenu": true,
     "searchEngine": true
   },

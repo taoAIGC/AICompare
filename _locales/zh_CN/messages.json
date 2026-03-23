@@ -155,6 +155,10 @@
     "message": "划词搜索",
     "description": "划词搜索的名称"
   },
+  "selectionQuickSearch": {
+    "message": "划词快捷搜索",
+    "description": "划词快捷搜索开关的名称"
+  },
   "contextMenu": {
     "message": "右键菜单",
     "description": "右键菜单的名称"

@@ -160,6 +160,10 @@
     "message": "Selection Search",
     "description": "The name for the selection search"
   },
+  "selectionQuickSearch": {
+    "message": "Selection Quick Search",
+    "description": "The name for the selection quick search toggle"
+  },
   "contextMenu": {
     "message": "Context Menu",
     "description": "The name for the context menu"

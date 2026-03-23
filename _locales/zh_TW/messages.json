@@ -160,6 +160,10 @@
     "message": "劃詞搜尋",
     "description": "The name for the selection search"
   },
+  "selectionQuickSearch": {
+    "message": "劃詞快捷搜尋",
+    "description": "The name for the selection quick search toggle"
+  },
   "contextMenu": {
     "message": "右键選單",
     "description": "The name for the context menu"

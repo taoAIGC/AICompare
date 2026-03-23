@@ -160,6 +160,10 @@
     "message": "بحث التحديد",
     "description": "The name for the selection search"
   },
+  "selectionQuickSearch": {
+    "message": "البحث السريع بعد التحديد",
+    "description": "The name for the selection quick search toggle"
+  },
   "contextMenu": {
     "message": "قائمة السياق",
     "description": "The name for the context menu"

@@ -160,6 +160,10 @@
     "message": "선택 검색",
     "description": "The name for the selection search"
   },
+  "selectionQuickSearch": {
+    "message": "선택 후 빠른 검색",
+    "description": "The name for the selection quick search toggle"
+  },
   "contextMenu": {
     "message": "컨텍스트 메뉴",
     "description": "The name for the context menu"

@@ -226,13 +226,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-03-23 19:07:40 UTC+08:00
+Last auto-update / 最近自动更新：2026-03-23 20:40:17 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
-- `M` `AGENTS.md`
-- `M` `CLAUDE.md`
-- `A` `_locales/.DS_Store`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -243,24 +239,18 @@ Last auto-update / 最近自动更新：2026-03-23 19:07:40 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
-- `M` `config/siteHandlers.json`
-- `M` `contact/contact.js`
+- `M` `config/appConfig.json`
 - `M` `content-scripts/selection.css`
 - `M` `content-scripts/selection.js`
-- `M` `homepage/homepage.js`
-- `M` `icons/weichatMoney.JPG`
-- `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
 - `M` `manifest.json`
-- `A` `node_modules/.DS_Store`
+- `M` `options/options.js`
 
 ### Recent commits / 最近提交
+- `c8286be` 2026-03-23 V 2.21.1 划词支持模板
 - `bbd293e` 2026-03-22 V2.20.5 增加 perplexity 等站点
 - `0d7ece6` 2026-03-17 V 2.20.4 翻译更多站点
 - `dfb1aed` 2026-03-12 V 2.20.3 优化站点导航、输入框大小和脚本进度提示
 - `929ca23` 2026-03-04 V2.20.2 修复同步功能
-- `720c4ca` 2026-02-20 V2.20.1 修复webdav 和若干问题
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

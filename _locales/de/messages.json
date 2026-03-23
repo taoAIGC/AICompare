@@ -160,6 +160,10 @@
     "message": "Auswahlsuche",
     "description": "The name for the selection search"
   },
+  "selectionQuickSearch": {
+    "message": "Schnellsuche nach Markierung",
+    "description": "The name for the selection quick search toggle"
+  },
   "contextMenu": {
     "message": "Kontextmenu",
     "description": "The name for the context menu"

@@ -7,9 +7,27 @@ let siteSelectButton = null;
 let siteDropdown = null;
 let templateSelectButton = null;
 let templateDropdown = null;
+let singleSearchGroup = null;
 
 function hasStorageSync() {
   return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+}
+
+function isSelectionQuickSearchEnabled(buttonConfig) {
+  if (!buttonConfig || typeof buttonConfig !== 'object') return true;
+  return buttonConfig.selectionQuickSearch !== false;
+}
+
+async function getSelectionQuickSearchEnabled() {
+  if (!hasStorageSync()) return true;
+
+  try {
+    const { buttonConfig = {} } = await chrome.storage.sync.get('buttonConfig');
+    return isSelectionQuickSearchEnabled(buttonConfig);
+  } catch (error) {
+    console.error('读取划词快捷搜索配置失败:', error);
+    return true;
+  }
 }
 
 function closeDropdowns() {
@@ -24,6 +42,16 @@ function hideToolbar() {
   isToolbarVisible = false;
   currentSelectedText = '';
   lastSelectedText = '';
+}
+
+function updateSingleSearchGroupVisibility(enabled) {
+  if (!singleSearchGroup) return;
+
+  singleSearchGroup.style.display = enabled ? 'flex' : 'none';
+
+  if (!enabled) {
+    siteDropdown?.classList.remove('show');
+  }
 }
 
 function applyPromptTemplate(templateQuery, selectedText) {
@@ -260,7 +288,6 @@ async function initializeTemplateDropdown() {
   compareButton.type = 'button';
   compareButton.title = chrome.i18n.getMessage('searchWithMultiAI');
   compareButton.innerHTML = `
-    <img class="compare-button-icon" src="${chrome.runtime.getURL('icons/icon48.png')}" alt="">
     <span class="compare-button-label">${chrome.i18n.getMessage('compareButtonLabel') || 'AI 比一比'}</span>
   `;
   
@@ -287,7 +314,7 @@ async function initializeTemplateDropdown() {
   // 添加按钮到工具栏
 
   // 创建单站点搜索组
-  const singleSearchGroup = document.createElement('div');
+  singleSearchGroup = document.createElement('div');
   singleSearchGroup.className = 'single-search-group';
   singleSearchGroup.style.display = 'flex'; // 显示单站点搜索组
 
@@ -306,6 +333,8 @@ async function initializeTemplateDropdown() {
   toolbar.appendChild(singleSearchGroup);
   toolbar.appendChild(compareSearchGroup);
   document.body.appendChild(toolbar);
+
+  updateSingleSearchGroupVisibility(await getSelectionQuickSearchEnabled());
 }
 
 // 更新工具栏位置
@@ -456,6 +485,12 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
 
     if (changes.promptTemplates) {
       initializeTemplateDropdown();
+    }
+
+    if (changes.buttonConfig) {
+      updateSingleSearchGroupVisibility(
+        isSelectionQuickSearchEnabled(changes.buttonConfig.newValue)
+      );
     }
   });
 }

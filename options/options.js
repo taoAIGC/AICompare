@@ -4,8 +4,12 @@ let currentButtonConfig = null;
 
 // 加载保存的配置
 async function loadConfig() {
+  const defaultButtonConfig = await window.AppConfigManager.getButtonConfig();
   chrome.storage.sync.get('buttonConfig', function(data) {
-    currentButtonConfig = data.buttonConfig || window.defaultButtonConfig;
+    currentButtonConfig = {
+      ...defaultButtonConfig,
+      ...(data.buttonConfig || {})
+    };
     console.log('加载的buttonConfig:', currentButtonConfig);
     initializeButtonConfigs();
   });
@@ -83,7 +87,10 @@ async function initializeButtonConfigs() {
     // 从 appConfig.json 获取默认配置
     const defaultButtonConfig = await window.AppConfigManager.getButtonConfig();
     
-    let currentConfig = buttonConfig || defaultButtonConfig;
+    let currentConfig = {
+      ...defaultButtonConfig,
+      ...(buttonConfig || {})
+    };
 
     console.log('初始配置:', currentConfig);
 
@@ -91,6 +98,7 @@ async function initializeButtonConfigs() {
     const configItems = [
       { id: 'floatButtonSwitch', configKey: 'floatButton', name: chrome.i18n.getMessage("floatButton") },
       { id: 'selectionSearchSwitch', configKey: 'selectionSearch', name: chrome.i18n.getMessage("selectionSearch") },
+      { id: 'selectionQuickSearchSwitch', configKey: 'selectionQuickSearch', name: chrome.i18n.getMessage("selectionQuickSearch") },
       { id: 'contextMenuSwitch', configKey: 'contextMenu', name: chrome.i18n.getMessage("contextMenu") },
       { id: 'searchEngineSwitch', configKey: 'searchEngine', name: chrome.i18n.getMessage("searchEngine") }
     ];
@@ -120,6 +128,7 @@ async function initializeButtonConfigs() {
         // 每次更改前先获取最新的配置
         const { buttonConfig: latestConfig } = await chrome.storage.sync.get(['buttonConfig']);
         const updatedConfig = {
+          ...defaultButtonConfig,
           ...(latestConfig || currentConfig),  // 使用最新的配置作为基础
           [item.configKey]: e.target.checked
         };
