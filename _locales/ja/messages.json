@@ -45,6 +45,9 @@
   "searchWithMultiAI": {
     "message": "AI Compare で検索"
   },
+  "contextMenuDirectCompare": {
+    "message": "直接比較"
+  },
   "compareButtonLabel": {
     "message": "AICompare"
   },
@@ -477,8 +480,14 @@
   "injectProgressTitleError": {
     "message": "実行に失敗しました"
   },
+  "injectProgressTitleComplete": {
+    "message": "実行完了"
+  },
   "injectProgressDetailPreparing": {
     "message": "準備中"
+  },
+  "injectProgressDetailComplete": {
+    "message": "スクリプトの実行が完了しました"
   },
   "injectProgressDetailPageLoading": {
     "message": "ページを読み込み中..."

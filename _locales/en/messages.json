@@ -45,6 +45,9 @@
   "searchWithMultiAI": {
     "message": "Search with AI Compare"
   },
+  "contextMenuDirectCompare": {
+    "message": "Direct Compare"
+  },
   "compareButtonLabel": {
     "message": "AICompare"
   },
@@ -477,8 +480,14 @@
   "injectProgressTitleError": {
     "message": "Execution failed"
   },
+  "injectProgressTitleComplete": {
+    "message": "Completed"
+  },
   "injectProgressDetailPreparing": {
     "message": "Preparing"
+  },
+  "injectProgressDetailComplete": {
+    "message": "Script completed"
   },
   "injectProgressDetailPageLoading": {
     "message": "Page loading..."

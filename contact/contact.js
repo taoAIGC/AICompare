@@ -28,9 +28,9 @@ async function renderContactInfo() {
     try {
         const contact = await window.AppConfigManager.getContactInfo();
         const items = [
-            { label: '微信', value: contact.wechat },
+            { label: 'Wechat(微信', value: contact.wechat },
             { label: 'GitHub', value: contact.github, href: contact.github },
-            { label: '邮箱', value: contact.email, href: contact.email ? `mailto:${contact.email}` : '' }
+            { label: 'Email', value: contact.email, href: contact.email ? `mailto:${contact.email}` : '' }
         ].filter(item => item.value);
 
         contactList.innerHTML = '';

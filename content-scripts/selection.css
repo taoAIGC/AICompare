@@ -1,60 +1,94 @@
 .multi-ai-toolbar {
+    --selection-panel-bg: rgba(255, 255, 255, 0.98);
+    --selection-panel-border: rgba(33, 41, 36, 0.12);
+    --selection-shadow: 0 10px 28px rgba(23, 28, 25, 0.12);
+    --selection-surface: #f3f4f1;
+    --selection-surface-hover: #ebede8;
+    --selection-surface-strong: #e3e6de;
+    --selection-surface-strong-hover: #d9ddd3;
+    --selection-text: #2b312d;
+    --selection-text-strong: #1f2521;
+    --selection-seam: rgba(33, 41, 36, 0.08);
     position: fixed;
-    background-color: #ffffff;
-    border: 1px solid #cccccc;
-    border-radius: 4px;
-    padding: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    background: var(--selection-panel-bg);
+    border: 1px solid var(--selection-panel-border);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: var(--selection-shadow);
     z-index: 2147483647;
     display: none;
     user-select: none;
     pointer-events: auto;
-    min-width: 24px;
-    min-height: 24px;
-}
-
-.multi-ai-toolbar img {
-    display: block;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    padding: 2px;
-    margin: 0;
-}
-
-.multi-ai-toolbar img:hover {
-    background-color: #f0f0f0;
-    border-radius: 2px;
+    min-width: 144px;
+    min-height: 32px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
 }
 
 .multi-ai-favorite-button {
-    border: none;
-    background: #4CAF50;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px 0 0 4px;  
+    border: 1px solid var(--selection-seam);
+    background: var(--selection-surface);
+    color: var(--selection-text);
+    padding: 0 12px;
+    border-radius: 8px 0 0 8px;
     cursor: pointer;
     font-size: 12px;
-    height: 24px;
+    font-weight: 600;
+    height: 32px;
     display: flex;
-    min-width: 80px;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 118px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-align: center;
-    line-height: 1.5;
+    text-align: left;
+    line-height: 1;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .multi-ai-favorite-button:hover {
-    background: #45a049;
+    background: var(--selection-surface-hover);
+    color: var(--selection-text-strong);
 }
 
 .multi-ai-compare-button {
+    border: 1px solid var(--selection-seam);
+    background: var(--selection-surface);
+    color: var(--selection-text);
     display: inline-flex;
-    width: 24px;
-    height: 24px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 118px;
+    height: 32px;
+    padding: 0 12px;
     cursor: pointer;
     flex-shrink: 0;
+    border-radius: 8px 0 0 8px;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.multi-ai-compare-button:hover {
+    background: var(--selection-surface-hover);
+    color: var(--selection-text-strong);
+}
+
+.compare-button-icon {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex-shrink: 0;
+}
+
+.compare-button-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
 }
 
 .multi-ai-toolbar-float {
@@ -83,79 +117,88 @@
 .multi-ai-toolbar-float .multi-ai-compare-button {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 
 .single-search-group {
     display: flex;
     align-items: center;
-   /* gap: 4px;*/
-    margin-right: 4px;
+    position: relative;
+    margin-right: 0;
+    min-width: 146px;
+}
+
+.compare-search-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 146px;
 }
   
-  .site-select-button {
-    padding: 8px;
-    border: none;
-    border-radius: 0 4px 4px 0;
-    background: #3d8b40;
-    color: white;
+  .site-select-button,
+  .template-select-button {
+    padding: 0;
+    border: 1px solid var(--selection-seam);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    background: var(--selection-surface-strong);
+    color: var(--selection-text);
     cursor: pointer;
-    width: 24px;
-    height: 24px;
-    /*display: flex;
+    width: 28px;
+    height: 32px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    text-align: center;*/
-
+    font-size: 14px;
+    line-height: 1;
+    box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.55);
   }
   
-  .site-select-button:hover {
-    background: #2d682f;
-    height: 24px;
-
+  .site-select-button:hover,
+  .template-select-button:hover {
+    background: var(--selection-surface-strong-hover);
+    color: var(--selection-text-strong);
   }
   
-  #singleSearchButton {
-    flex: 1;
-    border-radius: 4px 0 0 4px;
-    background-color: #4CAF50;
-    height: 24px;
-
-  }
-  
-  .site-dropdown {
+  .site-dropdown,
+  .template-dropdown {
     display: none;
     position: absolute;
-    top: 100%;
+    top: calc(100% + 6px);
     left: 0;
-    min-width: 100px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 100%;
+    background: var(--selection-panel-bg);
+    border: 1px solid var(--selection-panel-border);
+    border-radius: 10px;
+    box-shadow: 0 14px 32px rgba(23, 28, 25, 0.1);
     z-index: 1000;
-    max-height: 200px;
+    max-height: 240px;
     overflow-y: auto;
-    color: #000000;
+    color: var(--selection-text);
     font-size: 12px;
+    padding: 6px;
   }
-  
-  .single-search-group {
-    position: relative;
-  }
-  
-  .site-dropdown.show {
+
+  .site-dropdown.show,
+  .template-dropdown.show {
     display: block;
     z-index: 9999;
   }
   
-  .site-item {
-    padding: 8px 12px;
+  .site-item,
+  .template-item {
+    padding: 9px 10px;
     cursor: pointer;
+    border-radius: 8px;
+    line-height: 1.2;
+    transition: background-color 120ms ease, color 120ms ease;
   }
   
-  .site-item:hover {
-    background: #f5f5f5;
+  .site-item:hover,
+  .template-item:hover {
+    background: #eff1ec;
+    color: var(--selection-text-strong);
   }
   

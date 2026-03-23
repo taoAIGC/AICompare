@@ -74,4 +74,3 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - A translation site passes only if the configured input steps really inject the source text, the page produces a non-placeholder translation result, and the configured `contentExtractor` selector can read that final translated text.
 - For English-target translation checks, the result should match a `hello world`-style output rather than staying empty, staying as `...`, or echoing the original Chinese input.
 - Bing Translate uses `#tta_input_ta`, which is a `contenteditable` element, not a normal textarea. Its test and config must write through `textContent` rather than `.value`.
-- Use `debug/test-user-chrome-sites.js` for batch user-Chrome validation, and use `debug/verify-bing-translate.js` when you need a focused end-to-end Bing Translate verification.

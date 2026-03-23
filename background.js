@@ -96,6 +96,57 @@ async function initializeDefaultPromptTemplates() {
   }
 }
 
+const CONTEXT_MENU_COMPARE_ROOT_ID = 'searchWithMultiAI';
+const CONTEXT_MENU_DIRECT_COMPARE_ID = 'searchWithMultiAI:direct';
+const CONTEXT_MENU_TEMPLATE_PREFIX = 'searchWithMultiAI:template:';
+
+function applyPromptTemplate(templateQuery, selectedText) {
+  const safeTemplate = typeof templateQuery === 'string' ? templateQuery : '';
+  const safeSelection = typeof selectedText === 'string' ? selectedText : '';
+
+  if (!safeTemplate) {
+    return safeSelection;
+  }
+
+  if (safeTemplate.includes('{query}')) {
+    return safeTemplate.split('{query}').join(safeSelection);
+  }
+
+  return `${safeTemplate}\n\n${safeSelection}`.trim();
+}
+
+async function getPromptTemplates() {
+  try {
+    const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
+    return promptTemplates
+      .filter(template => template?.name && template?.query)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error('加载提示词模板失败:', error);
+    return [];
+  }
+}
+
+function getTemplateContextMenuId(templateId) {
+  return `${CONTEXT_MENU_TEMPLATE_PREFIX}${encodeURIComponent(String(templateId))}`;
+}
+
+function getPromptTemplateMenuKey(template, fallbackIndex = 0) {
+  if (template?.id) {
+    return String(template.id);
+  }
+
+  return `${fallbackIndex}:${template?.order || 0}:${template?.name || ''}`;
+}
+
+function parseTemplateIdFromMenuItemId(menuItemId) {
+  if (typeof menuItemId !== 'string' || !menuItemId.startsWith(CONTEXT_MENU_TEMPLATE_PREFIX)) {
+    return null;
+  }
+
+  return decodeURIComponent(menuItemId.slice(CONTEXT_MENU_TEMPLATE_PREFIX.length));
+}
+
 // 扩展启动时检查配置更新
 chrome.runtime.onStartup.addListener(async () => {
   try {
@@ -305,24 +356,53 @@ chrome.declarativeNetRequest.updateSessionRules({
 
 // 处理右键菜单点击和消息
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "searchWithMultiAI" && info.selectionText) {
-    openSearchTabs(info.selectionText);
-  } else if (info.menuItemId === "openOptions") {
-    // 打开选项页面
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('options/options.html')
-    });
-  } else if (info.menuItemId === "openHistory") {
-    // 打开历史记录页面
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('history/history.html')
-    });
-  } else if (info.menuItemId === "openFavorites") {
-    // 打开收藏记录页面
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('favorites/favorites.html')
-    });
-  }
+  (async () => {
+    if (
+      (info.menuItemId === CONTEXT_MENU_COMPARE_ROOT_ID ||
+        info.menuItemId === CONTEXT_MENU_DIRECT_COMPARE_ID) &&
+      info.selectionText
+    ) {
+      await openSearchTabs(info.selectionText);
+      return;
+    }
+
+    const templateId = parseTemplateIdFromMenuItemId(info.menuItemId);
+    if (templateId && info.selectionText) {
+      const templates = await getPromptTemplates();
+      const template = templates.find((item, index) => getPromptTemplateMenuKey(item, index) === templateId);
+      const formattedQuery = template
+        ? applyPromptTemplate(template.query, info.selectionText)
+        : info.selectionText;
+
+      await openSearchTabs(formattedQuery);
+      return;
+    }
+
+    if (info.menuItemId === "openOptions") {
+      // 打开选项页面
+      await chrome.tabs.create({
+        url: chrome.runtime.getURL('options/options.html')
+      });
+      return;
+    }
+
+    if (info.menuItemId === "openHistory") {
+      // 打开历史记录页面
+      await chrome.tabs.create({
+        url: chrome.runtime.getURL('history/history.html')
+      });
+      return;
+    }
+
+    if (info.menuItemId === "openFavorites") {
+      // 打开收藏记录页面
+      await chrome.tabs.create({
+        url: chrome.runtime.getURL('favorites/favorites.html')
+      });
+    }
+  })().catch(error => {
+    console.error('处理右键菜单点击失败:', error, info, tab);
+  });
 });
 
 // 处理来自 float-button 和 popup 和 content-scripts 的消息
@@ -786,12 +866,32 @@ async function createContextMenu() {
       
       // 检查是否启用页面右键菜单（选中文本时的菜单）
       if (buttonConfig && buttonConfig.contextMenu) {
+        const promptTemplates = await getPromptTemplates();
+
         // 创建页面上的右键菜单（选中文本时显示）
         chrome.contextMenus.create({
-          id: "searchWithMultiAI",
+          id: CONTEXT_MENU_COMPARE_ROOT_ID,
           title: chrome.i18n.getMessage("searchWithMultiAI"),
           contexts: ["selection"]  // 只在选中文本时显示
         });
+
+        chrome.contextMenus.create({
+          id: CONTEXT_MENU_DIRECT_COMPARE_ID,
+          parentId: CONTEXT_MENU_COMPARE_ROOT_ID,
+          title: chrome.i18n.getMessage("contextMenuDirectCompare") || "Direct Compare",
+          contexts: ["selection"]
+        });
+
+        promptTemplates.forEach((template, index) => {
+          const templateMenuKey = getPromptTemplateMenuKey(template, index);
+          chrome.contextMenus.create({
+            id: getTemplateContextMenuId(templateMenuKey),
+            parentId: CONTEXT_MENU_COMPARE_ROOT_ID,
+            title: template.name,
+            contexts: ["selection"]
+          });
+        });
+
         console.log('页面右键菜单已创建');
       }
       
@@ -804,7 +904,7 @@ async function createContextMenu() {
 
 // 监听存储变化，当配置更改时更新右键菜单
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.buttonConfig) {
+  if (namespace === 'sync' && (changes.buttonConfig || changes.promptTemplates)) {
     createContextMenu();
   }
 });

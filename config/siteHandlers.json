@@ -1,6 +1,6 @@
 {
-  "version": "1.2.2",
-  "lastUpdated": "2026-02-20T00:00:00Z",
+  "version": "1.2.4",
+  "lastUpdated": "2026-03-22T00:00:00Z",
   "description": "支持重试功能",
   "author": "AIShortcuts",
   "sites": [
@@ -92,7 +92,8 @@
         "containerSelector": "div[class*=\"user-message-bubble-color\"]",
         "textSelector": "div.whitespace-pre-wrap"
       },
-      "icon": "chatgpt.com.png"
+      "icon": "chatgpt.com.png",
+      "type": "information"
     },
     {
       "name": "Gemini",
@@ -183,7 +184,8 @@
         "containerSelector": "div.query-text",
         "textSelector": "p.query-text-line"
       },
-      "icon": "gemini.google.com.png"
+      "icon": "gemini.google.com.png",
+      "type": "information"
     },
     {
       "name": "Grok",
@@ -313,7 +315,8 @@
         "containerSelector": "[id^=\"response-\"][class*=\"items-end\"]",
         "textSelector": "div[class*=\"message-bubble\"]"
       },
-      "icon": "grok.com.png"
+      "icon": "grok.com.png",
+      "type": "information"
     },
     {
       "name": "Claude",
@@ -448,7 +451,8 @@
         "containerSelector": "[data-testid=\"user-message\"]",
         "textSelector": "p.whitespace-pre-wrap.break-words"
       },
-      "icon": "claude.ai.png"
+      "icon": "claude.ai.png",
+      "type": "information"
     },
     {
       "name": "AI Studio",
@@ -543,7 +547,8 @@
         "containerSelector": "[data-testid^=\"message-prompt\"]",
         "textSelector": "[data-testid^=\"message-prompt\"] .markdown"
       },
-      "icon": "aistudio.google.com.png"
+      "icon": "aistudio.google.com.png",
+      "type": "information"
     },
     {
       "name": "DeepSeek",
@@ -666,7 +671,8 @@
         "containerSelector": "div.ds-message",
         "textSelector": "div.ds-message > div"
       },
-      "icon": "chat.deepseek.com.png"
+      "icon": "chat.deepseek.com.png",
+      "type": "information"
     },
     {
       "name": "豆包",
@@ -790,7 +796,8 @@
         "containerSelector": "[data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], [data-plugin-identifier=\"block_type:10000\"].flex.justify-end [data-testid=\"message_text_content\"]",
         "textSelector": "[data-testid=\"message_text_content\"]"
       },
-      "icon": "doubao.com.png"
+      "icon": "doubao.com.png",
+      "type": "information"
     },
     {
       "name": "问小白",
@@ -841,7 +848,8 @@
         "containerSelector": "[class*=\"Question_question_container\"]",
         "textSelector": "pre[class*=\"Question_question_content_pre\"]"
       },
-      "icon": "www.wenxiaobai.com.png"
+      "icon": "www.wenxiaobai.com.png",
+      "type": "information"
     },
     {
       "name": "秘塔",
@@ -926,7 +934,8 @@
         "containerSelector": "span.MuiBox-root.css-403oub",
         "textSelector": "span.MuiBox-root.css-403oub > span[style*=\"margin-right\"]"
       },
-      "icon": "metaso.cn.png"
+      "icon": "metaso.cn.png",
+      "type": "information"
     },
     {
       "name": "文心一言",
@@ -1055,7 +1064,8 @@
         "containerSelector": "div.hyc-component-text",
         "textSelector": "div.hyc-content-text"
       },
-      "icon": "yiyan.baidu.com.png"
+      "icon": "yiyan.baidu.com.png",
+      "type": "information"
     },
     {
       "name": "元宝",
@@ -1171,16 +1181,17 @@
         "containerSelector": "div.agent-chat__list__item--human, [class*=\"agent-dialogue\"][class*=\"human\"], [class*=\"chat-item\"][class*=\"human\"]",
         "textSelector": "div.agent-chat__bubble--human, [class*=\"human-bubble\"], [class*=\"human-message\"] p, [class*=\"human-message\"] div"
       },
-      "icon": "yuanbao.tencent.com.png"
+      "icon": "yuanbao.tencent.com.png",
+      "type": "information"
     },
     {
       "name": "Google",
       "url": "https://www.google.com/search?q={query}",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": true,
       "region": "US",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "",
       "searchHandler": {
         "steps": [
@@ -1191,7 +1202,8 @@
           }
         ]
       },
-      "icon": "www.google.com.png"
+      "icon": "www.google.com.png",
+      "type": "information"
     },
     {
       "name": "纳米AI",
@@ -1215,7 +1227,8 @@
         "containerSelector": "[class*=\"user\"], [class*=\"human\"], [class*=\"question\"]",
         "textSelector": "[class*=\"user\"] p, [class*=\"human\"] p, [class*=\"question\"] p"
       },
-      "icon": "nanoai.live.png"
+      "icon": "nanoai.live.png",
+      "type": "information"
     },
     {
       "name": "智谱",
@@ -1294,7 +1307,8 @@
           "[class*=\"attachment\"]"
         ]
       },
-      "icon": "chatglm.cn.png"
+      "icon": "chatglm.cn.png",
+      "type": "information"
     },
     {
       "name": "Kimi",
@@ -1432,7 +1446,8 @@
       "historyHandler": {
         "urlFeature": "/chat/"
       },
-      "icon": "kimi.com.png"
+      "icon": "kimi.com.png",
+      "type": "information"
     },
     {
       "name": "千问",
@@ -1555,7 +1570,8 @@
         "containerSelector": "[class*=\"questionItem\"]",
         "textSelector": "[class*=\"bubble\"]"
       },
-      "icon": "chat.qwen.ai.png"
+      "icon": "chat.qwen.ai.png",
+      "type": "information"
     },
     {
       "name": "Qwen",
@@ -1689,7 +1705,8 @@
         "requireMessageNode": true,
         "skipMessageIdPattern": "undefined"
       },
-      "icon": "chat.qwen.ai.png"
+      "icon": "chat.qwen.ai.png",
+      "type": "information"
     },
     {
       "name": "知乎直达",
@@ -1740,12 +1757,13 @@
         "containerSelector": "div[style*=\"padding: 12px\"][style*=\"rgba(90, 77, 248\"]",
         "textSelector": "div[dir=\"auto\"]"
       },
-      "icon": "zhida.zhihu.com.png"
+      "icon": "zhida.zhihu.com.png",
+      "type": "information"
     },
     {
       "name": "小红书",
       "url": "https://www.xiaohongshu.com/search_result?keyword={query}",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": true,
       "region": "China",
       "hidden": false,
@@ -1760,16 +1778,17 @@
           }
         ]
       },
-      "icon": "www.xiaohongshu.com.png"
+      "icon": "www.xiaohongshu.com.png",
+      "type": "information"
     },
     {
       "name": "百度",
       "url": "https://www.baidu.com/s?wd={query}",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": true,
       "region": "China",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "百度搜索，使用URL查询方式，无需输入框操作",
       "searchHandler": {
         "steps": [
@@ -1780,7 +1799,8 @@
           }
         ]
       },
-      "icon": "www.baidu.com.png"
+      "icon": "www.baidu.com.png",
+      "type": "information"
     },
     {
       "name": "Copilot",
@@ -1852,16 +1872,17 @@
         "containerSelector": "div[class*=\"Prose_prose__\"]",
         "textSelector": "div[class*=\"Prose_prose__\"] > p"
       },
-      "icon": "copilot.microsoft.com.png"
+      "icon": "copilot.microsoft.com.png",
+      "type": "information"
     },
     {
       "name": "Perplexity",
       "url": "https://www.perplexity.ai/search?q={query}",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": true,
       "region": "US",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "",
       "searchHandler": {
         "steps": [
@@ -1872,7 +1893,8 @@
           }
         ]
       },
-      "icon": "www.perplexity.ai.png"
+      "icon": "www.perplexity.ai.png",
+      "type": "information"
     },
     {
       "name": "POE",
@@ -1955,7 +1977,8 @@
         "containerSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"], [class*=\"UserMessage\"], [class*=\"messageRow\"][class*=\"human\"]",
         "textSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"] p, [class*=\"user-message\"] div, [class*=\"messageContent\"]"
       },
-      "icon": "poe.com.png"
+      "icon": "poe.com.png",
+      "type": "information"
     },
     {
       "name": "Z.ai",
@@ -2042,7 +2065,8 @@
         "containerSelector": "[class*=\"chat-user\"]",
         "textSelector": "[class*=\"chat-user\"] [class*=\"whitespace-pre-wrap\"], [class*=\"chat-user\"] [class*=\"rounded-xl\"]"
       },
-      "icon": "chat.z.ai.png"
+      "icon": "chat.z.ai.png",
+      "type": "information"
     },
     {
       "name": "Mistral",
@@ -2130,16 +2154,17 @@
         "containerSelector": "[class*=\"group/message\"]:has([class*=\"ms-auto\"])",
         "textSelector": "[class*=\"whitespace-pre-wrap\"]"
       },
-      "icon": "chat.mistral.ai.png"
+      "icon": "chat.mistral.ai.png",
+      "type": "information"
     },
     {
       "name": "Bing",
       "url": "https://www.bing.com/search?q={query}",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": true,
       "region": "US",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "",
       "searchHandler": {
         "steps": [
@@ -2150,7 +2175,217 @@
           }
         ]
       },
-      "icon": "www.bing.com.png"
+      "icon": "www.bing.com.png",
+      "type": "information"
+    },
+    {
+      "name": "Nano Banana",
+      "url": "https://labs.google/fx/zh/tools/flow",
+      "enabled": true,
+      "supportUrlQuery": false,
+      "region": "Global",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "Google Labs Flow 图像创作入口。已在用户 Chrome 中验证：需先进入新建项目，再向 Slate 提示词编辑器注入文本并点击 arrow_forward 创建按钮。",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "click",
+            "selector": "text:agree",
+            "required": false,
+            "description": "关闭可选的 Cookie 同意弹窗"
+          },
+          {
+            "action": "click",
+            "selector": [
+              "text:新建项目",
+              "text:create new project"
+            ],
+            "description": "进入 Nano Banana 新建项目页"
+          },
+          {
+            "action": "wait",
+            "duration": 1500,
+            "description": "等待项目编辑器加载"
+          },
+          {
+            "action": "focus",
+            "selector": "div[role=\"textbox\"][data-slate-editor=\"true\"]",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 500,
+            "description": "聚焦 Nano Banana Slate 提示词输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "div[role=\"textbox\"][data-slate-editor=\"true\"]",
+            "inputType": "contenteditable",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 500,
+            "description": "设置 Nano Banana 提示词"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "div[role=\"textbox\"][data-slate-editor=\"true\"]",
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 500,
+            "description": "触发 Nano Banana 输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待页面响应输入"
+          },
+          {
+            "action": "click",
+            "selector": "text:arrow_forward",
+            "description": "点击 Nano Banana 右侧创建按钮"
+          }
+        ]
+      },
+      "fileUploadHandler": {
+        "steps": [
+          {
+            "action": "click",
+            "selector": "text:agree",
+            "required": false,
+            "description": "关闭可选的 Cookie 同意弹窗"
+          },
+          {
+            "action": "click",
+            "selector": [
+              "text:新建项目",
+              "text:create new project"
+            ],
+            "description": "进入 Nano Banana 新建项目页"
+          },
+          {
+            "action": "wait",
+            "duration": 1500,
+            "description": "等待项目编辑器加载"
+          },
+          {
+            "action": "focus",
+            "selector": "div[role=\"textbox\"][data-slate-editor=\"true\"]",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 500,
+            "description": "聚焦 Nano Banana 输入区域准备图片粘贴"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待输入区域聚焦完成"
+          },
+          {
+            "action": "paste",
+            "description": "执行图片粘贴操作"
+          }
+        ]
+      },
+      "icon": "www.google.com.png",
+      "type": "image"
+    },
+    {
+      "name": "Google Translate",
+      "url": "https://translate.google.com/?sl=auto&tl=en&op=translate",
+      "enabled": true,
+      "supportUrlQuery": false,
+      "region": "Global",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "固定目标语言为英语，便于稳定自动化验证翻译结果",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "textarea[role=\"combobox\"]",
+            "description": "聚焦 Google Translate 源文本输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "textarea[role=\"combobox\"]",
+            "description": "设置 Google Translate 源文本内容"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "textarea[role=\"combobox\"]",
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
+            "description": "触发 Google Translate 输入事件"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "contentSelectors": [
+          "span[lang=\"en\"]",
+          "span[jsname=\"W297wb\"]",
+          "div[aria-live=\"polite\"] span[jsname=\"W297wb\"]",
+          "div[aria-live=\"polite\"] span[lang]"
+        ]
+      },
+      "icon": "translate.google.com.png",
+      "type": "translate"
+    },
+    {
+      "name": "Bing Translate",
+      "url": "https://www.bing.com/translator",
+      "enabled": true,
+      "supportUrlQuery": false,
+      "region": "Global",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "#tta_input_ta",
+            "description": "聚焦 Bing Translate 源文本输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "#tta_input_ta",
+            "inputType": "special",
+            "specialConfig": {
+              "type": "custom-element",
+              "selector": "#tta_input_ta",
+              "method": "textContent"
+            },
+            "description": "设置 Bing Translate 源文本内容（contenteditable 文本节点）"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "#tta_input_ta",
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
+            "description": "触发 Bing Translate 输入事件"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "contentSelectors": [
+          "#tta_output_ta"
+        ]
+      },
+      "icon": "www.bing.com.png",
+      "type": "translate"
     }
   ]
 }

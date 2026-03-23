@@ -5,9 +5,54 @@ let favoriteButton = null;
 let currentSelectedText = '';
 let siteSelectButton = null;
 let siteDropdown = null;
+let templateSelectButton = null;
+let templateDropdown = null;
 
 function hasStorageSync() {
   return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+}
+
+function closeDropdowns() {
+  siteDropdown?.classList.remove('show');
+  templateDropdown?.classList.remove('show');
+}
+
+function hideToolbar() {
+  closeDropdowns();
+  if (!toolbar) return;
+  toolbar.style.display = 'none';
+  isToolbarVisible = false;
+  currentSelectedText = '';
+  lastSelectedText = '';
+}
+
+function applyPromptTemplate(templateQuery, selectedText) {
+  const safeTemplate = typeof templateQuery === 'string' ? templateQuery : '';
+  const safeSelection = typeof selectedText === 'string' ? selectedText : '';
+
+  if (!safeTemplate) {
+    return safeSelection;
+  }
+
+  if (safeTemplate.includes('{query}')) {
+    return safeTemplate.split('{query}').join(safeSelection);
+  }
+
+  return `${safeTemplate}\n\n${safeSelection}`.trim();
+}
+
+async function getPromptTemplates() {
+  if (!hasStorageSync()) return [];
+
+  try {
+    const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
+    return promptTemplates
+      .filter(template => template?.name && template?.query)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error('加载提示词模板失败:', error);
+    return [];
+  }
 }
 
 // 更新收藏站点按钮文本
@@ -42,12 +87,21 @@ async function createToolbar() {
   // 创建收藏站点按钮
   favoriteButton = document.createElement('button');
   favoriteButton.className = 'multi-ai-favorite-button';
+  favoriteButton.type = 'button';
   // 创建下拉选择器和列表
   siteSelectButton = document.createElement('button');
   siteSelectButton.className = 'site-select-button';
-  siteSelectButton.textContent = '▼';
+  siteSelectButton.type = 'button';
+  siteSelectButton.textContent = '▾';
   siteDropdown = document.createElement('div');
   siteDropdown.className = 'site-dropdown';  // 修改类名
+  templateSelectButton = document.createElement('button');
+  templateSelectButton.className = 'template-select-button';
+  templateSelectButton.type = 'button';
+  templateSelectButton.textContent = '▾';
+  templateSelectButton.title = chrome.i18n.getMessage('promptTemplatesTitle') || '提示词模板';
+  templateDropdown = document.createElement('div');
+  templateDropdown.className = 'template-dropdown';
 
 
   
@@ -56,20 +110,19 @@ async function createToolbar() {
 function initializeSiteDropdown() {
   if (!siteDropdown || !siteSelectButton) return;
   console.log("初始化下拉菜单",visibleSites);
+  siteDropdown.innerHTML = '';
 
-  // 筛选支持 query 的站点
-  const querySupportedSites = visibleSites.filter(site => 
-    site.supportUrlQuery === true && site.enabled === true
-  );
-  
-  console.log("支持query的站点:", querySupportedSites);
+  // 快速搜索站点下拉只展示支持 URL 查询的站点
+  const querySupportedSites = visibleSites.filter(site => site.supportUrlQuery === true);
+  console.log("支持 query 的站点:", querySupportedSites);
 
-  // 如果没有支持 query 的站点，隐藏下拉按钮
   if (querySupportedSites.length === 0) {
-    console.log("没有支持query的站点，隐藏下拉按钮");
+    console.log("没有支持 query 的站点，隐藏下拉按钮");
     siteSelectButton.style.display = 'none';
     return;
   }
+
+  siteSelectButton.style.display = 'inline-flex';
 
   // 创建站点列表
   querySupportedSites.forEach(site => {
@@ -103,13 +156,7 @@ function initializeSiteDropdown() {
       }
       
       // 隐藏工具栏和下拉菜单
-      siteDropdown.classList.remove('show');
-      if (toolbar) {
-        toolbar.style.display = 'none';
-        isToolbarVisible = false;
-        currentSelectedText = '';
-        lastSelectedText = '';
-      }
+      hideToolbar();
     });
     
     siteDropdown.appendChild(siteItem);
@@ -118,18 +165,71 @@ function initializeSiteDropdown() {
   // 切换下拉菜单显示状态
   siteSelectButton.addEventListener('click', (e) => {
     e.stopPropagation();
+    templateDropdown?.classList.remove('show');
     siteDropdown.classList.toggle('show');
   });
 
   // 点击其他地方关闭下拉菜单
   document.addEventListener('click', () => {
-    siteDropdown.classList.remove('show');
+    closeDropdowns();
   });
 
   // 防止点击下拉菜单时关闭
   siteDropdown.addEventListener('click', (e) => {
     e.stopPropagation();
   });
+}
+
+async function initializeTemplateDropdown() {
+  if (!templateDropdown || !templateSelectButton) return;
+
+  const templates = await getPromptTemplates();
+  templateDropdown.innerHTML = '';
+
+  if (templates.length === 0) {
+    templateSelectButton.style.display = 'none';
+    templateDropdown.classList.remove('show');
+    return;
+  }
+
+  templateSelectButton.style.display = 'inline-flex';
+
+  templates.forEach(template => {
+    const templateItem = document.createElement('div');
+    templateItem.className = 'template-item';
+    templateItem.textContent = template.name;
+
+    templateItem.addEventListener('click', async () => {
+      if (!currentSelectedText) {
+        console.log('没有有效的选中文本');
+        return;
+      }
+
+      const formattedQuery = applyPromptTemplate(template.query, currentSelectedText);
+      console.log('点击提示词模板:', template.name, '查询:', formattedQuery);
+
+      await chrome.runtime.sendMessage({
+        action: 'createComparisonPage',
+        query: formattedQuery
+      }).catch(error => {
+        console.error('发送消息失败:', error);
+      });
+
+      hideToolbar();
+    });
+
+    templateDropdown.appendChild(templateItem);
+  });
+
+  templateSelectButton.onclick = (e) => {
+    e.stopPropagation();
+    siteDropdown?.classList.remove('show');
+    templateDropdown.classList.toggle('show');
+  };
+
+  templateDropdown.onclick = (e) => {
+    e.stopPropagation();
+  };
 }
   
   // 点击处理
@@ -155,10 +255,14 @@ function initializeSiteDropdown() {
   };
   
   // 创建比较按钮
-  const compareButton = document.createElement('img');
-  compareButton.src = chrome.runtime.getURL('icons/icon48.png');
-  compareButton.title = chrome.i18n.getMessage('searchWithMultiAI');
+  const compareButton = document.createElement('button');
   compareButton.className = 'multi-ai-compare-button';
+  compareButton.type = 'button';
+  compareButton.title = chrome.i18n.getMessage('searchWithMultiAI');
+  compareButton.innerHTML = `
+    <img class="compare-button-icon" src="${chrome.runtime.getURL('icons/icon48.png')}" alt="">
+    <span class="compare-button-label">${chrome.i18n.getMessage('compareButtonLabel') || 'AI 比一比'}</span>
+  `;
   
   compareButton.onclick = async (e) => {
     e.stopPropagation();
@@ -179,21 +283,28 @@ function initializeSiteDropdown() {
   };
   
   initializeSiteDropdown();
+  await initializeTemplateDropdown();
   // 添加按钮到工具栏
 
   // 创建单站点搜索组
   const singleSearchGroup = document.createElement('div');
   singleSearchGroup.className = 'single-search-group';
   singleSearchGroup.style.display = 'flex'; // 显示单站点搜索组
+
+  const compareSearchGroup = document.createElement('div');
+  compareSearchGroup.className = 'compare-search-group';
   
   // 将相关元素添加到单站点搜索组
   singleSearchGroup.appendChild(favoriteButton);
   singleSearchGroup.appendChild(siteSelectButton);
   singleSearchGroup.appendChild(siteDropdown);
+  compareSearchGroup.appendChild(compareButton);
+  compareSearchGroup.appendChild(templateSelectButton);
+  compareSearchGroup.appendChild(templateDropdown);
   
   // 将单站点搜索组添加到工具栏
   toolbar.appendChild(singleSearchGroup);
-  toolbar.appendChild(compareButton);
+  toolbar.appendChild(compareSearchGroup);
   document.body.appendChild(toolbar);
 }
 
@@ -221,7 +332,7 @@ function updateToolbarPosition(selection) {
       
       toolbar.style.left = `${finalLeft}px`;
       toolbar.style.top = `${top}px`;
-      toolbar.style.display = 'block';
+      toolbar.style.display = 'flex';
       isToolbarVisible = true;
       
       console.log('工具栏位置更新', {
@@ -279,10 +390,7 @@ document.addEventListener('mouseup', (e) => {
 document.addEventListener('mousedown', (e) => {
   if (toolbar && !toolbar.contains(e.target)) {
     console.log("鼠标点击toolbar消失", toolbar.contains(e.target));
-    toolbar.style.display = 'none';
-    isToolbarVisible = false;
-    lastSelectedText = '';
-    currentSelectedText = '';
+    hideToolbar();
     console.log("清空currentSelectedText");
   }
 });
@@ -292,9 +400,7 @@ window.addEventListener('scroll', () => {
   // 如果工具栏可见，直接隐藏
   console.log("页面滚动 isToolbarVisible", isToolbarVisible);
   if (isToolbarVisible) {
-    toolbar.style.display = 'none';
-    isToolbarVisible = false;
-    lastSelectedText = '';
+    hideToolbar();
   }
 }, { passive: true });
 
@@ -303,10 +409,7 @@ document.addEventListener('keydown', (e) => {
   // 如果工具栏可见，隐藏工具栏
   if (isToolbarVisible) {
     console.log("键盘按键 isToolbarVisible", isToolbarVisible, "按键:", e.key);
-    toolbar.style.display = 'none';
-    isToolbarVisible = false;
-    lastSelectedText = '';
-    currentSelectedText = '';
+    hideToolbar();
     console.log("键盘按键导致工具栏消失");
   }
 });
@@ -345,9 +448,14 @@ chrome.runtime.onMessage?.addListener((message, sender, sendResponse) => {
 // 监听存储变化
 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && changes.favoriteSites) {
+    if (namespace !== 'sync') return;
+
+    if (changes.favoriteSites) {
       updateFavoriteButton();
+    }
+
+    if (changes.promptTemplates) {
+      initializeTemplateDropdown();
     }
   });
 }
-

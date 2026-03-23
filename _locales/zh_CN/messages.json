@@ -45,6 +45,9 @@
   "searchWithMultiAI": {
     "message": "使用AI比一比搜索"
   },
+  "contextMenuDirectCompare": {
+    "message": "直接对比"
+  },
   "compareButtonLabel": {
     "message": "AI 比一比"
   },
@@ -472,8 +475,14 @@
   "injectProgressTitleError": {
     "message": "执行失败"
   },
+  "injectProgressTitleComplete": {
+    "message": "执行完成"
+  },
   "injectProgressDetailPreparing": {
     "message": "准备中"
+  },
+  "injectProgressDetailComplete": {
+    "message": "脚本已执行完成"
   },
   "injectProgressDetailPageLoading": {
     "message": "网页加载中"

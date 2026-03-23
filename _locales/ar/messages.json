@@ -45,6 +45,9 @@
   "searchWithMultiAI": {
     "message": "ابحث باستخدام AI Compare"
   },
+  "contextMenuDirectCompare": {
+    "message": "مقارنة مباشرة"
+  },
   "compareButtonLabel": {
     "message": "AICompare"
   },
@@ -477,8 +480,14 @@
   "injectProgressTitleError": {
     "message": "فشل التنفيذ"
   },
+  "injectProgressTitleComplete": {
+    "message": "اكتمل التنفيذ"
+  },
   "injectProgressDetailPreparing": {
     "message": "جار التحضير"
+  },
+  "injectProgressDetailComplete": {
+    "message": "اكتمل تنفيذ السكربت"
   },
   "injectProgressDetailPageLoading": {
     "message": "جار تحميل الصفحة..."

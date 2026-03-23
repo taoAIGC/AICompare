@@ -45,6 +45,9 @@
   "searchWithMultiAI": {
     "message": "AI Compare로 검색"
   },
+  "contextMenuDirectCompare": {
+    "message": "바로 비교"
+  },
   "compareButtonLabel": {
     "message": "AICompare"
   },
@@ -477,8 +480,14 @@
   "injectProgressTitleError": {
     "message": "실행에 실패했습니다"
   },
+  "injectProgressTitleComplete": {
+    "message": "실행 완료"
+  },
   "injectProgressDetailPreparing": {
     "message": "준비 중"
+  },
+  "injectProgressDetailComplete": {
+    "message": "스크립트 실행이 완료되었습니다"
   },
   "injectProgressDetailPageLoading": {
     "message": "페이지 로딩 중..."

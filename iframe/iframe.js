@@ -488,6 +488,8 @@ function initSearchBarDrag() {
 function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
   overlay.className = 'inject-progress';
+  overlay.dataset.visibleSince = '0';
+  overlay.dataset.lastStatus = '';
   overlay.innerHTML = `
     <div class="inject-progress-content">
       <div class="inject-progress-title">${t('injectProgressTitleRunning', '正在执行脚本...')}</div>
@@ -521,10 +523,41 @@ function createInjectProgressOverlay(siteName) {
   closeBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (overlay.__hideTimer) {
+      clearTimeout(overlay.__hideTimer);
+      overlay.__hideTimer = null;
+    }
     overlay.classList.remove('is-visible', 'is-error');
   });
 
   return overlay;
+}
+
+function clearInjectProgressHideTimer(overlay) {
+  if (!overlay?.__hideTimer) return;
+  clearTimeout(overlay.__hideTimer);
+  overlay.__hideTimer = null;
+}
+
+function markInjectProgressVisible(overlay) {
+  if (!overlay) return;
+  clearInjectProgressHideTimer(overlay);
+  if (!overlay.classList.contains('is-visible')) {
+    overlay.dataset.visibleSince = String(Date.now());
+  } else if (!overlay.dataset.visibleSince || overlay.dataset.visibleSince === '0') {
+    overlay.dataset.visibleSince = String(Date.now());
+  }
+  overlay.classList.add('is-visible');
+}
+
+function scheduleInjectProgressHide(overlay, delayMs = 0) {
+  if (!overlay) return;
+  clearInjectProgressHideTimer(overlay);
+  overlay.__hideTimer = setTimeout(() => {
+    overlay.classList.remove('is-visible', 'is-error');
+    overlay.dataset.visibleSince = '0';
+    overlay.__hideTimer = null;
+  }, Math.max(0, Number(delayMs) || 0));
 }
 
 function setInjectProgressState(overlay, payload) {
@@ -536,7 +569,19 @@ function setInjectProgressState(overlay, payload) {
 
   const status = payload.status;
   if (status === 'complete') {
-    overlay.classList.remove('is-visible', 'is-error');
+    const minVisibleMs = Number(payload.minVisibleMs || 900);
+    const completeHoldMs = Number(payload.completeHoldMs || 600);
+    const visibleSince = Number(overlay.dataset.visibleSince || 0);
+    const elapsed = visibleSince > 0 ? (Date.now() - visibleSince) : minVisibleMs;
+    const delayMs = Math.max(0, minVisibleMs - elapsed) + completeHoldMs;
+    markInjectProgressVisible(overlay);
+    overlay.classList.remove('is-error');
+    overlay.dataset.lastStatus = status;
+    if (titleEl) titleEl.textContent = t('injectProgressTitleComplete', '执行完成');
+    if (detailEl) detailEl.textContent = payload.description || t('injectProgressDetailComplete', '脚本已执行完成');
+    if (retryBtn) retryBtn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'none';
+    scheduleInjectProgressHide(overlay, delayMs);
     return;
   }
 
@@ -627,7 +672,9 @@ function setInjectProgressState(overlay, payload) {
   const retrySuffix = retryInfo ? `（${retryInfo}）` : '';
 
   if (status === 'error') {
-    overlay.classList.add('is-visible', 'is-error');
+    markInjectProgressVisible(overlay);
+    overlay.classList.add('is-error');
+    overlay.dataset.lastStatus = status;
     if (titleEl) titleEl.textContent = t('injectProgressTitleError', '执行失败');
     const stepInfo = payload.stepIndex && payload.totalSteps
       ? t('injectProgressStepInfo', '步骤 $1/$2', [String(payload.stepIndex), String(payload.totalSteps)])
@@ -639,8 +686,9 @@ function setInjectProgressState(overlay, payload) {
     return;
   }
 
-  overlay.classList.add('is-visible');
+  markInjectProgressVisible(overlay);
   overlay.classList.remove('is-error');
+  overlay.dataset.lastStatus = status;
   if (retryBtn) retryBtn.style.display = 'inline-flex';
   if (closeBtn) closeBtn.style.display = 'inline-flex';
 
@@ -664,7 +712,7 @@ async function retryInjectForIframe(iframe, siteName, query) {
   if (!iframe) return;
   try {
     const historyId = window._currentHistoryId || null;
-    const handler = await getIframeHandler(iframe.src);
+    const handler = await getIframeHandler(iframe.src, siteName);
     if (handler) {
       await handler(iframe, query, historyId);
       return;
@@ -680,6 +728,63 @@ async function retryInjectForIframe(iframe, siteName, query) {
   } catch (error) {
     console.error('重试失败:', error);
   }
+}
+
+function normalizeSiteMatchPath(pathname) {
+  if (!pathname || pathname === '/') return '/';
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
+function resolveSiteForIframeUrl(sites, iframeUrl, preferredSiteName = null) {
+  let currentUrl;
+  try {
+    currentUrl = new URL(iframeUrl);
+  } catch (_) {
+    return null;
+  }
+
+  const currentDomain = currentUrl.hostname;
+  const currentPath = normalizeSiteMatchPath(currentUrl.pathname || '/');
+
+  const matches = (sites || []).map((site) => {
+    if (!site || !site.url || site.hidden) return null;
+    try {
+      const siteUrl = new URL(site.url);
+      const siteDomain = siteUrl.hostname;
+      const domainMatched =
+        currentDomain === siteDomain ||
+        currentDomain.includes(siteDomain) ||
+        siteDomain.includes(currentDomain);
+
+      if (!domainMatched) return null;
+
+      const sitePath = normalizeSiteMatchPath(siteUrl.pathname || '/');
+      let pathScore = 0;
+
+      if (currentPath === sitePath) {
+        pathScore = 400 + sitePath.length;
+      } else if (sitePath !== '/' && currentPath.startsWith(sitePath + '/')) {
+        pathScore = 300 + sitePath.length;
+      } else if (sitePath === '/') {
+        pathScore = 100;
+      } else {
+        return null;
+      }
+
+      return {
+        site,
+        score:
+          (preferredSiteName && site.name === preferredSiteName ? 1000 : 0) +
+          (currentDomain === siteDomain ? 100 : 50) +
+          pathScore
+      };
+    } catch (_) {
+      return null;
+    }
+  }).filter(Boolean);
+
+  matches.sort((a, b) => b.score - a.score);
+  return matches[0]?.site || null;
 }
 
 function getOpenedSites() {
@@ -1546,23 +1651,20 @@ function hideFileUploadProgress() {
 let currentColumnsValue = '3';
 let navColumnOutsideClickBound = false;
 let requestedIframeSiteType = '';
+const IFRAME_SITE_TYPE_ALIASES = {
+  chat: 'information',
+  agent: 'agents',
+  translation: 'translate'
+};
 
-function normalizeSiteTypeValue(rawValue) {
+function normalizeSiteTypeToken(rawValue) {
   const normalized = String(rawValue || '').trim().toLowerCase();
   if (!normalized) return '';
-  if (normalized === 'agent' || normalized === 'agents') return 'agents';
-  if (normalized === 'translation') return 'translation';
-  if (normalized === 'image') return 'image';
-  if (normalized === 'video') return 'video';
-  if (normalized === 'audio') return 'audio';
-  if (normalized === 'ppt') return 'ppt';
-  if (normalized === 'chat') return 'chat';
-  if (normalized === 'other') return 'other';
-  return normalized;
+  return IFRAME_SITE_TYPE_ALIASES[normalized] || normalized;
 }
 
 function normalizeSiteCategory(site) {
-  return normalizeSiteTypeValue(site?.category || site?.type) || 'other';
+  return normalizeSiteTypeToken(site?.category || site?.type);
 }
 
 function getRequestedIframeSiteType() {
@@ -1571,7 +1673,7 @@ function getRequestedIframeSiteType() {
   }
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    requestedIframeSiteType = normalizeSiteTypeValue(urlParams.get('type'));
+    requestedIframeSiteType = normalizeSiteTypeToken(urlParams.get('type'));
   } catch (_) {
     requestedIframeSiteType = '';
   }
@@ -2419,7 +2521,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
         const site = sites.find(s => s.url === url || url.startsWith(s.url));
         if (site && !site.supportUrlQuery) {
           // 使用动态处理函数
-          const handler = await getIframeHandler(url);
+          const handler = await getIframeHandler(url, site.name);
           if (handler) {
             console.log('执行动态 iframe 处理函数:', site.name);
             await handler(iframe, query);
@@ -2667,7 +2769,7 @@ function getHandlerForUrl(url) {
   }
 
 // 简化的 iframe 处理函数 - 只负责消息发送
-async function getIframeHandler(iframeUrl) {
+async function getIframeHandler(iframeUrl, preferredSiteName = null) {
   try {
     // 解析 iframe URL 获取域名
     let domain;
@@ -2691,44 +2793,34 @@ async function getIframeHandler(iframeUrl) {
       console.warn('没有找到站点配置');
       return null;
     }
-    
-    // 查找匹配的站点
-    for (const site of sites) {
-      if (!site.url) continue;
-      
-      try {
-        const siteUrl = new URL(site.url);
-        const siteDomain = siteUrl.hostname;
-        
-        // 匹配域名
-        if (domain === siteDomain || domain.includes(siteDomain) || siteDomain.includes(domain)) {
-          // 返回简化的处理函数
-          return async function(iframe, query, historyId) {
-            try {
-              // 等待页面加载
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              
-              // 向 iframe 发送统一格式的消息
-              iframe.contentWindow.postMessage({
-                type: 'search',
-                query: query,
-                domain: domain,
-                historyId: historyId || null,
-                siteName: site.name
-              }, '*');
-              
-              console.log(`已向 ${domain} 发送搜索消息`);
-            } catch (error) {
-              console.error(`${domain} iframe 处理失败:`, error);
-            }
-          };
+
+    const matchedSite = resolveSiteForIframeUrl(sites, iframeUrl, preferredSiteName);
+    if (matchedSite) {
+      return async function(iframe, query, historyId) {
+        try {
+          // 等待页面加载
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // 向 iframe 发送统一格式的消息
+          iframe.contentWindow.postMessage({
+            type: 'search',
+            query: query,
+            domain: domain,
+            historyId: historyId || null,
+            siteName: preferredSiteName || matchedSite.name
+          }, '*');
+
+          console.log(`已向 ${domain} 发送搜索消息`, {
+            preferredSiteName,
+            resolvedSiteName: matchedSite.name
+          });
+        } catch (error) {
+          console.error(`${domain} iframe 处理失败:`, error);
         }
-      } catch (urlError) {
-        continue;
-      }
+      };
     }
     
-    console.warn('未找到匹配的站点配置:', domain);
+    console.warn('未找到匹配的站点配置:', { domain, preferredSiteName, iframeUrl });
     return null;
   } catch (error) {
     console.error('获取 iframe 处理函数失败:', error);
@@ -3356,7 +3448,7 @@ async function iframeFresh(query) {
             }
             else{
               // 使用动态处理函数
-              getIframeHandler(iframe.src).then(handler => {
+              getIframeHandler(iframe.src, siteName).then(handler => {
                 if (handler) {
                   console.log(`重新处理 ${domain} iframe`, {
                       时间: new Date().toISOString(),

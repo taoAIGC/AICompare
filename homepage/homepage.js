@@ -3,14 +3,14 @@ let isComposing = false;
 
 const HOMEPAGE_PERF_PREFIX = 'homepage';
 const HOMEPAGE_PERF_CACHE_KEY = '__homepagePerfMeasures';
-const DEFAULT_SITE_GROUP = 'chat';
+const DEFAULT_SITE_GROUP = 'information';
 const SITE_GROUP_LABELS = {
-    chat: 'Chat',
-    image: 'Image',
+    information: 'Information',
+    image: 'Image Generation',
     video: 'Video',
     audio: 'Audio',
     agents: 'Agents',
-    translation: 'Translation',
+    translate: 'Translation',
     ppt: 'PPT',
     other: 'Other'
 };
@@ -91,8 +91,17 @@ function trackEvent(name, params = {}) {
 }
 
 function getSiteGroup(site) {
-    const group = site?.type || site?.category || 'other';
-    return String(group).trim().toLowerCase() || 'other';
+    const rawGroup = String(site?.type || site?.category || 'other').trim().toLowerCase();
+    if (!rawGroup) {
+        return 'other';
+    }
+    if (rawGroup === 'chat' || rawGroup === 'information') {
+        return 'information';
+    }
+    if (rawGroup === 'translation' || rawGroup === 'translate') {
+        return 'translate';
+    }
+    return rawGroup;
 }
 
 function getSiteGroupLabel(groupKey) {
@@ -110,7 +119,7 @@ function getAvailableSiteGroups(sites) {
     const groups = Array.from(new Set(
         sites.map(site => getSiteGroup(site)).filter(Boolean)
     ));
-    const preferredOrder = ['chat', 'image', 'video', 'audio', 'agents', 'translation', 'ppt', 'other'];
+    const preferredOrder = ['information', 'image', 'video', 'audio', 'agents', 'translate', 'ppt', 'other'];
     groups.sort((a, b) => {
         const aIndex = preferredOrder.indexOf(a);
         const bIndex = preferredOrder.indexOf(b);

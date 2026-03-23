@@ -1827,19 +1827,64 @@ async function executeCustom(step, query) {
   console.log('执行自定义操作:', step.customAction);
 }
 
-// 根据域名获取站点处理器
-async function getSiteHandler(domain) {
+function normalizeMatchPath(pathname) {
+  if (!pathname || pathname === '/') return '/';
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
+function resolveBestSiteMatch(sites, domain, preferredSiteName = null, currentUrl = window.location.href) {
+  let current;
   try {
-    // 优先使用新的统一站点检测器
-    if (window.siteDetector) {
-      const siteHandler = await window.siteDetector.getSiteHandler(domain);
-      if (siteHandler) {
-        console.log(`✅ 使用新检测器找到站点配置: ${siteHandler.name}`);
-        return siteHandler;
+    current = new URL(currentUrl);
+  } catch (_) {
+    current = null;
+  }
+
+  const matches = (sites || []).map((site) => {
+    if (!site || !site.url || site.hidden) return null;
+    try {
+      const siteUrl = new URL(site.url);
+      const siteDomain = siteUrl.hostname;
+      const domainMatched =
+        domain === siteDomain ||
+        domain.includes(siteDomain) ||
+        siteDomain.includes(domain);
+
+      if (!domainMatched) return null;
+
+      const currentPath = normalizeMatchPath(current?.pathname || '/');
+      const sitePath = normalizeMatchPath(siteUrl.pathname || '/');
+      let pathScore = 0;
+
+      if (currentPath === sitePath) {
+        pathScore = 400 + sitePath.length;
+      } else if (sitePath !== '/' && currentPath.startsWith(sitePath + '/')) {
+        pathScore = 300 + sitePath.length;
+      } else if (sitePath === '/') {
+        pathScore = 100;
+      } else {
+        return null;
       }
+
+      return {
+        site,
+        score:
+          (preferredSiteName && site.name === preferredSiteName ? 1000 : 0) +
+          (domain === siteDomain ? 100 : 50) +
+          pathScore
+      };
+    } catch (_) {
+      return null;
     }
-    
-    // 降级到原有逻辑
+  }).filter(Boolean);
+
+  matches.sort((a, b) => b.score - a.score);
+  return matches[0]?.site || null;
+}
+
+// 根据域名获取站点处理器
+async function getSiteHandler(domain, preferredSiteName = null) {
+  try {
     let sites = [];
     try {
       if (!window.getDefaultSites) {
@@ -1858,21 +1903,11 @@ async function getSiteHandler(domain) {
       console.warn('没有找到站点配置，请检查网络连接或重新加载扩展');
       return null;
     }
-    
-    // 根据域名查找对应的站点配置
-    const site = sites.find(s => {
-      if (!s.url) return false;
-      try {
-        const siteUrl = new URL(s.url);
-        const siteDomain = siteUrl.hostname;
-        return domain === siteDomain || domain.includes(siteDomain) || siteDomain.includes(domain);
-      } catch (urlError) {
-        return false;
-      }
-    });
+
+    const site = resolveBestSiteMatch(sites, domain, preferredSiteName, window.location.href);
     
     if (!site) {
-      console.warn('未找到匹配的站点配置:', domain);
+      console.warn('未找到匹配的站点配置:', { domain, preferredSiteName, currentUrl: window.location.href });
       return null;
     }
     
@@ -1983,7 +2018,7 @@ window.addEventListener('message', async function(event) {
         
         // 获取站点处理器
         const domain = event.data.domain || window.location.hostname;
-        const siteHandler = await getSiteHandler(domain);
+        const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
         
         if (siteHandler && siteHandler.fileUploadHandler) {
             console.log(`🎯 使用 ${siteHandler.name} 的文件上传处理器`);
@@ -2157,7 +2192,7 @@ window.addEventListener('message', async function(event) {
     const domain = event.data.domain || window.location.hostname;
     console.log('🔍 调试信息 - 域名:', domain, '当前hostname:', window.location.hostname);
     
-    const siteHandler = await getSiteHandler(domain);
+    const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
     console.log('🔍 调试信息 - 站点处理器:', siteHandler);
     
     if (siteHandler && siteHandler.searchHandler && event.data.query) {
