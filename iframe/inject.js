@@ -1852,6 +1852,8 @@ function resolveBestSiteMatch(sites, domain, preferredSiteName = null, currentUr
 
       if (!domainMatched) return null;
 
+      const preferredNameMatched = preferredSiteName && site.name === preferredSiteName;
+
       const currentPath = normalizeMatchPath(current?.pathname || '/');
       const sitePath = normalizeMatchPath(siteUrl.pathname || '/');
       let pathScore = 0;
@@ -1860,6 +1862,11 @@ function resolveBestSiteMatch(sites, domain, preferredSiteName = null, currentUr
         pathScore = 400 + sitePath.length;
       } else if (sitePath !== '/' && currentPath.startsWith(sitePath + '/')) {
         pathScore = 300 + sitePath.length;
+      } else if (preferredNameMatched) {
+        // Workspace pages can redirect away from the original entry-path while
+        // staying on the same product domain. If the caller already knows the
+        // exact site name, keep resolving that handler instead of dropping it.
+        pathScore = 200;
       } else if (sitePath === '/') {
         pathScore = 100;
       } else {
@@ -1869,7 +1876,7 @@ function resolveBestSiteMatch(sites, domain, preferredSiteName = null, currentUr
       return {
         site,
         score:
-          (preferredSiteName && site.name === preferredSiteName ? 1000 : 0) +
+          (preferredNameMatched ? 1000 : 0) +
           (domain === siteDomain ? 100 : 50) +
           pathScore
       };

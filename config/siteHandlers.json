@@ -1232,71 +1232,98 @@
     },
     {
       "name": "智谱",
-      "url": "https://chatglm.cn/chat",
+      "url": "https://chatglm.cn/main/alltoolsdetail?lang=zh",
       "enabled": false,
       "supportUrlQuery": false,
       "region": "China",
-      "hidden": true,
+      "hidden": false,
       "supportIframe": false,
-      "note": "待后续支持",
+      "note": "已验证可通过 textarea + Enter 触发对话",
       "searchHandler": {
         "steps": [
           {
-            "action": "custom",
-            "customAction": "placeholder",
-            "description": "站点暂未实现搜索处理器"
+            "action": "focus",
+            "selector": "textarea.scroll-display-none, #search-input-box textarea, textarea",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "聚焦智谱输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "textarea.scroll-display-none, #search-input-box textarea, textarea",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "设置智谱输入内容"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "textarea.scroll-display-none, #search-input-box textarea, textarea",
+            "events": [
+              "input",
+              "change"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "触发智谱输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 100,
+            "description": "等待输入状态同步"
+          },
+          {
+            "action": "sendKeys",
+            "selector": "textarea.scroll-display-none, #search-input-box textarea, textarea",
+            "keys": "Enter",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "通过回车提交智谱对话"
           }
         ]
       },
       "userPrompt": {
-        "containerSelector": "div.conversation.question",
-        "textSelector": "div.question-txt"
+        "containerSelector": "div.conversation.question[id^=\"row-question-\"], div.conversation.question",
+        "textSelector": "div.question-text-style, div.question-txt"
       },
       "contentExtractor": {
+        "messageContainer": "div.answer[id^=\"row-answer-\"], div.answer",
+        "containerSelector": "div.detail.chatScrollContainer.conversation-list, div.conversation-list-outer, div.conversation-inner.scroll-display-none.dialogue",
+        "contentSelectors": [
+          "div.answer-content .markdown-body.md-body.tl",
+          "div.answer-content-wrap .markdown-body.md-body.tl",
+          "div.markdown-body.md-body.tl",
+          "div.answer-content-wrap",
+          "div.code-box",
+          "p"
+        ],
+        "userMessageSelector": "div.question-text-style, div.question-txt, div.conversation.question",
+        "exportLatestOnly": true,
         "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".zhipu-message .markdown",
-          ".zhipu-message",
-          ".message-content .markdown",
-          ".message-content",
-          "[class*=\"zhipu\"][class*=\"message\"]",
-          "[class*=\"zhipu\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".zhipu-response",
-          "[class*=\"zhipu-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]",
-          ".chatglm-response",
-          "[class*=\"chatglm\"]",
-          ".glm-response",
-          "[class*=\"glm\"]"
+          "div.answer-content .markdown-body.md-body.tl",
+          "div.answer-content-wrap .markdown-body.md-body.tl",
+          "div.markdown-body.md-body.tl",
+          "div.answer-content-wrap",
+          "div.code-box"
         ],
         "fallbackSelectors": [
-          "main",
-          "article",
-          ".container",
-          "[class*=\"content\"]",
-          "[class*=\"result\"]",
-          "[class*=\"output\"]"
+          "div.answer-content .markdown-body.md-body.tl",
+          "div.markdown-body.md-body.tl",
+          "div.answer-content-wrap"
         ],
         "excludeSelectors": [
-          "nav",
-          "header",
-          "footer",
+          "div.conversation.question",
+          "div.search-box-wrap",
+          "div.conversation-bottom",
+          "div.footer",
+          "div.policy-wrap",
+          "div.assistant-name",
+          "div.chat-top-section",
           ".sidebar",
           ".menu",
-          ".input",
-          ".prompt",
-          "[class*=\"input\"]",
-          "[class*=\"prompt\"]",
-          "[class*=\"user\"]",
-          "[class*=\"question\"]",
           ".copy-button",
           "[class*=\"copy\"]",
           ".regenerate-button",
@@ -1787,7 +1814,7 @@
       "enabled": false,
       "supportUrlQuery": true,
       "region": "China",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "note": "百度搜索，使用URL查询方式，无需输入框操作",
       "searchHandler": {
@@ -2163,7 +2190,7 @@
       "enabled": false,
       "supportUrlQuery": true,
       "region": "US",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "note": "",
       "searchHandler": {
@@ -2184,7 +2211,7 @@
       "enabled": true,
       "supportUrlQuery": false,
       "region": "Global",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "note": "Google Labs Flow 图像创作入口。已在用户 Chrome 中验证：需先进入新建项目，再向 Slate 提示词编辑器注入文本并点击 arrow_forward 创建按钮。",
       "searchHandler": {

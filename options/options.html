@@ -11,7 +11,7 @@
     <!-- 左侧导航栏（与 homepage 风格一致） -->
     <nav class="sidebar-nav">
       <div class="sidebar-nav-header">
-        <a class="app-icon-link" href="../homepage/homepage.html" title="Go to homepage" aria-label="Go to homepage">
+        <a class="app-icon-link" href="../homepage/homepage.html" data-i18n-title="openHomepageLabel" data-i18n-aria-label="openHomepageLabel" title="Go to homepage" aria-label="Go to homepage">
           <img class="app-icon" src="../icons/icon48.png" alt="">
         </a>
       </div>
@@ -146,7 +146,7 @@
                       font-weight: 500;
                       color: #333;
                     ">模板名称:</label>
-                    <input type="text" id="templateName" placeholder="例如：风险分析" maxlength="20" style="
+                    <input type="text" id="templateName" data-i18n-placeholder="templateNamePlaceholder" placeholder="例如：风险分析" maxlength="20" style="
                       width: 100%;
                       padding: 8px 12px;
                       border: 1px solid #ddd;
@@ -168,7 +168,7 @@
                       font-weight: 500;
                       color: #333;
                     ">查询模板:</label>
-                    <textarea id="templateQuery" placeholder="例如：导致失败的原因:「{query}」" rows="3" style="
+                    <textarea id="templateQuery" data-i18n-placeholder="templateQueryPlaceholder" placeholder="例如：导致失败的原因:「{query}」" rows="3" style="
                       width: 100%;
                       padding: 8px 12px;
                       border: 1px solid #ddd;
@@ -250,7 +250,7 @@
                 <span data-i18n="syncEnabledLabel">启用数据同步至</span>
               </label>
               <select id="syncProvider" class="sync-provider-select">
-                <option value="webdav">WebDAV</option>
+                <option value="webdav" data-i18n="syncProviderWebdav">WebDAV</option>
               </select>
             </div>
           </div>
@@ -259,7 +259,7 @@
           <div class="sync-connection-table" id="syncConnectionConfig">
             <div class="sync-table-row sync-table-header">
               <div class="sync-table-cell" data-i18n="syncAuthType">鉴权类型</div>
-              <div class="sync-table-cell sync-cell-url">URL</div>
+              <div class="sync-table-cell sync-cell-url" data-i18n="syncUrlHeader">URL</div>
               <div id="syncUsernameHeader" class="sync-table-cell" data-i18n="syncUsername">用户名</div>
               <div id="syncPasswordHeader" class="sync-table-cell" data-i18n="syncPassword">密码</div>
             </div>
@@ -278,7 +278,7 @@
               </div>
               <div class="sync-table-cell sync-cell-password">
                 <input type="password" id="syncPassword" class="sync-field-input" placeholder="••••••••" autocomplete="current-password">
-                <button class="sync-password-toggle" id="togglePassword" type="button" aria-label="Show password">
+                <button class="sync-password-toggle" id="togglePassword" type="button" data-i18n-aria-label="syncTogglePasswordAriaLabel" aria-label="Show password">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </div>

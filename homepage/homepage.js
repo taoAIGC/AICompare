@@ -5,14 +5,14 @@ const HOMEPAGE_PERF_PREFIX = 'homepage';
 const HOMEPAGE_PERF_CACHE_KEY = '__homepagePerfMeasures';
 const DEFAULT_SITE_GROUP = 'information';
 const SITE_GROUP_LABELS = {
-    information: 'Information',
-    image: 'Image Generation',
-    video: 'Video',
-    audio: 'Audio',
-    agents: 'Agents',
-    translate: 'Translation',
-    ppt: 'PPT',
-    other: 'Other'
+    information: 'homepageTypeInformation',
+    image: 'homepageTypeImage',
+    video: 'homepageTypeVideo',
+    audio: 'homepageTypeAudio',
+    agents: 'homepageTypeAgents',
+    translate: 'homepageTypeTranslate',
+    ppt: 'homepageTypePpt',
+    other: 'homepageTypeOther'
 };
 
 const homepageSitesState = {
@@ -90,6 +90,10 @@ function trackEvent(name, params = {}) {
     }
 }
 
+function t(key, fallback = '') {
+    return chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
 function getSiteGroup(site) {
     const rawGroup = String(site?.type || site?.category || 'other').trim().toLowerCase();
     if (!rawGroup) {
@@ -107,10 +111,10 @@ function getSiteGroup(site) {
 function getSiteGroupLabel(groupKey) {
     const normalizedGroup = String(groupKey || '').trim().toLowerCase();
     if (SITE_GROUP_LABELS[normalizedGroup]) {
-        return SITE_GROUP_LABELS[normalizedGroup];
+        return t(SITE_GROUP_LABELS[normalizedGroup], normalizedGroup);
     }
     if (!normalizedGroup) {
-        return SITE_GROUP_LABELS.other;
+        return t(SITE_GROUP_LABELS.other, 'Other');
     }
     return normalizedGroup.charAt(0).toUpperCase() + normalizedGroup.slice(1);
 }
@@ -191,7 +195,7 @@ function renderSitesList() {
     sitesList.innerHTML = '';
 
     if (filteredSites.length === 0) {
-        sitesList.innerHTML = '<div class="site-list-empty">No sites in this type yet</div>';
+        sitesList.innerHTML = `<div class="site-list-empty">${t('siteListEmpty', 'No sites in this type yet')}</div>`;
         return;
     }
 
@@ -497,6 +501,14 @@ function initializeI18n() {
             element.alt = message;
         }
     });
+
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+        const key = element.getAttribute('data-i18n-aria-label');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.setAttribute('aria-label', message);
+        }
+    });
     
     // 手动设置输入框的占位符
     const searchInput = document.getElementById('searchInput');
@@ -582,8 +594,9 @@ async function showQuerySuggestions(query) {
         // 添加设置图标到 querySuggestions 区域
         const settingsIcon = document.createElement('img');
         settingsIcon.src = '../icons/edit.svg';
-        settingsIcon.alt = '设置模板';
-        settingsIcon.title = '编辑提示词模板';
+        const editTemplateLabel = t('editPromptTemplate', 'Edit prompt templates');
+        settingsIcon.alt = editTemplateLabel;
+        settingsIcon.title = editTemplateLabel;
         settingsIcon.classList.add('query-suggestion-settings-icon');
         settingsIcon.style.cursor = 'pointer';
         settingsIcon.style.width = '14px';
@@ -770,7 +783,7 @@ async function initializeSitesList() {
     } catch (error) {
         console.error('获取站点配置失败:', error);
         if (sitesList) {
-            sitesList.innerHTML = '<div style="padding: 20px; color: #666; text-align: center;">加载站点配置失败，请刷新页面重试</div>';
+            sitesList.innerHTML = `<div style="padding: 20px; color: #666; text-align: center;">${t('siteListLoadFailed', 'Failed to load site configuration. Please refresh and try again.')}</div>`;
         }
     } finally {
         sitesList.classList.remove('sites-list-skeleton');

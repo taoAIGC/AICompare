@@ -21,6 +21,22 @@ function createContactItem(label, value, href) {
     return item;
 }
 
+function t(key, fallback = '') {
+    return chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
+function initializeI18n() {
+    document.title = t('contactLink', 'Contact Me');
+
+    document.querySelectorAll('[data-i18n]').forEach((element) => {
+        const key = element.getAttribute('data-i18n');
+        const message = t(key);
+        if (message) {
+            element.textContent = message;
+        }
+    });
+}
+
 async function renderContactInfo() {
     const contactList = document.getElementById('contactList');
     if (!contactList) return;
@@ -28,9 +44,9 @@ async function renderContactInfo() {
     try {
         const contact = await window.AppConfigManager.getContactInfo();
         const items = [
-            { label: 'Wechat(微信', value: contact.wechat },
-            { label: 'GitHub', value: contact.github, href: contact.github },
-            { label: 'Email', value: contact.email, href: contact.email ? `mailto:${contact.email}` : '' }
+            { label: t('contactWechatLabel', 'WeChat'), value: contact.wechat },
+            { label: t('contactGithubLabel', 'GitHub'), value: contact.github, href: contact.github },
+            { label: t('contactEmailLabel', 'Email'), value: contact.email, href: contact.email ? `mailto:${contact.email}` : '' }
         ].filter(item => item.value);
 
         contactList.innerHTML = '';
@@ -38,7 +54,7 @@ async function renderContactInfo() {
         if (items.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'contact-empty';
-            empty.textContent = 'appConfig.json 中还没有配置联系方式。';
+            empty.textContent = t('contactEmpty', 'No contact information has been configured in appConfig.json yet.');
             contactList.appendChild(empty);
             return;
         }
@@ -51,11 +67,12 @@ async function renderContactInfo() {
 
         const empty = document.createElement('div');
         empty.className = 'contact-empty';
-        empty.textContent = '联系方式加载失败，请检查 appConfig.json。';
+        empty.textContent = t('contactLoadFailed', 'Failed to load contact information. Please check appConfig.json.');
         contactList.appendChild(empty);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initializeI18n();
     renderContactInfo();
 });

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Favorites</title>
+    <title data-i18n="favoritesLink">Favorites</title>
     <link rel="stylesheet" href="../shared/sidebar.css">
     <link rel="stylesheet" href="favorites.css">
     <link rel="stylesheet" href="../shared/favorite-folder-modal.css">
@@ -13,27 +13,27 @@
         <div class="favorites-container">
             <div class="favorites-header">
                 <div class="favorites-title">
-                    <h1>Favorites</h1>
+                    <h1 data-i18n="favoritesLink">Favorites</h1>
                 </div>
-                <button id="clearFavoritesBtn" class="clear-btn">Clear All Favorites</button>
+                <button id="clearFavoritesBtn" class="clear-btn" data-i18n="clearFavoritesButton">Clear All Favorites</button>
             </div>
             <div id="folderTabsContainer" class="folder-tabs-container">
                 <!-- Folder tabs rendered dynamically -->
             </div>
             <div class="search-container">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search by query ...">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by query ..." data-i18n-placeholder="searchFavoritesPlaceholder">
             </div>
             <div id="favoritesList" class="favorites-list">
                 <!-- 收藏记录将动态加载到这里 -->
             </div>
             <div id="emptyState" class="empty-state" style="display: none;">
                 <div class="empty-icon">⭐</div>
-                <div class="empty-text">No favorite record</div>
+                <div class="empty-text" data-i18n="noFavoriteRecord">No favorite record</div>
             </div>
             <div id="noResultsState" class="empty-state" style="display: none;">
                 <div class="empty-icon">🔍</div>
-                <div class="empty-text">No results found</div>
-                <div class="empty-hint">Try different keywords</div>
+                <div class="empty-text" data-i18n="noResultsFound">No results found</div>
+                <div class="empty-hint" data-i18n="tryDifferentKeywords">Try different keywords</div>
             </div>
         </div>
     </div>

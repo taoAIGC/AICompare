@@ -43,8 +43,8 @@
                         <div class="pin-guide-title" data-i18n="pinGuideTitle">Pin the extension for quick access</div>
                         <div class="pin-guide-steps" data-i18n="pinGuideSteps">Click the puzzle icon in the toolbar → Find "AI Compare" → Click the pin icon</div>
                     </div>
-                    <img id="pinGuideImage" src="" alt="Pin" class="pin-guide-image">
-                    <button id="pinGuideClose" class="pin-guide-close" aria-label="Close">×</button>
+                    <img id="pinGuideImage" src="" data-i18n-alt="pinGuideImageAlt" alt="Pin" class="pin-guide-image">
+                    <button id="pinGuideClose" class="pin-guide-close" data-i18n-aria-label="closeButton" aria-label="Close">×</button>
                 </div>
             </div>
             <div class="extension-icon-container">
@@ -75,11 +75,11 @@
                 <div class="sites-header">
                     <h3 class="sites-title" data-i18n="selectAISites">AI sites</h3>
                     <button id="saveSitesBtn" class="save-settings-btn" aria-label="">
-                        <img src="../icons/save.svg" alt="save" class="save-icon">
+                        <img src="../icons/save.svg" data-i18n-alt="saveIconAlt" alt="save" class="save-icon">
                     </button>
                     <span class="save-btn-tooltip" data-i18n="saveFavoriteSitesTitle">保存当前选中的站点为常用站点</span>
                 </div>
-                <div id="siteTypeTabs" class="site-type-tabs" role="tablist" aria-label="Site types"></div>
+                <div id="siteTypeTabs" class="site-type-tabs" role="tablist" data-i18n-aria-label="siteTypeTabsAriaLabel" aria-label="Site types"></div>
                 <div id="sitesList" class="sites-list sites-list-skeleton" aria-busy="true">
                     <div class="site-item site-item-skeleton" aria-hidden="true">
                         <span class="site-drag-handle skeleton-block"></span>

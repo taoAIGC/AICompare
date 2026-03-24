@@ -1,13 +1,38 @@
 let allFavoriteItems = [];
 let currentFolderId = null; // null = all
 
+function t(key, fallback = '') {
+    return chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
+function initializeI18n() {
+    document.title = t('favoritesLink', 'Favorites');
+
+    document.querySelectorAll('[data-i18n]').forEach((element) => {
+        const key = element.getAttribute('data-i18n');
+        const message = t(key);
+        if (message) {
+            element.textContent = message;
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        const message = t(key);
+        if (message) {
+            element.placeholder = message;
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
     await renderFolderTabs();
     await loadFavorites();
 
     document.getElementById('clearFavoritesBtn').addEventListener('click', async () => {
-        if (confirm('确定要清空所有收藏记录吗？')) {
+        if (confirm(t('clearFavoritesConfirm', 'Are you sure you want to clear all favorite records?'))) {
             await clearAllFavorites();
             await loadFavorites();
         }
@@ -229,7 +254,9 @@ function createFavoriteItem(item, folderMap) {
     const favoriteBtn = document.createElement('button');
     favoriteBtn.className = 'favorite-btn';
     favoriteBtn.type = 'button';
-    favoriteBtn.setAttribute('aria-label', '收藏');
+    const manageFavoriteLabel = t('manageFavoriteItem', 'Manage favorite');
+    favoriteBtn.setAttribute('aria-label', manageFavoriteLabel);
+    favoriteBtn.title = manageFavoriteLabel;
     const favoriteIcon = document.createElement('img');
     favoriteIcon.alt = '';
     favoriteIcon.src = '../icons/star_saved.svg';

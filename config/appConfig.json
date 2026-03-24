@@ -9,8 +9,8 @@
   },
   "buttonConfig": {
     "floatButton": false,
-    "selectionSearch": true,
     "selectionQuickSearch": true,
+    "selectionCompareButton": true,
     "contextMenu": true,
     "searchEngine": true
   },

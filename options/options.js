@@ -45,13 +45,36 @@ function initializeI18n() {
   // 更新页面标题
   document.title = chrome.i18n.getMessage("appName");
 
-  
   // 更新所有带有 data-i18n 属性的元素
   document.querySelectorAll('[data-i18n]').forEach(element => {
     const key = element.getAttribute('data-i18n');
     const message = chrome.i18n.getMessage(key);
     if (message) {
       element.textContent = message;
+    }
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+    const key = element.getAttribute('data-i18n-placeholder');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.placeholder = message;
+    }
+  });
+
+  document.querySelectorAll('[data-i18n-title]').forEach(element => {
+    const key = element.getAttribute('data-i18n-title');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.title = message;
+    }
+  });
+
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+    const key = element.getAttribute('data-i18n-aria-label');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.setAttribute('aria-label', message);
     }
   });
 }
@@ -97,8 +120,8 @@ async function initializeButtonConfigs() {
     // 配置项定义
     const configItems = [
       { id: 'floatButtonSwitch', configKey: 'floatButton', name: chrome.i18n.getMessage("floatButton") },
-      { id: 'selectionSearchSwitch', configKey: 'selectionSearch', name: chrome.i18n.getMessage("selectionSearch") },
       { id: 'selectionQuickSearchSwitch', configKey: 'selectionQuickSearch', name: chrome.i18n.getMessage("selectionQuickSearch") },
+      { id: 'selectionCompareButtonSwitch', configKey: 'selectionCompareButton', name: chrome.i18n.getMessage("selectionCompareButton") },
       { id: 'contextMenuSwitch', configKey: 'contextMenu', name: chrome.i18n.getMessage("contextMenu") },
       { id: 'searchEngineSwitch', configKey: 'searchEngine', name: chrome.i18n.getMessage("searchEngine") }
     ];
@@ -815,7 +838,7 @@ function updateAuthTypeUI(authType) {
 
   if (authType === 'token') {
     table?.classList.add('token-mode');
-    if (passwordHeader) passwordHeader.textContent  = 'Token';
+    if (passwordHeader) passwordHeader.textContent  = chrome.i18n.getMessage('syncAuthToken') || 'Token';
     if (passwordInput) {
       passwordInput.placeholder  = chrome.i18n.getMessage('syncTokenPlaceholder') || '输入 Token';
       passwordInput.autocomplete = 'off';
@@ -1071,7 +1094,9 @@ async function initializeMembership() {
     badgeEl.className = 'membership-badge' + (isPro ? ' pro' : '');
   }
   if (planLabelEl) {
-    planLabelEl.textContent = isPro ? 'Pro' : 'Free';
+    planLabelEl.textContent = isPro
+      ? (chrome.i18n.getMessage('membershipPlanPro') || 'Pro')
+      : (chrome.i18n.getMessage('membershipPlanFree') || 'Free');
   }
 
   if (isPro && planInfo.planExpiresAt && expiryEl) {

@@ -1,15 +1,40 @@
 // 存储所有历史记录数据
 let allHistoryItems = [];
 
+function t(key, fallback = '') {
+    return chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
+function initializeI18n() {
+    document.title = t('historyLink', 'History');
+
+    document.querySelectorAll('[data-i18n]').forEach((element) => {
+        const key = element.getAttribute('data-i18n');
+        const message = t(key);
+        if (message) {
+            element.textContent = message;
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        const message = t(key);
+        if (message) {
+            element.placeholder = message;
+        }
+    });
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', async () => {
+    initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
     await loadHistory();
     
     // 绑定清空历史按钮事件
     const clearBtn = document.getElementById('clearHistoryBtn');
     clearBtn.addEventListener('click', async () => {
-        if (confirm('确定要清空所有历史记录吗？')) {
+        if (confirm(t('clearHistoryConfirm', 'Are you sure you want to clear all history records?'))) {
             await clearHistory();
             await loadHistory();
         }
@@ -160,7 +185,7 @@ function createHistoryItem(item) {
     const favoriteBtn = document.createElement('button');
     favoriteBtn.className = 'favorite-btn';
     favoriteBtn.type = 'button';
-    favoriteBtn.setAttribute('aria-label', '收藏');
+    favoriteBtn.setAttribute('aria-label', t('addToFavorites', 'Favorite'));
     const favoriteIcon = document.createElement('img');
     favoriteIcon.alt = '';
     favoriteBtn.appendChild(favoriteIcon);
@@ -182,14 +207,16 @@ function createHistoryItem(item) {
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.type = 'button';
-    deleteBtn.setAttribute('aria-label', '删除');
+    const deleteLabel = t('deleteButton', 'Delete');
+    deleteBtn.setAttribute('aria-label', deleteLabel);
+    deleteBtn.title = deleteLabel;
     const deleteIcon = document.createElement('img');
     deleteIcon.alt = '';
     deleteIcon.src = '../icons/trash.svg';
     deleteBtn.appendChild(deleteIcon);
     deleteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (confirm('确定要删除这条历史记录吗？')) {
+        if (confirm(t('deleteHistoryConfirm', 'Are you sure you want to delete this history record?'))) {
             await deleteHistoryItem(item.id);
             await loadHistory();
         }
@@ -248,7 +275,11 @@ function setFavoriteButtonState(btn, isFavorited) {
         icon.src = isFavorited ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
     }
     btn.dataset.favorite = isFavorited ? 'true' : 'false';
-    btn.title = isFavorited ? '取消收藏' : '收藏';
+    const favoriteLabel = isFavorited
+        ? t('removeFromFavorites', 'Unfavorite')
+        : t('addToFavorites', 'Favorite');
+    btn.title = favoriteLabel;
+    btn.setAttribute('aria-label', favoriteLabel);
     btn.setAttribute('aria-pressed', isFavorited ? 'true' : 'false');
 }
 

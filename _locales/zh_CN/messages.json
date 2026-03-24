@@ -159,6 +159,10 @@
     "message": "划词快捷搜索",
     "description": "划词快捷搜索开关的名称"
   },
+  "selectionCompareButton": {
+    "message": "划词对比按钮",
+    "description": "划词对比按钮开关的名称"
+  },
   "contextMenu": {
     "message": "右键菜单",
     "description": "右键菜单的名称"
@@ -934,5 +938,167 @@
   },
   "membershipPriceNotConfigured": {
     "message": "Stripe Price ID 未配置，请在 stripe-payment.js 中填写"
+  },
+  "sidebarPrimaryAriaLabel": {
+    "message": "主导航"
+  },
+  "openHomepageLabel": {
+    "message": "前往首页"
+  },
+  "contactLink": {
+    "message": "联系我"
+  },
+  "coffeeButtonAlt": {
+    "message": "请我喝咖啡"
+  },
+  "syncOpeningGoogleSignIn": {
+    "message": "正在打开谷歌登录..."
+  },
+  "syncSyncingFromCloud": {
+    "message": "正在同步云端数据..."
+  },
+  "clearHistoryButton": {
+    "message": "清空历史"
+  },
+  "searchHistoryPlaceholder": {
+    "message": "按查询内容搜索..."
+  },
+  "noHistoryRecord": {
+    "message": "暂无历史记录"
+  },
+  "noResultsFound": {
+    "message": "未找到结果"
+  },
+  "tryDifferentKeywords": {
+    "message": "试试其他关键词"
+  },
+  "clearHistoryConfirm": {
+    "message": "确定要清空所有历史记录吗？"
+  },
+  "deleteHistoryConfirm": {
+    "message": "确定要删除这条历史记录吗？"
+  },
+  "clearFavoritesButton": {
+    "message": "清空全部收藏"
+  },
+  "searchFavoritesPlaceholder": {
+    "message": "按查询内容搜索..."
+  },
+  "noFavoriteRecord": {
+    "message": "暂无收藏记录"
+  },
+  "clearFavoritesConfirm": {
+    "message": "确定要清空所有收藏记录吗？"
+  },
+  "manageFavoriteItem": {
+    "message": "管理收藏"
+  },
+  "contactWechatLabel": {
+    "message": "微信"
+  },
+  "contactGithubLabel": {
+    "message": "GitHub"
+  },
+  "contactEmailLabel": {
+    "message": "邮箱"
+  },
+  "contactEmpty": {
+    "message": "appConfig.json 中还没有配置联系方式。"
+  },
+  "contactLoadFailed": {
+    "message": "联系方式加载失败，请检查 appConfig.json。"
+  },
+  "selectAISites": {
+    "message": "AI 站点"
+  },
+  "favoriteAllSites": {
+    "message": "收藏全部回答"
+  },
+  "editPromptTemplate": {
+    "message": "编辑提示词模板"
+  },
+  "siteTypeTabsAriaLabel": {
+    "message": "站点类型"
+  },
+  "pinGuideImageAlt": {
+    "message": "固定扩展指引"
+  },
+  "saveIconAlt": {
+    "message": "保存"
+  },
+  "downloadIconTitle": {
+    "message": "下载"
+  },
+  "homepageTypeInformation": {
+    "message": "信息"
+  },
+  "homepageTypeImage": {
+    "message": "图片生成"
+  },
+  "homepageTypeVideo": {
+    "message": "视频"
+  },
+  "homepageTypeAudio": {
+    "message": "音频"
+  },
+  "homepageTypeAgents": {
+    "message": "智能体"
+  },
+  "homepageTypeTranslate": {
+    "message": "翻译"
+  },
+  "homepageTypePpt": {
+    "message": "PPT"
+  },
+  "homepageTypeOther": {
+    "message": "其他"
+  },
+  "siteListEmpty": {
+    "message": "该类型下暂无站点"
+  },
+  "siteListLoadFailed": {
+    "message": "加载站点配置失败，请刷新页面重试"
+  },
+  "iframePageTitle": {
+    "message": "AI 比一比"
+  },
+  "refreshConfigChecking": {
+    "message": "检查更新中..."
+  },
+  "refreshConfigUpdated": {
+    "message": "配置已更新到最新版本！"
+  },
+  "refreshConfigLatest": {
+    "message": "已是最新版本"
+  },
+  "refreshConfigUnavailable": {
+    "message": "更新检查功能不可用"
+  },
+  "refreshConfigFailed": {
+    "message": "检查更新失败"
+  },
+  "updateInfoShowFailed": {
+    "message": "显示更新信息失败"
+  },
+  "templateNamePlaceholder": {
+    "message": "例如：风险分析"
+  },
+  "templateQueryPlaceholder": {
+    "message": "例如：导致失败的原因:「{query}」"
+  },
+  "syncProviderWebdav": {
+    "message": "WebDAV"
+  },
+  "syncUrlHeader": {
+    "message": "URL"
+  },
+  "syncTogglePasswordAriaLabel": {
+    "message": "显示或隐藏密码"
+  },
+  "membershipPlanFree": {
+    "message": "Free"
+  },
+  "membershipPlanPro": {
+    "message": "Pro"
   }
 }

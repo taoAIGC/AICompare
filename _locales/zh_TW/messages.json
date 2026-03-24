@@ -164,6 +164,10 @@
     "message": "劃詞快捷搜尋",
     "description": "The name for the selection quick search toggle"
   },
+  "selectionCompareButton": {
+    "message": "劃詞對比按鈕",
+    "description": "The name for the selection compare button toggle"
+  },
   "contextMenu": {
     "message": "右键選單",
     "description": "The name for the context menu"
@@ -939,5 +943,167 @@
   },
   "membershipPriceNotConfigured": {
     "message": "Stripe Price ID 未設定，請在 stripe-payment.js 中填寫"
+  },
+  "sidebarPrimaryAriaLabel": {
+    "message": "主導覽"
+  },
+  "openHomepageLabel": {
+    "message": "前往首頁"
+  },
+  "contactLink": {
+    "message": "聯絡我"
+  },
+  "coffeeButtonAlt": {
+    "message": "請我喝咖啡"
+  },
+  "syncOpeningGoogleSignIn": {
+    "message": "正在開啟 Google 登入..."
+  },
+  "syncSyncingFromCloud": {
+    "message": "正在同步雲端資料..."
+  },
+  "clearHistoryButton": {
+    "message": "清空歷史"
+  },
+  "searchHistoryPlaceholder": {
+    "message": "按查詢內容搜尋..."
+  },
+  "noHistoryRecord": {
+    "message": "暫無歷史記錄"
+  },
+  "noResultsFound": {
+    "message": "找不到結果"
+  },
+  "tryDifferentKeywords": {
+    "message": "試試其他關鍵字"
+  },
+  "clearHistoryConfirm": {
+    "message": "確定要清空所有歷史記錄嗎？"
+  },
+  "deleteHistoryConfirm": {
+    "message": "確定要刪除這筆歷史記錄嗎？"
+  },
+  "clearFavoritesButton": {
+    "message": "清空全部收藏"
+  },
+  "searchFavoritesPlaceholder": {
+    "message": "按查詢內容搜尋..."
+  },
+  "noFavoriteRecord": {
+    "message": "暫無收藏記錄"
+  },
+  "clearFavoritesConfirm": {
+    "message": "確定要清空所有收藏記錄嗎？"
+  },
+  "manageFavoriteItem": {
+    "message": "管理收藏"
+  },
+  "contactWechatLabel": {
+    "message": "微信"
+  },
+  "contactGithubLabel": {
+    "message": "GitHub"
+  },
+  "contactEmailLabel": {
+    "message": "電子郵件"
+  },
+  "contactEmpty": {
+    "message": "appConfig.json 中還沒有設定聯絡方式。"
+  },
+  "contactLoadFailed": {
+    "message": "聯絡方式載入失敗，請檢查 appConfig.json。"
+  },
+  "selectAISites": {
+    "message": "AI 站點"
+  },
+  "favoriteAllSites": {
+    "message": "收藏全部回答"
+  },
+  "editPromptTemplate": {
+    "message": "編輯提示詞模板"
+  },
+  "siteTypeTabsAriaLabel": {
+    "message": "站點類型"
+  },
+  "pinGuideImageAlt": {
+    "message": "固定擴充功能指引"
+  },
+  "saveIconAlt": {
+    "message": "保存"
+  },
+  "downloadIconTitle": {
+    "message": "下載"
+  },
+  "homepageTypeInformation": {
+    "message": "資訊"
+  },
+  "homepageTypeImage": {
+    "message": "圖片生成"
+  },
+  "homepageTypeVideo": {
+    "message": "影片"
+  },
+  "homepageTypeAudio": {
+    "message": "音訊"
+  },
+  "homepageTypeAgents": {
+    "message": "智能體"
+  },
+  "homepageTypeTranslate": {
+    "message": "翻譯"
+  },
+  "homepageTypePpt": {
+    "message": "PPT"
+  },
+  "homepageTypeOther": {
+    "message": "其他"
+  },
+  "siteListEmpty": {
+    "message": "此類型暫無站點"
+  },
+  "siteListLoadFailed": {
+    "message": "載入站點設定失敗，請重新整理頁面後再試"
+  },
+  "iframePageTitle": {
+    "message": "AI 比一比"
+  },
+  "refreshConfigChecking": {
+    "message": "正在檢查更新..."
+  },
+  "refreshConfigUpdated": {
+    "message": "設定已更新到最新版本！"
+  },
+  "refreshConfigLatest": {
+    "message": "已是最新版本"
+  },
+  "refreshConfigUnavailable": {
+    "message": "更新檢查功能不可用"
+  },
+  "refreshConfigFailed": {
+    "message": "檢查更新失敗"
+  },
+  "updateInfoShowFailed": {
+    "message": "顯示更新資訊失敗"
+  },
+  "templateNamePlaceholder": {
+    "message": "例如：風險分析"
+  },
+  "templateQueryPlaceholder": {
+    "message": "例如：導致失敗的原因:「{query}」"
+  },
+  "syncProviderWebdav": {
+    "message": "WebDAV"
+  },
+  "syncUrlHeader": {
+    "message": "URL"
+  },
+  "syncTogglePasswordAriaLabel": {
+    "message": "顯示或隱藏密碼"
+  },
+  "membershipPlanFree": {
+    "message": "Free"
+  },
+  "membershipPlanPro": {
+    "message": "Pro"
   }
 }

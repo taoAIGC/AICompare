@@ -53,6 +53,13 @@ function applySidebarI18n(root) {
             element.alt = message;
         }
     });
+    root.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
+        const key = element.getAttribute('data-i18n-aria-label');
+        const message = chrome.i18n.getMessage(key);
+        if (message) {
+            element.setAttribute('aria-label', message);
+        }
+    });
 }
 
 async function initializeSidebarActionLinks() {
@@ -292,15 +299,11 @@ function bindSyncBar() {
         const textEl = document.getElementById('syncBarText');
         try {
             if (textEl) {
-                textEl.textContent = chrome.i18n.getUILanguage().toLowerCase().startsWith('zh')
-                    ? '正在打开谷歌登录…'
-                    : 'Opening Google sign-in…';
+                textEl.textContent = chrome.i18n.getMessage('syncOpeningGoogleSignIn') || 'Opening Google sign-in…';
             }
             await window.firebaseSignInWithGoogle();
             if (textEl) {
-                textEl.textContent = chrome.i18n.getUILanguage().toLowerCase().startsWith('zh')
-                    ? '正在同步云端数据…'
-                    : 'Syncing from cloud…';
+                textEl.textContent = chrome.i18n.getMessage('syncSyncingFromCloud') || 'Syncing from cloud…';
             }
             await window.firebaseSyncMergeAndUpload();
             await updateSyncBar();

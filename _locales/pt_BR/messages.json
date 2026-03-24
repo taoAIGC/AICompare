@@ -164,6 +164,10 @@
     "message": "Busca rapida apos selecao",
     "description": "The name for the selection quick search toggle"
   },
+  "selectionCompareButton": {
+    "message": "Botao de comparacao na selecao",
+    "description": "The name for the selection compare button toggle"
+  },
   "contextMenu": {
     "message": "Menu de contexto",
     "description": "The name for the context menu"
@@ -939,5 +943,167 @@
   },
   "membershipPriceNotConfigured": {
     "message": "O Stripe Price ID nao esta configurado. Defina-o em stripe-payment.js."
+  },
+  "sidebarPrimaryAriaLabel": {
+    "message": "Primary navigation"
+  },
+  "openHomepageLabel": {
+    "message": "Go to homepage"
+  },
+  "contactLink": {
+    "message": "Contact Me"
+  },
+  "coffeeButtonAlt": {
+    "message": "Buy me a coffee"
+  },
+  "syncOpeningGoogleSignIn": {
+    "message": "Opening Google sign-in..."
+  },
+  "syncSyncingFromCloud": {
+    "message": "Syncing from cloud..."
+  },
+  "clearHistoryButton": {
+    "message": "Clear History"
+  },
+  "searchHistoryPlaceholder": {
+    "message": "Search by query ..."
+  },
+  "noHistoryRecord": {
+    "message": "No history record"
+  },
+  "noResultsFound": {
+    "message": "No results found"
+  },
+  "tryDifferentKeywords": {
+    "message": "Try different keywords"
+  },
+  "clearHistoryConfirm": {
+    "message": "Are you sure you want to clear all history records?"
+  },
+  "deleteHistoryConfirm": {
+    "message": "Are you sure you want to delete this history record?"
+  },
+  "clearFavoritesButton": {
+    "message": "Clear All Favorites"
+  },
+  "searchFavoritesPlaceholder": {
+    "message": "Search by query ..."
+  },
+  "noFavoriteRecord": {
+    "message": "No favorite record"
+  },
+  "clearFavoritesConfirm": {
+    "message": "Are you sure you want to clear all favorite records?"
+  },
+  "manageFavoriteItem": {
+    "message": "Manage favorite"
+  },
+  "contactWechatLabel": {
+    "message": "WeChat"
+  },
+  "contactGithubLabel": {
+    "message": "GitHub"
+  },
+  "contactEmailLabel": {
+    "message": "Email"
+  },
+  "contactEmpty": {
+    "message": "No contact information has been configured in appConfig.json yet."
+  },
+  "contactLoadFailed": {
+    "message": "Failed to load contact information. Please check appConfig.json."
+  },
+  "selectAISites": {
+    "message": "AI sites"
+  },
+  "favoriteAllSites": {
+    "message": "Save all responses to favorites"
+  },
+  "editPromptTemplate": {
+    "message": "Edit prompt templates"
+  },
+  "siteTypeTabsAriaLabel": {
+    "message": "Site types"
+  },
+  "pinGuideImageAlt": {
+    "message": "Pin guide"
+  },
+  "saveIconAlt": {
+    "message": "Save"
+  },
+  "downloadIconTitle": {
+    "message": "Download"
+  },
+  "homepageTypeInformation": {
+    "message": "Information"
+  },
+  "homepageTypeImage": {
+    "message": "Image Generation"
+  },
+  "homepageTypeVideo": {
+    "message": "Video"
+  },
+  "homepageTypeAudio": {
+    "message": "Audio"
+  },
+  "homepageTypeAgents": {
+    "message": "Agents"
+  },
+  "homepageTypeTranslate": {
+    "message": "Translation"
+  },
+  "homepageTypePpt": {
+    "message": "PPT"
+  },
+  "homepageTypeOther": {
+    "message": "Other"
+  },
+  "siteListEmpty": {
+    "message": "No sites in this type yet"
+  },
+  "siteListLoadFailed": {
+    "message": "Failed to load site configuration. Please refresh and try again."
+  },
+  "iframePageTitle": {
+    "message": "AI Compare"
+  },
+  "refreshConfigChecking": {
+    "message": "Checking for updates..."
+  },
+  "refreshConfigUpdated": {
+    "message": "Configuration has been updated to the latest version."
+  },
+  "refreshConfigLatest": {
+    "message": "Already up to date."
+  },
+  "refreshConfigUnavailable": {
+    "message": "Update check is unavailable."
+  },
+  "refreshConfigFailed": {
+    "message": "Failed to check for updates."
+  },
+  "updateInfoShowFailed": {
+    "message": "Failed to show update details."
+  },
+  "templateNamePlaceholder": {
+    "message": "For example: Risk analysis"
+  },
+  "templateQueryPlaceholder": {
+    "message": "For example: Root cause of the failure:「{query}」"
+  },
+  "syncProviderWebdav": {
+    "message": "WebDAV"
+  },
+  "syncUrlHeader": {
+    "message": "URL"
+  },
+  "syncTogglePasswordAriaLabel": {
+    "message": "Show or hide password"
+  },
+  "membershipPlanFree": {
+    "message": "Free"
+  },
+  "membershipPlanPro": {
+    "message": "Pro"
   }
 }

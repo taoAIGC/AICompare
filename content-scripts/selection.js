@@ -8,6 +8,7 @@ let siteDropdown = null;
 let templateSelectButton = null;
 let templateDropdown = null;
 let singleSearchGroup = null;
+let compareSearchGroup = null;
 
 function hasStorageSync() {
   return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
@@ -18,15 +19,27 @@ function isSelectionQuickSearchEnabled(buttonConfig) {
   return buttonConfig.selectionQuickSearch !== false;
 }
 
-async function getSelectionQuickSearchEnabled() {
-  if (!hasStorageSync()) return true;
+function isSelectionCompareButtonEnabled(buttonConfig) {
+  if (!buttonConfig || typeof buttonConfig !== 'object') return true;
+  return buttonConfig.selectionCompareButton !== false;
+}
+
+function hasEnabledSelectionActions(buttonConfig) {
+  return (
+    isSelectionQuickSearchEnabled(buttonConfig) ||
+    isSelectionCompareButtonEnabled(buttonConfig)
+  );
+}
+
+async function getSelectionButtonConfig() {
+  if (!hasStorageSync()) return {};
 
   try {
     const { buttonConfig = {} } = await chrome.storage.sync.get('buttonConfig');
-    return isSelectionQuickSearchEnabled(buttonConfig);
+    return buttonConfig;
   } catch (error) {
-    console.error('读取划词快捷搜索配置失败:', error);
-    return true;
+    console.error('读取划词按钮配置失败:', error);
+    return {};
   }
 }
 
@@ -51,6 +64,25 @@ function updateSingleSearchGroupVisibility(enabled) {
 
   if (!enabled) {
     siteDropdown?.classList.remove('show');
+  }
+}
+
+function updateCompareSearchGroupVisibility(enabled) {
+  if (!compareSearchGroup) return;
+
+  compareSearchGroup.style.display = enabled ? 'flex' : 'none';
+
+  if (!enabled) {
+    templateDropdown?.classList.remove('show');
+  }
+}
+
+function applySelectionToolbarConfig(buttonConfig) {
+  updateSingleSearchGroupVisibility(isSelectionQuickSearchEnabled(buttonConfig));
+  updateCompareSearchGroupVisibility(isSelectionCompareButtonEnabled(buttonConfig));
+
+  if (!hasEnabledSelectionActions(buttonConfig)) {
+    hideToolbar();
   }
 }
 
@@ -318,7 +350,7 @@ async function initializeTemplateDropdown() {
   singleSearchGroup.className = 'single-search-group';
   singleSearchGroup.style.display = 'flex'; // 显示单站点搜索组
 
-  const compareSearchGroup = document.createElement('div');
+  compareSearchGroup = document.createElement('div');
   compareSearchGroup.className = 'compare-search-group';
   
   // 将相关元素添加到单站点搜索组
@@ -334,12 +366,19 @@ async function initializeTemplateDropdown() {
   toolbar.appendChild(compareSearchGroup);
   document.body.appendChild(toolbar);
 
-  updateSingleSearchGroupVisibility(await getSelectionQuickSearchEnabled());
+  const buttonConfig = await getSelectionButtonConfig();
+  applySelectionToolbarConfig(buttonConfig);
 }
 
 // 更新工具栏位置
-function updateToolbarPosition(selection) {
-  if (!toolbar) createToolbar();
+async function updateToolbarPosition(selection) {
+  if (!toolbar) {
+    await createToolbar();
+  }
+
+  if (!toolbar) {
+    return;
+  }
   
   if (!selection || !selection.rangeCount || selection.rangeCount === 0) {
     console.log('无效的选区');
@@ -386,7 +425,7 @@ document.addEventListener('mouseup', (e) => {
     return;
   }
 
-  setTimeout(() => {
+  setTimeout(async () => {
     
     const selection = window.getSelection();
     currentSelectedText = selection?.toString().trim() || '';
@@ -398,18 +437,22 @@ document.addEventListener('mouseup', (e) => {
     
     if (currentSelectedText && selection.rangeCount > 0) {
       lastSelectedText = currentSelectedText;
-      const applyConfig = (buttonConfig) => {
-        const config = buttonConfig || { selectionSearch: true };
-        if (config.selectionSearch) {
-          updateToolbarPosition(selection);
+      const applyConfig = async (buttonConfig) => {
+        const config = buttonConfig || {};
+        applySelectionToolbarConfig(config);
+
+        if (hasEnabledSelectionActions(config)) {
+          await updateToolbarPosition(selection);
         } else {
-          console.log('滑词已禁用');
+          console.log('划词按钮已禁用');
         }
       };
       if (hasStorageSync()) {
-        chrome.storage.sync.get(['buttonConfig'], (result) => applyConfig(result?.buttonConfig));
+        chrome.storage.sync.get(['buttonConfig'], (result) => {
+          applyConfig(result?.buttonConfig);
+        });
       } else {
-        applyConfig({ selectionSearch: true });
+        applyConfig({});
       }
     }
   }, 10);
@@ -444,18 +487,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // 初始化
-if (hasStorageSync()) {
-  chrome.storage.sync.get(['buttonConfig'], function(result) {
-    const buttonConfig = result?.buttonConfig || { selectionSearch: true };
-    if (buttonConfig.selectionSearch) {
-      createToolbar();
-    } else {
-      console.log('滑词已禁用');
-    }
-  });
-} else {
-  createToolbar();
-}
+createToolbar();
 
 
 
@@ -488,9 +520,7 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
     }
 
     if (changes.buttonConfig) {
-      updateSingleSearchGroupVisibility(
-        isSelectionQuickSearchEnabled(changes.buttonConfig.newValue)
-      );
+      applySelectionToolbarConfig(changes.buttonConfig.newValue || {});
     }
   });
 }

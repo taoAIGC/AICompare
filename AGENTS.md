@@ -97,11 +97,53 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - Lock selectors to the real editor/widget type after validation. Do not leave a new site on broad fallback selectors if the real page exposes a stable control such as a Slate editor, Lexical editor, or a specific submit icon.
 - Treat "automation triggered the real job" and "remote generation succeeded" as separate checks. A site can count as wiring-valid if the flow reaches a real progress or failure state caused by the submitted prompt, even when the remote job itself later fails.
 
+## New Site Full Adaptation Workflow
+
+- Use this workflow whenever a new AI site is added or when an existing placeholder handler is being replaced with a real one.
+- Step 1: identify the real working URL.
+  A configured entry URL may redirect to another runtime page. Record the final stable workspace URL after login and redirect handling, and prefer that URL in `config/siteHandlers.json` if it is the real page where input and response extraction happen.
+- Step 2: determine whether the site is entry-page-first or workspace-first.
+  If the page opens to a launcher, template picker, cookie gate, or onboarding view, record each bootstrap action separately and mark optional steps as optional. Do not fold bootstrap assumptions into a single vague selector.
+- Step 3: locate the real input primitive.
+  Confirm whether the site uses `textarea`, `contenteditable`, Slate, Lexical, ProseMirror, Angular form controls, or another editor type. The handler must write through the real control type instead of using a generic fallback when the page exposes a stable editor.
+- Step 4: verify the real submit primitive.
+  Test click submission and keyboard submission separately. Some sites visually enable a submit button after input but only the Enter path actually creates a conversation. Choose the path that produces a real session state change, not merely a visual state change.
+- Step 5: validate the exact automation chain in user Chrome.
+  Run the site in the real logged-in Chrome profile and confirm the sequence `focus -> write -> trigger events -> submit` with a deterministic query. For general text sites, the default verification query is `你好世界` unless a site-specific query is required.
+- Step 6: separate input success from task success.
+  A site passes handler validation when automation creates a real conversation, task card, progress state, or failure state attributable to the submitted prompt. Remote model refusal, quota failure, or server error after the prompt is accepted does not by itself mean the wiring is wrong.
+- Step 7: tighten `userPrompt` to the real user message structure.
+  After a successful run, inspect the actual rendered conversation DOM and point `userPrompt.containerSelector` and `userPrompt.textSelector` at the stable user-message nodes. Prefer explicit message rows such as `row-question-*`, question bubbles, or human-message containers over generic page-level text selectors.
+- Step 8: tighten `contentExtractor` to the real answer structure.
+  Prefer `messageContainer + contentSelectors + userMessageSelector + exportLatestOnly` over a long list of broad `selectors` whenever the site has a stable answer row. Point extraction to the final rendered answer body, not to page shells, footers, headers, or search box wrappers.
+- Step 9: explicitly exclude noise.
+  Add `excludeSelectors` for footer areas, policy text, input regions, stop/regenerate controls, attachment areas, assistant-name labels when needed, and any repeated history/sidebar content that can pollute exports.
+- Step 10: verify extraction after the response stabilizes.
+  Re-run against the same real session and confirm that the chosen `contentExtractor` reads the final answer text from the rendered answer body. If the site streams tokens, wait until the answer body settles before concluding the selector failed.
+- Step 11: keep hidden and enabled decisions separate.
+  `hidden` controls whether the site appears in selection UIs, while `enabled` controls whether it is on by default. A newly adapted site can be made visible with `hidden: false` while still staying opt-in with `enabled: false`.
+- Step 12: add a reusable verifier script when the site is non-trivial.
+  If a site depends on redirects, runtime workspace URLs, login state, or special editor behavior, add a focused script under `debug/` that connects to the user Chrome session and proves the handler still works against the real page.
+
+## New Site Acceptance Checklist
+
+- The final runtime URL is known and documented.
+- Bootstrap steps are documented as required or optional.
+- The real editor type is identified and the handler writes through the correct primitive.
+- The real submit path is validated with the deterministic query.
+- The page enters a real post-submit state caused by the prompt.
+- `userPrompt` points to stable user-message nodes.
+- `contentExtractor` points to stable assistant-answer nodes.
+- `excludeSelectors` remove page chrome and repeated noise.
+- A debug verifier exists for non-trivial sites or redirect-heavy flows.
+
 ## Nano Banana Flow
 
 - Site: `Nano Banana`
   URL: `https://labs.google/fx/zh/tools/flow`
 - Validation must run in the real user Chrome profile because page state depends on logged-in Chrome context and the Flow workspace.
+- Handler resolution rule:
+  Nano Banana may redirect from the configured entry URL to a workspace/project URL on the same `labs.google` domain, and that redirected URL may also drop or change the locale segment. When resolving a handler for an already-open iframe, prefer the explicit `siteName` together with same-domain validation instead of requiring the runtime path to keep matching the original config URL.
 - Reusable handling sequence:
   1. Optionally dismiss the cookie bar via `text:agree` if it exists.
   2. If the prompt editor is not yet visible, click `text:新建项目` or `text:create new project`.
@@ -121,6 +163,14 @@ No build, test, or lint commands are available - this is a standard Chrome exten
   the flow counts as successfully triggered if the submitted prompt appears in the created task card and the page enters either a progress state or a failure card state.
 - Current generic config location:
   `config/siteHandlers.json` under the `Nano Banana` entry.
+- Current logic verifier:
+  `debug/verify-nano-banana.js` validates that Nano Banana remains resolvable from the base Flow URL and from redirected project URLs with locale variations.
+
+## Same-Domain Redirect Rule
+
+- When a site lives under a shared domain and the runtime page can redirect from an entry URL to a different workspace path, do not rely on URL-prefix matching alone for handler lookup.
+- If the iframe or injected message already carries the exact `siteName`, resolve the handler by `siteName + same-domain` first, then use path scoring only as a secondary signal.
+- Keep strict path matching for cases where `siteName` is absent, so different products on the same domain are not accidentally mixed together.
 
 ## Extension ID For Testing
 

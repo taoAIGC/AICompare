@@ -226,9 +226,11 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-03-23 20:40:17 UTC+08:00
+Last auto-update / 最近自动更新：2026-03-24 23:50:35 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `.DS_Store`
+- `M` `AGENTS.md`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -240,17 +242,37 @@ Last auto-update / 最近自动更新：2026-03-23 20:40:17 UTC+08:00
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `config/appConfig.json`
-- `M` `content-scripts/selection.css`
+- `M` `config/siteHandlers.json`
+- `M` `contact/contact.html`
+- `M` `contact/contact.js`
 - `M` `content-scripts/selection.js`
+- `A` `debug/inspect-live-nano.js`
+- `A` `debug/regression-nano-banana-live.js`
+- `A` `debug/verify-metaso-live.js`
+- `A` `debug/verify-nano-banana.js`
+- `A` `debug/verify-zhipu-live.js`
+- `M` `favorites/favorites.html`
+- `M` `favorites/favorites.js`
+- `M` `history/history.html`
+- `M` `history/history.js`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `M` `iframe/iframe.html`
+- `M` `iframe/iframe.js`
+- `M` `iframe/inject.js`
 - `M` `manifest.json`
+- `M` `options/options.html`
 - `M` `options/options.js`
+- `M` `shared/sidebar.html`
+- `M` `shared/sidebar.js`
 
 ### Recent commits / 最近提交
+- `62720e7` 2026-03-23 V2.21.2 划词中的快捷搜索增加开关
 - `c8286be` 2026-03-23 V 2.21.1 划词支持模板
 - `bbd293e` 2026-03-22 V2.20.5 增加 perplexity 等站点
 - `0d7ece6` 2026-03-17 V 2.20.4 翻译更多站点
 - `dfb1aed` 2026-03-12 V 2.20.3 优化站点导航、输入框大小和脚本进度提示
-- `929ca23` 2026-03-04 V2.20.2 修复同步功能
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

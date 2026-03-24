@@ -914,7 +914,7 @@ body.search-bar-bottom .query-suggestions {
 
 .sites-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
     max-height: 400px;
     overflow-y: auto;
@@ -983,6 +983,18 @@ body.search-bar-bottom .query-suggestions {
     cursor: pointer;
     margin: 0;
     flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+    .sites-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .sites-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .site-list-empty {

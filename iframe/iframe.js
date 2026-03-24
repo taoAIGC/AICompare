@@ -758,6 +758,8 @@ function resolveSiteForIframeUrl(sites, iframeUrl, preferredSiteName = null) {
 
       if (!domainMatched) return null;
 
+      const preferredNameMatched = preferredSiteName && site.name === preferredSiteName;
+
       const sitePath = normalizeSiteMatchPath(siteUrl.pathname || '/');
       let pathScore = 0;
 
@@ -765,6 +767,11 @@ function resolveSiteForIframeUrl(sites, iframeUrl, preferredSiteName = null) {
         pathScore = 400 + sitePath.length;
       } else if (sitePath !== '/' && currentPath.startsWith(sitePath + '/')) {
         pathScore = 300 + sitePath.length;
+      } else if (preferredNameMatched) {
+        // Redirected workspace URLs can move away from the original entry-page
+        // path. When the iframe already carries the concrete site name, keep
+        // resolving that handler on the same domain.
+        pathScore = 200;
       } else if (sitePath === '/') {
         pathScore = 100;
       } else {
@@ -774,7 +781,7 @@ function resolveSiteForIframeUrl(sites, iframeUrl, preferredSiteName = null) {
       return {
         site,
         score:
-          (preferredSiteName && site.name === preferredSiteName ? 1000 : 0) +
+          (preferredNameMatched ? 1000 : 0) +
           (currentDomain === siteDomain ? 100 : 50) +
           pathScore
       };
@@ -2518,7 +2525,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
       // 使用异步函数处理
       (async () => {
         const sites = await window.getDefaultSites();
-        const site = sites.find(s => s.url === url || url.startsWith(s.url));
+        const site = sites.find(s => s.name === siteName) || sites.find(s => s.url === url || url.startsWith(s.url));
         if (site && !site.supportUrlQuery) {
           // 使用动态处理函数
           const handler = await getIframeHandler(url, site.name);
@@ -3159,6 +3166,8 @@ if (favoriteIcon) {
 
 // 初始化国际化
 function initializeI18n() {
+    document.title = t('iframePageTitle', 'AI Compare');
+
     // 处理所有带有 data-i18n 属性的元素（不包含 data-i18n-title / data-i18n-alt，避免重复）
     document.querySelectorAll('[data-i18n]:not([data-i18n-title]):not([data-i18n-alt])').forEach(element => {
         const key = element.getAttribute('data-i18n');
@@ -3268,8 +3277,9 @@ async function showQuerySuggestions(query) {
     // 添加设置图标到 querySuggestions 区域
     const settingsIcon = document.createElement('img');
     settingsIcon.src = '../icons/edit.svg';
-    settingsIcon.alt = '设置模板';
-    settingsIcon.title = '编辑提示词模板';
+    const editTemplateLabel = t('editPromptTemplate', 'Edit prompt templates');
+    settingsIcon.alt = editTemplateLabel;
+    settingsIcon.title = editTemplateLabel;
     settingsIcon.classList.add('query-suggestion-settings-icon');
     settingsIcon.style.cursor = 'pointer';
     settingsIcon.style.width = '14px';
@@ -4547,7 +4557,7 @@ async function showDetailedUpdateInfo() {
     modal.querySelector('#refreshConfig').addEventListener('click', async () => {
       const button = modal.querySelector('#refreshConfig');
       const originalText = button.textContent;
-      button.textContent = '🔄 检查中...';
+      button.textContent = t('refreshConfigChecking', 'Checking for updates...');
       button.disabled = true;
       
       try {
@@ -4555,19 +4565,19 @@ async function showDetailedUpdateInfo() {
           const updateInfo = await window.RemoteConfigManager.autoCheckUpdate();
           if (updateInfo && updateInfo.hasUpdate) {
             await window.RemoteConfigManager.updateLocalConfig(updateInfo.config);
-            showToast('配置已更新到最新版本！');
+            showToast(t('refreshConfigUpdated', 'Configuration has been updated to the latest version.'));
             closeModal();
             // 显示新的更新通知
             setTimeout(() => showUpdateNotification(), 500);
           } else {
-            showToast('已是最新版本');
+            showToast(t('refreshConfigLatest', 'Already up to date.'));
           }
         } else {
-          showToast('更新检查功能不可用');
+          showToast(t('refreshConfigUnavailable', 'Update check is unavailable.'));
         }
       } catch (error) {
         console.error('检查更新失败:', error);
-        showToast('检查更新失败');
+        showToast(t('refreshConfigFailed', 'Failed to check for updates.'));
       } finally {
         button.textContent = originalText;
         button.disabled = false;
@@ -4585,7 +4595,7 @@ async function showDetailedUpdateInfo() {
     
   } catch (error) {
     console.error('显示详细更新信息失败:', error);
-    showToast('显示更新信息失败');
+    showToast(t('updateInfoShowFailed', 'Failed to show update details.'));
   }
 }
 
