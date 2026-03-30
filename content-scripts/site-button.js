@@ -7,6 +7,10 @@
 (async function() {
   'use strict';
 
+  function t(key, fallback = '') {
+    return chrome?.i18n?.getMessage?.(key) || fallback;
+  }
+
   // 只在主窗口中运行，不在 iframe 中运行
   if (window.self !== window.top) {
     return;
@@ -353,8 +357,9 @@
     // 创建按钮
     const button = document.createElement('button');
     button.className = 'multi-ai-site-button';
-    button.title = '使用 Multi-AI 搜索';
-    button.setAttribute('aria-label', '使用 Multi-AI 搜索');
+    const compareTitle = t('searchWithMultiAI', 'Search with AI Compare');
+    button.title = compareTitle;
+    button.setAttribute('aria-label', compareTitle);
 
     // 创建图标
     const icon = document.createElement('img');
@@ -513,9 +518,11 @@
       // 创建按钮
       const button = document.createElement('button');
       button.className = 'multi-ai-userprompt-button';
-      button.textContent = '多AI 对比';
-      button.title = '使用多AI对比搜索';
-      button.setAttribute('aria-label', '使用多AI对比搜索');
+      const compareLabel = t('compareButtonLabel', 'AICompare');
+      const compareTitle = t('searchWithMultiAI', 'Search with AI Compare');
+      button.textContent = compareLabel;
+      button.title = compareTitle;
+      button.setAttribute('aria-label', compareTitle);
       button.style.cssText = `
         display: inline-flex;
         align-items: center;

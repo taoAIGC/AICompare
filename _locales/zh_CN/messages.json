@@ -1086,6 +1086,12 @@
   "templateQueryPlaceholder": {
     "message": "例如：导致失败的原因:「{query}」"
   },
+  "templateTypeLabel": {
+    "message": "模板类型"
+  },
+  "templateTypeHelp": {
+    "message": "homepage 和 iframe 会按当前站点类型过滤提示词模板"
+  },
   "syncProviderWebdav": {
     "message": "WebDAV"
   },
@@ -1100,5 +1106,29 @@
   },
   "membershipPlanPro": {
     "message": "Pro"
+  },
+  "floatButtonShortcutMac": {
+    "message": "⌘+M 打开侧边栏"
+  },
+  "floatButtonShortcutWindows": {
+    "message": "Ctrl+M 打开侧边栏"
+  },
+  "floatButtonCloseDialogTitle": {
+    "message": "关闭悬浮球"
+  },
+  "floatButtonCloseTemporary": {
+    "message": "本次关闭直到下次访问"
+  },
+  "floatButtonCloseCurrentSite": {
+    "message": "当前网站禁用"
+  },
+  "floatButtonClosePermanent": {
+    "message": "永久禁用"
+  },
+  "floatButtonEnableInSettingsHint": {
+    "message": "(可在设置页开启)"
+  },
+  "confirmButton": {
+    "message": "确定"
   }
 }

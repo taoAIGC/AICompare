@@ -761,6 +761,28 @@ async function executeFocus(step) {
   await tryFocus();
 }
 
+function setNativeFormControlValue(element, value) {
+  if (!element || typeof value !== 'string') return;
+
+  const prototype =
+    element.tagName === 'TEXTAREA'
+      ? window.HTMLTextAreaElement?.prototype
+      : window.HTMLInputElement?.prototype;
+  const descriptor = prototype ? Object.getOwnPropertyDescriptor(prototype, 'value') : null;
+
+  if (descriptor && typeof descriptor.set === 'function') {
+    descriptor.set.call(element, value);
+  } else {
+    element.value = value;
+  }
+
+  if (typeof element.setSelectionRange === 'function') {
+    try {
+      element.setSelectionRange(value.length, value.length);
+    } catch (_) {}
+  }
+}
+
 // 执行设置值操作
 async function executeSetValue(step, query) {
   let element = null;
@@ -1289,7 +1311,7 @@ async function executeSetValue(step, query) {
     
     // 方法1: 设置值并触发事件
     element.focus();
-    element.value = query;
+    setNativeFormControlValue(element, query);
     
     // 触发 input 事件（使用 InputEvent，Angular 监听此事件）
     const inputEvent = new InputEvent('input', {
@@ -1334,9 +1356,17 @@ async function executeSetValue(step, query) {
     console.log('Angular FormControl 值已设置并触发事件');
   } else {
     // 普通输入框
-    element.value = query;
+    setNativeFormControlValue(element, query);
     
     // 触发 input 事件确保框架能够检测到变化
+    const beforeInputEvent = new InputEvent('beforeinput', {
+      bubbles: true,
+      cancelable: true,
+      inputType: 'insertText',
+      data: query
+    });
+    element.dispatchEvent(beforeInputEvent);
+
     const inputEvent = new InputEvent('input', {
       bubbles: true,
       cancelable: true,

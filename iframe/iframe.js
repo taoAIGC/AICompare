@@ -1658,6 +1658,7 @@ function hideFileUploadProgress() {
 let currentColumnsValue = '3';
 let navColumnOutsideClickBound = false;
 let requestedIframeSiteType = '';
+let iframeConfiguredTypes = ['information'];
 const IFRAME_SITE_TYPE_ALIASES = {
   chat: 'information',
   agent: 'agents',
@@ -1685,6 +1686,25 @@ function getRequestedIframeSiteType() {
     requestedIframeSiteType = '';
   }
   return requestedIframeSiteType;
+}
+
+async function loadIframeConfiguredTypes() {
+  try {
+    const configuredTypes = await window.AppConfigManager.getSiteTypes();
+    iframeConfiguredTypes = window.PromptTemplateUtils?.normalizePromptTemplateTypes?.(configuredTypes) || ['information'];
+  } catch (_) {
+    iframeConfiguredTypes = ['information'];
+  }
+  return iframeConfiguredTypes;
+}
+
+function getIframePromptTemplateType() {
+  return window.PromptTemplateUtils?.normalizePromptTemplateType?.(
+    getRequestedIframeSiteType(),
+    '',
+    iframeConfiguredTypes
+  )
+    || '';
 }
 
 function siteMatchesRequestedType(site) {
@@ -3232,18 +3252,22 @@ async function showQuerySuggestions(query) {
   try {
     // 从存储中获取提示词模板
     const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
-    
-    // 按order排序并过滤出有效的模板
-    const sortedTemplates = promptTemplates
-      .filter(template => template.name && template.query)
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    await loadIframeConfiguredTypes();
+    const currentType = getIframePromptTemplateType();
+    const recommendedQueries = window.PromptTemplateUtils?.buildPromptTemplateSuggestions
+      ? window.PromptTemplateUtils.buildPromptTemplateSuggestions(
+          promptTemplates,
+          query,
+          currentType,
+          iframeConfiguredTypes
+        )
+      : [];
 
-
-    // 使用用户自定义模板生成建议
-    const recommendedQueries = sortedTemplates.map(template => ({
-      name: template.name,
-      query: template.query.replace('{query}', query)
-    }));
+    if (recommendedQueries.length === 0) {
+      querySuggestions.innerHTML = '';
+      querySuggestions.style.display = 'none';
+      return;
+    }
 
     // 清空之前的内容
     querySuggestions.innerHTML = '';

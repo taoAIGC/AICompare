@@ -6,19 +6,15 @@ const HOMEPAGE_PERF_CACHE_KEY = '__homepagePerfMeasures';
 const DEFAULT_SITE_GROUP = 'information';
 const SITE_GROUP_LABELS = {
     information: 'homepageTypeInformation',
-    image: 'homepageTypeImage',
-    video: 'homepageTypeVideo',
-    audio: 'homepageTypeAudio',
     agents: 'homepageTypeAgents',
-    translate: 'homepageTypeTranslate',
-    ppt: 'homepageTypePpt',
-    other: 'homepageTypeOther'
+    translate: 'homepageTypeTranslate'
 };
 
 const homepageSitesState = {
     supportedSites: [],
     selectedSites: new Map(),
     activeGroup: DEFAULT_SITE_GROUP,
+    configuredGroups: [DEFAULT_SITE_GROUP],
     dragAndDropBound: false
 };
 
@@ -114,27 +110,27 @@ function getSiteGroupLabel(groupKey) {
         return t(SITE_GROUP_LABELS[normalizedGroup], normalizedGroup);
     }
     if (!normalizedGroup) {
-        return t(SITE_GROUP_LABELS.other, 'Other');
+        return 'Other';
     }
     return normalizedGroup.charAt(0).toUpperCase() + normalizedGroup.slice(1);
 }
 
+function getHomepagePromptTemplateType() {
+    return window.PromptTemplateUtils?.normalizePromptTemplateType?.(
+        homepageSitesState.activeGroup,
+        DEFAULT_SITE_GROUP,
+        homepageSitesState.configuredGroups
+    )
+        || DEFAULT_SITE_GROUP;
+}
+
 function getAvailableSiteGroups(sites) {
-    const groups = Array.from(new Set(
-        sites.map(site => getSiteGroup(site)).filter(Boolean)
-    ));
-    const preferredOrder = ['information', 'image', 'video', 'audio', 'agents', 'translate', 'ppt', 'other'];
-    groups.sort((a, b) => {
-        const aIndex = preferredOrder.indexOf(a);
-        const bIndex = preferredOrder.indexOf(b);
-        if (aIndex !== -1 || bIndex !== -1) {
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-        }
-        return a.localeCompare(b);
-    });
-    return groups;
+    const configuredGroups = Array.isArray(homepageSitesState.configuredGroups) && homepageSitesState.configuredGroups.length > 0
+        ? homepageSitesState.configuredGroups
+        : [DEFAULT_SITE_GROUP];
+    const siteGroups = new Set((sites || []).map(site => getSiteGroup(site)).filter(Boolean));
+    const visibleConfiguredGroups = configuredGroups.filter(group => siteGroups.has(group));
+    return visibleConfiguredGroups.length > 0 ? visibleConfiguredGroups : configuredGroups;
 }
 
 function getFilteredSites() {
@@ -555,17 +551,21 @@ async function showQuerySuggestions(query) {
     try {
         // 从存储中获取提示词模板
         const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
-        
-        // 按order排序并过滤出有效的模板
-        const sortedTemplates = promptTemplates
-            .filter(template => template.name && template.query)
-            .sort((a, b) => (a.order || 0) - (b.order || 0));
+        const currentType = getHomepagePromptTemplateType();
+        const recommendedQueries = window.PromptTemplateUtils?.buildPromptTemplateSuggestions
+            ? window.PromptTemplateUtils.buildPromptTemplateSuggestions(
+                promptTemplates,
+                query,
+                currentType,
+                homepageSitesState.configuredGroups
+            )
+            : [];
 
-        // 使用用户自定义模板生成建议
-        const recommendedQueries = sortedTemplates.map(template => ({
-            name: template.name,
-            query: template.query.replace('{query}', query)
-        }));
+        if (recommendedQueries.length === 0) {
+            querySuggestions.innerHTML = '';
+            querySuggestions.style.display = 'none';
+            return;
+        }
 
         // 清空之前的内容
         querySuggestions.innerHTML = '';
@@ -747,6 +747,10 @@ async function initializeSitesList() {
     
     perfMark('sites_list_flow_start');
     try {
+        const configuredGroups = await window.AppConfigManager.getSiteTypes();
+        homepageSitesState.configuredGroups = window.PromptTemplateUtils?.normalizePromptTemplateTypes?.(configuredGroups)
+            || [DEFAULT_SITE_GROUP];
+
         // 使用 getDefaultSites 获取合并后的站点配置
         perfMark('sites_list_get_data_start');
         const sites = await getDefaultSites();

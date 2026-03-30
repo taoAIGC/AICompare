@@ -326,7 +326,7 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
+      "note": "已在真实 Chrome 中验证：Claude 当前使用 data-testid=chat-input 的 Tiptap/ProseMirror 输入框，点击 Send message 可创建真实 /chat/<id> 会话；优先使用精确 selector 降低页面改版带来的波动",
       "searchHandler": {
         "steps": [
           {
@@ -336,7 +336,11 @@
           },
           {
             "action": "focus",
-            "selector": "[contenteditable=\"true\"]",
+            "selector": [
+              "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
+              "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
+            ],
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 200,
@@ -344,7 +348,11 @@
           },
           {
             "action": "setValue",
-            "selector": "[contenteditable=\"true\"]",
+            "selector": [
+              "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
+              "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
+            ],
             "inputType": "contenteditable",
             "waitForElement": true,
             "maxAttempts": 5,
@@ -353,7 +361,11 @@
           },
           {
             "action": "triggerEvents",
-            "selector": "[contenteditable=\"true\"]",
+            "selector": [
+              "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
+              "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
+            ],
             "events": [
               "input",
               "change",
@@ -367,12 +379,13 @@
           },
           {
             "action": "wait",
-            "duration": 100,
-            "description": "等待100ms"
+            "duration": 200,
+            "description": "等待200ms"
           },
           {
             "action": "click",
             "selector": [
+              "div[data-testid=\"chat-input-grid-container\"] button[aria-label=\"Send message\"]",
               "button[aria-label=\"Send message\"]",
               "button[type=\"button\"][aria-label=\"Send message\"]",
               "button[aria-label=\"Send Message\"]",
@@ -390,7 +403,11 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "[contenteditable=\"true\"]",
+            "selector": [
+              "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
+              "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
+            ],
             "description": "聚焦Claude输入框准备文件粘贴"
           },
           {
@@ -866,18 +883,28 @@
             "action": "focus",
             "selector": [
               "div.MuiBox-root.css-qtri4c",
-              ".search-consult-textarea"
+              ".search-consult-textarea",
+              "textarea[placeholder=\"请输入您的问题\"]",
+              "textarea[placeholder*=\"请输入\"]"
             ],
             "description": "聚焦推荐框或输入框"
           },
           {
             "action": "setValue",
-            "selector": ".search-consult-textarea",
+            "selector": [
+              ".search-consult-textarea",
+              "textarea[placeholder=\"请输入您的问题\"]",
+              "textarea[placeholder*=\"请输入\"]"
+            ],
             "description": "设置秘塔输入框的值"
           },
           {
             "action": "triggerEvents",
-            "selector": ".search-consult-textarea",
+            "selector": [
+              ".search-consult-textarea",
+              "textarea[placeholder=\"请输入您的问题\"]",
+              "textarea[placeholder*=\"请输入\"]"
+            ],
             "events": [
               "input"
             ],
@@ -885,7 +912,11 @@
           },
           {
             "action": "sendKeys",
-            "selector": ".search-consult-textarea",
+            "selector": [
+              ".search-consult-textarea",
+              "textarea[placeholder=\"请输入您的问题\"]",
+              "textarea[placeholder*=\"请输入\"]"
+            ],
             "keys": "Enter",
             "description": "发送回车键"
           }
@@ -895,7 +926,11 @@
         "steps": [
           {
             "action": "focus",
-            "selector": ".search-consult-textarea",
+            "selector": [
+              ".search-consult-textarea",
+              "textarea[placeholder=\"请输入您的问题\"]",
+              "textarea[placeholder*=\"请输入\"]"
+            ],
             "description": "聚焦秘塔AI输入框准备文件粘贴"
           },
           {
@@ -1238,7 +1273,7 @@
       "region": "China",
       "hidden": false,
       "supportIframe": false,
-      "note": "已验证可通过 textarea + Enter 触发对话",
+      "note": "已在真实页面验证：textarea + Enter 会创建带 cid 的会话；文件型 paste 到同一 textarea 后会出现上传中文件条目。",
       "searchHandler": {
         "steps": [
           {
@@ -1282,6 +1317,27 @@
             "maxAttempts": 10,
             "retryInterval": 300,
             "description": "通过回车提交智谱对话"
+          }
+        ]
+      },
+      "fileUploadHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "textarea.scroll-display-none, #search-input-box textarea, textarea",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "聚焦智谱输入框准备文件粘贴"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待输入框聚焦稳定"
+          },
+          {
+            "action": "paste",
+            "description": "向智谱 textarea 直接派发文件粘贴"
           }
         ]
       },
@@ -1334,6 +1390,9 @@
           "[class*=\"attachment\"]"
         ]
       },
+      "historyHandler": {
+        "urlFeature": "/main/alltoolsdetail"
+      },
       "icon": "chatglm.cn.png",
       "type": "information"
     },
@@ -1345,6 +1404,7 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
+      "note": "已在真实页面验证：Lexical 输入框写入后通过 Enter 可创建 /chat/<id> 会话；用户消息为 segment-user，助手回答位于 segment-assistant 的 markdown 区。",
       "searchHandler": {
         "steps": [
           {
@@ -1414,41 +1474,37 @@
         ]
       },
       "userPrompt": {
-        "containerSelector": "div.segment-content-box",
-        "textSelector": "div.segment-content-box .user-content"
+        "containerSelector": "div.segment.segment-user",
+        "textSelector": "div.user-content"
       },
       "contentExtractor": {
+        "messageContainer": "div.segment.segment-assistant",
+        "contentSelectors": [
+          "div.segment-content-box .markdown",
+          "div.segment-content-box",
+          "div.markdown",
+          "p",
+          "pre",
+          "ul",
+          "ol",
+          "table",
+          "blockquote"
+        ],
+        "userMessageSelector": "div.segment.segment-user, div.user-content",
+        "exportLatestOnly": true,
         "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".kimi-message .markdown",
-          ".kimi-message",
-          ".message-content .markdown",
-          ".message-content",
-          "[class*=\"kimi\"][class*=\"message\"]",
-          "[class*=\"kimi\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".kimi-response",
-          "[class*=\"kimi-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]",
-          ".moonshot-response",
-          "[class*=\"moonshot\"]"
+          "div.segment-content-box .markdown",
+          "div.segment-content-box",
+          "div.markdown"
         ],
         "fallbackSelectors": [
-          "main",
-          "article",
-          ".container",
-          "[class*=\"content\"]",
-          "[class*=\"result\"]",
-          "[class*=\"output\"]"
+          "div.segment.segment-assistant .markdown",
+          "div.segment.segment-assistant div.segment-content-box"
         ],
         "excludeSelectors": [
+          "div.segment.segment-user",
+          "div.segment-user-actions",
+          "div.segment-assistant-actions",
           "nav",
           "header",
           "footer",
@@ -1904,7 +1960,7 @@
     },
     {
       "name": "Perplexity",
-      "url": "https://www.perplexity.ai/search?q={query}",
+      "url": "https://www.perplexity.ai/search/new?q={query}",
       "enabled": false,
       "supportUrlQuery": true,
       "region": "US",
@@ -1919,6 +1975,66 @@
             "description": "使用URL查询，无需输入框操作"
           }
         ]
+      },
+      "fileUploadHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "#ask-input",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "聚焦 Perplexity follow-up 输入框准备文件粘贴"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待输入框聚焦稳定"
+          },
+          {
+            "action": "paste",
+            "description": "向 Perplexity 输入框直接派发文件粘贴"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "containerSelector": "main",
+        "messageContainer": "div.prose",
+        "contentSelectors": [
+          "div[id^=\"markdown-content-\"]",
+          "p",
+          "ul",
+          "ol",
+          "pre",
+          "table",
+          "blockquote"
+        ],
+        "fallbackSelectors": [
+          "main div.prose",
+          "main div[id^=\"markdown-content-\"]"
+        ],
+        "userMessageSelector": "div.min-w-\\[48px\\].select-none.p-3.bg-subtle.rounded-2xl.flex.items-center.justify-center",
+        "excludeSelectors": [
+          "[role=\"dialog\"]",
+          "[role=\"tablist\"]",
+          "#ask-input",
+          "button",
+          "form",
+          "nav",
+          "header",
+          "footer",
+          "aside",
+          ".sidebar",
+          ".menu"
+        ],
+        "exportLatestOnly": true
+      },
+      "historyHandler": {
+        "urlFeature": "/search/"
+      },
+      "userPrompt": {
+        "containerSelector": "div.group.relative.flex.items-end.gap-0\\.5",
+        "textSelector": "div.min-w-\\[48px\\].select-none.p-3.bg-subtle.rounded-2xl.flex.items-center.justify-center span, div.min-w-\\[48px\\].select-none.p-3.bg-subtle.rounded-2xl.flex.items-center.justify-center"
       },
       "icon": "www.perplexity.ai.png",
       "type": "information"
@@ -2185,6 +2301,174 @@
       "type": "information"
     },
     {
+      "name": "MiniMax",
+      "url": "https://agent.minimax.io/",
+      "enabled": false,
+      "supportUrlQuery": false,
+      "region": "China",
+      "hidden": false,
+      "supportIframe": false,
+      "note": "已在真实 Chrome 中验证：Tiptap/ProseMirror 输入 + 点击发送会创建真实 /chat?id=... 会话；站点返回 SAMEORIGIN，不能走 iframe",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "div.tiptap.ProseMirror.tiptap-editor",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "聚焦 MiniMax Agent 的 Tiptap 输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "div.tiptap.ProseMirror.tiptap-editor",
+            "inputType": "contenteditable",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "写入 MiniMax Agent 提示词"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "div.tiptap.ProseMirror.tiptap-editor",
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "触发 MiniMax Agent 输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 900,
+            "description": "等待发送按钮变为可点状态"
+          },
+          {
+            "action": "click",
+            "selector": [
+              "#input-send-icon > div",
+              "#input-send-icon"
+            ],
+            "description": "点击 MiniMax Agent 发送按钮"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "containerSelector": "#message-container",
+        "messageContainer": "#message-container div.message:not(.sent)",
+        "contentSelectors": [
+          "div.message-content",
+          "div.message-content .text-pretty",
+          "div.message-content span",
+          "[class*=\"markdown\"]",
+          "[class*=\"prose\"]"
+        ],
+        "userMessageSelector": "#message-container div.message.sent div.message-content, #message-container div.message.sent",
+        "fallbackSelectors": [
+          "div.message:not(.sent) div.message-content",
+          "div.message:not(.sent) [class*=\"markdown\"]",
+          "div.message:not(.sent) [class*=\"prose\"]"
+        ],
+        "excludeSelectors": [
+          "#message-container div.message.sent",
+          "#message-container .flex.items-center.justify-end.gap-2",
+          "#mmx-studio",
+          "[class*=\"studio\"]",
+          "div.tiptap-wrapper",
+          "#input-send-icon",
+          "[contenteditable=\"true\"]",
+          ".sidebar",
+          "nav",
+          "header",
+          "footer",
+          "button"
+        ],
+        "exportLatestOnly": true
+      },
+      "historyHandler": {
+        "urlFeature": "/chat"
+      },
+      "userPrompt": {
+        "containerSelector": "#message-container div.message.sent",
+        "textSelector": "div.message-content, div.message-content .text-pretty, div.message-content span"
+      },
+      "icon": "agent.minimax.io.png",
+      "type": "Agents"
+    },
+    {
+      "name": "Manus",
+      "url": "https://manus.im/app",
+      "enabled": false,
+      "supportUrlQuery": false,
+      "region": "Global",
+      "hidden": false,
+      "supportIframe": false,
+      "note": "已在真实 Chrome 中验证：工作区首页与任务页都使用 ProseMirror contenteditable 输入框，写入后发送按钮会短暂延迟启用；点击发送会从 /app 进入真实 /app/<taskId> 任务页。manus.im/app 返回 SAMEORIGIN，不能走 iframe。",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "div.tiptap.ProseMirror",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "聚焦 Manus 的 ProseMirror 输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "div.tiptap.ProseMirror",
+            "inputType": "contenteditable",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "写入 Manus 提示词"
+          },
+          {
+            "action": "click",
+            "selector": [
+              "#chat-home-view-container div.min-w-0.flex.gap-2.ml-auto.flex-shrink.items-center button:last-child",
+              "#manus-chat-box div.min-w-0.flex.gap-2.ml-auto.flex-shrink.items-center button:last-child"
+            ],
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "点击 Manus 发送按钮"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "contentSelectors": [
+          "#manus-chat-box .manus-markdown .u-break-words"
+        ],
+        "fallbackSelectors": [
+          "#manus-chat-box .manus-markdown .whitespace-pre-wrap",
+          "#manus-chat-box .manus-markdown"
+        ],
+        "excludeSelectors": [
+          "nav",
+          "header",
+          "footer",
+          "button",
+          ".sticky",
+          "[role=\"dialog\"]"
+        ],
+        "exportLatestOnly": true
+      },
+      "historyHandler": {
+        "urlFeature": "/app/"
+      },
+      "userPrompt": {
+        "containerSelector": "#manus-chat-box [data-event-id]:has(span.whitespace-pre-wrap.u-break-words)",
+        "textSelector": "span.whitespace-pre-wrap.u-break-words"
+      },
+      "icon": "manus.im.png",
+      "type": "Agents"
+    },
+    {
       "name": "Bing",
       "url": "https://www.bing.com/search?q={query}",
       "enabled": false,
@@ -2324,7 +2608,7 @@
     {
       "name": "Google Translate",
       "url": "https://translate.google.com/?sl=auto&tl=en&op=translate",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,
@@ -2369,7 +2653,7 @@
     {
       "name": "Bing Translate",
       "url": "https://www.bing.com/translator",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,

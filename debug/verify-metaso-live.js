@@ -5,8 +5,12 @@ const path = require('path');
 
 const SITE_NAME = '秘塔';
 const TARGET_URL = process.env.METASO_URL || 'https://metaso.cn/';
-const TEST_QUERY = process.env.TEST_QUERY || '你好世界';
-const SECOND_QUERY = process.env.SECOND_QUERY || `${TEST_QUERY} 第二次`;
+const TEST_QUERY = Object.prototype.hasOwnProperty.call(process.env, 'TEST_QUERY')
+  ? process.env.TEST_QUERY
+  : '你好世界';
+const SECOND_QUERY = Object.prototype.hasOwnProperty.call(process.env, 'SECOND_QUERY')
+  ? process.env.SECOND_QUERY
+  : `${TEST_QUERY} 第二次`;
 const WAIT_AFTER_EXEC_MS = Number(process.env.WAIT_AFTER_EXEC_MS || 5000);
 const DEVTOOLS_ACTIVE_PORT =
   process.env.DEVTOOLS_ACTIVE_PORT ||
@@ -181,12 +185,18 @@ async function snapshot(client, sessionId) {
         title: document.title,
         bodyText: text(document.body).slice(0, 1600),
         textarea: summarize(document.querySelector('.search-consult-textarea')),
+        genericTextarea: summarize(document.querySelector('textarea')),
         submitButton: summarize(
           Array.from(document.querySelectorAll('button')).find((el) => {
             const label = text(el);
             return label.includes('发送') || label.includes('提问') || label.includes('搜索') || label.includes('submit');
           })
         ),
+        buttonSamples: Array.from(document.querySelectorAll('button'))
+          .map((el) => summarize(el))
+          .filter(Boolean)
+          .filter((item) => item.text || item.placeholder || item.className)
+          .slice(0, 20),
         selectorHits: selectors.map((selector) => ({
           selector,
           count: document.querySelectorAll(selector).length
@@ -239,19 +249,41 @@ async function executeStep(client, sessionId, step, query) {
           ? element.value
           : String(element.innerText || element.textContent || '')
       );
+      const setNativeValue = (value) => {
+        const prototype = element.tagName === 'TEXTAREA'
+          ? HTMLTextAreaElement.prototype
+          : HTMLInputElement.prototype;
+        const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+        if (descriptor && typeof descriptor.set === 'function') {
+          descriptor.set.call(element, value);
+        } else {
+          element.value = value;
+        }
+        if (typeof element.setSelectionRange === 'function') {
+          try {
+            element.setSelectionRange(value.length, value.length);
+          } catch (_) {}
+        }
+      };
 
       if (action === 'focus') {
         element.focus();
       } else if (action === 'setValue') {
         element.focus();
         if (typeof element.value === 'string') {
-          element.value = query;
+          setNativeValue(query);
         } else if (element.isContentEditable) {
           element.textContent = query;
         }
       } else if (action === 'triggerEvents') {
         for (const eventName of events) {
           if (eventName === 'input') {
+            element.dispatchEvent(new InputEvent('beforeinput', {
+              bubbles: true,
+              cancelable: true,
+              inputType: 'insertText',
+              data: query
+            }));
             element.dispatchEvent(new InputEvent('input', {
               bubbles: true,
               cancelable: true,
@@ -333,17 +365,21 @@ async function main() {
       initial: await snapshot(client, page.sessionId)
     };
 
-    payload.firstRun = {
-      steps: await executeConfiguredHandler(client, page.sessionId, site, TEST_QUERY)
-    };
-    await sleep(WAIT_AFTER_EXEC_MS);
-    payload.afterFirstRun = await snapshot(client, page.sessionId);
+    if (TEST_QUERY) {
+      payload.firstRun = {
+        steps: await executeConfiguredHandler(client, page.sessionId, site, TEST_QUERY)
+      };
+      await sleep(WAIT_AFTER_EXEC_MS);
+      payload.afterFirstRun = await snapshot(client, page.sessionId);
+    }
 
-    payload.secondRun = {
-      steps: await executeConfiguredHandler(client, page.sessionId, site, SECOND_QUERY)
-    };
-    await sleep(WAIT_AFTER_EXEC_MS);
-    payload.afterSecondRun = await snapshot(client, page.sessionId);
+    if (SECOND_QUERY) {
+      payload.secondRun = {
+        steps: await executeConfiguredHandler(client, page.sessionId, site, SECOND_QUERY)
+      };
+      await sleep(WAIT_AFTER_EXEC_MS);
+      payload.afterSecondRun = await snapshot(client, page.sessionId);
+    }
 
     console.log(JSON.stringify(payload, null, 2));
   } finally {

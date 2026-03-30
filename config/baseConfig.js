@@ -66,6 +66,14 @@ const AppConfigManager = {
     return config.buttonConfig || {};
   },
 
+  // 获取可用站点类型配置
+  async getSiteTypes() {
+    const config = await this.loadConfig();
+    return Array.isArray(config.siteTypes) && config.siteTypes.length > 0
+      ? config.siteTypes
+      : ['information'];
+  },
+
   // 获取外部链接配置
   async getExternalLinks() {
     const config = await this.loadConfig();

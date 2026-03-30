@@ -1091,6 +1091,12 @@
   "templateQueryPlaceholder": {
     "message": "For example: Root cause of the failure:「{query}」"
   },
+  "templateTypeLabel": {
+    "message": "Template type"
+  },
+  "templateTypeHelp": {
+    "message": "Homepage and iframe suggestions are filtered by the current site type."
+  },
   "syncProviderWebdav": {
     "message": "WebDAV"
   },
@@ -1105,5 +1111,29 @@
   },
   "membershipPlanPro": {
     "message": "Pro"
+  },
+  "floatButtonShortcutMac": {
+    "message": "⌘+M Open side panel"
+  },
+  "floatButtonShortcutWindows": {
+    "message": "Ctrl+M Open side panel"
+  },
+  "floatButtonCloseDialogTitle": {
+    "message": "Hide floating button"
+  },
+  "floatButtonCloseTemporary": {
+    "message": "Hide for this visit"
+  },
+  "floatButtonCloseCurrentSite": {
+    "message": "Disable on this website"
+  },
+  "floatButtonClosePermanent": {
+    "message": "Disable permanently"
+  },
+  "floatButtonEnableInSettingsHint": {
+    "message": "(Can be re-enabled in Settings)"
+  },
+  "confirmButton": {
+    "message": "Confirm"
   }
 }

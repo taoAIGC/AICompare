@@ -185,6 +185,29 @@
                     ">使用 {query} 作为用户输入的占位符</div>
                   </div>
 
+                  <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="templateType" data-i18n="templateTypeLabel" style="
+                      display: block;
+                      margin-bottom: 8px;
+                      font-weight: 500;
+                      color: #333;
+                    ">模板类型:</label>
+                    <select id="templateType" style="
+                      width: 100%;
+                      padding: 8px 12px;
+                      border: 1px solid #ddd;
+                      border-radius: 4px;
+                      font-size: 14px;
+                      box-sizing: border-box;
+                      background: white;
+                    "></select>
+                    <div class="help-text" data-i18n="templateTypeHelp" style="
+                      font-size: 12px;
+                      color: #666;
+                      margin-top: 4px;
+                    ">homepage 和 iframe 会按当前站点类型过滤提示词模板</div>
+                  </div>
+
                   <div class="form-group" style="margin-bottom: 0;">
                     <label for="templateOrder" data-i18n="templateOrderLabel" style="
                       display: block;
@@ -371,6 +394,7 @@
   <script src="../config/firebaseConfig.js"></script>
   <script src="../config/baseConfig.js"></script>
   <script src="../firebase/firebase-auth.js"></script>
+  <script src="../shared/prompt-template-utils.js"></script>
   <!-- Pro 会员功能暂时隐藏，下版本恢复 -->
   <!-- <script src="../firebase/stripe-payment.js"></script> -->
   <script src="options.js"></script>

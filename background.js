@@ -73,6 +73,7 @@ async function initializeDefaultPromptTemplates() {
           id: 'risk_analysis',
           name: 'RiskAnalysis',
           query: 'Root cause of the failure:「{query}」',
+          type: 'information',
           order: 1,
           isDefault: true
         },
@@ -81,6 +82,7 @@ async function initializeDefaultPromptTemplates() {
           id: 'best_practice',
           name: 'BestPractice',
           query: 'Write a success retrospective report on this project:「{query}」',
+          type: 'information',
           order: 2,
           isDefault: true
         }

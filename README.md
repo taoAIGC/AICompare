@@ -8,7 +8,7 @@
 
 ### ✨ Introduction
 
-**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, DeepSeek, Kimi, 豆包,元宝, and many more — side by side. You use your existing AI accounts; the extension does not require sign-up or paid membership.
+**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包,元宝, and many more — side by side. You use your existing AI accounts; the extension does not require sign-up or paid membership.
 
 ### 📦 Features
 
@@ -19,7 +19,7 @@
 - **File upload**: Upload files (images, documents, etc.) and send them to all AI sites in one go.
 - **Export**: Export all AI responses as a single file (e.g. Markdown).
 - **History**: History drawer lists recent comparison sessions; click to reopen a session.
-- **Query suggestions**: Prompt templates appear as buttons above the input; one click fills the query (e.g. `风险分析：「{query}」`).
+- **Query suggestions**: Prompt templates appear as buttons above the input; one click fills the query (e.g. `风险分析：「{query}」`). On `homepage` and `iframe`, suggestions are filtered by the currently selected site type.
 - **Favorite query**: Star the current query to save it to Favorites.
 - **Site selection**: Choose which AI sites to load and save as default (collection mode settings).
 
@@ -76,7 +76,7 @@
 
 - **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`).
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
-- **Prompt templates**: Add / edit / delete templates (name, query text with `{query}`, display order).
+- **Prompt templates**: Add / edit / delete templates (name, query text with `{query}`, type, display order). Template type uses the same candidate set as site config types.
 - **Links**: Open History page, Favorites page.
 
 #### 10. History & Favorites pages
@@ -113,13 +113,19 @@ From content creators, product managers, and freelancers, to editors, foreign tr
 
 This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
 
+### Development / Live verification
+
+- For AI site adapter debugging, the repo includes real-browser live verifier scripts under `debug/`.
+- Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow.
+- Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, and `debug/verify-metaso-live.js`.
+
 ---
 
 ## 中文
 
 ### ✨ 简介
 
-**AI 比一比**（原名「AI 任意门」）是一款浏览器扩展，在一个页面里同时对比多个 AI 的回答。输入一次问题，即可并排查看 ChatGPT、Gemini、Claude、Grok、DeepSeek、Kimi、豆包、元宝等十多个 AI 的结果。使用你已有的 AI 账号即可，扩展本身无需注册、无需付费。
+**AI 比一比**（原名「AI 任意门」）是一款浏览器扩展，在一个页面里同时对比多个 AI 的回答。输入一次问题，即可并排查看 ChatGPT、Gemini、Claude、Grok、Manus、DeepSeek、Kimi、豆包、元宝等十多个 AI 的结果。使用你已有的 AI 账号即可，扩展本身无需注册、无需付费。
 
 ### 📦 功能一览
 
@@ -130,7 +136,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **文件上传**：上传图片、文档等，一键发送到所有 AI 站点。
 - **导出**：将所有 AI 的回答导出为一个文件（如 Markdown）。
 - **历史**：历史抽屉展示近期对比记录，点击可重新打开当次对比。
-- **查询建议**：输入框上方展示提示词模板按钮，点击即可填入（如「风险分析：「{query}」」）。
+- **查询建议**：输入框上方展示提示词模板按钮，点击即可填入（如「风险分析：「{query}」」）。在 `homepage` 和 `iframe` 中，联想模板会按当前选择的站点类型过滤。
 - **收藏当前问题**：可将当前问题加星，保存到收藏记录。
 - **站点选择**：选择要加载的 AI 站点，并保存为合集模式默认。
 
@@ -184,7 +190,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 - **快捷入口设置**：开关 悬浮球、划词搜索、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
-- **提示词模板**：增删改模板（名称、带 `{query}` 的查询模板、排序）。
+- **提示词模板**：增删改模板（名称、带 `{query}` 的查询模板、类型、排序）。模板类型与站点配置里的 `type` 候选项保持一致。
 - **入口**：历史记录页、收藏记录页。
 
 #### 10. 历史记录与收藏记录页
@@ -221,16 +227,24 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 
 本项目采用 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html) 协议。
 
+### 开发 / 实时验证
+
+- 仓库在 `debug/` 目录下提供了面向真实浏览器会话的 AI 站点验证脚本，便于排查站点适配问题。
+- Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。
+- 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`。
+
 ---
 
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-03-24 23:50:35 UTC+08:00
+Last auto-update / 最近自动更新：2026-03-30 10:36:54 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `.DS_Store`
+- `M` `.gitignore`
 - `M` `AGENTS.md`
+- `A` `_locales/.DS_Store`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -241,38 +255,33 @@ Last auto-update / 最近自动更新：2026-03-24 23:50:35 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `M` `background.js`
 - `M` `config/appConfig.json`
+- `M` `config/baseConfig.js`
 - `M` `config/siteHandlers.json`
-- `M` `contact/contact.html`
-- `M` `contact/contact.js`
-- `M` `content-scripts/selection.js`
-- `A` `debug/inspect-live-nano.js`
-- `A` `debug/regression-nano-banana-live.js`
-- `A` `debug/verify-metaso-live.js`
-- `A` `debug/verify-nano-banana.js`
-- `A` `debug/verify-zhipu-live.js`
-- `M` `favorites/favorites.html`
-- `M` `favorites/favorites.js`
-- `M` `history/history.html`
-- `M` `history/history.js`
-- `M` `homepage/homepage.css`
+- `M` `content-scripts/float-button.js`
+- `M` `content-scripts/site-button.js`
+- `M` `debug/verify-metaso-live.js`
 - `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `manifest.json`
+- `A` `node_modules/.DS_Store`
 - `M` `options/options.html`
 - `M` `options/options.js`
-- `M` `shared/sidebar.html`
-- `M` `shared/sidebar.js`
+- `A` `shared/prompt-template-utils.js`
+- `A` `siteIcons/agent.minimax.io.png`
+- `M` `siteIcons/manus.im.png`
+- `A` `tests/prompt-template-utils.test.js`
 
 ### Recent commits / 最近提交
+- `ec08961` 2026-03-24 V2.21.3 划词支持选择模板、支持配置
 - `62720e7` 2026-03-23 V2.21.2 划词中的快捷搜索增加开关
 - `c8286be` 2026-03-23 V 2.21.1 划词支持模板
 - `bbd293e` 2026-03-22 V2.20.5 增加 perplexity 等站点
 - `0d7ece6` 2026-03-17 V 2.20.4 翻译更多站点
-- `dfb1aed` 2026-03-12 V 2.20.3 优化站点导航、输入框大小和脚本进度提示
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

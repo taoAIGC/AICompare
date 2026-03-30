@@ -1,5 +1,11 @@
 let currentButtonConfig = null;
 // 系统默认站点设置将通过 getDefaultSites() 动态获取
+const TEMPLATE_TYPE_LABELS = {
+  information: 'homepageTypeInformation',
+  agents: 'homepageTypeAgents',
+  translate: 'homepageTypeTranslate'
+};
+let configuredTemplateTypes = ['information'];
 
 
 // 加载保存的配置
@@ -18,6 +24,46 @@ async function loadConfig() {
 // 获取翻译文本
 function getMessage(key, substitutions = null) {
   return chrome.i18n.getMessage(key, substitutions);
+}
+
+function getPromptTemplateUtils() {
+  return window.PromptTemplateUtils || null;
+}
+
+async function loadConfiguredTemplateTypes() {
+  try {
+    const siteTypes = await window.AppConfigManager.getSiteTypes();
+    configuredTemplateTypes = getPromptTemplateUtils()?.normalizePromptTemplateTypes?.(siteTypes) || ['information'];
+  } catch (error) {
+    configuredTemplateTypes = ['information'];
+  }
+  return configuredTemplateTypes;
+}
+
+function normalizeTemplateType(type) {
+  return getPromptTemplateUtils()?.normalizePromptTemplateType?.(
+    type,
+    'information',
+    configuredTemplateTypes
+  ) || 'information';
+}
+
+function getPromptTemplateTypeLabel(type) {
+  const normalizedType = normalizeTemplateType(type);
+  const messageKey = TEMPLATE_TYPE_LABELS[normalizedType];
+  return messageKey ? getMessage(messageKey) || normalizedType : normalizedType;
+}
+
+function populateTemplateTypeOptions(selectedType) {
+  const typeSelect = document.getElementById('templateType');
+  const availableTypes = configuredTemplateTypes;
+
+  if (!typeSelect) return;
+
+  typeSelect.innerHTML = availableTypes.map(type => `
+    <option value="${type}">${getPromptTemplateTypeLabel(type)}</option>
+  `).join('');
+  typeSelect.value = normalizeTemplateType(selectedType);
 }
 
 // 显示吐司提示
@@ -405,6 +451,8 @@ let currentEditingTemplateId = null;
 // 初始化提示词模板管理
 async function initializePromptTemplates() {
   try {
+    await loadConfiguredTemplateTypes();
+
     // 确保有默认模板
     await ensureDefaultTemplates();
     
@@ -449,8 +497,9 @@ async function loadTemplatesList() {
     
     if (!container) return;
     
-    // 按order排序
-    const sortedTemplates = promptTemplates.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sortedTemplates = getPromptTemplateUtils()?.sortPromptTemplates
+      ? getPromptTemplateUtils().sortPromptTemplates(promptTemplates, configuredTemplateTypes)
+      : promptTemplates.sort((a, b) => (a.order || 0) - (b.order || 0));
     
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
@@ -476,6 +525,16 @@ async function loadTemplatesList() {
             <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${template.name}</h4>
             <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666;">
               <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
+              <span style="
+                display: inline-flex;
+                align-items: center;
+                padding: 2px 8px;
+                border-radius: 999px;
+                background: #eef3ff;
+                color: #3659c9;
+                font-size: 12px;
+                line-height: 1.4;
+              ">${getPromptTemplateTypeLabel(template.type)}</span>
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
@@ -539,7 +598,7 @@ function bindTemplateEvents() {
   if (addBtn) {
     addBtn.addEventListener('click', () => {
       currentEditingTemplateId = null;
-      showTemplateDialog();
+      void showTemplateDialog();
     });
   }
   
@@ -582,30 +641,38 @@ async function handleTemplateListClick(event) {
 }
 
 // 显示模板对话框
-function showTemplateDialog(template = null) {
+async function showTemplateDialog(template = null) {
   const dialog = document.getElementById('templateDialog');
   const title = document.getElementById('dialogTitle');
   const nameInput = document.getElementById('templateName');
   const queryInput = document.getElementById('templateQuery');
+  const typeInput = document.getElementById('templateType');
   const orderInput = document.getElementById('templateOrder');
   
   if (!dialog) return;
+  await loadConfiguredTemplateTypes();
   
   if (template) {
     // 编辑模式
     title.textContent = chrome.i18n.getMessage('editTemplateTitle');
     nameInput.value = template.name;
     queryInput.value = template.query;
+    populateTemplateTypeOptions(template.type);
     orderInput.value = template.order || 1;
   } else {
     // 添加模式
     title.textContent = chrome.i18n.getMessage('addTemplateTitle');
     nameInput.value = '';
     queryInput.value = '';
-    orderInput.value = getNextOrder();
+    populateTemplateTypeOptions('information');
+    orderInput.value = 1;
+    void getNextOrder().then(nextOrder => {
+      orderInput.value = nextOrder;
+    });
   }
   
   dialog.style.display = 'block';
+  typeInput?.blur();
   nameInput.focus();
 }
 
@@ -634,10 +701,12 @@ async function getNextOrder() {
 async function saveTemplate() {
   const nameInput = document.getElementById('templateName');
   const queryInput = document.getElementById('templateQuery');
+  const typeInput = document.getElementById('templateType');
   const orderInput = document.getElementById('templateOrder');
   
   const name = nameInput.value.trim();
   const query = queryInput.value.trim();
+  const type = normalizeTemplateType(typeInput?.value);
   const order = parseInt(orderInput.value) || 1;
   
   // 验证
@@ -664,6 +733,7 @@ async function saveTemplate() {
           ...promptTemplates[index],
           name,
           query,
+          type,
           order
         };
       }
@@ -673,6 +743,7 @@ async function saveTemplate() {
         id: generateTemplateId(),
         name,
         query,
+        type,
         order,
         isDefault: false
       };
@@ -698,7 +769,7 @@ async function editTemplate(templateId) {
     
     if (template) {
       currentEditingTemplateId = templateId;
-      showTemplateDialog(template);
+      await showTemplateDialog(template);
     }
   } catch (error) {
     console.error('编辑模板失败:', error);

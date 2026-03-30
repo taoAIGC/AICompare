@@ -1,11 +1,19 @@
+function t(key, fallback = '') {
+  return chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
 // 创建浮动按钮和对话框
 async function createFloatButton() {
   console.log('脚本开始加载');
   
   // 获取当前语言的翻译
   const i18n = {
-    inputPlaceholder: await chrome.i18n.getMessage('inputPlaceholder'),
-    startCompare: await chrome.i18n.getMessage('startCompare')
+    inputPlaceholder: t('inputPlaceholder', 'Enter content to search...'),
+    startCompare: t('startCompare', 'PK'),
+    shortcutMac: t('floatButtonShortcutMac', '⌘+M Open side panel'),
+    shortcutWindows: t('floatButtonShortcutWindows', 'Ctrl+M Open side panel'),
+    settingsTitle: t('settingsLink', 'Settings'),
+    feedbackTitle: t('userFeedback', 'Feedback')
   };
   
   // 创建整体容器
@@ -79,7 +87,7 @@ async function createFloatButton() {
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
   // 设置提示文本
-  const shortcutText = isMac ? '⌘+M 打开侧边栏' : 'Ctrl+M 打开侧边栏';
+  const shortcutText = isMac ? i18n.shortcutMac : i18n.shortcutWindows;
   // 添加提示框
   button.addEventListener('mouseenter', () => {
     const tooltip = document.createElement('div');
@@ -102,7 +110,7 @@ async function createFloatButton() {
   const settingIcon = document.createElement('img');
   settingIcon.src = chrome.runtime.getURL('icons/extension-setting.svg');
   settingIcon.className = 'bottom-icon setting-icon';
-  settingIcon.title = '设置';
+  settingIcon.title = i18n.settingsTitle;
 
   // 通过发送消息来打开设置页面
   settingIcon.addEventListener('click', (e) => {
@@ -118,7 +126,7 @@ async function createFloatButton() {
   const feedbackIcon = document.createElement('img');
   feedbackIcon.src = chrome.runtime.getURL('icons/feedback.svg');
   feedbackIcon.className = 'bottom-icon feedback-icon';
-  feedbackIcon.title = '反馈';
+  feedbackIcon.title = i18n.feedbackTitle;
 
   // 添加点击事件，打开反馈表单
   feedbackIcon.addEventListener('click', async (e) => {
@@ -324,6 +332,16 @@ function showCloseOptionsDialog(container, event) {
   overlay.style.justifyContent = 'unset';
   overlay.style.alignItems = 'unset';
 
+  const dialogText = {
+    title: t('floatButtonCloseDialogTitle', 'Hide floating button'),
+    temporary: t('floatButtonCloseTemporary', 'Hide for this visit'),
+    currentSite: t('floatButtonCloseCurrentSite', 'Disable on this website'),
+    permanent: t('floatButtonClosePermanent', 'Disable permanently'),
+    hint: t('floatButtonEnableInSettingsHint', '(Can be re-enabled in Settings)'),
+    cancel: t('cancelButton', 'Cancel'),
+    confirm: t('confirmButton', 'Confirm')
+  };
+
   dialog.innerHTML = `
     <style>
       @keyframes closeDialogSlideIn {
@@ -338,28 +356,28 @@ function showCloseOptionsDialog(container, event) {
       }
     </style>
     <div class="dialog-header" style="margin-bottom: 20px;">
-      <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">关闭悬浮球</h3>
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">${dialogText.title}</h3>
       <div style="position: absolute; top: 16px; right: 16px; cursor: pointer; font-size: 24px; color: #999; line-height: 1;" onclick="this.closest('.close-options-overlay').remove()">×</div>
     </div>
     <div class="dialog-options" style="margin-bottom: 24px;">
       <label class="option-item" style="display: block; margin-bottom: 16px; cursor: pointer;">
         <input type="radio" name="closeOption" value="temporary" checked style="margin-right: 12px;">
-        <span style="color: #333; font-size: 14px;">本次关闭直到下次访问</span>
+        <span style="color: #333; font-size: 14px;">${dialogText.temporary}</span>
       </label>
       <label class="option-item" style="display: block; margin-bottom: 16px; cursor: pointer;">
         <input type="radio" name="closeOption" value="currentSite" style="margin-right: 12px;">
-        <span style="color: #333; font-size: 14px;">当前网站禁用</span>
-        <span style="color: #999; font-size: 12px; margin-left: 24px;">(可在设置页开启)</span>
+        <span style="color: #333; font-size: 14px;">${dialogText.currentSite}</span>
+        <span style="color: #999; font-size: 12px; margin-left: 24px;">${dialogText.hint}</span>
       </label>
       <label class="option-item" style="display: block; margin-bottom: 0; cursor: pointer;">
         <input type="radio" name="closeOption" value="permanent" style="margin-right: 12px;">
-        <span style="color: #333; font-size: 14px;">永久禁用</span>
-        <span style="color: #999; font-size: 12px; margin-left: 24px;">(可在设置页开启)</span>
+        <span style="color: #333; font-size: 14px;">${dialogText.permanent}</span>
+        <span style="color: #999; font-size: 12px; margin-left: 24px;">${dialogText.hint}</span>
       </label>
     </div>
     <div class="dialog-buttons" style="display: flex; justify-content: flex-end; gap: 12px;">
-      <button class="cancel-btn" style="padding: 8px 16px; background: transparent; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; color: #666;">取消</button>
-      <button class="confirm-btn" style="padding: 8px 16px; background: #e91e63; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">确定</button>
+      <button class="cancel-btn" style="padding: 8px 16px; background: transparent; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; color: #666;">${dialogText.cancel}</button>
+      <button class="confirm-btn" style="padding: 8px 16px; background: #e91e63; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">${dialogText.confirm}</button>
     </div>
   `;
 

@@ -48,6 +48,25 @@ Sites are configured in `config/siteHandlers.json` with properties:
 - `enabled`: Whether site is active
 - `region`: Geographic region (China/US)
 
+## Site Config Field Map
+
+- Each site entry currently has required baseline fields:
+  `name`, `url`, `enabled`, `supportUrlQuery`, `region`, `hidden`, `supportIframe`, `searchHandler`, `icon`, `type`
+- Each site entry may additionally include optional top-level fields:
+  `note`, `fileUploadHandler`, `contentExtractor`, `historyHandler`, `userPrompt`
+- `searchHandler.steps[]` and `fileUploadHandler.steps[]` are step arrays. Step objects currently use:
+  `action`, `selector`, `description`, `duration`, `events`, `inputType`, `keys`, `maxAttempts`, `retryInterval`, `waitForElement`, `retryOnDisabled`, `customAction`, `customSetValue`, `messageType`, `required`, `specialConfig`
+- `userPrompt` currently uses:
+  `containerSelector`, `textSelector`, `messageNodeSelector`, `requireMessageNode`, `skipMessageIdPattern`
+- `contentExtractor` currently uses:
+  `containerSelector`, `messageContainer`, `contentSelectors`, `fallbackSelectors`, `selectors`, `excludeSelectors`, `userMessageSelector`, `exportLatestOnly`, `extractThinking`, `thinkingSelector`, `thinkingBlockFilters`, `editModeCheck`, `urlExtractor`
+- `contentExtractor.urlExtractor` currently uses:
+  `alternateLinkSelector`, `urlPattern`, `removeParams`
+- `historyHandler` currently uses:
+  `urlFeature`
+- `type` is currently used for site category such as `information`.
+- When adding a new site, treat the field map above as the full identification surface. The adaptation flow must explain how each field is decided, omitted, or inherited from existing conventions.
+
 ### Key Files to Understand
 
 - `background.js:1-50`: Extension lifecycle and config management
@@ -100,42 +119,211 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 ## New Site Full Adaptation Workflow
 
 - Use this workflow whenever a new AI site is added or when an existing placeholder handler is being replaced with a real one.
-- Step 1: identify the real working URL.
-  A configured entry URL may redirect to another runtime page. Record the final stable workspace URL after login and redirect handling, and prefer that URL in `config/siteHandlers.json` if it is the real page where input and response extraction happen.
-- Step 2: determine whether the site is entry-page-first or workspace-first.
-  If the page opens to a launcher, template picker, cookie gate, or onboarding view, record each bootstrap action separately and mark optional steps as optional. Do not fold bootstrap assumptions into a single vague selector.
-- Step 3: locate the real input primitive.
-  Confirm whether the site uses `textarea`, `contenteditable`, Slate, Lexical, ProseMirror, Angular form controls, or another editor type. The handler must write through the real control type instead of using a generic fallback when the page exposes a stable editor.
-- Step 4: verify the real submit primitive.
-  Test click submission and keyboard submission separately. Some sites visually enable a submit button after input but only the Enter path actually creates a conversation. Choose the path that produces a real session state change, not merely a visual state change.
-- Step 5: validate the exact automation chain in user Chrome.
-  Run the site in the real logged-in Chrome profile and confirm the sequence `focus -> write -> trigger events -> submit` with a deterministic query. For general text sites, the default verification query is `你好世界` unless a site-specific query is required.
-- Step 6: separate input success from task success.
-  A site passes handler validation when automation creates a real conversation, task card, progress state, or failure state attributable to the submitted prompt. Remote model refusal, quota failure, or server error after the prompt is accepted does not by itself mean the wiring is wrong.
-- Step 7: tighten `userPrompt` to the real user message structure.
-  After a successful run, inspect the actual rendered conversation DOM and point `userPrompt.containerSelector` and `userPrompt.textSelector` at the stable user-message nodes. Prefer explicit message rows such as `row-question-*`, question bubbles, or human-message containers over generic page-level text selectors.
-- Step 8: tighten `contentExtractor` to the real answer structure.
-  Prefer `messageContainer + contentSelectors + userMessageSelector + exportLatestOnly` over a long list of broad `selectors` whenever the site has a stable answer row. Point extraction to the final rendered answer body, not to page shells, footers, headers, or search box wrappers.
-- Step 9: explicitly exclude noise.
-  Add `excludeSelectors` for footer areas, policy text, input regions, stop/regenerate controls, attachment areas, assistant-name labels when needed, and any repeated history/sidebar content that can pollute exports.
-- Step 10: verify extraction after the response stabilizes.
-  Re-run against the same real session and confirm that the chosen `contentExtractor` reads the final answer text from the rendered answer body. If the site streams tokens, wait until the answer body settles before concluding the selector failed.
-- Step 11: keep hidden and enabled decisions separate.
-  `hidden` controls whether the site appears in selection UIs, while `enabled` controls whether it is on by default. A newly adapted site can be made visible with `hidden: false` while still staying opt-in with `enabled: false`.
-- Step 12: add a reusable verifier script when the site is non-trivial.
-  If a site depends on redirects, runtime workspace URLs, login state, or special editor behavior, add a focused script under `debug/` that connects to the user Chrome session and proves the handler still works against the real page.
+- Step 1: identify `name`, `url`, and the real working runtime URL.
+  Confirm the canonical user-facing site name and the real landing/runtime URL. A configured entry URL may redirect to another workspace page after login. Prefer the runtime page in `url` if that is where input, history detection, and extraction actually happen.
+- Step 2: identify `region`, `type`, `note`, `enabled`, and `hidden`.
+  `region` should reflect the site’s actual service region or the repo’s existing categorization pattern. `type` should match the existing site category conventions. `note` should capture the one-line operational nuance that matters for maintenance, such as “requires click submit” or “pricing redirect means credits exhausted”. `enabled` and `hidden` must be decided separately: `enabled` is default-on behavior, while `hidden` is UI visibility. If the site is newly adapted, prefer conservative defaults unless there is a reason to expose or enable it immediately.
+- Step 3: identify `supportIframe`.
+  Do not guess. Validate whether the page can be embedded under the extension runtime and check frame-related failures such as `X-Frame-Options`, CSP `frame-ancestors`, login isolation, or post-load blank states. If the site blocks framing or is operationally broken inside an iframe, set `supportIframe: false`.
+- Step 4: identify `supportUrlQuery`.
+  Verify whether the site truly supports query injection through URL parameters and whether the query lands in the real prompt path. Do not set this based on superficial query params in the address bar unless they create a real input or search state.
+- Step 5: identify whether bootstrap actions are needed before the real editor appears.
+  If the page is entry-page-first rather than workspace-first, record bootstrap clicks such as cookie acceptance, “new project”, template selection, or launcher dismissal. Optional bootstrap steps must stay optional and should not be collapsed into a vague generic selector.
+- Step 6: identify `searchHandler.steps[]`.
+  This is the primary automation chain and must be derived from a real user-Chrome run. For each step, determine:
+  `action`: the real operation such as `focus`, `setValue`, `triggerEvents`, `wait`, `click`, `sendKeys`, `custom`, or `paste`.
+  `selector`: the stable target node for that action.
+  `description`: a maintenance-friendly summary of why the step exists.
+  `inputType`: only when the real editor type requires it, such as `contenteditable`, `special`, or `angular`.
+  `events`: only when the page requires explicit event replay such as `input`, `change`, `blur`, `focus`, or `beforeinput`.
+  `keys`: only when keyboard submission is the real trigger.
+  `duration`: only for waits that are proven necessary, such as waiting for a send button to enable.
+  `maxAttempts`, `retryInterval`, `waitForElement`, `retryOnDisabled`: use these when the page is async and selectors or controls do not appear instantly.
+  `customAction`, `customSetValue`, `messageType`, `required`, `specialConfig`: only when the site needs non-standard behavior already supported by the injector.
+- Step 7: verify the exact `searchHandler` path against a deterministic query.
+  Run the exact configured chain in the real logged-in Chrome profile. For general text sites, the default verification query is `你好世界` unless a site-specific query is required. Test click submission and keyboard submission separately; choose the one that causes a real session state change.
+- Step 8: separate local wiring success from remote job success.
+  A site passes handler validation when automation produces a real conversation, task card, progress state, failure state, or pricing/permission redirect that is attributable to the submitted prompt. Remote refusal, quota failure, or credit exhaustion after submit is not by itself a selector failure.
+- Step 9: identify `userPrompt`.
+  After a successful submit, inspect the rendered conversation DOM and determine whether `userPrompt` is needed. When it is needed, resolve `containerSelector` and `textSelector` to the stable user-message nodes. If the site requires stricter matching, also determine `messageNodeSelector`, `requireMessageNode`, and `skipMessageIdPattern`.
+- Step 10: identify `contentExtractor`.
+  Determine whether extraction should use `containerSelector`, `messageContainer`, `contentSelectors`, `fallbackSelectors`, or older `selectors`. Prefer the most structured answer-row extraction that the page supports. Also decide:
+  `userMessageSelector` when extraction must differentiate user and assistant content.
+  `excludeSelectors` for headers, footers, sidebars, input areas, chips, attachments, stop/regenerate controls, process panels, or other repeated noise.
+  `exportLatestOnly` when only the newest answer should be exported.
+  `extractThinking`, `thinkingSelector`, `thinkingBlockFilters` when the site exposes thought/reasoning blocks and the repo should include or filter them.
+  `editModeCheck` when extraction must confirm the page is in the right mode before reading.
+  `urlExtractor` when the canonical exported history URL must be reconstructed from an alternate link pattern rather than `location.href`.
+- Step 11: verify extraction after the answer stabilizes.
+  Re-run extraction against the same real session and confirm that the configured `contentExtractor` reads the final answer body rather than page chrome or the user prompt. If the site streams or lazy-renders content, wait until the answer stabilizes before deciding the selector failed.
+- Step 12: identify `historyHandler`.
+  If the site creates stable history URLs, determine `historyHandler.urlFeature` from the real post-submit URL pattern, such as `/c/`, `/chat`, or `/app/`. If the site has no reliable history URL pattern, omit the field rather than inventing one.
+- Step 13: identify `fileUploadHandler` when the site supports attachment workflows.
+  Only include `fileUploadHandler.steps[]` if the page supports file paste/upload through the extension flow. Its steps should be validated independently from text-submit flow.
+- Step 14: identify `icon`.
+  Resolve the actual favicon or site icon from the live page, not from hostname guessing alone, and save it under `siteIcons/` using the repo convention. If the derived fallback filename is correct and the asset exists, document that; otherwise add the asset explicitly.
+- Step 15: add a reusable verifier script when the site is non-trivial.
+  If the site depends on redirects, runtime workspace URLs, login state, special editors, quota redirects, or same-domain path changes, add a focused script under `debug/` that proves the configured fields still work in the real browser context.
 
 ## New Site Acceptance Checklist
 
+- The top-level field set has been evaluated: `name`, `url`, `enabled`, `supportUrlQuery`, `region`, `hidden`, `supportIframe`, `searchHandler`, `icon`, `type`, plus any optional fields that apply.
 - The final runtime URL is known and documented.
 - Bootstrap steps are documented as required or optional.
+- `supportIframe` and `supportUrlQuery` are verified rather than guessed.
 - The real editor type is identified and the handler writes through the correct primitive.
 - The real submit path is validated with the deterministic query.
 - The page enters a real post-submit state caused by the prompt.
 - `userPrompt` points to stable user-message nodes.
 - `contentExtractor` points to stable assistant-answer nodes.
+- `historyHandler`, `fileUploadHandler`, `note`, and `icon` have all been explicitly decided.
 - `excludeSelectors` remove page chrome and repeated noise.
 - A debug verifier exists for non-trivial sites or redirect-heavy flows.
+
+## New Site Field Decision Template
+
+- Use the template below whenever a new site is added or a placeholder site is being upgraded to a real integration.
+- For every field, record one of:
+  `set`: the field is required and you have a concrete value.
+  `omit`: the field is optional and the site does not need it.
+  `defer`: the field exists but cannot yet be validated because the remote site is blocked by login, quota, rollout, or another external constraint.
+- Do not mark a field as complete without a real-browser reason. Every non-trivial field should have a short evidence note.
+
+```md
+### New Site Decision Record
+
+Site name:
+Configured name:
+Candidate URL:
+Final runtime URL:
+Verification query:
+Verification environment:
+
+#### Top-level fields
+
+- `name`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `url`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `enabled`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `supportUrlQuery`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `region`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `hidden`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `supportIframe`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `note`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `icon`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+- `type`:
+  status: `set | omit | defer`
+  value:
+  evidence:
+
+#### `searchHandler`
+
+- needed:
+  `yes | no`
+- evidence:
+
+- `steps[]`:
+  record each step in order with:
+  `action`, `selector`, `description`, and any applicable `inputType`, `events`, `keys`, `duration`, `maxAttempts`, `retryInterval`, `waitForElement`, `retryOnDisabled`, `customAction`, `customSetValue`, `messageType`, `required`, `specialConfig`
+
+#### `userPrompt`
+
+- needed:
+  `yes | no`
+- evidence:
+- `containerSelector`:
+- `textSelector`:
+- `messageNodeSelector`:
+- `requireMessageNode`:
+- `skipMessageIdPattern`:
+
+#### `contentExtractor`
+
+- needed:
+  `yes | no`
+- evidence:
+- `containerSelector`:
+- `messageContainer`:
+- `contentSelectors`:
+- `fallbackSelectors`:
+- `selectors`:
+- `excludeSelectors`:
+- `userMessageSelector`:
+- `exportLatestOnly`:
+- `extractThinking`:
+- `thinkingSelector`:
+- `thinkingBlockFilters`:
+- `editModeCheck`:
+- `urlExtractor`:
+  - `alternateLinkSelector`:
+  - `urlPattern`:
+  - `removeParams`:
+
+#### `historyHandler`
+
+- needed:
+  `yes | no`
+- evidence:
+- `urlFeature`:
+
+#### `fileUploadHandler`
+
+- needed:
+  `yes | no`
+- evidence:
+- `steps[]`:
+
+#### Verification outcome
+
+- bootstrap path:
+- real editor type:
+- real submit path:
+- real post-submit state:
+- remote failure mode, if any:
+- verifier script path:
+- remaining risk:
+```
+
+## Field Completion Rule
+
+- A new site is not fully adapted until every top-level field from the field map has been explicitly marked as `set`, `omit`, or `defer`.
+- Optional fields may be omitted, but omission must be a conscious decision backed by the real site behavior.
+- If a field is marked `defer`, the blocker must be written down together with the exact evidence already collected, so the next pass can resume without re-discovering the site from scratch.
 
 ## Nano Banana Flow
 
@@ -171,6 +359,36 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - When a site lives under a shared domain and the runtime page can redirect from an entry URL to a different workspace path, do not rely on URL-prefix matching alone for handler lookup.
 - If the iframe or injected message already carries the exact `siteName`, resolve the handler by `siteName + same-domain` first, then use path scoring only as a secondary signal.
 - Keep strict path matching for cases where `siteName` is absent, so different products on the same domain are not accidentally mixed together.
+
+## MinxMax Flow
+
+- Site: `MinxMax`
+  URL: `https://agent.minimax.io/`
+- Validation must run in the real user Chrome profile because the site uses an authenticated workspace and Cloudflare/browser context affects what the runtime page exposes.
+- Landing behavior:
+  the root URL is already the real working page. No extra bootstrap click is required before the prompt editor appears.
+- iframe rule:
+  `https://agent.minimax.io/` returns `X-Frame-Options: SAMEORIGIN`, so `supportIframe` must stay `false`.
+- Verified prompt selector:
+  `div.tiptap.ProseMirror.tiptap-editor`
+- Verified editor type:
+  Tiptap / ProseMirror `contenteditable`, not a textarea.
+- Verified submit trigger:
+  `#input-send-icon` or its direct child. Real submission happens through click; Enter alone did not create a conversation during validation.
+- Verified post-submit transition:
+  after prompt injection and send-button click, the page redirects from `/` to `/chat?id=<id>` and creates a real conversation/task.
+- Current remote-failure pattern:
+  if the logged-in account lacks credits, the same submit path may redirect from the chat flow to `/pricing?fromChat=true&revokeInfo=...`. Treat that as wiring-valid but remote-credit-blocked, not as a selector failure.
+- Verified user-message structure:
+  the rendered user prompt appears under `#message-container div.message.sent`, with visible text in `div.message-content`.
+- Extraction guidance:
+  keep assistant extraction scoped to `#message-container div.message:not(.sent)` and exclude the top skill chips row plus the right-side studio/process area. Do not use page-wide selectors because task history, tab labels, and the process panel all echo prompt-related text.
+- Current process panel:
+  the right-side process workspace lives under `#mmx-studio`. It is not the primary answer body and should be excluded from the default `contentExtractor`.
+- Verified history URL rule:
+  chat sessions land on `/chat?id=...`, so the history detector should use `/chat`.
+- Verified icon source:
+  the favicon can be resolved from the live browser context at `https://agent.minimax.io/assets/logo/favicon_v2.png?v=4`; the local icon asset should be stored as `siteIcons/agent.minimax.io.png`.
 
 ## Extension ID For Testing
 
