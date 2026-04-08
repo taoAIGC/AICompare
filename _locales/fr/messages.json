@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "Aucun prompt enregistre pour le moment",
-    "description": "Message shown when there are no saved prompts"
+    "message": "Aucun historique en favoris pour le moment",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "Enregistrer le prompt",

@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "Noch keine gespeicherten Prompts",
-    "description": "Message shown when there are no saved prompts"
+    "message": "Noch kein favorisierter Verlauf",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "Prompt speichern",

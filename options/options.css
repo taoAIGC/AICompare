@@ -26,6 +26,17 @@ body {
   height: 100vh;
 }
 
+.sidebar-nav-header .app-icon-link {
+  background: transparent;
+  box-shadow: none;
+}
+
+.sidebar-nav-header .app-icon-link:hover {
+  background: #e8ecf3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+}
+
 
 .sidebar-nav .action-links {
   display: flex;

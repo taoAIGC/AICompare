@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "保存されたプロンプトはまだありません",
-    "description": "Message shown when there are no saved prompts"
+    "message": "お気に入りの履歴はまだありません",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "プロンプトを保存",

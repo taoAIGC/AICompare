@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "لا توجد موجهات محفوظة بعد",
-    "description": "Message shown when there are no saved prompts"
+    "message": "لا يوجد سجل محفوظ في المفضلة بعد",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "حفظ الموجه",

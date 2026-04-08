@@ -119,6 +119,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, and `debug/verify-metaso-live.js`.
 
+### OpenClaw skill integration
+
+- A ready-to-use bridge is available under `openclaw/`.
+- Runner entry: `node openclaw/ai-compare-openclaw-runner.js --query "your query"`.
+- Integration guide: `openclaw/README.md`.
+- The extension page now exposes `window.aiCompareOpenClaw.run(options)` for automation.
+
 ---
 
 ## 中文
@@ -233,18 +240,21 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。
 - 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`。
 
+### OpenClaw 技能接入
+
+- 仓库 `openclaw/` 目录提供了可直接使用的桥接方案。
+- Runner 入口：`node openclaw/ai-compare-openclaw-runner.js --query "你的问题"`。
+- 对接说明见 `openclaw/README.md`。
+- 扩展对比页新增自动化接口：`window.aiCompareOpenClaw.run(options)`。
+
 ---
 
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-03-30 10:36:54 UTC+08:00
+Last auto-update / 最近自动更新：2026-04-08 16:53:02 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
-- `M` `.gitignore`
-- `M` `AGENTS.md`
-- `A` `_locales/.DS_Store`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -256,32 +266,31 @@ Last auto-update / 最近自动更新：2026-03-30 10:36:54 UTC+08:00
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
-- `M` `config/appConfig.json`
-- `M` `config/baseConfig.js`
 - `M` `config/siteHandlers.json`
-- `M` `content-scripts/float-button.js`
-- `M` `content-scripts/site-button.js`
-- `M` `debug/verify-metaso-live.js`
+- `M` `homepage/homepage.css`
 - `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
+- `A` `homepage/site-indicator-utils.js`
+- `A` `icons/chevron-left.svg`
+- `A` `icons/circle-arrow-out-up-right.svg`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
+- `A` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
-- `A` `node_modules/.DS_Store`
+- `A` `openclaw/README.md`
+- `A` `openclaw/SKILL.md`
+- `A` `openclaw/ai-compare-openclaw-runner.js`
+- `M` `options/options.css`
 - `M` `options/options.html`
-- `M` `options/options.js`
-- `A` `shared/prompt-template-utils.js`
-- `A` `siteIcons/agent.minimax.io.png`
-- `M` `siteIcons/manus.im.png`
-- `A` `tests/prompt-template-utils.test.js`
+- `A` `shared/iframe-query-run-utils.mjs`
+- `A` `siteIcons/arena.ai.png`
 
 ### Recent commits / 最近提交
+- `d671284` 2026-03-30 V 2.21.4 修复秘塔、claude，提示词分组
 - `ec08961` 2026-03-24 V2.21.3 划词支持选择模板、支持配置
 - `62720e7` 2026-03-23 V2.21.2 划词中的快捷搜索增加开关
 - `c8286be` 2026-03-23 V 2.21.1 划词支持模板
 - `bbd293e` 2026-03-22 V2.20.5 增加 perplexity 等站点
-- `0d7ece6` 2026-03-17 V 2.20.4 翻译更多站点
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

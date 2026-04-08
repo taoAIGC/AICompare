@@ -1,6 +1,6 @@
 {
-  "version": "1.2.4",
-  "lastUpdated": "2026-03-22T00:00:00Z",
+  "version": "1.2.6",
+  "lastUpdated": "2026-03-31T00:00:00Z",
   "description": "支持重试功能",
   "author": "AIShortcuts",
   "sites": [
@@ -474,7 +474,7 @@
     {
       "name": "AI Studio",
       "url": "https://aistudio.google.com/",
-      "enabled": false,
+      "enabled": true,
       "supportUrlQuery": false,
       "region": "US",
       "hidden": false,
@@ -565,7 +565,7 @@
         "textSelector": "[data-testid^=\"message-prompt\"] .markdown"
       },
       "icon": "aistudio.google.com.png",
-      "type": "information"
+      "type": "Agents"
     },
     {
       "name": "DeepSeek",
@@ -817,58 +817,6 @@
       "type": "information"
     },
     {
-      "name": "问小白",
-      "url": "https://www.wenxiaobai.com/",
-      "enabled": false,
-      "supportUrlQuery": false,
-      "region": "China",
-      "hidden": true,
-      "supportIframe": false,
-      "note": "未来后续支持",
-      "searchHandler": {
-        "steps": [
-          {
-            "action": "focus",
-            "selector": "textarea",
-            "description": "聚焦输入框"
-          },
-          {
-            "action": "setValue",
-            "selector": "textarea",
-            "description": "设置输入框的值"
-          },
-          {
-            "action": "triggerEvents",
-            "selector": "textarea",
-            "events": [
-              "input",
-              "change",
-              "blur",
-              "focus"
-            ],
-            "description": "触发输入事件"
-          },
-          {
-            "action": "wait",
-            "duration": 100,
-            "description": "等待100ms"
-          },
-          {
-            "action": "sendKeys",
-            "selector": "textarea",
-            "keys": "Enter",
-            "description": "发送回车键"
-          }
-        ]
-      },
-      "userPrompt": {
-        "containerSelector": "[class*=\"Question_question_container\"]",
-        "textSelector": "pre[class*=\"Question_question_content_pre\"]"
-      },
-      "icon": "www.wenxiaobai.com.png",
-      "type": "information"
-    },
-    {
       "name": "秘塔",
       "url": "https://metaso.cn/",
       "enabled": false,
@@ -978,7 +926,7 @@
       "enabled": false,
       "supportUrlQuery": false,
       "region": "China",
-      "hidden": true,
+      "hidden": false,
       "supportIframe": true,
       "note": "希望有可以给出合理的 steps",
       "searchHandler": {
@@ -1241,13 +1189,79 @@
       "type": "information"
     },
     {
+      "name": "Arena",
+      "url": "https://arena.ai/text/side-by-side",
+      "enabled": false,
+      "supportUrlQuery": false,
+      "region": "Global",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "已验证基础页可访问，输入框为 textarea[name=\"message\"]。站点返回 X-Frame-Options: SAMEORIGIN 且 CSP frame-ancestors 仅允许 huggingface 域，扩展 iframe 不可嵌入。当前页面常见为脚本输入后发送按钮仍禁用，提交步骤设为可选并允许用户手动发送。",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "click",
+            "selector": "text:agree",
+            "required": false,
+            "description": "可选：关闭可能出现的条款同意层"
+          },
+          {
+            "action": "focus",
+            "selector": "textarea[name=\"message\"]",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 400,
+            "description": "聚焦 Arena Side by Side 输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "textarea[name=\"message\"]",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 400,
+            "description": "设置 Arena Side by Side 输入内容"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "textarea[name=\"message\"]",
+            "events": [
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 400,
+            "description": "触发输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待输入状态同步"
+          },
+          {
+            "action": "click",
+            "selector": "button[type=\"submit\"]",
+            "required": false,
+            "retryOnDisabled": true,
+            "maxAttempts": 6,
+            "retryInterval": 500,
+            "description": "可选：点击提交按钮（页面禁用或防自动化时允许跳过）"
+          }
+        ]
+      },
+      "icon": "arena.ai.png",
+      "type": "information"
+    },
+    {
       "name": "纳米AI",
       "url": "https://nanoai.live/",
       "enabled": false,
       "supportUrlQuery": false,
       "region": "China",
       "hidden": true,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "待后续支持，网站目前无法访问",
       "searchHandler": {
         "steps": [
@@ -1272,7 +1286,7 @@
       "supportUrlQuery": false,
       "region": "China",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "已在真实页面验证：textarea + Enter 会创建带 cid 的会话；文件型 paste 到同一 textarea 后会出现上传中文件条目。",
       "searchHandler": {
         "steps": [
@@ -1965,7 +1979,7 @@
       "supportUrlQuery": true,
       "region": "US",
       "hidden": false,
-      "supportIframe": true,
+      "supportIframe": false,
       "note": "",
       "searchHandler": {
         "steps": [
@@ -2303,11 +2317,11 @@
     {
       "name": "MiniMax",
       "url": "https://agent.minimax.io/",
-      "enabled": false,
+      "enabled": true,
       "supportUrlQuery": false,
       "region": "China",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "已在真实 Chrome 中验证：Tiptap/ProseMirror 输入 + 点击发送会创建真实 /chat?id=... 会话；站点返回 SAMEORIGIN，不能走 iframe",
       "searchHandler": {
         "steps": [
@@ -2402,11 +2416,11 @@
     {
       "name": "Manus",
       "url": "https://manus.im/app",
-      "enabled": false,
+      "enabled": true,
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "note": "已在真实 Chrome 中验证：工作区首页与任务页都使用 ProseMirror contenteditable 输入框，写入后发送按钮会短暂延迟启用；点击发送会从 /app 进入真实 /app/<taskId> 任务页。manus.im/app 返回 SAMEORIGIN，不能走 iframe。",
       "searchHandler": {
         "steps": [
@@ -2608,7 +2622,7 @@
     {
       "name": "Google Translate",
       "url": "https://translate.google.com/?sl=auto&tl=en&op=translate",
-      "enabled": false,
+      "enabled": true,
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,
@@ -2653,7 +2667,7 @@
     {
       "name": "Bing Translate",
       "url": "https://www.bing.com/translator",
-      "enabled": false,
+      "enabled": true,
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,

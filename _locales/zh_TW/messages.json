@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "暫無收藏的提示詞",
-    "description": "Message shown when there are no saved prompts"
+    "message": "暫無收藏的歷史記錄",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "收藏提示詞",

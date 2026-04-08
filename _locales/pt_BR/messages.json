@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "Ainda nao ha prompts salvos",
-    "description": "Message shown when there are no saved prompts"
+    "message": "Ainda nao ha historico favoritado",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "Salvar prompt",

@@ -124,6 +124,10 @@ function getHomepagePromptTemplateType() {
         || DEFAULT_SITE_GROUP;
 }
 
+function getHomepageSiteIndicatorIcon(site) {
+    return window.HomepageSiteIndicatorUtils?.getHomepageSiteIndicatorIcon?.(site) || null;
+}
+
 function getAvailableSiteGroups(sites) {
     const configuredGroups = Array.isArray(homepageSitesState.configuredGroups) && homepageSitesState.configuredGroups.length > 0
         ? homepageSitesState.configuredGroups
@@ -225,11 +229,27 @@ function renderSitesList() {
         nameLabel.textContent = site.name;
         nameLabel.htmlFor = `site-${site.name}`;
 
+        const siteIndicatorIcon = getHomepageSiteIndicatorIcon(site);
+        let indicator = null;
+        if (siteIndicatorIcon) {
+            indicator = document.createElement('img');
+            indicator.className = 'site-support-indicator';
+            indicator.src = siteIndicatorIcon;
+            indicator.alt = '';
+            indicator.setAttribute('aria-hidden', 'true');
+            indicator.draggable = false;
+        }
+
         div.addEventListener('click', (e) => {
             if (sitesList.classList.contains('drag-active')) {
                 return;
             }
-            if (e.target !== checkbox && e.target !== nameLabel && e.target !== dragHandle) {
+            if (
+                e.target !== checkbox
+                && e.target !== nameLabel
+                && e.target !== dragHandle
+                && e.target !== indicator
+            ) {
                 checkbox.click();
             }
         });
@@ -237,6 +257,9 @@ function renderSitesList() {
         div.appendChild(dragHandle);
         div.appendChild(checkbox);
         div.appendChild(nameLabel);
+        if (indicator) {
+            div.appendChild(indicator);
+        }
         fragment.appendChild(div);
     });
 
@@ -671,12 +694,23 @@ function showPinGuide() {
     }
 }
 
-function handleQuery(query) {
+async function handleQuery(query) {
     // 解析输入文本（如果有前缀，去掉前缀）
     const processedQuery = query.replace(/^ai\s+/, '').trim();
     
     // 获取选中的站点列表
     const selectedSites = getSelectedSites();
+    const selectedSiteConfigs = homepageSitesState.supportedSites.filter(site =>
+        selectedSites.includes(site.name)
+    );
+    const iframeSiteNames = selectedSiteConfigs
+        .filter(site => site.supportIframe === true)
+        .map(site => site.name)
+        .filter(Boolean);
+    const externalSiteNames = selectedSiteConfigs
+        .filter(site => site.supportIframe !== true)
+        .map(site => site.name)
+        .filter(Boolean);
     
     // 检查当前页面是否在侧边栏中
     const urlParams = new URLSearchParams(window.location.search);
@@ -703,18 +737,46 @@ function handleQuery(query) {
         query_length: processedQuery.length,
         selected_sites_count: selectedSites.length,
         selected_sites: selectedSites,
+        iframe_sites_count: iframeSiteNames.length,
+        external_sites_count: externalSiteNames.length,
         side_panel: isSidePanel,
         has_query: Boolean(processedQuery)
     });
     
-    // 构建 URL（使用相对路径，在当前页面跳转）
-    let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
-    if (params.toString()) {
-        searchUrl += '?' + params.toString();
+    try {
+        if (externalSiteNames.length > 0) {
+            const externalSearchPromise = chrome.runtime.sendMessage({
+                action: 'processQuery',
+                query: processedQuery,
+                sites: externalSiteNames,
+                openIframePage: false
+            });
+            if (iframeSiteNames.length > 0) {
+                externalSearchPromise.catch((error) => {
+                    console.error('homepage 外部站点查询处理失败:', error);
+                });
+            } else {
+                const response = await externalSearchPromise;
+                if (!response?.success) {
+                    throw new Error(response?.error || 'processQuery failed');
+                }
+            }
+        }
+
+        if (iframeSiteNames.length > 0) {
+            params.set('sites', iframeSiteNames.join(','));
+
+            let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
+            if (params.toString()) {
+                searchUrl += '?' + params.toString();
+            }
+
+            window.location.href = searchUrl;
+        }
+    } catch (error) {
+        console.error('homepage 查询处理失败:', error);
+        showToast(t('homepageSearchFailed', '搜索启动失败，请重试'));
     }
-    
-    // 在当前页面跳转，而不是打开新标签页
-    window.location.href = searchUrl;
 }
 
 // 获取选中的站点名称列表

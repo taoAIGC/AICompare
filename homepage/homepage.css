@@ -985,6 +985,15 @@ body.search-bar-bottom .query-suggestions {
     flex-shrink: 0;
 }
 
+.site-support-indicator {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.65;
+    cursor: default;
+    user-select: none;
+}
+
 @media (max-width: 760px) {
     .sites-list {
         grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "No saved prompts yet",
-    "description": "Message shown when there are no saved prompts"
+    "message": "No favorited history yet",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "Save Prompt",
@@ -475,6 +475,9 @@
   },
   "noSitesSelected": {
     "message": "Please select at least one site"
+  },
+  "homepageSearchFailed": {
+    "message": "Failed to start the search. Please try again."
   },
   "automationNotice": {
     "message": "If a website updates, its automated query feature may stop working. We apologize for any inconvenience. If you notice it has stopped working, please contact us for an update."

@@ -413,8 +413,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.action === 'createComparisonPage') {
     console.log('createComparisonPage-opensearchtab:', message.query);
-    openSearchTabs(message.query).then(() => {
-      sendResponse({ success: true });
+    openSearchTabs(message.query).then((result) => {
+      sendResponse({ success: true, result });
     }).catch(error => {
       console.error('创建对比页面失败:', error);
       sendResponse({ success: false, error: error.message });
@@ -424,8 +424,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   else if (message.action === 'processQuery') {
     // 添加对 processQuery 消息的处理
     console.log('processQuery:', message.query, message.sites);
-    openSearchTabs(message.query, message.sites).then(() => {
-      sendResponse({ success: true });
+    openSearchTabs(message.query, message.sites, {
+      openIframePage: message.openIframePage !== false
+    }).then((result) => {
+      sendResponse({ success: true, result });
     }).catch(error => {
       console.error('处理查询失败:', error);
       sendResponse({ success: false, error: error.message });
@@ -719,13 +721,18 @@ async function getHandlerForUrl(url) {
 }
 
 // 修改后的 openSearchTabs 函数
-async function openSearchTabs(query, checkedSites = null) {
+async function openSearchTabs(query, checkedSites = null, options = {}) {
   console.log('开始执行多AI查询 查询词:', query);
+  const shouldOpenIframePage = options.openIframePage !== false;
   const sites = await self.getDefaultSites();
   
   if (!sites || !sites.length) {
     console.error('未找到AI站点配置');
-    return;
+    return {
+      iframeSiteNames: [],
+      externalSiteNames: [],
+      openedIframePage: false
+    };
   }
   
   // 首先检查是否有符合条件的站点
@@ -740,8 +747,20 @@ async function openSearchTabs(query, checkedSites = null) {
   const iframeSites = result.filter(site => 
       site.supportIframe === true
   );
+  const externalSites = result.filter(site =>
+      site.supportIframe !== true
+  );
 
-  if (iframeSites.length > 0) {
+  if (externalSites.length > 0) {
+      console.log('找到不支持 iframe 的站点，将使用新标签页打开:', externalSites);
+      openExternalSitesSequentially(query, externalSites).catch(error => {
+          console.error('逐个打开非 iframe 站点失败:', error);
+      });
+  }
+
+  let openedIframePage = false;
+
+  if (iframeSites.length > 0 && shouldOpenIframePage) {
       console.log('找到支持 iframe 的启用站点:', iframeSites);
       
       const newTab = await chrome.tabs.create({
@@ -762,6 +781,23 @@ async function openSearchTabs(query, checkedSites = null) {
               });
           }
       });
+      openedIframePage = true;
+  }
+
+  return {
+      iframeSiteNames: iframeSites.map(site => site.name).filter(Boolean),
+      externalSiteNames: externalSites.map(site => site.name).filter(Boolean),
+      openedIframePage
+  };
+}
+
+async function openExternalSitesSequentially(query, sites) {
+  for (const site of sites) {
+    try {
+      await handleSingleSiteSearch(query, site.name);
+    } catch (error) {
+      console.error(`非 iframe 站点打开失败: ${site.name}`, error);
+    }
   }
 }
 

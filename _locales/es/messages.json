@@ -201,8 +201,8 @@
     "description": "Error message when Firebase download fails"
   },
   "noFavorites": {
-    "message": "Aun no hay prompts guardados",
-    "description": "Message shown when there are no saved prompts"
+    "message": "Aun no hay historial en favoritos",
+    "description": "Message shown when there is no favorited history"
   },
   "favoriteButton": {
     "message": "Guardar prompt",

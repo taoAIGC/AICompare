@@ -1,3 +1,7 @@
+import {
+  getIframeLoadBehavior
+} from '../shared/iframe-query-run-utils.mjs';
+
 // 全局文件粘贴检测和处理
 let filePasteHandlerAdded = false;
 
@@ -2510,48 +2514,66 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   let clickHandlerAdded = false;
   
   iframe.addEventListener('load', () => {
-    if (clickHandlerAdded) return; // 如果已经添加过处理器，直接返回
-    
-    try {
-      // 添加点击事件监听器
-      iframe.contentWindow.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (link && link.href) {
-          e.preventDefault();
-          window.open(link.href, '_blank');
-           console.log("iframe 内点击事件处理成功")
-        }
-      });
+    const currentInputQuery = document.getElementById('searchInput')?.value || '';
+    const loadBehavior = getIframeLoadBehavior({
+      initialQuery: query,
+      lastQuery: iframeContainer.dataset.lastQuery,
+      currentInputQuery,
+      clickHandlerAdded
+    });
 
-      
-      clickHandlerAdded = true;
-    } catch (error) {
-      console.log('无法直接添加监听器，将通过 inject.js 处理');
-      
-      // 只在未添加处理器时注入
-      if (!clickHandlerAdded) {
-        iframe.contentWindow.postMessage({
-          type: 'INJECT_CLICK_HANDLER',
-          source: 'iframe-parent'
-        }, '*');
+    if (loadBehavior.shouldBindClickHandler) {
+      try {
+        // 添加点击事件监听器
+        iframe.contentWindow.addEventListener('click', (e) => {
+          const link = e.target.closest('a');
+          if (link && link.href) {
+            e.preventDefault();
+            window.open(link.href, '_blank');
+             console.log("iframe 内点击事件处理成功")
+          }
+        });
+
         clickHandlerAdded = true;
+      } catch (error) {
+        console.log('无法直接添加监听器，将通过 inject.js 处理');
+        
+        // 只在未添加处理器时注入
+        if (!clickHandlerAdded) {
+          iframe.contentWindow.postMessage({
+            type: 'INJECT_CLICK_HANDLER',
+            source: 'iframe-parent'
+          }, '*');
+          clickHandlerAdded = true;
+        }
       }
     }
     
     // 处理查询内容（如果有的话）
-    if (query) {
-      console.log("iframe onload 加载完成，查询内容:", query);
+    const latestQuery = loadBehavior.resolvedQuery;
+    iframeContainer.dataset.lastQuery = latestQuery;
+
+    if (latestQuery) {
+      console.log("iframe onload 加载完成，查询内容:", latestQuery);
       
       // 使用异步函数处理
       (async () => {
         const sites = await window.getDefaultSites();
         const site = sites.find(s => s.name === siteName) || sites.find(s => s.url === url || url.startsWith(s.url));
-        if (site && !site.supportUrlQuery) {
+        const shouldAutoRunQuery = site ? getIframeLoadBehavior({
+          initialQuery: query,
+          lastQuery: latestQuery,
+          currentInputQuery,
+          supportUrlQuery: site.supportUrlQuery,
+          clickHandlerAdded
+        }).shouldAutoRunQuery : false;
+
+        if (shouldAutoRunQuery) {
           // 使用动态处理函数
           const handler = await getIframeHandler(url, site.name);
           if (handler) {
             console.log('执行动态 iframe 处理函数:', site.name);
-            await handler(iframe, query);
+            await handler(iframe, latestQuery);
           } else {
             console.log('未找到对应的处理函数', site.name);
           }

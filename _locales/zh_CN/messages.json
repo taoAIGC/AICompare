@@ -3,7 +3,7 @@
     "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI比一比 - 一键对比 ChatGPT, Gemini, Grok 等多个AI"
+    "message": "AI比一比 - 多AI一键对比 ChatGPT, Gemini, Grok 等多个AI"
   },
   "extDescription": {
     "message": "帮你从十多个AI中快速找到最佳答案。"
@@ -196,8 +196,8 @@
     "description": "从 Firebase 下载用户数据失败时的提示"
   },
   "noFavorites": {
-    "message": "暂无收藏的提示词",
-    "description": "没有保存提示词时显示的消息"
+    "message": "暂无收藏的历史记录",
+    "description": "没有收藏的历史记录时显示的消息"
   },
   "favoriteButton": {
     "message": "收藏提示词",
@@ -470,6 +470,9 @@
   },
   "noSitesSelected": {
     "message": "请至少选择一个站点"
+  },
+  "homepageSearchFailed": {
+    "message": "搜索启动失败，请重试"
   },
   "automationNotice": {
     "message": "如果网站更新，对应的自动化提问功能会失效，敬请谅解。发现失效，可以与我联系更新。"
