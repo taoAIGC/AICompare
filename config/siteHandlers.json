@@ -1,6 +1,6 @@
 {
-  "version": "1.2.6",
-  "lastUpdated": "2026-03-31T00:00:00Z",
+  "version": "1.2.7",
+  "lastUpdated": "2026-04-08T00:00:00Z",
   "description": "支持重试功能",
   "author": "AIShortcuts",
   "sites": [
@@ -704,32 +704,28 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea[data-testid=\"chat_input_input\"]",
+            "selector": [
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[data-testid=\"chat_input_input\"]"
+            ],
             "description": "聚焦豆包输入框"
           },
           {
             "action": "setValue",
-            "selector": "textarea[data-testid=\"chat_input_input\"]",
+            "selector": [
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[data-testid=\"chat_input_input\"]"
+            ],
             "description": "设置豆包输入框的值"
           },
           {
-            "action": "triggerEvents",
-            "selector": "textarea[data-testid=\"chat_input_input\"]",
-            "events": [
-              "input",
-              "change",
-              "blur",
-              "focus",
-              "keydown",
-              "keyup",
-              "keypress"
+            "action": "sendKeys",
+            "selector": [
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[data-testid=\"chat_input_input\"]"
             ],
-            "description": "触发多种输入事件"
-          },
-          {
-            "action": "click",
-            "selector": "#flow-end-msg-send",
-            "description": "点击豆包发送按钮"
+            "keys": "Enter",
+            "description": "发送回车键"
           }
         ]
       },
@@ -737,7 +733,10 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea[data-testid=\"chat_input_input\"]",
+            "selector": [
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[data-testid=\"chat_input_input\"]"
+            ],
             "description": "聚焦豆包输入框准备文件粘贴"
           },
           {
@@ -752,48 +751,28 @@
         ]
       },
       "contentExtractor": {
-        "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".doubao-message .markdown",
-          ".doubao-message",
-          ".message-content .markdown",
-          ".message-content",
-          "[class*=\"doubao\"][class*=\"message\"]",
-          "[class*=\"doubao\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".doubao-response",
-          "[class*=\"doubao-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]",
-          "[data-testid*=\"message\"]",
-          "[data-testid*=\"response\"]"
+        "containerSelector": "div[aria-label=\"doc_editor\"]",
+        "contentSelectors": [
+          ".container-PvPoAn:not(:has(.whitespace-pre-wrap))",
+          ".item-kDun2N:not(:has(.whitespace-pre-wrap))",
+          ".w-full.inner-item-w21SQO:not(:has(.whitespace-pre-wrap))"
         ],
         "fallbackSelectors": [
-          "main",
-          "article",
-          ".container",
-          "[class*=\"content\"]",
-          "[class*=\"result\"]",
-          "[class*=\"output\"]"
+          ".content-Xv_Zw0",
+          ".message-list-S2Fv2S",
+          ".scroll-view-OEiNXD.container-gkoWqI",
+          "main"
         ],
         "excludeSelectors": [
+          "[data-plugin-identifier=\"block_type:10000\"]",
           "nav",
           "header",
           "footer",
           ".sidebar",
           ".menu",
-          ".input",
-          ".prompt",
-          "[class*=\"input\"]",
-          "[class*=\"prompt\"]",
-          "[class*=\"user\"]",
-          "[class*=\"question\"]",
+          "button",
+          "textarea",
+          "[placeholder=\"发消息...\"]",
           ".copy-button",
           "[class*=\"copy\"]",
           ".regenerate-button",
@@ -804,14 +783,16 @@
           "[class*=\"attachment\"]",
           "[data-testid*=\"input\"]",
           "[data-testid*=\"send\"]"
-        ]
+        ],
+        "userMessageSelector": "[data-plugin-identifier=\"block_type:10000\"]",
+        "exportLatestOnly": true
       },
       "historyHandler": {
         "urlFeature": "/chat/"
       },
       "userPrompt": {
-        "containerSelector": "[data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], [data-plugin-identifier=\"block_type:10000\"].flex.justify-end [data-testid=\"message_text_content\"]",
-        "textSelector": "[data-testid=\"message_text_content\"]"
+        "containerSelector": "[data-plugin-identifier=\"block_type:10000\"].flex.justify-end, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]",
+        "textSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-testid=\"message_text_content\"]"
       },
       "icon": "doubao.com.png",
       "type": "information"
@@ -926,7 +907,7 @@
       "enabled": false,
       "supportUrlQuery": false,
       "region": "China",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "note": "希望有可以给出合理的 steps",
       "searchHandler": {

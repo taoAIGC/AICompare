@@ -252,45 +252,19 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-04-08 16:53:02 UTC+08:00
+Last auto-update / 最近自动更新：2026-04-12 11:12:14 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/de/messages.json`
-- `M` `_locales/en/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/pt_BR/messages.json`
-- `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
+- `M` `.DS_Store`
 - `M` `config/siteHandlers.json`
-- `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `A` `homepage/site-indicator-utils.js`
-- `A` `icons/chevron-left.svg`
-- `A` `icons/circle-arrow-out-up-right.svg`
-- `M` `iframe/iframe.html`
-- `M` `iframe/iframe.js`
-- `A` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
-- `A` `openclaw/README.md`
-- `A` `openclaw/SKILL.md`
-- `A` `openclaw/ai-compare-openclaw-runner.js`
-- `M` `options/options.css`
-- `M` `options/options.html`
-- `A` `shared/iframe-query-run-utils.mjs`
-- `A` `siteIcons/arena.ai.png`
 
 ### Recent commits / 最近提交
+- `ef11035` 2026-04-08 V 2.21.5 修复不支持 iframe 的站点
 - `d671284` 2026-03-30 V 2.21.4 修复秘塔、claude，提示词分组
 - `ec08961` 2026-03-24 V2.21.3 划词支持选择模板、支持配置
 - `62720e7` 2026-03-23 V2.21.2 划词中的快捷搜索增加开关
 - `c8286be` 2026-03-23 V 2.21.1 划词支持模板
-- `bbd293e` 2026-03-22 V2.20.5 增加 perplexity 等站点
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->
