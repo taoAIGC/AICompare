@@ -692,6 +692,89 @@
       "type": "information"
     },
     {
+      "name": "点点(小红书AI)",
+      "url": "https://dots.ai/",
+      "enabled": false,
+      "supportUrlQuery": false,
+      "region": "Global",
+      "hidden": false,
+      "supportIframe": true,
+      "note": "已在用户 Chrome 中验证：根页会落到 /chat/home/<id> 工作区，输入框为 textarea[placeholder=\"给点点发消息\"]，输入事件后需点击带 lucide-arrow-up 图标的发送按钮。",
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "focus",
+            "selector": "textarea[placeholder=\"给点点发消息\"]",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "聚焦 dots.ai 输入框"
+          },
+          {
+            "action": "setValue",
+            "selector": "textarea[placeholder=\"给点点发消息\"]",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "写入 dots.ai 提示词"
+          },
+          {
+            "action": "triggerEvents",
+            "selector": "textarea[placeholder=\"给点点发消息\"]",
+            "events": [
+              "beforeinput",
+              "input",
+              "change",
+              "blur",
+              "focus"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
+            "description": "触发 dots.ai 输入事件"
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待发送按钮进入可点击状态"
+          },
+          {
+            "action": "click",
+            "selector": "button:has(svg.lucide-arrow-up)",
+            "retryOnDisabled": true,
+            "maxAttempts": 6,
+            "retryInterval": 500,
+            "description": "点击 dots.ai 发送按钮"
+          }
+        ]
+      },
+      "contentExtractor": {
+        "messageContainer": ".assistant-message-item",
+        "contentSelectors": [
+          ".prose-dd"
+        ],
+        "excludeSelectors": [
+          "nav",
+          "header",
+          "footer",
+          "button",
+          "aside",
+          "textarea"
+        ],
+        "userMessageSelector": ".user-message-item",
+        "exportLatestOnly": true
+      },
+      "historyHandler": {
+        "urlFeature": "/chat/home/"
+      },
+      "userPrompt": {
+        "containerSelector": ".user-message-item",
+        "textSelector": ".user-message-card .select-text"
+      },
+      "icon": "dots.ai.png",
+      "type": "information"
+    },
+    {
       "name": "豆包",
       "url": "https://doubao.com/chat",
       "enabled": false,

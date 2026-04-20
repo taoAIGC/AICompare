@@ -471,18 +471,10 @@ async function initializePromptTemplates() {
 // 确保存在默认模板
 async function ensureDefaultTemplates() {
   try {
-    const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
-    
-    // 如果没有模板，提醒用户模板将由系统自动初始化
-    if (promptTemplates.length === 0) {
-      console.log('提示词模板为空，将依赖系统自动初始化');
-      
-      // 触发 background.js 的初始化（如果还没有运行）
-      try {
-        await chrome.runtime.sendMessage({ action: 'initializeDefaultTemplates' });
-      } catch (error) {
-        console.log('无法发送初始化消息，background 可能已处理:', error);
-      }
+    try {
+      await chrome.runtime.sendMessage({ action: 'initializeDefaultTemplates' });
+    } catch (error) {
+      console.log('无法发送初始化消息，background 可能已处理:', error);
     }
   } catch (error) {
     console.error('检查默认模板失败:', error);

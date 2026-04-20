@@ -1100,6 +1100,12 @@
   "templateTypeHelp": {
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
+  "defaultTemplateTranslateToChineseName": {
+    "message": "Translate to Chinese"
+  },
+  "defaultTemplateTranslateToChineseQuery": {
+    "message": "Translate the following content into Chinese:\n\n{query}"
+  },
   "syncProviderWebdav": {
     "message": "WebDAV"
   },

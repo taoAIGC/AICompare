@@ -17,6 +17,7 @@ const homepageSitesState = {
     configuredGroups: [DEFAULT_SITE_GROUP],
     dragAndDropBound: false
 };
+let ensureHomepagePromptTemplatesPromise = null;
 
 function perfMark(name) {
     if (typeof performance === 'undefined' || typeof performance.mark !== 'function') {
@@ -122,6 +123,20 @@ function getHomepagePromptTemplateType() {
         homepageSitesState.configuredGroups
     )
         || DEFAULT_SITE_GROUP;
+}
+
+async function ensureHomepagePromptTemplates() {
+    if (ensureHomepagePromptTemplatesPromise) {
+        return ensureHomepagePromptTemplatesPromise;
+    }
+
+    ensureHomepagePromptTemplatesPromise = chrome.runtime.sendMessage({
+        action: 'initializeDefaultTemplates'
+    }).catch(error => {
+        console.warn('首页补齐默认提示词模板失败:', error);
+    });
+
+    return ensureHomepagePromptTemplatesPromise;
 }
 
 function getHomepageSiteIndicatorIcon(site) {
@@ -572,6 +587,7 @@ async function showQuerySuggestions(query) {
     const querySuggestions = document.getElementById('querySuggestions');
 
     try {
+        await ensureHomepagePromptTemplates();
         // 从存储中获取提示词模板
         const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
         const currentType = getHomepagePromptTemplateType();

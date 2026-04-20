@@ -1663,6 +1663,8 @@ let currentColumnsValue = '3';
 let navColumnOutsideClickBound = false;
 let requestedIframeSiteType = '';
 let iframeConfiguredTypes = ['information'];
+let ensureIframePromptTemplatesPromise = null;
+const DEFAULT_IFRAME_SITE_TYPE = 'information';
 const IFRAME_SITE_TYPE_ALIASES = {
   chat: 'information',
   agent: 'agents',
@@ -1685,9 +1687,9 @@ function getRequestedIframeSiteType() {
   }
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    requestedIframeSiteType = normalizeSiteTypeToken(urlParams.get('type'));
+    requestedIframeSiteType = normalizeSiteTypeToken(urlParams.get('type')) || DEFAULT_IFRAME_SITE_TYPE;
   } catch (_) {
-    requestedIframeSiteType = '';
+    requestedIframeSiteType = DEFAULT_IFRAME_SITE_TYPE;
   }
   return requestedIframeSiteType;
 }
@@ -1702,13 +1704,27 @@ async function loadIframeConfiguredTypes() {
   return iframeConfiguredTypes;
 }
 
+async function ensureIframePromptTemplates() {
+  if (ensureIframePromptTemplatesPromise) {
+    return ensureIframePromptTemplatesPromise;
+  }
+
+  ensureIframePromptTemplatesPromise = chrome.runtime.sendMessage({
+    action: 'initializeDefaultTemplates'
+  }).catch(error => {
+    console.warn('iframe 补齐默认提示词模板失败:', error);
+  });
+
+  return ensureIframePromptTemplatesPromise;
+}
+
 function getIframePromptTemplateType() {
   return window.PromptTemplateUtils?.normalizePromptTemplateType?.(
     getRequestedIframeSiteType(),
-    '',
+    DEFAULT_IFRAME_SITE_TYPE,
     iframeConfiguredTypes
   )
-    || '';
+    || DEFAULT_IFRAME_SITE_TYPE;
 }
 
 function siteMatchesRequestedType(site) {
@@ -3272,6 +3288,7 @@ async function showQuerySuggestions(query) {
   const querySuggestions = document.getElementById('querySuggestions');
 
   try {
+    await ensureIframePromptTemplates();
     // 从存储中获取提示词模板
     const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
     await loadIframeConfiguredTypes();

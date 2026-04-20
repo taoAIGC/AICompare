@@ -1095,6 +1095,12 @@
   "templateTypeHelp": {
     "message": "homepage 和 iframe 会按当前站点类型过滤提示词模板"
   },
+  "defaultTemplateTranslateToChineseName": {
+    "message": "翻译成中文"
+  },
+  "defaultTemplateTranslateToChineseQuery": {
+    "message": "请把以下内容翻译成中文：\n\n{query}"
+  },
   "syncProviderWebdav": {
     "message": "WebDAV"
   },

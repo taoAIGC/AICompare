@@ -118,6 +118,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - For AI site adapter debugging, the repo includes real-browser live verifier scripts under `debug/`.
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, and `debug/verify-metaso-live.js`.
+- `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]`, and submits through the arrow-up send button.
 
 ### OpenClaw skill integration
 
@@ -239,6 +240,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 仓库在 `debug/` 目录下提供了面向真实浏览器会话的 AI 站点验证脚本，便于排查站点适配问题。
 - Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。
 - 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`。
+- `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]`，发送方式为点击箭头发送按钮。
 
 ### OpenClaw 技能接入
 
@@ -252,19 +254,34 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-04-12 11:12:14 UTC+08:00
+Last auto-update / 最近自动更新：2026-04-20 23:18:12 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
+- `M` `AGENTS.md`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
+- `M` `_locales/en/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
+- `M` `_locales/zh_CN/messages.json`
+- `M` `_locales/zh_TW/messages.json`
+- `M` `background.js`
 - `M` `config/siteHandlers.json`
+- `M` `homepage/homepage.js`
+- `M` `iframe/iframe.js`
 - `M` `manifest.json`
+- `M` `options/options.js`
+- `A` `siteIcons/dots.ai.png`
 
 ### Recent commits / 最近提交
+- `660c1c6` 2026-04-12 V2.21.6 修复豆包
 - `ef11035` 2026-04-08 V 2.21.5 修复不支持 iframe 的站点
 - `d671284` 2026-03-30 V 2.21.4 修复秘塔、claude，提示词分组
 - `ec08961` 2026-03-24 V2.21.3 划词支持选择模板、支持配置
 - `62720e7` 2026-03-23 V2.21.2 划词中的快捷搜索增加开关
-- `c8286be` 2026-03-23 V 2.21.1 划词支持模板
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

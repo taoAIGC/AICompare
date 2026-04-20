@@ -102,6 +102,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 ## Site Testing Rules
 
 - When validating AI site integrations, do not treat selector existence alone as a passing result. A site only passes if the configured flow actually performs the target action successfully.
+- When collecting site-adaptation parameters such as runtime URL, iframe support, bootstrap path, editor type, submit path, `searchHandler` steps, `userPrompt`, `contentExtractor`, and `historyHandler`, open the user's Chrome browser and inspect the real page there. Do not use a headless browser as the source of truth for these adaptation decisions.
 - Translation sites must be tested with a deterministic real query in user Chrome, not only with DOM inspection. The default verification query is `你好世界`.
 - A translation site passes only if the configured input steps really inject the source text, the page produces a non-placeholder translation result, and the configured `contentExtractor` selector can read that final translated text.
 - For English-target translation checks, the result should match a `hello world`-style output rather than staying empty, staying as `...`, or echoing the original Chinese input.
@@ -119,6 +120,8 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 ## New Site Full Adaptation Workflow
 
 - Use this workflow whenever a new AI site is added or when an existing placeholder handler is being replaced with a real one.
+- Step 0: open the user's Chrome browser and collect evidence there.
+  Before deciding any non-trivial adaptation field, open the site in the user's real Chrome profile and inspect the live runtime page there. Treat the user Chrome session as the source of truth for runtime URL, iframe viability, bootstrap actions, editor type, submit path, extraction selectors, and history behavior. Do not rely on a headless browser for these parameter decisions; headless checks may be used only as secondary diagnostics after the user-Chrome result is known.
 - Step 1: identify `name`, `url`, and the real working runtime URL.
   Confirm the canonical user-facing site name and the real landing/runtime URL. A configured entry URL may redirect to another workspace page after login. Prefer the runtime page in `url` if that is where input, history detection, and extraction actually happen.
 - Step 2: identify `region`, `type`, `note`, `enabled`, and `hidden`.

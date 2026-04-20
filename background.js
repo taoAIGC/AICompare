@@ -61,35 +61,55 @@ async function initializeLocalConfig() {
 }
 
 // 初始化默认提示词模板
+function getDefaultPromptTemplates() {
+  return [
+    {
+      id: 'risk_analysis',
+      name: 'RiskAnalysis',
+      query: 'Root cause of the failure:「{query}」',
+      type: 'information',
+      order: 1,
+      isDefault: true
+    },
+    {
+      id: 'best_practice',
+      name: 'BestPractice',
+      query: 'Write a success retrospective report on this project:「{query}」',
+      type: 'information',
+      order: 2,
+      isDefault: true
+    },
+    {
+      id: 'translate_to_chinese',
+      name: chrome.i18n.getMessage('defaultTemplateTranslateToChineseName') || 'Translate to Chinese',
+      query: chrome.i18n.getMessage('defaultTemplateTranslateToChineseQuery') || 'Translate the following content into Chinese:\n\n{query}',
+      type: 'information',
+      order: 3,
+      isDefault: true
+    }
+  ];
+}
+
 async function initializeDefaultPromptTemplates() {
   try {
-    const { promptTemplates } = await chrome.storage.sync.get('promptTemplates');
-    
-    // 如果还没有提示词模板，设置默认模板
-    if (!promptTemplates || promptTemplates.length === 0) {
-      const defaultTemplates = [
+    const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
+    const defaultTemplates = getDefaultPromptTemplates();
+    const existingTemplates = Array.isArray(promptTemplates) ? promptTemplates : [];
+    const existingTemplateIds = new Set(
+      existingTemplates
+        .map(template => template?.id)
+        .filter(Boolean)
+    );
+    const missingTemplates = defaultTemplates.filter(template => !existingTemplateIds.has(template.id));
 
-        {
-          id: 'risk_analysis',
-          name: 'RiskAnalysis',
-          query: 'Root cause of the failure:「{query}」',
-          type: 'information',
-          order: 1,
-          isDefault: true
-        },
-
-        {
-          id: 'best_practice',
-          name: 'BestPractice',
-          query: 'Write a success retrospective report on this project:「{query}」',
-          type: 'information',
-          order: 2,
-          isDefault: true
-        }
-      ];
-      
+    if (existingTemplates.length === 0) {
       await chrome.storage.sync.set({ promptTemplates: defaultTemplates });
       console.log('已初始化默认提示词模板');
+    } else if (missingTemplates.length > 0) {
+      const mergedTemplates = [...existingTemplates, ...missingTemplates]
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      await chrome.storage.sync.set({ promptTemplates: mergedTemplates });
+      console.log('已补充缺失的默认提示词模板:', missingTemplates.map(template => template.id));
     } else {
       console.log('提示词模板已存在，跳过初始化');
     }
@@ -154,6 +174,7 @@ chrome.runtime.onStartup.addListener(async () => {
   try {
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
+    await initializeDefaultPromptTemplates();
     
     console.log('扩展启动，检查站点配置更新...');
     if (self.RemoteConfigManager) {
