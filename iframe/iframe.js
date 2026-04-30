@@ -277,6 +277,32 @@ function t(key, fallback = '', substitutions = undefined) {
   }
 }
 
+function setIframeHeaderStatus(iframeContainer, text, isHidden = false) {
+  if (!iframeContainer) return;
+  if (iframeContainer.__headerStatusTimer) {
+    clearTimeout(iframeContainer.__headerStatusTimer);
+    iframeContainer.__headerStatusTimer = null;
+  }
+  const statusEl = iframeContainer.querySelector('.iframe-header-status');
+  if (!statusEl) return;
+  statusEl.textContent = text || '';
+  statusEl.classList.toggle('is-hidden', isHidden || !text);
+}
+
+function scheduleIframeHeaderStatus(iframeContainer, text, delayMs = 0) {
+  if (!iframeContainer || !text) return;
+  if (iframeContainer.__headerStatusTimer) {
+    clearTimeout(iframeContainer.__headerStatusTimer);
+  }
+  iframeContainer.__headerStatusTimer = setTimeout(() => {
+    setIframeHeaderStatus(iframeContainer, text);
+  }, Math.max(0, Number(delayMs) || 0));
+}
+
+function hideIframeHeaderStatus(iframeContainer) {
+  setIframeHeaderStatus(iframeContainer, '', true);
+}
+
 // 应用 iframe 输入框位置设置（iframe 页固定底部）
 async function applyIframeInputPosition() {
   document.body.classList.add('search-bar-bottom');
@@ -2411,6 +2437,12 @@ async function createIframes(query, sites) {
     // 立即保存历史记录，不等待 iframe 加载
     savePKHistory(query);
   }
+
+  // 首页/直达页带着 query 进来后，站点已开始自动发送；发送链路启动后即可清空顶部输入框，
+  // 方便用户直接输入下一轮问题。
+  if (query && query.trim() !== '' && !window._openedFromHistory) {
+    clearIframeSearchInput();
+  }
 }
 
 
@@ -2511,6 +2543,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   iframeContainer.className = 'iframe-container';
   iframeContainer.dataset.siteName = siteName;
   iframeContainer.dataset.lastQuery = query || '';
+  setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
   
   // iframe容器不需要特殊的布局设置，CSS Grid会自动处理
   
@@ -2537,6 +2570,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
       currentInputQuery,
       clickHandlerAdded
     });
+    setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
 
     if (loadBehavior.shouldBindClickHandler) {
       try {
@@ -2571,6 +2605,9 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
 
     if (latestQuery) {
       console.log("iframe onload 加载完成，查询内容:", latestQuery);
+      if (loadBehavior.shouldAutoRunQuery) {
+        setIframeHeaderStatus(iframeContainer, t('iframeStatusPreparingScript', '准备执行脚本...'));
+      }
       
       // 使用异步函数处理
       (async () => {
@@ -2613,6 +2650,9 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     if (event.data.type === 'INJECT_PROGRESS' && event.data.source === 'inject-script') {
       if (iframe.contentWindow && event.source === iframe.contentWindow) {
         if (!event.data.siteName || event.data.siteName === siteName) {
+          if (event.data.status === 'start') {
+            hideIframeHeaderStatus(iframeContainer);
+          }
           setInjectProgressState(iframeContainer.querySelector('.inject-progress'), event.data);
           if (event.data.status === 'start' || event.data.status === 'step' || event.data.status === 'step_complete' || event.data.status === 'error') {
             const stepLabel = event.data.stepIndex && event.data.totalSteps
@@ -2708,6 +2748,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   header.className = 'iframe-header';
   header.innerHTML = `
     <span class="site-name">${siteName}</span>
+    <span class="iframe-header-status" aria-live="polite">${t('iframeStatusNetworkLoading', '网络加载中...')}</span>
     <div class="iframe-controls">
       <button class="refresh-page-btn"></button>
       <button class="iframe-favorite-btn iframe-favorite-btn-header">
@@ -2733,6 +2774,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   iframeContainer.appendChild(iframe);
   iframeContainer.appendChild(createInjectProgressOverlay(siteName));
   container.appendChild(iframeContainer);
+  scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
   
   // 添加悬浮收藏按钮（新创建的 iframe 默认未收藏）
   addFavoriteButtonToIframe(iframeContainer, siteName, false);
@@ -2893,7 +2935,7 @@ async function getIframeHandler(iframeUrl, preferredSiteName = null) {
   }
 }
 // 添加搜索按钮
-document.getElementById('searchButton').addEventListener('click', () => {
+document.getElementById('searchButton').addEventListener('click', async () => {
   const query = document.getElementById('searchInput').value.trim();
   if (query) {
     const openedSites = getOpenedSites();
@@ -2904,7 +2946,10 @@ document.getElementById('searchButton').addEventListener('click', () => {
       trigger: 'button'
     });
     shanshuo();
-    iframeFresh(query);
+    const sent = await iframeFresh(query);
+    if (sent) {
+      clearIframeSearchInput();
+    }
   }
 });
 
@@ -2920,7 +2965,7 @@ document.getElementById('searchInput').addEventListener('compositionend', () => 
 });
 
 // 处理回车键
-document.getElementById('searchInput').addEventListener('keydown', (e) => {
+document.getElementById('searchInput').addEventListener('keydown', async (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         // 如果正在使用输入法组合输入，不触发查询操作
         if (isComposing) {
@@ -2939,7 +2984,10 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
                 trigger: 'enter'
             });
             shanshuo();
-            iframeFresh(query);
+            const sent = await iframeFresh(query);
+            if (sent) {
+              clearIframeSearchInput();
+            }
         }
     }
 });   
@@ -3454,6 +3502,15 @@ function shanshuo() {
       }, 200);
 }
 
+function clearIframeSearchInput() {
+  const searchInput = document.getElementById('searchInput');
+  if (!searchInput) return;
+
+  if (!searchInput.value) return;
+
+  searchInput.value = '';
+  searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
 
 
 async function iframeFresh(query) {    
@@ -3495,6 +3552,9 @@ async function iframeFresh(query) {
             const siteConfig = sites.find(site => site.name === siteName);
             // 如果站点配置存在并且支持 URL 查询
             if (siteConfig && siteConfig.supportUrlQuery) {
+                if (iframeContainer) {
+                  setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
+                }
                 // 获取 URL
                 const url = siteConfig.url;
                 // 根据 URL 和 query 拼接新的 URL
@@ -3518,11 +3578,17 @@ async function iframeFresh(query) {
                 }
                 // 让 iframe 访问新的 URL
                 iframe.src = newUrl;
+                if (iframeContainer) {
+                  scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
+                }
             }
             else{
               // 使用动态处理函数
               getIframeHandler(iframe.src, siteName).then(handler => {
                 if (handler) {
+                  if (iframeContainer) {
+                    setIframeHeaderStatus(iframeContainer, t('iframeStatusPreparingScript', '准备执行脚本...'));
+                  }
                   console.log(`重新处理 ${domain} iframe`, {
                       时间: new Date().toISOString(),
                       query: query
@@ -3552,6 +3618,8 @@ async function iframeFresh(query) {
             console.error('处理 iframe 失败:', error);
         }
     });
+
+      return iframes.length > 0;
 }
 
 
@@ -3586,6 +3654,7 @@ async function loadHistoryIframes(sites) {
       // 创建 iframe 容器
       const iframeContainer = document.createElement('div');
       iframeContainer.className = 'iframe-container';
+      setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
       
       const iframe = document.createElement('iframe');
       iframe.className = 'ai-iframe';
@@ -3598,6 +3667,7 @@ async function loadHistoryIframes(sites) {
       header.className = 'iframe-header';
       header.innerHTML = `
         <span class="site-name">${siteName}</span>
+        <span class="iframe-header-status" aria-live="polite">${t('iframeStatusNetworkLoading', '网络加载中...')}</span>
         <div class="iframe-controls">
           <button class="refresh-page-btn"></button>
           <button class="iframe-favorite-btn iframe-favorite-btn-header">
@@ -3622,6 +3692,10 @@ async function loadHistoryIframes(sites) {
       // 初始化头部收藏按钮状态
       headerFavoriteBtn.dataset.siteName = siteName;
       updateFavoriteButtonState(headerFavoriteBtn, site.isFavorite);
+
+      iframe.addEventListener('load', () => {
+        setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
+      });
 
       // 头部收藏按钮点击事件
       headerFavoriteBtn.addEventListener('click', async (e) => {
@@ -3668,6 +3742,7 @@ async function loadHistoryIframes(sites) {
       iframeContainer.appendChild(header);
       iframeContainer.appendChild(iframe);
       container.appendChild(iframeContainer);
+      scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
       
       // 添加悬浮收藏按钮
       const isFavorite = site.isFavorite || false;

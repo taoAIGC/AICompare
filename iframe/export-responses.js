@@ -954,7 +954,9 @@ async function extractElementContent(element) {
         element.classList.contains('response-content-markdown') ||
         element.classList.contains('prose')) {
       // ChatGPT、GROK 等站点的 markdown 容器，直接使用 innerHTML 然后转换
-      const html = element.innerHTML || '';
+      const sanitized = element.cloneNode(true);
+      sanitized.querySelectorAll('script, style, noscript, svg, button').forEach(node => node.remove());
+      const html = sanitized.innerHTML || '';
       if (html.trim()) {
         text = convertHtmlToMarkdown(html);
       } else {
@@ -967,7 +969,9 @@ async function extractElementContent(element) {
       text = element.getAttribute('data-markdown');
     } else {
       // 方法3: 使用 innerHTML 保留格式，然后转换为 markdown
-      const html = element.innerHTML || '';
+      const sanitized = element.cloneNode(true);
+      sanitized.querySelectorAll('script, style, noscript, svg, button').forEach(node => node.remove());
+      const html = sanitized.innerHTML || '';
       if (html.trim()) {
         text = convertHtmlToMarkdown(html);
       } else {
@@ -1013,6 +1017,32 @@ function cleanExtractedText(text) {
   for (const pattern of unwantedPatterns) {
     text = text.replace(pattern, '');
   }
+
+  const unwantedLinePatterns = [
+    /^window\.__oai_/i,
+    /^requestAnimationFrame\(/i,
+    /^ChatGPT can make mistakes\./i,
+    /^Cookie Preferences\.?$/i,
+    /^Free offer$/i,
+    /^Open sidebar$/i,
+    /^Show moreShow less$/i,
+    /^ChatGPT said:?$/i,
+    /^You said:?$/i
+  ];
+
+  text = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => {
+      if (!line) return true;
+      return !unwantedLinePatterns.some(pattern => pattern.test(line));
+    })
+    .join('\n');
+
+  text = text.replace(/(^|\n)#+\s*You said:\s*\n[\s\S]*?(?=\n#+\s*ChatGPT said:|$)/i, '$1');
+  text = text.replace(/^#+\s*ChatGPT said:\s*$/gim, '');
+  text = text.replace(/window\.__oai_[\s\S]*?(?=\n{2,}|$)/gi, '').trim();
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
   
   return text.trim();
 }
@@ -1069,9 +1099,11 @@ async function getSiteContentExtractorConfig(siteName) {
 // 通过消息通信请求iframe内容
 function requestIframeContent(iframe, siteName) {
   return new Promise((resolve, reject) => {
+    // Cross-origin AI tabs sometimes need a few extra seconds for the injected
+    // extractor to initialize after the answer becomes visible.
     const timeout = setTimeout(() => {
       reject(new Error('请求超时'));
-    }, 5000);
+    }, 12000);
     
     const messageHandler = (event) => {
       if (event.data.type === 'EXTRACTED_CONTENT' && event.data.siteName === siteName) {
@@ -1325,8 +1357,8 @@ function convertHtmlToMarkdown(html) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     
-    // 移除script和style标签
-    tempDiv.querySelectorAll('script, style').forEach(el => el.remove());
+    // 先去掉显然不应该进入回答正文的节点
+    tempDiv.querySelectorAll('script, style, noscript, svg, button').forEach(el => el.remove());
     
     // 获取处理后的HTML
     let markdown = tempDiv.innerHTML

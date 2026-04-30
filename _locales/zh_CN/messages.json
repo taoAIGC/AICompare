@@ -477,6 +477,18 @@
   "automationNotice": {
     "message": "如果网站更新，对应的自动化提问功能会失效，敬请谅解。发现失效，可以与我联系更新。"
   },
+  "iframeStatusNetworkLoading": {
+    "message": "网络加载中..."
+  },
+  "iframeStatusPageLoading": {
+    "message": "页面加载中..."
+  },
+  "iframeStatusPageLoaded": {
+    "message": "页面已加载"
+  },
+  "iframeStatusPreparingScript": {
+    "message": "准备执行脚本..."
+  },
   "injectProgressTitleRunning": {
     "message": "正在执行脚本..."
   },

@@ -15,6 +15,8 @@
 #### 1. Multi-AI comparison page (iframe)
 
 - **One page, multiple AIs**: Open a single tab with several AI sites embedded (iframes). Enter your query once and get responses from all selected AIs at once.
+- **Fast re-entry**: After a query is sent, the input box is cleared so you can type the next question immediately.
+- **Loading status**: Each embedded iframe shows a top-center loading state before script execution starts.
 - **Layout**: Switch between 1 / 2 / 3 / 4 columns.
 - **File upload**: Upload files (images, documents, etc.) and send them to all AI sites in one go.
 - **Export**: Export all AI responses as a single file (e.g. Markdown).
@@ -123,9 +125,15 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 ### OpenClaw skill integration
 
 - A ready-to-use bridge is available under `openclaw/`.
+- `openclaw/SKILL.md` is now an installable OpenClaw skill package for "ask once -> search through the browser extension -> return per-site results".
 - Runner entry: `node openclaw/ai-compare-openclaw-runner.js --query "your query"`.
+- The runner now supports `--mode gui`, which opens a direct `chrome-extension://...` query link in the browser and waits for structured callback results by default.
+- `--browser-app` examples are now documented for both macOS (`"Google Chrome"`) and Windows (`"chrome"`).
 - Integration guide: `openclaw/README.md`.
+- If the browser extension is missing or outdated, the runner now returns actionable install / reload guidance instead of a generic failure.
+- `ok=false` responses should stop at install / reload guidance; they must not fall back to `web_search` or other search tools.
 - The extension page now exposes `window.aiCompareOpenClaw.run(options)` for automation.
+- OpenClaw TUI smoke test: `openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` returned raw ChatGPT and Gemini plugin content.
 
 ---
 
@@ -140,6 +148,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 #### 1. 多 AI 对比页（iframe）
 
 - **一页多 AI**：在一个标签页内嵌入多个 AI 站点（iframe），输入一次问题，所有选中的 AI 同时返回结果。
+- **快速继续提问**：问题发送后会自动清空输入框，方便直接输入下一轮问题。
+- **加载状态**：每个子 iframe 顶部中间会先显示加载状态，避免脚本执行前看起来像卡住了。
 - **布局**：支持 1 / 2 / 3 / 4 列切换。
 - **文件上传**：上传图片、文档等，一键发送到所有 AI 站点。
 - **导出**：将所有 AI 的回答导出为一个文件（如 Markdown）。
@@ -245,43 +255,47 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 ### OpenClaw 技能接入
 
 - 仓库 `openclaw/` 目录提供了可直接使用的桥接方案。
+- `openclaw/SKILL.md` 现已整理为可安装的 OpenClaw skill，支持“用户提问 -> 调起浏览器插件搜索 -> 返回每个站点结果”。
 - Runner 入口：`node openclaw/ai-compare-openclaw-runner.js --query "你的问题"`。
+- Runner 新增 `--mode gui`，支持直接生成并打开 `chrome-extension://...` 查询链接，并默认等待扩展页把结构化结果回传给本地 runner。
+- `--sites` 只在用户明确点名站点时才注入；普通提问会沿用 AI Compare 当前默认选中的站点集合。
+- `--browser-app` 现已补充跨平台示例：macOS 用 `"Google Chrome"`，Windows 用 `"chrome"`。
 - 对接说明见 `openclaw/README.md`。
+- 如果浏览器插件未安装、扩展 id 不匹配或版本过旧，runner 现在会返回可执行的安装/重载引导，而不是笼统报错。
+- `ok=false` 时要直接停在安装/重载引导，不要回退到 `web_search` 或其他搜索工具。
 - 扩展对比页新增自动化接口：`window.aiCompareOpenClaw.run(options)`。
+- OpenClaw TUI 烟雾测试：`openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` 已返回 ChatGPT 和 Gemini 的原始插件内容。
 
 ---
 
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-04-20 23:18:12 UTC+08:00
+Last auto-update / 最近自动更新：2026-04-30 13:28:01 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `AGENTS.md`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/de/messages.json`
+- `M` `.DS_Store`
+- `M` `.gitignore`
 - `M` `_locales/en/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
 - `M` `config/siteHandlers.json`
-- `M` `homepage/homepage.js`
+- `M` `iframe/export-responses.js`
+- `M` `iframe/iframe.css`
 - `M` `iframe/iframe.js`
+- `M` `iframe/inject.js`
+- `M` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
-- `M` `options/options.js`
-- `A` `siteIcons/dots.ai.png`
+- `M` `openclaw/README.md`
+- `M` `openclaw/SKILL.md`
+- `M` `openclaw/ai-compare-openclaw-runner.js`
+- `A` `openclaw/references/install-browser-extension.md`
 
 ### Recent commits / 最近提交
+- `44a31f8` 2026-04-20 V 2.21.7 支持点点，默认模板增加翻译到中文
 - `660c1c6` 2026-04-12 V2.21.6 修复豆包
 - `ef11035` 2026-04-08 V 2.21.5 修复不支持 iframe 的站点
 - `d671284` 2026-03-30 V 2.21.4 修复秘塔、claude，提示词分组
 - `ec08961` 2026-03-24 V2.21.3 划词支持选择模板、支持配置
-- `62720e7` 2026-03-23 V2.21.2 划词中的快捷搜索增加开关
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

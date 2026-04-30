@@ -1,62 +1,105 @@
 # OpenClaw Skill Integration (AI Compare)
 
-This folder provides a practical bridge so OpenClaw can trigger the AI Compare extension and receive structured multi-site results.
+This folder provides a practical bridge so OpenClaw can trigger the AI Compare extension by opening a direct browser query link and waiting for structured multi-site results to be posted back locally.
 
 ## What this integration does
 
-1. Open the extension comparison page with a query.
-2. Wait for site responses to stabilize.
-3. Return structured JSON for each selected site (`siteName`, `url`, `content`, `status`, `error`).
+1. Build a direct `chrome-extension://...` query URL that can auto-trigger search in the browser.
+2. Open that URL in the user's regular browser for GUI mode.
+3. Start a local callback server and wait for the extension page to POST structured results back.
+4. Return structured JSON for each selected site (`siteName`, `url`, `content`, `status`, `error`) after the GUI callback arrives.
+5. If the extension is missing or outdated, return actionable install / reload guidance instead of a vague failure.
 
 ## Files
 
 - `openclaw/ai-compare-openclaw-runner.js`
   - CLI entry for OpenClaw skill runtime.
-  - Connects to a running Chrome instance through CDP.
+  - Uses `gui + localhost callback` as the standard path.
+- `openclaw/SKILL.md`
+  - Installable OpenClaw skill package with trigger description and response contract.
 - `iframe/openclaw-bridge.js`
   - Runs inside extension page `iframe/iframe.html`.
   - Exposes `window.aiCompareOpenClaw.run()`.
+- `openclaw/references/install-browser-extension.md`
+  - Fallback guide when the extension is missing, outdated, or uses a different id.
+
+## Standard Mode
+
+### GUI + Localhost Callback
+
+- Does not require Chrome remote debugging.
+- Builds a direct trigger URL like:
+
+```text
+chrome-extension://<extension-id>/iframe/iframe.html?openclaw=1&query=...
+```
+
+- Opens that URL in the browser immediately unless `--print-only` is used.
+- Starts a local callback server and waits for the extension page to POST structured results back to stdout.
+- This is the recommended and standard OpenClaw integration path.
 
 ## Prerequisites
 
 - Chrome installed with AI Compare already loaded in your normal Chrome profile.
-- Start that same Chrome profile with remote debugging enabled before running the runner.
-- Example on macOS:
-
-```bash
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-```
-
-- The runner only connects to an existing DevTools-enabled Chrome instance. It does not launch a separate profile.
-- The runner closes only the extension tab it opens. It does not intentionally close the whole browser.
 - The target AI sites must already be logged in inside that same Chrome profile.
+- If `--extension-id` is omitted, the runner will try known local/store extension ids before failing.
 
 ## CLI usage
 
+macOS example:
+
 ```bash
 node openclaw/ai-compare-openclaw-runner.js \
+  --mode gui \
   --query "你好世界" \
   --sites "ChatGPT,Gemini,Claude" \
-  --extension-id "hhkhgpadepocnmjfpohcmjdcgkmfnadi" \
-  --cdp-endpoint "http://127.0.0.1:9222" \
-  --timeout-ms 180000 \
-  --poll-ms 5000
+  --browser-app "Google Chrome"
 ```
 
-If success, stdout returns:
+Windows example:
+
+```bash
+node openclaw/ai-compare-openclaw-runner.js ^
+  --mode gui ^
+  --query "你好世界" ^
+  --sites "ChatGPT,Gemini,Claude" ^
+  --browser-app "chrome"
+```
+
+Print-only:
+
+```bash
+node openclaw/ai-compare-openclaw-runner.js \
+  --mode gui \
+  --query "你好世界" \
+  --print-only
+```
+
+Open-only:
+
+```bash
+node openclaw/ai-compare-openclaw-runner.js \
+  --mode gui \
+  --query "你好世界" \
+  --open-only
+```
+
+Success returns:
 
 ```json
 {
   "ok": true,
+  "mode": "gui",
+  "extensionId": "hhkhgpadepocnmjfpohcmjdcgkmfnadi",
+  "triggerUrl": "chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi/iframe/iframe.html?openclaw=1&query=%E4%BD%A0%E5%A5%BD%E4%B8%96%E7%95%8C",
+  "openedBrowser": true,
+  "callbackReceived": true,
   "result": {
     "query": "你好世界",
-    "historyId": "...",
-    "timedOut": false,
     "results": [
       {
         "siteName": "ChatGPT",
         "status": "ok",
-        "url": "https://chatgpt.com/c/...",
         "content": "..."
       }
     ]
@@ -75,24 +118,31 @@ If failed, stdout returns:
 
 ## Recommended OpenClaw Skill Prompt Template
 
-Use this as your OpenClaw skill behavior contract:
+`openclaw/SKILL.md` is already written as an OpenClaw skill package. You can either copy the `openclaw/` folder into `~/.openclaw/workspace/skills/ai-compare-bridge/` or publish it through your usual skill workflow.
+
+Use this as the skill behavior contract:
 
 ```md
-You are the AI Compare bridge skill.
+You are the AI Compare browser search skill.
 
 When user provides a query:
 1. Run:
-   `node /ABSOLUTE/PATH/AIShortcuts/openclaw/ai-compare-openclaw-runner.js --query "<USER_QUERY>"`
+   `node /ABSOLUTE/PATH/TO/SKILL/ai-compare-openclaw-runner.js --mode gui --query "<USER_QUERY>"`
 2. Parse JSON from stdout.
-3. If `ok=false`, explain error and suggest retry.
-4. If `ok=true`, summarize each site's answer, and include the raw per-site outputs.
+3. If `ok=false`, explain the failure and provide install / reload guidance when the browser extension is missing or outdated.
+4. Return the generated `triggerUrl` and show each site's raw `content` verbatim when available. Do not summarize, compare, translate, or rewrite plugin output.
 
-Return JSON + concise comparison summary.
+Return the raw per-site content verbatim plus the JSON payload, with no secondary analysis.
 ```
 
 ## Notes
 
-- `--sites` is optional. If omitted, it uses currently opened/available comparison sites.
-- Default extension id in runner is `hhkhgpadepocnmjfpohcmjdcgkmfnadi`; pass `--extension-id` to override.
-- The runner must connect to the same Chrome profile you already use; it will not create or switch profiles for you.
-- Runner only closes the extension tab it opens and does not forcibly close your Chrome instance.
+- `--sites` is optional. If omitted, the query link embeds no site filter and the extension uses its current site selection.
+- The skill only adds `--sites` when the user explicitly names one or more AI sites; it does not infer sites from the question text.
+- If the extension is not installed in the connected Chrome profile, GUI mode now fails fast with install / reload guidance instead of waiting for a timeout.
+- On `ok=false`, the skill must surface install / reload guidance directly and must not fall back to `web_search` or any other search tool.
+- Runner tries the current local dev id plus the Chrome Web Store id by default; pass `--extension-id` to override.
+- `gui` mode is the standard direct-browser-link path and does not require remote debugging.
+- `gui` mode waits for a local callback by default; use `--print-only` or `--open-only` to skip waiting.
+- On Windows, `--browser-app "chrome"` is a good default example when Chrome is on PATH.
+- TUI smoke test: `openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` returned raw ChatGPT and Gemini plugin content in this workspace.

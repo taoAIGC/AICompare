@@ -59,6 +59,10 @@
     searchButton.click();
   }
 
+  function isExtractionFallbackContent(content) {
+    return content.includes('无法自动提取') || content.includes('内容提取失败');
+  }
+
   function buildResponseStatus(item, minChars) {
     if (!item) {
       return 'pending';
@@ -72,7 +76,7 @@
       return 'empty';
     }
 
-    if (content.includes('无法自动提取') || content.includes('内容提取失败')) {
+    if (isExtractionFallbackContent(content)) {
       return 'extraction_error';
     }
 
@@ -103,11 +107,24 @@
     return {
       urlQuery: (params.get('query') || '').trim(),
       urlSites: parseSites(params.get('sites') || ''),
+      urlCallback: (params.get('openclaw_callback') || '').trim(),
       urlTimeoutMs: parseNumber(params.get('openclaw_timeout_ms'), DEFAULT_TIMEOUT_MS),
       urlPollIntervalMs: parseNumber(params.get('openclaw_poll_ms'), DEFAULT_POLL_INTERVAL_MS),
       urlMinChars: parseNumber(params.get('openclaw_min_chars'), DEFAULT_MIN_CHARS),
-      urlStableRounds: parseNumber(params.get('openclaw_stable_rounds'), DEFAULT_STABLE_ROUNDS)
+      urlStableRounds: parseNumber(params.get('openclaw_stable_rounds'), DEFAULT_STABLE_ROUNDS),
+      urlWaitForIframesMs: parseNumber(params.get('openclaw_wait_iframes_ms'), DEFAULT_WAIT_IFRAMES_MS)
     };
+  }
+
+  async function postCallback(callbackUrl, payload) {
+    if (!callbackUrl) return;
+    await fetch(callbackUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
   }
 
   async function runOpenClawComparison(options) {
@@ -116,11 +133,12 @@
 
     const query = (typeof opts.query === 'string' ? opts.query : defaults.urlQuery || getSearchQueryFromUi()).trim();
     const requestedSites = parseSites(opts.sites && opts.sites.length ? opts.sites : defaults.urlSites);
+    const callbackUrl = (typeof opts.callbackUrl === 'string' ? opts.callbackUrl : defaults.urlCallback || '').trim();
     const timeoutMs = Math.max(1000, parseNumber(opts.timeoutMs, defaults.urlTimeoutMs));
     const pollIntervalMs = Math.max(500, parseNumber(opts.pollIntervalMs, defaults.urlPollIntervalMs));
     const minChars = Math.max(1, parseNumber(opts.minChars, defaults.urlMinChars));
     const stableRounds = Math.max(0, parseNumber(opts.stableRounds, defaults.urlStableRounds));
-    const waitForIframesMs = Math.max(0, parseNumber(opts.waitForIframesMs, DEFAULT_WAIT_IFRAMES_MS));
+    const waitForIframesMs = Math.max(0, parseNumber(opts.waitForIframesMs, defaults.urlWaitForIframesMs));
     const forceRun = Boolean(opts.forceRun);
 
     const startAt = Date.now();
@@ -188,7 +206,10 @@
         };
       });
 
-      const terminalStatuses = new Set(['ok', 'error', 'extraction_error']);
+      // Extraction fallback content often appears before the site iframe finishes
+      // wiring its injected extractor, so keep polling instead of treating the
+      // first "无法自动提取..." result as final.
+      const terminalStatuses = new Set(['ok', 'error']);
       const allTerminal = normalizedResults.every((item) => terminalStatuses.has(item.status));
 
       let stableEnough = stableRounds === 0;
@@ -244,6 +265,12 @@
     outputEl.textContent = payload;
 
     window.dispatchEvent(new CustomEvent('aicompare:openclaw-result', { detail: result }));
+    await postCallback(callbackUrl, {
+      ok: true,
+      source: 'ai-compare-openclaw',
+      version: '1.0.0',
+      result
+    });
     return result;
   }
 
@@ -299,8 +326,17 @@
         run({
           query: (params.get('query') || '').trim(),
           sites: parseSites(params.get('sites') || ''),
+          callbackUrl: (params.get('openclaw_callback') || '').trim(),
           forceRun: false
         }).catch((error) => {
+          postCallback((params.get('openclaw_callback') || '').trim(), {
+            ok: false,
+            source: 'ai-compare-openclaw',
+            version: '1.0.0',
+            error: error && error.message ? error.message : String(error)
+          }).catch(function (callbackError) {
+            console.warn('[openclaw-bridge] callback error after auto run failure:', callbackError);
+          });
           console.warn('[openclaw-bridge] auto run failed:', error);
         });
       }, 300);

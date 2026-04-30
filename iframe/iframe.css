@@ -15,25 +15,57 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  box-sizing: border-box;
+  padding: 4px 8px;
   background: #f5f5f5;
   border-bottom: 1px solid #ddd;
+  position: relative;
+  min-height: 28px;
+}
+
+.iframe-header .site-name {
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .iframe-controls {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .iframe-controls button {
-  padding: 4px 8px;
+  padding: 2px 4px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease;
+}
+
+.iframe-header-status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: calc(100% - 260px);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #555;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.iframe-header-status.is-hidden {
+  opacity: 0;
 }
 
 /* 当鼠标悬停在 iframe-container 上时显示按钮 */
@@ -51,7 +83,7 @@ html {
 
 .inject-progress {
   position: absolute;
-  inset: 40px 0 0 0;
+  inset: 28px 0 0 0;
   background: rgba(255, 255, 255, 0.6);
   display: none;
   align-items: center;
@@ -964,8 +996,8 @@ body.search-bar-bottom #iframes-container {
 }
 
 .open-page-btn {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: none;
     background: url('../icons/external-link.svg') no-repeat center;
     background-size: contain;
@@ -975,8 +1007,8 @@ body.search-bar-bottom #iframes-container {
 }
 
 .refresh-page-btn {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: none;
     background: url('../icons/refresh-cw.svg') no-repeat center;
     background-size: contain;
@@ -1005,8 +1037,8 @@ body.search-bar-bottom #iframes-container {
 }
 
 .close-btn {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: none;
     background: url('../icons/close.svg') no-repeat center;
     background-size: contain;
@@ -1592,14 +1624,14 @@ body.search-bar-bottom #iframes-container {
 }
 
 .iframe-favorite-icon {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     display: block;
 }
 
 .iframe-favorite-btn-header {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     padding: 0;
     background: transparent;
     border: none;

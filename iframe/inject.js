@@ -2409,9 +2409,21 @@ async function extractPageContent() {
         let content = '';
         
         if (siteHandler && siteHandler.contentExtractor) {
+            if (siteHandler.name === 'ChatGPT') {
+                const visibleResponse = extractChatGPTVisibleResponse();
+                if (visibleResponse) {
+                    console.log('✅ 使用 ChatGPT 可见回答提取成功');
+                    return visibleResponse;
+                }
+            }
+
             // 使用配置文件中的提取规则
             console.log('✅ 使用配置文件中的内容提取规则');
             content = await extractWithConfig(siteHandler.contentExtractor, siteHandler.name);
+            if (siteHandler.name === 'ChatGPT' && looksLikeChatGPTPageShell(content)) {
+                console.log('⏳ ChatGPT 仍处于页面壳或流式加载阶段，继续等待真实回答');
+                return '';
+            }
         } else {
             // 没有找到站点配置，返回提示信息
             const siteName = siteHandler ? siteHandler.name : domain;
@@ -2426,6 +2438,80 @@ async function extractPageContent() {
         console.error('❌ 内容提取失败:', error);
         return `内容提取失败: ${error.message}`;
     }
+}
+
+function extractChatGPTVisibleResponse() {
+    const assistantMessages = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+    const lastAssistantMessage = assistantMessages.pop();
+    if (!lastAssistantMessage) {
+        return '';
+    }
+
+    const ignoredTextPatterns = [
+        /^ChatGPT said:?$/i,
+        /^You said:?$/i,
+        /^●$/i,
+        /^Free offer$/i,
+        /^Open sidebar$/i,
+        /^Show moreShow less$/i,
+        /^ChatGPT can make mistakes\./i,
+        /^Cookie Preferences\.?$/i,
+        /^Copy response$/i,
+        /^Good response$/i,
+        /^Bad response$/i,
+        /^Share$/i,
+        /^Switch model$/i,
+        /^More actions$/i
+    ];
+
+    const seen = new Set();
+    const lines = [];
+    const walker = document.createTreeWalker(lastAssistantMessage, NodeFilter.SHOW_TEXT);
+    let currentNode = walker.nextNode();
+
+    while (currentNode) {
+        const parent = currentNode.parentElement;
+        const raw = currentNode.textContent || '';
+        const text = raw.replace(/[ \t]+/g, ' ').trim();
+
+        if (parent && text) {
+            const rect = parent.getBoundingClientRect();
+            const hidden = rect.width === 0 || rect.height === 0;
+            const insideIgnoredUi = parent.closest('script, style, noscript, svg, button, nav, footer, form');
+            const looksLikeUiText = ignoredTextPatterns.some((pattern) => pattern.test(text));
+            const looksLikeScript = /window\.__|__reactRouter|requestAnimationFrame|\bimport\(\"\/cdn\//.test(text);
+
+            if (!hidden && !insideIgnoredUi && !looksLikeUiText && !looksLikeScript && !seen.has(text)) {
+                seen.add(text);
+                lines.push(text);
+            }
+        }
+
+        currentNode = walker.nextNode();
+    }
+
+    return cleanExtractedText(lines.join('\n\n'));
+}
+
+function looksLikeChatGPTPageShell(content) {
+    if (!content) return true;
+
+    const normalized = String(content).trim();
+    if (!normalized || normalized === '●') {
+        return true;
+    }
+
+    const shellSignals = [
+        'window.__reactRouterRouteModules',
+        'window.__reactRouterContext',
+        'window.__REACT_QUERY_CACHE__',
+        'window.__oai_',
+        'import("/cdn/assets/entry.client',
+        'Skip to content',
+        'ChatGPT can make mistakes. Check important info.'
+    ];
+
+    return shellSignals.some(signal => normalized.includes(signal));
 }
 
 // 使用配置文件提取内容（优化版）
@@ -3680,6 +3766,32 @@ function cleanExtractedText(text) {
     for (const pattern of unwantedPatterns) {
         text = text.replace(pattern, '');
     }
+
+    const unwantedLinePatterns = [
+        /^window\.__oai_/i,
+        /^requestAnimationFrame\(/i,
+        /^ChatGPT can make mistakes\./i,
+        /^Cookie Preferences\.?$/i,
+        /^Free offer$/i,
+        /^Open sidebar$/i,
+        /^Show moreShow less$/i,
+        /^ChatGPT said:?$/i,
+        /^You said:?$/i
+    ];
+
+    text = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => {
+            if (!line) return true;
+            return !unwantedLinePatterns.some(pattern => pattern.test(line));
+        })
+        .join('\n');
+
+    text = text.replace(/(^|\n)#+\s*You said:\s*\n[\s\S]*?(?=\n#+\s*ChatGPT said:|$)/i, '$1');
+    text = text.replace(/^#+\s*ChatGPT said:\s*$/gim, '');
+    text = text.replace(/window\.__oai_[\s\S]*?(?=\n{2,}|$)/gi, '').trim();
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
     
     return text.trim();
 }
@@ -3821,9 +3933,10 @@ function convertHtmlToMarkdown(html) {
         // 创建一个临时容器来解析 HTML
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
+        tempDiv.querySelectorAll('script, style, noscript, svg, button').forEach(node => node.remove());
         
         // 简单的 HTML 到 Markdown 转换
-        let markdown = html
+        let markdown = tempDiv.innerHTML
             // 标题
             .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
             .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')

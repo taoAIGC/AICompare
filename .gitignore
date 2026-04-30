@@ -1,5 +1,26 @@
-/.playwright-user-data/
+
 /_metadata/
 /debug/
 /agent.md
 /AGENTS.md
+
+
+# OS files
+.DS_Store
+.claude/
+
+# Archives and ad-hoc exports
+*.zip
+zi*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+functions/firebase-debug.log
+
+# Test artifacts
+/.playwright-report/
+/.test-results/
+/.playwright-user-data/
+/.test-results/

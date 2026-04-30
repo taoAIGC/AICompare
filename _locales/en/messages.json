@@ -482,6 +482,18 @@
   "automationNotice": {
     "message": "If a website updates, its automated query feature may stop working. We apologize for any inconvenience. If you notice it has stopped working, please contact us for an update."
   },
+  "iframeStatusNetworkLoading": {
+    "message": "Network loading..."
+  },
+  "iframeStatusPageLoading": {
+    "message": "Page loading..."
+  },
+  "iframeStatusPageLoaded": {
+    "message": "Page loaded"
+  },
+  "iframeStatusPreparingScript": {
+    "message": "Preparing to run script..."
+  },
   "injectProgressTitleRunning": {
     "message": "Running script..."
   },

@@ -70,13 +70,21 @@
       "contentExtractor": {
         "messageContainer": "[data-message-author-role=\"assistant\"]",
         "contentSelectors": [
-          ".markdown.prose"
+          ".markdown.prose",
+          ".markdown",
+          "[class*=\"markdown\"]",
+          "[class*=\"prose\"]",
+          "div.whitespace-pre-wrap"
         ],
         "thinkingSelector": ":scope > div:not(.markdown)",
         "excludeSelectors": [],
         "extractThinking": true,
         "thinkingBlockFilters": [],
-        "fallbackSelectors": [],
+        "fallbackSelectors": [
+          ".markdown",
+          "[class*=\"markdown\"]",
+          "div.whitespace-pre-wrap"
+        ],
         "urlExtractor": {
           "alternateLinkSelector": "link[rel=\"alternate\"]",
           "urlPattern": "chatgpt.com/c/",
