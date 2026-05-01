@@ -1139,6 +1139,42 @@
   "floatButtonEnableInSettingsHint": {
     "message": "(可在設定頁重新啟用)"
   },
+  "timelineToggleTitle": {
+    "message": "提問時間線"
+  },
+  "timelinePanelTitle": {
+    "message": "開發中"
+  },
+  "timelineEmpty": {
+    "message": "目前對話裡還沒有識別到提問。"
+  },
+  "timelineCopyButton": {
+    "message": "複製"
+  },
+  "timelineDetectedSites": {
+    "message": "已在 $1 個子頁面中識別"
+  },
+  "timelineNoIframes": {
+    "message": "目前沒有可用的子頁面"
+  },
+  "timelineScrollNotFound": {
+    "message": "沒有在目前子頁面中找到這條提問"
+  },
+  "timelineScrollSuccess": {
+    "message": "已定位 $1/$2 個子頁面"
+  },
+  "timelineCopySuccess": {
+    "message": "已複製這條提問的回答（$1/$2）"
+  },
+  "timelineCopyFailed": {
+    "message": "複製失敗，請重試"
+  },
+  "timelineSiteNotReady": {
+    "message": "頁面尚未就緒"
+  },
+  "timelineActionTimeout": {
+    "message": "請求逾時"
+  },
   "confirmButton": {
     "message": "確定"
   }

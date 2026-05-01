@@ -15,8 +15,11 @@ This folder provides a practical bridge so OpenClaw can trigger the AI Compare e
 - `openclaw/ai-compare-openclaw-runner.js`
   - CLI entry for OpenClaw skill runtime.
   - Uses `gui + localhost callback` as the standard path.
+- `openclaw/ai-compare-openclaw-fast.js`
+  - Thin wrapper with fixed GUI defaults for OpenClaw TUI.
+  - Lets the model execute one short command instead of reasoning about many runner flags.
 - `openclaw/SKILL.md`
-  - Installable OpenClaw skill package with trigger description and response contract.
+  - Installable OpenClaw skill package with a short fast-path contract.
 - `iframe/openclaw-bridge.js`
   - Runs inside extension page `iframe/iframe.html`.
   - Exposes `window.aiCompareOpenClaw.run()`.
@@ -45,6 +48,20 @@ chrome-extension://<extension-id>/iframe/iframe.html?openclaw=1&query=...
 - If `--extension-id` is omitted, the runner will try known local/store extension ids before failing.
 
 ## CLI usage
+
+Fast path for OpenClaw:
+
+```bash
+node openclaw/ai-compare-openclaw-fast.js --query "你好世界"
+```
+
+Only add `--sites` when the user explicitly named sites:
+
+```bash
+node openclaw/ai-compare-openclaw-fast.js \
+  --query "你好世界" \
+  --sites "ChatGPT,Gemini"
+```
 
 macOS example:
 
@@ -90,8 +107,8 @@ Success returns:
 {
   "ok": true,
   "mode": "gui",
-  "extensionId": "hhkhgpadepocnmjfpohcmjdcgkmfnadi",
-  "triggerUrl": "chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi/iframe/iframe.html?openclaw=1&query=%E4%BD%A0%E5%A5%BD%E4%B8%96%E7%95%8C",
+  "extensionId": "dkhpgbbhlnmjbkihoeniojpkggkabbbl",
+  "triggerUrl": "chrome-extension://dkhpgbbhlnmjbkihoeniojpkggkabbbl/iframe/iframe.html?openclaw=1&query=%E4%BD%A0%E5%A5%BD%E4%B8%96%E7%95%8C",
   "openedBrowser": true,
   "callbackReceived": true,
   "result": {

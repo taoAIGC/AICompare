@@ -36,6 +36,27 @@
       .filter(Boolean);
   }
 
+  async function getDefaultEnabledSites() {
+    if (typeof window.getDefaultSites !== 'function') {
+      return [];
+    }
+
+    try {
+      const sites = await window.getDefaultSites();
+      if (!Array.isArray(sites)) {
+        return [];
+      }
+
+      return sites
+        .filter((site) => site && site.enabled && !site.hidden)
+        .map((site) => String(site.name || '').trim())
+        .filter(Boolean);
+    } catch (error) {
+      console.warn('Failed to resolve default enabled sites for OpenClaw bridge:', error);
+      return [];
+    }
+  }
+
   function getSearchQueryFromUi() {
     const searchInput = document.getElementById('searchInput');
     return (searchInput && searchInput.value ? String(searchInput.value) : '').trim();
@@ -85,6 +106,31 @@
     }
 
     return 'ok';
+  }
+
+  function buildSiteTimeoutMessage(siteName, timeoutMs, lastStatus) {
+    const seconds = Math.round(timeoutMs / 1000);
+    const suffix = lastStatus && lastStatus !== 'pending'
+      ? ` Last observed status: ${lastStatus}.`
+      : '';
+    return `Timed out waiting for ${siteName} after about ${seconds} seconds.${suffix}`;
+  }
+
+  function finalizeTimedOutResults(results, timeoutMs) {
+    return (results || []).map((item) => {
+      if (!item) return item;
+      if (item.status === 'ok' || item.status === 'error' || item.status === 'timeout') {
+        return item;
+      }
+
+      const timeoutMessage = buildSiteTimeoutMessage(item.siteName, timeoutMs, item.status);
+      return {
+        ...item,
+        status: 'timeout',
+        content: item.content || timeoutMessage,
+        error: timeoutMessage
+      };
+    });
   }
 
   function stableHash(item) {
@@ -144,6 +190,8 @@
     const startAt = Date.now();
     ensureRunTriggered(query, forceRun);
 
+    const resolvedDefaultSites = requestedSites.length > 0 ? [] : await getDefaultEnabledSites();
+
     const waitIframesUntil = Date.now() + waitForIframesMs;
     while (Date.now() < waitIframesUntil) {
       if (getOpenedSites().length > 0) break;
@@ -167,7 +215,9 @@
       }
 
       const openedSites = getOpenedSites();
-      finalTargetSites = requestedSites.length > 0 ? requestedSites : openedSites;
+      finalTargetSites = requestedSites.length > 0
+        ? requestedSites
+        : (resolvedDefaultSites.length > 0 ? resolvedDefaultSites : openedSites);
 
       if (finalTargetSites.length === 0) {
         await sleep(Math.min(pollIntervalMs, 1000));
@@ -235,6 +285,10 @@
       await sleep(pollIntervalMs);
     }
 
+    if (timedOut) {
+      normalizedResults = finalizeTimedOutResults(normalizedResults, timeoutMs);
+    }
+
     const result = {
       query: query || getSearchQueryFromUi(),
       historyId: window._currentHistoryId || null,
@@ -246,6 +300,8 @@
       stableRounds,
       timedOut,
       completed: !timedOut,
+      openedSites: getOpenedSites(),
+      resolvedDefaultSites,
       targetSites: finalTargetSites,
       totalSites: finalTargetSites.length,
       results: normalizedResults

@@ -271,31 +271,40 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-04-30 13:28:01 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-01 09:11:15 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `.DS_Store`
-- `M` `.gitignore`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
-- `M` `config/siteHandlers.json`
+- `M` `_locales/zh_TW/messages.json`
 - `M` `iframe/export-responses.js`
 - `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `iframe/openclaw-bridge.js`
+- `A` `iframe/timeline-utils.js`
 - `M` `manifest.json`
 - `M` `openclaw/README.md`
 - `M` `openclaw/SKILL.md`
+- `A` `openclaw/ai-compare-openclaw-fast.js`
 - `M` `openclaw/ai-compare-openclaw-runner.js`
-- `A` `openclaw/references/install-browser-extension.md`
+- `A` `tests/iframe-timeline-utils.test.js`
 
 ### Recent commits / 最近提交
+- `c0a228a` 2026-04-30 V2.17.8 龙虾支持、发送消息后清空输入框
 - `44a31f8` 2026-04-20 V 2.21.7 支持点点，默认模板增加翻译到中文
 - `660c1c6` 2026-04-12 V2.21.6 修复豆包
 - `ef11035` 2026-04-08 V 2.21.5 修复不支持 iframe 的站点
 - `d671284` 2026-03-30 V 2.21.4 修复秘塔、claude，提示词分组
-- `ec08961` 2026-03-24 V2.21.3 划词支持选择模板、支持配置
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

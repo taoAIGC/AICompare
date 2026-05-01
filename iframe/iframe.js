@@ -7,6 +7,8 @@ let filePasteHandlerAdded = false;
 
 // 跟踪输入法组合输入状态（用于中文输入法）
 let isComposing = false;
+let searchBarAutoCollapseArmed = false;
+let searchBarCollapseTimer = null;
 
 function trackEvent(name, params = {}) {
   const analytics = window.AIShortcutsAnalytics;
@@ -25,6 +27,31 @@ const ratingPromptState = {
 const ratingReminderState = {
   reminderTargetCount: 10
 };
+
+const TimelineUtils = window.IframeTimelineUtils || {};
+const timelineBuildEntry = typeof TimelineUtils.buildTimelineEntry === 'function'
+  ? TimelineUtils.buildTimelineEntry
+  : ((entry) => ({
+      ...entry,
+      query: String(entry?.query || '').trim(),
+      normalizedQuery: String(entry?.query || '').trim(),
+      occurrenceIndex: 0,
+      timelineId: String(entry?.historyId || Date.now())
+    }));
+const timelineBuildCopyText = typeof TimelineUtils.buildTimelineCopyText === 'function'
+  ? TimelineUtils.buildTimelineCopyText
+  : ((entry, responses) => JSON.stringify({ entry, responses }, null, 2));
+const timelineMergeSnapshots = typeof TimelineUtils.mergeTimelinePromptSnapshots === 'function'
+  ? TimelineUtils.mergeTimelinePromptSnapshots
+  : ((snapshots) => snapshots || []);
+const timelineState = {
+  entries: [],
+  isOpen: false,
+  activeTimelineId: null,
+  promptSnapshotsBySite: new Map()
+};
+let timelineSyncTimer = null;
+let timelineMessageBridgeInitialized = false;
 
 // Keep iframe permissions narrow to avoid cross-site browser permission prompts
 // when opening many third-party AI sites in parallel.
@@ -277,6 +304,471 @@ function t(key, fallback = '', substitutions = undefined) {
   }
 }
 
+function getTimelineElements() {
+  return {
+    panel: document.getElementById('timelinePanel'),
+    list: document.getElementById('timelineList'),
+    toggleButton: document.getElementById('timelineToggleButton'),
+    closeButton: document.getElementById('timelineCloseButton')
+  };
+}
+
+function formatTimelineDateLabel(timestamp) {
+  try {
+    return new Date(timestamp).toLocaleString(chrome?.i18n?.getUILanguage?.() || undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (_) {
+    return new Date(timestamp).toLocaleString();
+  }
+}
+
+function setTimelinePanelOpen(isOpen) {
+  timelineState.isOpen = Boolean(isOpen);
+  const { panel, toggleButton } = getTimelineElements();
+  if (panel) {
+    panel.hidden = !timelineState.isOpen;
+  }
+  if (toggleButton) {
+    toggleButton.classList.toggle('is-active', timelineState.isOpen);
+    toggleButton.setAttribute('aria-expanded', timelineState.isOpen ? 'true' : 'false');
+  }
+}
+
+function renderTimeline() {
+  const { list } = getTimelineElements();
+  if (!list) return;
+
+  if (!timelineState.entries.length) {
+    list.innerHTML = `<div class="timeline-empty">${escapeHtml(t('timelineEmpty', '还没有提问记录，发送问题后会显示在这里。'))}</div>`;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  timelineState.entries.forEach((entry, index) => {
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
+    if (entry.timelineId === timelineState.activeTimelineId) {
+      item.classList.add('is-active');
+    }
+
+    item.innerHTML = `
+      <div class="timeline-item-index">${index + 1}</div>
+      <button class="timeline-item-main" type="button">
+        <div class="timeline-item-query">${escapeHtml(entry.query || '')}</div>
+        <div class="timeline-item-meta">${escapeHtml(
+          entry.siteCount
+            ? t('timelineDetectedSites', '已在 $1 个子页面中识别', [String(entry.siteCount)])
+            : (entry.dateLabel || formatTimelineDateLabel(entry.timestamp))
+        )}</div>
+      </button>
+      <button class="timeline-item-copy" type="button">${escapeHtml(t('timelineCopyButton', '复制'))}</button>
+    `;
+
+    item.querySelector('.timeline-item-main')?.addEventListener('click', async () => {
+      timelineState.activeTimelineId = entry.timelineId;
+      renderTimeline();
+      await scrollToTimelineEntry(entry);
+    });
+
+    item.querySelector('.timeline-item-copy')?.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await copyTimelineEntryResponses(entry);
+    });
+
+    fragment.appendChild(item);
+  });
+
+  list.innerHTML = '';
+  list.appendChild(fragment);
+}
+
+function upsertTimelineEntry(entry, options = {}) {
+  const query = String(entry?.query || '').trim();
+  if (!query) return null;
+
+  const historyId = entry?.historyId || null;
+  if (historyId && options.dedupeByHistoryId) {
+    const existingEntry = timelineState.entries.find((item) => item.historyId === historyId);
+    if (existingEntry) {
+      existingEntry.query = query;
+      existingEntry.normalizedQuery = query;
+      existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || Date.now();
+      existingEntry.dateLabel = entry?.dateLabel || existingEntry.dateLabel || formatTimelineDateLabel(existingEntry.timestamp);
+      timelineState.activeTimelineId = existingEntry.timelineId;
+      renderTimeline();
+      return existingEntry;
+    }
+  }
+
+  const normalizedEntry = timelineBuildEntry({
+    query,
+    historyId,
+    timestamp: Number(entry?.timestamp) || Date.now(),
+    dateLabel: entry?.dateLabel || formatTimelineDateLabel(Number(entry?.timestamp) || Date.now())
+  }, timelineState.entries);
+
+  timelineState.entries.push(normalizedEntry);
+  timelineState.activeTimelineId = normalizedEntry.timelineId;
+  renderTimeline();
+  return normalizedEntry;
+}
+
+function initializeTimelinePanel() {
+  const { toggleButton, closeButton, panel } = getTimelineElements();
+  initializeTimelineMessageBridge();
+  if (!toggleButton || toggleButton.dataset.bound === '1') {
+    renderTimeline();
+    return;
+  }
+
+  setTimelinePanelOpen(false);
+  toggleButton.dataset.bound = '1';
+  toggleButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setTimelinePanelOpen(!timelineState.isOpen);
+    if (timelineState.isOpen) {
+      scheduleTimelineSync(0);
+    }
+    trackEvent('iframe_timeline_toggle', {
+      is_open: timelineState.isOpen
+    });
+  });
+
+  closeButton?.addEventListener('click', () => {
+    setTimelinePanelOpen(false);
+  });
+
+  panel?.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!timelineState.isOpen) return;
+    const { panel: timelinePanel, toggleButton: timelineToggleButton } = getTimelineElements();
+    if (!timelinePanel || timelinePanel.hidden) return;
+    if (timelinePanel.contains(event.target) || timelineToggleButton?.contains(event.target)) return;
+    setTimelinePanelOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && timelineState.isOpen) {
+      setTimelinePanelOpen(false);
+    }
+  });
+
+  renderTimeline();
+}
+
+function buildTimelineIdFromQuery(query) {
+  return `timeline-${encodeURIComponent(String(query || '').slice(0, 200))}`;
+}
+
+function getOpenTimelineSiteNames() {
+  return Array.from(document.querySelectorAll('.ai-iframe'))
+    .map((iframe) => String(iframe.getAttribute('data-site') || '').trim())
+    .filter(Boolean);
+}
+
+function resetTimelinePromptSnapshots() {
+  timelineState.promptSnapshotsBySite.clear();
+  timelineState.entries = [];
+  timelineState.activeTimelineId = null;
+  renderTimeline();
+}
+
+function rebuildTimelineEntriesFromSnapshots() {
+  const openSiteNames = getOpenTimelineSiteNames();
+  if (!openSiteNames.length) {
+    timelineState.promptSnapshotsBySite.clear();
+    timelineState.entries = [];
+    timelineState.activeTimelineId = null;
+    renderTimeline();
+    return;
+  }
+
+  const openSiteSet = new Set(openSiteNames);
+  Array.from(timelineState.promptSnapshotsBySite.keys()).forEach((siteName) => {
+    if (!openSiteSet.has(siteName)) {
+      timelineState.promptSnapshotsBySite.delete(siteName);
+    }
+  });
+
+  const snapshots = openSiteNames.map((siteName) => {
+    const snapshot = timelineState.promptSnapshotsBySite.get(siteName);
+    if (!snapshot) return null;
+    return {
+      siteName: snapshot.siteName || siteName,
+      prompts: Array.isArray(snapshot.prompts) ? snapshot.prompts : []
+    };
+  }).filter(Boolean);
+
+  const mergedEntries = timelineMergeSnapshots(snapshots);
+  const previousEntries = timelineState.entries;
+  const activeEntry = previousEntries.find((entry) => entry.timelineId === timelineState.activeTimelineId);
+
+  timelineState.entries = mergedEntries.map((entry) => {
+    const existingEntry = previousEntries.find((item) => item.normalizedQuery === entry.normalizedQuery);
+    const builtEntry = timelineBuildEntry({
+      query: entry.query,
+      timelineId: buildTimelineIdFromQuery(entry.query),
+      timestamp: existingEntry?.timestamp || Date.now()
+    }, []);
+
+    return {
+      ...builtEntry,
+      timelineId: existingEntry?.timelineId || builtEntry.timelineId,
+      sourceSites: entry.sourceSites || [],
+      siteCount: Array.isArray(entry.sourceSites) ? entry.sourceSites.length : 0
+    };
+  });
+
+  if (activeEntry) {
+    const nextActiveEntry = timelineState.entries.find((entry) => entry.normalizedQuery === activeEntry.normalizedQuery);
+    timelineState.activeTimelineId = nextActiveEntry?.timelineId || null;
+  } else if (!timelineState.entries.find((entry) => entry.timelineId === timelineState.activeTimelineId)) {
+    timelineState.activeTimelineId = timelineState.entries[timelineState.entries.length - 1]?.timelineId || null;
+  }
+
+  renderTimeline();
+}
+
+function updateTimelineSnapshotFromIframe(siteName, prompts) {
+  const normalizedSiteName = String(siteName || '').trim();
+  if (!normalizedSiteName) return;
+
+  const normalizedPrompts = Array.isArray(prompts)
+    ? prompts
+        .map((prompt) => ({
+          text: String(prompt?.text || '').trim()
+        }))
+        .filter((prompt) => prompt.text)
+    : [];
+
+  const nextSignature = JSON.stringify(normalizedPrompts.map((prompt) => prompt.text));
+  const existingSnapshot = timelineState.promptSnapshotsBySite.get(normalizedSiteName);
+  if (existingSnapshot?.signature === nextSignature) {
+    return;
+  }
+
+  timelineState.promptSnapshotsBySite.set(normalizedSiteName, {
+    siteName: normalizedSiteName,
+    prompts: normalizedPrompts,
+    signature: nextSignature
+  });
+  rebuildTimelineEntriesFromSnapshots();
+}
+
+function clearTimelineSnapshotForSite(siteName) {
+  const normalizedSiteName = String(siteName || '').trim();
+  if (!normalizedSiteName) return;
+  if (!timelineState.promptSnapshotsBySite.has(normalizedSiteName)) return;
+  timelineState.promptSnapshotsBySite.delete(normalizedSiteName);
+  rebuildTimelineEntriesFromSnapshots();
+}
+
+function initializeTimelineMessageBridge() {
+  if (timelineMessageBridgeInitialized) return;
+  timelineMessageBridgeInitialized = true;
+
+  window.addEventListener('message', (event) => {
+    if (event.data?.type !== 'TIMELINE_PROMPTS_SNAPSHOT' || event.data?.source !== 'inject-script') {
+      return;
+    }
+
+    const sourceIframe = Array.from(document.querySelectorAll('.ai-iframe')).find((iframe) => {
+      return iframe.contentWindow && event.source === iframe.contentWindow;
+    });
+    if (!sourceIframe) return;
+
+    const siteName = sourceIframe.getAttribute('data-site') || event.data.siteName || '';
+    updateTimelineSnapshotFromIframe(siteName, event.data.prompts);
+  });
+}
+
+async function syncTimelineFromIframes() {
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
+  if (!iframes.length) {
+    resetTimelinePromptSnapshots();
+    return;
+  }
+
+  rebuildTimelineEntriesFromSnapshots();
+}
+
+function scheduleTimelineSync(delayMs = 1200) {
+  if (timelineSyncTimer) {
+    clearTimeout(timelineSyncTimer);
+  }
+
+  timelineSyncTimer = setTimeout(() => {
+    syncTimelineFromIframes().catch((error) => {
+      console.warn('同步时间线失败:', error);
+    });
+  }, Math.max(0, Number(delayMs) || 0));
+}
+
+function scheduleTimelineSyncBurst(delays = [1200, 3200, 6200]) {
+  const normalizedDelays = Array.isArray(delays) ? delays : [delays];
+  normalizedDelays.forEach((delay) => {
+    setTimeout(() => {
+      syncTimelineFromIframes().catch((error) => {
+        console.warn('同步时间线失败:', error);
+      });
+    }, Math.max(0, Number(delay) || 0));
+  });
+}
+
+function requestIframeTimelineAction(iframe, requestType, responseType, payload = {}, timeoutMs = 8000) {
+  const siteName = iframe?.getAttribute('data-site') || payload.siteName || '';
+  const requestId = `timeline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return new Promise((resolve) => {
+    if (!iframe?.contentWindow) {
+      resolve({
+        siteName,
+        error: t('timelineSiteNotReady', '页面尚未就绪')
+      });
+      return;
+    }
+
+    const cleanup = (handler, timer) => {
+      window.removeEventListener('message', handler);
+      clearTimeout(timer);
+    };
+
+    const handler = (event) => {
+      if (event.source !== iframe.contentWindow) return;
+      if (event.data?.type !== responseType) return;
+      if (event.data?.requestId !== requestId) return;
+      cleanup(handler, timer);
+      resolve({
+        ...event.data,
+        siteName: event.data?.siteName || siteName
+      });
+    };
+
+    const timer = setTimeout(() => {
+      cleanup(handler, timer);
+      resolve({
+        siteName,
+        error: t('timelineActionTimeout', '请求超时')
+      });
+    }, timeoutMs);
+
+    window.addEventListener('message', handler);
+
+    try {
+      iframe.contentWindow.postMessage({
+        type: requestType,
+        requestId,
+        siteName,
+        ...payload
+      }, '*');
+    } catch (error) {
+      cleanup(handler, timer);
+      resolve({
+        siteName,
+        error: error?.message || String(error)
+      });
+    }
+  });
+}
+
+async function scrollToTimelineEntry(entry) {
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
+  if (!iframes.length) {
+    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    return;
+  }
+
+  const results = await Promise.all(iframes.map((iframe) => {
+    return requestIframeTimelineAction(
+      iframe,
+      'SCROLL_TO_PROMPT',
+      'SCROLL_TO_PROMPT_RESULT',
+      {
+        query: entry.query,
+        occurrenceIndex: entry.occurrenceIndex
+      }
+    );
+  }));
+
+  const successCount = results.filter((item) => item?.found).length;
+  if (successCount === 0) {
+    showToast(t('timelineScrollNotFound', '没有在当前子页面中找到这条提问'));
+  } else {
+    showToast(t('timelineScrollSuccess', '已定位 $1/$2 个子页面', [String(successCount), String(results.length)]));
+  }
+
+  trackEvent('iframe_timeline_scroll', {
+    sites_total: results.length,
+    sites_found: successCount
+  });
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator?.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  textarea.remove();
+}
+
+async function copyTimelineEntryResponses(entry) {
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
+  if (!iframes.length) {
+    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    return;
+  }
+
+  const responses = await Promise.all(iframes.map((iframe) => {
+    return requestIframeTimelineAction(
+      iframe,
+      'EXTRACT_PROMPT_RESPONSE',
+      'EXTRACT_PROMPT_RESPONSE_RESULT',
+      {
+        query: entry.query,
+        occurrenceIndex: entry.occurrenceIndex
+      },
+      12000
+    );
+  }));
+
+  const copyText = timelineBuildCopyText(entry, responses.map((item) => ({
+    siteName: item?.siteName || '',
+    content: item?.content || '',
+    error: item?.error || ''
+  })));
+
+  try {
+    await copyTextToClipboard(copyText);
+    const successCount = responses.filter((item) => String(item?.content || '').trim()).length;
+    showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [String(successCount), String(responses.length)]));
+    trackEvent('iframe_timeline_copy', {
+      sites_total: responses.length,
+      sites_with_content: successCount
+    });
+  } catch (error) {
+    console.error('复制时间线回答失败:', error);
+    showToast(t('timelineCopyFailed', '复制失败，请重试'));
+  }
+}
+
 function setIframeHeaderStatus(iframeContainer, text, isHidden = false) {
   if (!iframeContainer) return;
   if (iframeContainer.__headerStatusTimer) {
@@ -301,6 +793,148 @@ function scheduleIframeHeaderStatus(iframeContainer, text, delayMs = 0) {
 
 function hideIframeHeaderStatus(iframeContainer) {
   setIframeHeaderStatus(iframeContainer, '', true);
+}
+
+function getSearchBarElements() {
+  return {
+    bar: document.getElementById('searchBar'),
+    input: document.getElementById('searchInput'),
+    suggestions: document.getElementById('querySuggestions')
+  };
+}
+
+function clearSearchBarCollapseTimer() {
+  if (searchBarCollapseTimer) {
+    clearTimeout(searchBarCollapseTimer);
+    searchBarCollapseTimer = null;
+  }
+}
+
+function hideQuerySuggestionsPanel() {
+  const { suggestions } = getSearchBarElements();
+  if (suggestions) {
+    suggestions.style.display = 'none';
+  }
+}
+
+function shouldAutoCollapseSearchBar() {
+  const { bar, input } = getSearchBarElements();
+  if (!bar || !input || !searchBarAutoCollapseArmed) return false;
+  if (!document.body.classList.contains('search-bar-bottom')) return false;
+  if (bar.classList.contains('search-bar-dragging')) return false;
+  return !input.value.trim();
+}
+
+function setSearchBarCollapsed(collapsed, options = {}) {
+  const { blurInput = true, focusInput = false, keepArmed = true } = options;
+  const { bar, input } = getSearchBarElements();
+  if (!bar || !input) return;
+
+  clearSearchBarCollapseTimer();
+
+  if (collapsed) {
+    if (!shouldAutoCollapseSearchBar()) return;
+    hideQuerySuggestionsPanel();
+    bar.classList.add('search-bar-auto-collapsed');
+    if (blurInput && document.activeElement === input) {
+      input.blur();
+    }
+    return;
+  }
+
+  if (!keepArmed) {
+    searchBarAutoCollapseArmed = false;
+  }
+  bar.classList.remove('search-bar-auto-collapsed');
+
+  if (focusInput) {
+    requestAnimationFrame(() => {
+      const { bar: latestBar, input: latestInput } = getSearchBarElements();
+      if (!latestBar || !latestInput || latestBar.classList.contains('search-bar-auto-collapsed')) {
+        return;
+      }
+      try {
+        latestInput.focus({ preventScroll: true });
+      } catch (_) {
+        latestInput.focus();
+      }
+      if (typeof latestInput.setSelectionRange === 'function') {
+        const caret = latestInput.value.length;
+        try {
+          latestInput.setSelectionRange(caret, caret);
+        } catch (_) {
+          // Ignore selection errors on non-text inputs.
+        }
+      }
+    });
+  }
+}
+
+function scheduleSearchBarCollapse(delayMs = 140, options = {}) {
+  const { ignoreFocusWithinBar = false } = options;
+  clearSearchBarCollapseTimer();
+  if (!searchBarAutoCollapseArmed) return;
+  searchBarCollapseTimer = setTimeout(() => {
+    const { bar, input } = getSearchBarElements();
+    if (!bar) return;
+    const activeElement = document.activeElement;
+    if (bar.matches(':hover')) return;
+    if (activeElement && bar.contains(activeElement)) {
+      if (!ignoreFocusWithinBar) return;
+      if (input && activeElement === input) {
+        input.blur();
+      }
+    }
+    setSearchBarCollapsed(true);
+  }, Math.max(0, Number(delayMs) || 0));
+}
+
+function armSearchBarAutoCollapse() {
+  searchBarAutoCollapseArmed = true;
+  setSearchBarCollapsed(true);
+}
+
+function disarmSearchBarAutoCollapse() {
+  searchBarAutoCollapseArmed = false;
+  clearSearchBarCollapseTimer();
+  setSearchBarCollapsed(false, { keepArmed: false });
+}
+
+function initSearchBarAutoCollapse() {
+  const { bar, input } = getSearchBarElements();
+  if (!bar || !input) return;
+
+  bar.addEventListener('mouseenter', () => {
+    if (!searchBarAutoCollapseArmed || !bar.classList.contains('search-bar-auto-collapsed')) return;
+    setSearchBarCollapsed(false, { focusInput: true });
+  });
+
+  bar.addEventListener('mouseleave', () => {
+    scheduleSearchBarCollapse(140, { ignoreFocusWithinBar: true });
+  });
+
+  bar.addEventListener('focusin', () => {
+    clearSearchBarCollapseTimer();
+    if (bar.classList.contains('search-bar-auto-collapsed')) {
+      setSearchBarCollapsed(false, { keepArmed: true });
+    }
+  });
+
+  bar.addEventListener('focusout', () => {
+    setTimeout(() => {
+      scheduleSearchBarCollapse();
+    }, 0);
+  });
+
+  input.addEventListener('input', () => {
+    if (input.value.trim()) {
+      disarmSearchBarAutoCollapse();
+      return;
+    }
+    if (searchBarAutoCollapseArmed && !bar.matches(':hover')) {
+      scheduleSearchBarCollapse();
+    }
+  });
 }
 
 // 应用 iframe 输入框位置设置（iframe 页固定底部）
@@ -1037,6 +1671,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 应用输入框位置设置
     await applyIframeInputPosition();
     initSearchBarDrag();
+    initSearchBarAutoCollapse();
 
     // 检测是否在侧边栏中打开
     const isSidePanel = window.location.href.includes('side_panel') || 
@@ -2085,6 +2720,7 @@ function removeSiteIframeByName(siteName) {
   const iframeContainer = targetIframe.closest('.iframe-container');
   if (!iframeContainer) return false;
   iframeContainer.remove();
+  clearTimelineSnapshotForSite(siteName);
   return true;
 }
 
@@ -2325,7 +2961,7 @@ async function createIframes(query, sites) {
     
   try {
     if (query) {
-      
+      resetTimelinePromptSnapshots();
       // 如果有查询词,清空容器内容
       container.innerHTML = '';
       console.log("清空iframe")
@@ -2435,7 +3071,7 @@ async function createIframes(query, sites) {
   // 如果是从历史/收藏页打开的，跳过保存（避免重复创建记录）
   if (query && query.trim() !== '' && !window._openedFromHistory) {
     // 立即保存历史记录，不等待 iframe 加载
-    savePKHistory(query);
+    await savePKHistory(query);
   }
 
   // 首页/直达页带着 query 进来后，站点已开始自动发送；发送链路启动后即可清空顶部输入框，
@@ -2638,6 +3274,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     document.getElementById('searchInput').focus();
 
     handleIframeLoadedForRating(iframe);
+    scheduleTimelineSync(900);
   });
   
   // 添加消息监听（确保只处理一次）
@@ -2832,6 +3469,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     iframeContainer.remove();
     // 在导航栏中找到对应的 nav-item 并删除
     removeNavItemBySiteName(siteName);
+    clearTimelineSnapshotForSite(siteName);
     
   };
 
@@ -2936,21 +3574,7 @@ async function getIframeHandler(iframeUrl, preferredSiteName = null) {
 }
 // 添加搜索按钮
 document.getElementById('searchButton').addEventListener('click', async () => {
-  const query = document.getElementById('searchInput').value.trim();
-  if (query) {
-    const openedSites = getOpenedSites();
-    trackEvent('iframe_search_submit', {
-      query_length: query.length,
-      selected_sites_count: openedSites.length,
-      selected_sites: openedSites,
-      trigger: 'button'
-    });
-    shanshuo();
-    const sent = await iframeFresh(query);
-    if (sent) {
-      clearIframeSearchInput();
-    }
-  }
+  await submitIframeSearch('button');
 });
 
 // 监听输入法组合输入事件
@@ -2974,21 +3598,7 @@ document.getElementById('searchInput').addEventListener('keydown', async (e) => 
         }
         
         e.preventDefault();
-        const query = document.getElementById('searchInput').value.trim();
-        if (query) {
-            const openedSites = getOpenedSites();
-            trackEvent('iframe_search_submit', {
-                query_length: query.length,
-                selected_sites_count: openedSites.length,
-                selected_sites: openedSites,
-                trigger: 'enter'
-            });
-            shanshuo();
-            const sent = await iframeFresh(query);
-            if (sent) {
-              clearIframeSearchInput();
-            }
-        }
+        await submitIframeSearch('enter');
     }
 });   
 
@@ -3512,6 +4122,28 @@ function clearIframeSearchInput() {
   searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+async function submitIframeSearch(trigger) {
+  const searchInput = document.getElementById('searchInput');
+  const query = searchInput ? searchInput.value.trim() : '';
+  if (!query) return false;
+
+  const openedSites = getOpenedSites();
+  trackEvent('iframe_search_submit', {
+    query_length: query.length,
+    selected_sites_count: openedSites.length,
+    selected_sites: openedSites,
+    trigger
+  });
+
+  shanshuo();
+  const sent = await iframeFresh(query);
+  if (sent) {
+    clearIframeSearchInput();
+    armSearchBarAutoCollapse();
+  }
+  return sent;
+}
+
 
 async function iframeFresh(query) {    
       // 立即记录历史：不需要等待 iframe 加载完成（sites 会由后续机制更新）
@@ -3619,6 +4251,7 @@ async function iframeFresh(query) {
         }
     });
 
+      scheduleTimelineSyncBurst([1800, 4200, 7600]);
       return iframes.length > 0;
 }
 
@@ -3633,6 +4266,7 @@ async function loadHistoryIframes(sites) {
       return;
     }
     
+    resetTimelinePromptSnapshots();
     // 清空现有 iframe
     container.innerHTML = '';
     
@@ -3695,6 +4329,7 @@ async function loadHistoryIframes(sites) {
 
       iframe.addEventListener('load', () => {
         setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
+        scheduleTimelineSync(900);
       });
 
       // 头部收藏按钮点击事件
@@ -3736,6 +4371,7 @@ async function loadHistoryIframes(sites) {
       closeBtn.onclick = () => {
         iframeContainer.remove();
         removeNavItemBySiteName(siteName);
+        clearTimelineSnapshotForSite(siteName);
       };
       
       // 组装元素
@@ -4281,6 +4917,7 @@ function initQuickTooltips() {
 // 在页面加载时调用
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
+  initializeTimelinePanel();
   await initializeFavorites();
   if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
   checkForSiteConfigUpdates();

@@ -1149,6 +1149,42 @@
   "floatButtonEnableInSettingsHint": {
     "message": "(可在设置页开启)"
   },
+  "timelineToggleTitle": {
+    "message": "提问时间线"
+  },
+  "timelinePanelTitle": {
+    "message": "开发中"
+  },
+  "timelineEmpty": {
+    "message": "当前对话里还没有识别到提问。"
+  },
+  "timelineCopyButton": {
+    "message": "复制"
+  },
+  "timelineDetectedSites": {
+    "message": "已在 $1 个子页面中识别"
+  },
+  "timelineNoIframes": {
+    "message": "当前没有可用的子页面"
+  },
+  "timelineScrollNotFound": {
+    "message": "没有在当前子页面中找到这条提问"
+  },
+  "timelineScrollSuccess": {
+    "message": "已定位 $1/$2 个子页面"
+  },
+  "timelineCopySuccess": {
+    "message": "已复制这条提问的回答（$1/$2）"
+  },
+  "timelineCopyFailed": {
+    "message": "复制失败，请重试"
+  },
+  "timelineSiteNotReady": {
+    "message": "页面尚未就绪"
+  },
+  "timelineActionTimeout": {
+    "message": "请求超时"
+  },
   "confirmButton": {
     "message": "确定"
   }

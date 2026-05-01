@@ -1154,6 +1154,42 @@
   "floatButtonEnableInSettingsHint": {
     "message": "(Can be re-enabled in Settings)"
   },
+  "timelineToggleTitle": {
+    "message": "Question timeline"
+  },
+  "timelinePanelTitle": {
+    "message": "In development"
+  },
+  "timelineEmpty": {
+    "message": "No prompts detected in this conversation yet."
+  },
+  "timelineCopyButton": {
+    "message": "Copy"
+  },
+  "timelineDetectedSites": {
+    "message": "Detected in $1 sub-pages"
+  },
+  "timelineNoIframes": {
+    "message": "No sub-pages are available right now"
+  },
+  "timelineScrollNotFound": {
+    "message": "This prompt was not found in the current sub-pages"
+  },
+  "timelineScrollSuccess": {
+    "message": "Located this prompt in $1/$2 sub-pages"
+  },
+  "timelineCopySuccess": {
+    "message": "Copied responses for this prompt ($1/$2)"
+  },
+  "timelineCopyFailed": {
+    "message": "Copy failed. Please try again."
+  },
+  "timelineSiteNotReady": {
+    "message": "Page is not ready"
+  },
+  "timelineActionTimeout": {
+    "message": "Request timed out"
+  },
   "confirmButton": {
     "message": "Confirm"
   }

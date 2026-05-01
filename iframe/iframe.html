@@ -54,6 +54,10 @@
                     </g>
                 </svg>
             </button>
+
+            <button id="timelineToggleButton" class="timeline-toggle-btn" type="button" data-i18n-title="timelineToggleTitle" data-i18n-aria-label="timelineToggleTitle" title="" aria-label="">
+                <img src="../icons/history.svg" data-i18n-alt="timelineToggleTitle" alt="">
+            </button>
         
             <!-- 隐藏的文件选择input -->
             <input type="file" id="fileInput" style="display: none;" multiple 
@@ -75,6 +79,13 @@
     <div id="queryList" style="display: none;">
         <!-- 收藏的 query 列表将动态添加到这里 -->
     </div>
+    <div id="timelinePanel" class="timeline-panel" hidden>
+        <div class="timeline-panel-header">
+            <div class="timeline-panel-title" data-i18n="timelinePanelTitle">提问时间线</div>
+            <button id="timelineCloseButton" class="timeline-close-btn" type="button" data-i18n-title="closeButton" data-i18n-aria-label="closeButton" title="" aria-label="">×</button>
+        </div>
+        <div id="timelineList" class="timeline-list"></div>
+    </div>
     <div id="quickTooltip" class="quick-tooltip" aria-hidden="true"></div>
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
@@ -83,6 +94,7 @@
     <script src="../firebase/firebase-sync.js"></script>
     <script src="../shared/prompt-template-utils.js"></script>
     <script src="../shared/favorite-folder-modal.js"></script>
+    <script src="timeline-utils.js"></script>
     <script type="module" src="iframe.js"></script>
     <script src="export-responses.js"></script>
     <script src="openclaw-bridge.js"></script>

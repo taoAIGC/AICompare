@@ -17,8 +17,8 @@ function getChromium() {
 }
 
 const DEFAULT_EXTENSION_IDS = [
-  'hhkhgpadepocnmjfpohcmjdcgkmfnadi',
-  'dkhpgbbhlnmjbkihoeniojpkggkabbbl'
+  'dkhpgbbhlnmjbkihoeniojpkggkabbbl',
+  'hhkhgpadepocnmjfpohcmjdcgkmfnadi'
 ];
 
 function parseArgs(argv) {

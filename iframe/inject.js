@@ -48,6 +48,10 @@ let __directHistoryLastAt = 0;
 let __directHistoryIsComposing = false;
 let __userPromptButtonsInit = false;
 let __currentInjectStepMeta = null;
+let __timelinePromptPushInitialized = false;
+let __timelinePromptPushTimer = null;
+let __timelinePromptObserver = null;
+let __timelinePromptLastSignature = null;
 
 function t(key, fallback = '', substitutions = undefined) {
   try {
@@ -361,6 +365,11 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
       }
     } catch (error) {
       console.error(`步骤 ${i + 1} 执行失败:`, error);
+      if (step.required === false) {
+        console.warn(`⚠️ 可选步骤 ${i + 1} 失败，已跳过:`, error?.message || String(error));
+        __currentInjectStepMeta = null;
+        continue;
+      }
       const manualRetryRequired = error?.manualRetryRequired === true ||
         step?.retryOnDisabled === true ||
         step?.waitForElement === true ||
@@ -377,9 +386,7 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
           manualRetryRequired
         });
       }
-      if (step.required !== false) { // 默认必需步骤
-        throw error;
-      }
+      throw error;
     }
     __currentInjectStepMeta = null;
   }
@@ -1960,7 +1967,8 @@ async function getSiteHandler(domain, preferredSiteName = null) {
       searchHandler: site.searchHandler,
       fileUploadHandler: site.fileUploadHandler,
       contentExtractor: site.contentExtractor,
-      historyHandler: site.historyHandler
+      historyHandler: site.historyHandler,
+      userPrompt: site.userPrompt
     };
   } catch (error) {
     console.error('获取站点处理器失败:', error);
@@ -2014,7 +2022,7 @@ window.addEventListener('message', async function(event) {
     }
     
     // 只处理 AIShortcuts 扩展的特定消息类型
-    const validMultiAITypes = ['TRIGGER_PASTE', 'search', 'EXTRACT_CONTENT', 'SET_HISTORY_CONTEXT', 'GET_CURRENT_URL'];
+    const validMultiAITypes = ['TRIGGER_PASTE', 'search', 'EXTRACT_CONTENT', 'SET_HISTORY_CONTEXT', 'GET_CURRENT_URL', 'SCROLL_TO_PROMPT', 'EXTRACT_PROMPT_RESPONSE', 'LIST_USER_PROMPTS'];
     
     if (!validMultiAITypes.includes(event.data.type)) {
         return;
@@ -2027,6 +2035,7 @@ window.addEventListener('message', async function(event) {
         __aiCompareHistoryContext.historyId = event.data.historyId || null;
         __aiCompareHistoryContext.siteName = event.data.siteName || __aiCompareHistoryContext.siteName;
         console.log('✅ 已更新历史上下文:', __aiCompareHistoryContext);
+        scheduleTimelinePromptSnapshot(80, { force: true });
         return;
     }
     
@@ -2165,6 +2174,74 @@ window.addEventListener('message', async function(event) {
         return;
     }
 
+    if (event.data.type === 'LIST_USER_PROMPTS') {
+        const domain = event.data.domain || window.location.hostname;
+        const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
+        const promptRecords = collectTimelinePromptRecords(siteHandler);
+
+        window.parent.postMessage({
+            type: 'LIST_USER_PROMPTS_RESULT',
+            requestId: event.data.requestId,
+            siteName: event.data.siteName || siteHandler?.name || domain,
+            prompts: promptRecords.map((item) => ({
+                text: item.text
+            }))
+        }, '*');
+        return;
+    }
+
+    if (event.data.type === 'SCROLL_TO_PROMPT') {
+        const domain = event.data.domain || window.location.hostname;
+        const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
+        let result;
+        try {
+            result = await scrollToPromptForTimeline(
+                siteHandler,
+                event.data.query,
+                Number(event.data.occurrenceIndex) || 0
+            );
+        } catch (error) {
+            result = {
+                found: false,
+                error: error?.message || String(error)
+            };
+        }
+
+        window.parent.postMessage({
+            type: 'SCROLL_TO_PROMPT_RESULT',
+            requestId: event.data.requestId,
+            siteName: event.data.siteName || siteHandler?.name || domain,
+            ...result
+        }, '*');
+        return;
+    }
+
+    if (event.data.type === 'EXTRACT_PROMPT_RESPONSE') {
+        const domain = event.data.domain || window.location.hostname;
+        const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
+        let result;
+        try {
+            result = await extractPromptResponseForTimeline(
+                siteHandler,
+                event.data.query,
+                Number(event.data.occurrenceIndex) || 0
+            );
+        } catch (error) {
+            result = {
+                found: false,
+                error: error?.message || String(error)
+            };
+        }
+
+        window.parent.postMessage({
+            type: 'EXTRACT_PROMPT_RESPONSE_RESULT',
+            requestId: event.data.requestId,
+            siteName: event.data.siteName || siteHandler?.name || domain,
+            ...result
+        }, '*');
+        return;
+    }
+
     // 处理内容提取消息
     if (event.data.type === 'EXTRACT_CONTENT') {
         console.log('🎯 收到内容提取请求:', event.data);
@@ -2232,7 +2309,7 @@ window.addEventListener('message', async function(event) {
     const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
     console.log('🔍 调试信息 - 站点处理器:', siteHandler);
     
-    if (siteHandler && siteHandler.searchHandler && event.data.query) {
+        if (siteHandler && siteHandler.searchHandler && event.data.query) {
         // 记录本次搜索关联的 historyId（父页面会在消息里携带）
         if (event.data.historyId) {
             __aiCompareHistoryContext.historyId = event.data.historyId;
@@ -2245,6 +2322,8 @@ window.addEventListener('message', async function(event) {
             // 使用配置化处理器执行
             await executeSiteHandler(event.data.query, siteHandler.searchHandler, siteHandler.name);
             console.log(`✅ ${siteHandler.name} 处理完成`);
+            scheduleTimelinePromptSnapshot(200, { force: true });
+            setTimeout(() => scheduleTimelinePromptSnapshot(0, { force: true }), 1200);
             
             // 执行完成后，启动 URL 检测逻辑（如果配置了 historyHandler）
             console.log('🔍 检查 historyHandler 配置:', {
@@ -2438,6 +2517,354 @@ async function extractPageContent() {
         console.error('❌ 内容提取失败:', error);
         return `内容提取失败: ${error.message}`;
     }
+}
+
+function normalizeTimelineComparableText(text) {
+    return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
+}
+
+function toSelectorArray(selectors) {
+    if (Array.isArray(selectors)) {
+        return selectors.map(item => String(item || '').trim()).filter(Boolean);
+    }
+    if (typeof selectors === 'string' && selectors.trim()) {
+        return [selectors.trim()];
+    }
+    return [];
+}
+
+function sortNodesByDocumentOrder(nodes) {
+    return [...nodes].sort((a, b) => {
+        if (a === b) return 0;
+        const relation = a.compareDocumentPosition(b);
+        return relation & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+}
+
+function getTimelinePromptConfig(siteHandler) {
+    const userPrompt = siteHandler?.userPrompt || {};
+    const contentExtractor = siteHandler?.contentExtractor || {};
+
+    return {
+        containerSelectors: toSelectorArray(userPrompt.containerSelector || contentExtractor.userMessageSelector),
+        textSelector: userPrompt.textSelector || '',
+        messageNodeSelector: userPrompt.messageNodeSelector || '',
+        requireMessageNode: userPrompt.requireMessageNode === true
+    };
+}
+
+function resolveTimelinePromptAnchor(container, promptConfig) {
+    if (!container) return null;
+    if (promptConfig?.messageNodeSelector) {
+        const anchoredNode = container.closest(promptConfig.messageNodeSelector);
+        if (anchoredNode) return anchoredNode;
+        if (promptConfig.requireMessageNode) return null;
+    }
+    return container;
+}
+
+function collectTimelinePromptRecords(siteHandler) {
+    const promptConfig = getTimelinePromptConfig(siteHandler);
+    const seenContainers = new Set();
+    const promptRecords = [];
+
+    promptConfig.containerSelectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((container) => {
+            if (seenContainers.has(container)) return;
+            seenContainers.add(container);
+
+            const anchor = resolveTimelinePromptAnchor(container, promptConfig);
+            if (!anchor) return;
+
+            const textNode = promptConfig.textSelector ? container.querySelector(promptConfig.textSelector) : container;
+            const text = normalizeTimelineComparableText(textNode?.textContent || container.textContent || '');
+            if (!text) return;
+
+            promptRecords.push({
+                container,
+                anchor,
+                text,
+                normalizedText: text
+            });
+        });
+    });
+
+    const sortedAnchors = sortNodesByDocumentOrder(promptRecords.map(item => item.anchor));
+    return sortedAnchors.map((anchor, index) => {
+        const item = promptRecords.find(record => record.anchor === anchor);
+        if (!item) return null;
+        return {
+            ...item,
+            orderIndex: index
+        };
+    }).filter(Boolean);
+}
+
+function buildTimelinePromptSnapshotSignature(siteName, prompts) {
+    return JSON.stringify({
+        siteName: String(siteName || '').trim(),
+        prompts: Array.isArray(prompts) ? prompts.map((prompt) => String(prompt?.text || '').trim()) : []
+    });
+}
+
+async function pushTimelinePromptSnapshot(options = {}) {
+    if (!isRunningInExtensionIframe() || !window.parent || window.parent === window) {
+        return;
+    }
+
+    const siteHandler = await getSiteHandler(window.location.hostname, __aiCompareHistoryContext.siteName || null);
+    const siteName = siteHandler?.name || __aiCompareHistoryContext.siteName || window.location.hostname;
+    const promptRecords = collectTimelinePromptRecords(siteHandler);
+    const prompts = promptRecords.map((item) => ({
+        text: item.text
+    }));
+    const nextSignature = buildTimelinePromptSnapshotSignature(siteName, prompts);
+
+    if (!options.force && __timelinePromptLastSignature === nextSignature) {
+        return;
+    }
+
+    __timelinePromptLastSignature = nextSignature;
+    window.parent.postMessage({
+        type: 'TIMELINE_PROMPTS_SNAPSHOT',
+        source: 'inject-script',
+        siteName,
+        prompts
+    }, '*');
+}
+
+function scheduleTimelinePromptSnapshot(delayMs = 240, options = {}) {
+    if (!isRunningInExtensionIframe()) return;
+    if (__timelinePromptPushTimer) {
+        clearTimeout(__timelinePromptPushTimer);
+    }
+    __timelinePromptPushTimer = setTimeout(() => {
+        pushTimelinePromptSnapshot(options).catch((error) => {
+            console.warn('时间线 prompt 推送失败:', error);
+        });
+    }, Math.max(0, Number(delayMs) || 0));
+}
+
+function initializeTimelinePromptPush() {
+    if (__timelinePromptPushInitialized || !isRunningInExtensionIframe()) {
+        return;
+    }
+    __timelinePromptPushInitialized = true;
+
+    const startObserver = () => {
+        if (__timelinePromptObserver || typeof MutationObserver !== 'function') return;
+        const targetNode = document.body || document.documentElement;
+        if (!targetNode) return;
+
+        __timelinePromptObserver = new MutationObserver(() => {
+            scheduleTimelinePromptSnapshot(260);
+        });
+        __timelinePromptObserver.observe(targetNode, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            startObserver();
+            scheduleTimelinePromptSnapshot(160, { force: true });
+        }, { once: true });
+    } else {
+        startObserver();
+        scheduleTimelinePromptSnapshot(160, { force: true });
+    }
+
+    window.addEventListener('load', () => {
+        scheduleTimelinePromptSnapshot(120, { force: true });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            scheduleTimelinePromptSnapshot(180, { force: true });
+        }
+    });
+
+    [900, 2400, 5200].forEach((delay) => {
+        setTimeout(() => {
+            scheduleTimelinePromptSnapshot(0, { force: true });
+        }, delay);
+    });
+}
+
+initializeTimelinePromptPush();
+
+function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
+    const normalizedQuery = normalizeTimelineComparableText(query);
+    if (!normalizedQuery) return null;
+
+    const exactMatches = promptRecords.filter(item => item.normalizedText === normalizedQuery);
+    if (exactMatches.length > 0) {
+        return exactMatches[Math.min(Math.max(occurrenceIndex || 0, 0), exactMatches.length - 1)];
+    }
+
+    const fuzzyMatches = promptRecords.filter((item) => {
+        return item.normalizedText.includes(normalizedQuery) || normalizedQuery.includes(item.normalizedText);
+    });
+    if (fuzzyMatches.length > 0) {
+        return fuzzyMatches[Math.min(Math.max(occurrenceIndex || 0, 0), fuzzyMatches.length - 1)];
+    }
+
+    return null;
+}
+
+function ensureTimelinePromptHighlightStyle() {
+    if (document.getElementById('ai-compare-timeline-highlight-style')) return;
+    const style = document.createElement('style');
+    style.id = 'ai-compare-timeline-highlight-style';
+    style.textContent = `
+      .ai-compare-timeline-highlight {
+        outline: 2px solid #111 !important;
+        outline-offset: 4px !important;
+        border-radius: 10px !important;
+      }
+    `;
+    document.documentElement.appendChild(style);
+}
+
+let activeTimelineHighlightNode = null;
+let activeTimelineHighlightTimer = null;
+
+function highlightTimelinePromptNode(node) {
+    if (!node) return;
+    ensureTimelinePromptHighlightStyle();
+    if (activeTimelineHighlightNode && activeTimelineHighlightNode !== node) {
+        activeTimelineHighlightNode.classList.remove('ai-compare-timeline-highlight');
+    }
+    if (activeTimelineHighlightTimer) {
+        clearTimeout(activeTimelineHighlightTimer);
+    }
+    activeTimelineHighlightNode = node;
+    node.classList.add('ai-compare-timeline-highlight');
+    activeTimelineHighlightTimer = setTimeout(() => {
+        node.classList.remove('ai-compare-timeline-highlight');
+        if (activeTimelineHighlightNode === node) {
+            activeTimelineHighlightNode = null;
+        }
+    }, 2200);
+}
+
+function isNodeAfter(startNode, candidateNode) {
+    if (!startNode || !candidateNode || startNode === candidateNode) return false;
+    return Boolean(startNode.compareDocumentPosition(candidateNode) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
+function isNodeBefore(candidateNode, endNode) {
+    if (!candidateNode || !endNode || candidateNode === endNode) return false;
+    return Boolean(candidateNode.compareDocumentPosition(endNode) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
+function collectTimelineResponseCandidates(contentExtractor) {
+    const selectors = [
+        ...toSelectorArray(contentExtractor?.contentSelectors),
+        ...toSelectorArray(contentExtractor?.fallbackSelectors),
+        ...toSelectorArray(contentExtractor?.selectors)
+    ];
+    const excludeSelectors = [
+        'nav',
+        'header',
+        'footer',
+        '.sidebar',
+        '.menu',
+        ...(contentExtractor?.excludeSelectors || [])
+    ];
+    const seenNodes = new Set();
+    const candidates = [];
+
+    selectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((node) => {
+            if (seenNodes.has(node)) return;
+            if (excludeSelectors.some(excludeSelector => node.closest(excludeSelector))) return;
+            seenNodes.add(node);
+            candidates.push(node);
+        });
+    });
+
+    return sortNodesByDocumentOrder(candidates);
+}
+
+async function extractTimelineContentFromNodes(nodes) {
+    const segments = [];
+    const seenText = new Set();
+
+    for (const node of nodes) {
+        await waitForContentLoad(node, 1200);
+        const text = normalizeTimelineComparableText(await extractElementContent(node));
+        if (!text || seenText.has(text)) continue;
+        seenText.add(text);
+        segments.push(text);
+    }
+
+    return segments.join('\n\n').trim();
+}
+
+async function scrollToPromptForTimeline(siteHandler, query, occurrenceIndex) {
+    const promptRecords = collectTimelinePromptRecords(siteHandler);
+    const matchedPrompt = findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
+    if (!matchedPrompt) {
+        return {
+            found: false,
+            error: 'Prompt not found'
+        };
+    }
+
+    const scrollTarget = matchedPrompt.anchor || matchedPrompt.container;
+    scrollTarget.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+    });
+    highlightTimelinePromptNode(scrollTarget);
+
+    return {
+        found: true
+    };
+}
+
+async function extractPromptResponseForTimeline(siteHandler, query, occurrenceIndex) {
+    const contentExtractor = siteHandler?.contentExtractor || {};
+    const promptRecords = collectTimelinePromptRecords(siteHandler);
+    const matchedPrompt = findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
+
+    if (!matchedPrompt) {
+        return {
+            found: false,
+            error: 'Prompt not found'
+        };
+    }
+
+    const nextPrompt = promptRecords.find((item) => item.orderIndex > matchedPrompt.orderIndex) || null;
+    let responseCandidates = collectTimelineResponseCandidates(contentExtractor).filter((node) => {
+        if (!isNodeAfter(matchedPrompt.anchor, node)) return false;
+        if (nextPrompt && !isNodeBefore(node, nextPrompt.anchor)) return false;
+        return true;
+    });
+
+    if (responseCandidates.length === 0) {
+        const fallbackNodes = [];
+        toSelectorArray(contentExtractor?.messageContainer).forEach((selector) => {
+            document.querySelectorAll(selector).forEach((node) => {
+                fallbackNodes.push(node);
+            });
+        });
+        responseCandidates = sortNodesByDocumentOrder(fallbackNodes).filter((node) => {
+            if (!isNodeAfter(matchedPrompt.anchor, node)) return false;
+            if (nextPrompt && !isNodeBefore(node, nextPrompt.anchor)) return false;
+            return true;
+        });
+    }
+
+    const content = await extractTimelineContentFromNodes(responseCandidates);
+    return {
+        found: true,
+        content
+    };
 }
 
 function extractChatGPTVisibleResponse() {
@@ -3964,7 +4391,7 @@ function convertHtmlToMarkdown(html) {
             })
             .replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
                 let counter = 1;
-                return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${counter++}. $1\n`) + '\n';
+                return content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch, itemContent) => `${counter++}. ${itemContent}\n`) + '\n';
             })
             
             // 段落和块级元素（保留换行）
