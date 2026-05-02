@@ -52,6 +52,12 @@ let __timelinePromptPushInitialized = false;
 let __timelinePromptPushTimer = null;
 let __timelinePromptObserver = null;
 let __timelinePromptLastSignature = null;
+let __activeSearchMonitor = null;
+
+const ACTIVE_SEARCH_MONITOR_INTERVAL_MS = 1500;
+const ACTIVE_SEARCH_MONITOR_SETTLE_MS = 400;
+const ACTIVE_SEARCH_MONITOR_TIMEOUT_MS = 120000;
+const ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS = 2;
 
 function t(key, fallback = '', substitutions = undefined) {
   try {
@@ -213,6 +219,269 @@ function postInjectProgress(payload) {
   } catch (error) {
     // ignore
   }
+}
+
+function postSiteRuntimeUpdate(payload) {
+  try {
+    window.parent.postMessage({
+      type: 'AI_COMPARE_SITE_RUNTIME',
+      source: 'inject-script',
+      ...payload
+    }, '*');
+  } catch (_) {
+    // ignore
+  }
+}
+
+function createSearchSessionId(siteName) {
+  return `${String(siteName || 'site').replace(/\s+/g, '-').toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildSearchContentComparable(text) {
+  return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
+}
+
+function stopActiveSearchMonitor(reason = 'replaced') {
+  if (!__activeSearchMonitor) return;
+  if (__activeSearchMonitor.mutationObserver) {
+    __activeSearchMonitor.mutationObserver.disconnect();
+  }
+  if (__activeSearchMonitor.settleTimer) {
+    clearTimeout(__activeSearchMonitor.settleTimer);
+  }
+  if (__activeSearchMonitor.intervalTimer) {
+    clearInterval(__activeSearchMonitor.intervalTimer);
+  }
+  __activeSearchMonitor.stopped = true;
+  __activeSearchMonitor.stopReason = reason;
+  __activeSearchMonitor = null;
+}
+
+async function resolveCurrentPageUrl(preferredSiteName = null) {
+  let pageUrl = window.location.href;
+  try {
+    const siteHandler = await getSiteHandler(window.location.hostname, preferredSiteName || __aiCompareHistoryContext.siteName || null);
+    const urlExtractor = siteHandler?.contentExtractor?.urlExtractor;
+    if (urlExtractor?.alternateLinkSelector) {
+      const link = document.querySelector(urlExtractor.alternateLinkSelector);
+      const href = link?.getAttribute('href');
+      if (href) {
+        const nextUrl = new URL(href, window.location.href);
+        const removeParams = Array.isArray(urlExtractor.removeParams) ? urlExtractor.removeParams : [];
+        removeParams.forEach((param) => nextUrl.searchParams.delete(param));
+        return nextUrl.toString();
+      }
+    }
+
+    const alternateLinks = document.querySelectorAll('link[rel="alternate"]');
+    for (const link of alternateLinks) {
+      const href = link.getAttribute('href');
+      if (href && href.includes('chatgpt.com/c/')) {
+        const url = new URL(href);
+        url.searchParams.delete('locale');
+        pageUrl = url.toString();
+        break;
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ URL清理失败，使用原始URL:', error);
+  }
+  return pageUrl;
+}
+
+function buildSiteRuntimeSignature(payload) {
+  return JSON.stringify({
+    siteName: String(payload?.siteName || '').trim(),
+    searchId: String(payload?.searchId || '').trim(),
+    phase: String(payload?.phase || '').trim(),
+    final: Boolean(payload?.final),
+    error: String(payload?.error || '').trim(),
+    url: String(payload?.url || '').trim(),
+    content: buildSearchContentComparable(payload?.content || '')
+  });
+}
+
+async function postMonitorRuntimeUpdate(monitor, patch = {}) {
+  if (!monitor || monitor.stopped || __activeSearchMonitor !== monitor) {
+    return;
+  }
+
+  const payload = {
+    siteName: monitor.siteName,
+    query: monitor.query,
+    searchId: monitor.searchId,
+    phase: patch.phase || monitor.phase || 'submitted',
+    content: typeof patch.content === 'string' ? patch.content : (monitor.lastContent || ''),
+    url: patch.url || monitor.lastUrl || '',
+    error: patch.error || '',
+    final: Boolean(patch.final),
+    startedAt: monitor.startedAt,
+    submittedAt: monitor.submittedAt || monitor.startedAt,
+    updatedAt: new Date().toISOString(),
+    attempts: monitor.attempts || 0,
+    stableRounds: monitor.stableRounds || 0
+  };
+
+  if (!payload.url) {
+    payload.url = await resolveCurrentPageUrl(monitor.siteName);
+  }
+
+  if (typeof patch.content === 'string') {
+    monitor.lastContent = patch.content;
+  }
+  if (payload.url) {
+    monitor.lastUrl = payload.url;
+  }
+  monitor.phase = payload.phase;
+
+  const signature = buildSiteRuntimeSignature(payload);
+  if (!patch.force && signature === monitor.lastPostedSignature) {
+    return;
+  }
+  monitor.lastPostedSignature = signature;
+  postSiteRuntimeUpdate(payload);
+}
+
+function scheduleActiveSearchMonitor(monitor, delayMs = ACTIVE_SEARCH_MONITOR_SETTLE_MS) {
+  if (!monitor || monitor.stopped || __activeSearchMonitor !== monitor) return;
+  if (monitor.settleTimer) {
+    clearTimeout(monitor.settleTimer);
+  }
+  monitor.settleTimer = setTimeout(() => {
+    runActiveSearchMonitorCheck(monitor).catch((error) => {
+      console.warn('主动搜索监控执行失败:', error);
+    });
+  }, Math.max(0, Number(delayMs) || 0));
+}
+
+async function runActiveSearchMonitorCheck(monitor) {
+  if (!monitor || monitor.stopped || __activeSearchMonitor !== monitor || monitor.isChecking) {
+    return;
+  }
+
+  monitor.isChecking = true;
+  monitor.attempts = (monitor.attempts || 0) + 1;
+
+  try {
+    const elapsed = Date.now() - monitor.createdAt;
+    if (elapsed >= monitor.timeoutMs) {
+      await postMonitorRuntimeUpdate(monitor, {
+        phase: 'timeout',
+        final: true,
+        error: t('openclawStatusTimedOut', 'Timed out')
+      });
+      stopActiveSearchMonitor('timeout');
+      return;
+    }
+
+    const content = await extractPageContent(monitor.siteName);
+    const normalizedContent = buildSearchContentComparable(content);
+    const url = await resolveCurrentPageUrl(monitor.siteName);
+
+    if (!normalizedContent) {
+      await postMonitorRuntimeUpdate(monitor, {
+        phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
+        content: '',
+        url
+      });
+      return;
+    }
+
+    const isErrorContent = content.includes('无法自动提取') || content.includes('内容提取失败');
+    monitor.lastContent = content;
+    monitor.lastUrl = url;
+
+    if (normalizedContent !== monitor.lastComparableContent) {
+      monitor.lastComparableContent = normalizedContent;
+      monitor.stableRounds = 0;
+      await postMonitorRuntimeUpdate(monitor, {
+        phase: isErrorContent ? 'error' : 'streaming',
+        content,
+        url,
+        error: isErrorContent ? content : ''
+      });
+      if (isErrorContent) {
+        await postMonitorRuntimeUpdate(monitor, {
+          phase: 'error',
+          content,
+          url,
+          error: content,
+          final: true,
+          force: true
+        });
+        stopActiveSearchMonitor('error-content');
+      }
+      return;
+    }
+
+    monitor.stableRounds = (monitor.stableRounds || 0) + 1;
+    const isReady = monitor.stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS;
+    await postMonitorRuntimeUpdate(monitor, {
+      phase: isReady ? 'ready' : 'streaming',
+      content,
+      url,
+      final: isReady
+    });
+
+    if (isReady) {
+      stopActiveSearchMonitor('ready');
+    }
+  } finally {
+    monitor.isChecking = false;
+  }
+}
+
+function startActiveSearchMonitor(siteName, query, searchId) {
+  stopActiveSearchMonitor('new-search');
+
+  const monitor = {
+    siteName,
+    query,
+    searchId: searchId || createSearchSessionId(siteName),
+    createdAt: Date.now(),
+    startedAt: new Date().toISOString(),
+    submittedAt: new Date().toISOString(),
+    timeoutMs: ACTIVE_SEARCH_MONITOR_TIMEOUT_MS,
+    attempts: 0,
+    stableRounds: 0,
+    lastComparableContent: '',
+    lastContent: '',
+    lastUrl: '',
+    lastPostedSignature: '',
+    isChecking: false,
+    stopped: false,
+    settleTimer: null,
+    intervalTimer: null,
+    mutationObserver: null,
+    phase: 'submitted'
+  };
+
+  __activeSearchMonitor = monitor;
+  postMonitorRuntimeUpdate(monitor, {
+    phase: 'submitted',
+    force: true
+  }).catch(() => {});
+
+  if (typeof MutationObserver === 'function') {
+    const targetNode = document.body || document.documentElement;
+    if (targetNode) {
+      monitor.mutationObserver = new MutationObserver(() => {
+        scheduleActiveSearchMonitor(monitor);
+      });
+      monitor.mutationObserver.observe(targetNode, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+  }
+
+  monitor.intervalTimer = setInterval(() => {
+    scheduleActiveSearchMonitor(monitor, 0);
+  }, ACTIVE_SEARCH_MONITOR_INTERVAL_MS);
+
+  scheduleActiveSearchMonitor(monitor, ACTIVE_SEARCH_MONITOR_SETTLE_MS);
+  return monitor;
 }
 
 function createRetryExhaustedError(message) {
@@ -2022,7 +2291,7 @@ window.addEventListener('message', async function(event) {
     }
     
     // 只处理 AIShortcuts 扩展的特定消息类型
-    const validMultiAITypes = ['TRIGGER_PASTE', 'search', 'EXTRACT_CONTENT', 'SET_HISTORY_CONTEXT', 'GET_CURRENT_URL', 'SCROLL_TO_PROMPT', 'EXTRACT_PROMPT_RESPONSE', 'LIST_USER_PROMPTS'];
+    const validMultiAITypes = ['TRIGGER_PASTE', 'search', 'EXTRACT_CONTENT', 'SET_HISTORY_CONTEXT', 'GET_CURRENT_URL', 'SCROLL_TO_PROMPT', 'EXTRACT_PROMPT_RESPONSE', 'LIST_USER_PROMPTS', 'SET_ACTIVE_SEARCH_CONTEXT'];
     
     if (!validMultiAITypes.includes(event.data.type)) {
         return;
@@ -2250,26 +2519,8 @@ window.addEventListener('message', async function(event) {
         (async () => {
             try {
                 // 提取页面内容
-                const content = await extractPageContent();
-                
-                // 提取当前页面的URL（去掉locale等参数）
-                let pageUrl = window.location.href;
-                try {
-                    // 查找alternate链接获取清洁的URL
-                    const alternateLinks = document.querySelectorAll('link[rel="alternate"]');
-                    for (const link of alternateLinks) {
-                        const href = link.getAttribute('href');
-                        if (href && href.includes('chatgpt.com/c/')) {
-                            const url = new URL(href);
-                            url.searchParams.delete('locale');
-                            pageUrl = url.toString();
-                            console.log(`🔗 从alternate标签获取清洁URL: ${pageUrl}`);
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.log('⚠️ URL清理失败，使用原始URL:', error);
-                }
+                const content = await extractPageContent(event.data.siteName || null);
+                const pageUrl = await resolveCurrentPageUrl(event.data.siteName || null);
                 
                 // 发送提取结果回主窗口
                 window.parent.postMessage({
@@ -2294,6 +2545,16 @@ window.addEventListener('message', async function(event) {
         return;
     }
 
+    if (event.data.type === 'SET_ACTIVE_SEARCH_CONTEXT') {
+        const runtimeSiteName = event.data.siteName || __aiCompareHistoryContext.siteName || window.location.hostname;
+        startActiveSearchMonitor(
+            runtimeSiteName,
+            event.data.query || '',
+            event.data.searchId || createSearchSessionId(runtimeSiteName)
+        );
+        return;
+    }
+
     // 对于搜索消息，必须包含 query 字段
     if (event.data.type !== 'TRIGGER_PASTE' && !event.data.query) {
         return;
@@ -2309,12 +2570,27 @@ window.addEventListener('message', async function(event) {
     const siteHandler = await getSiteHandler(domain, event.data.siteName || null);
     console.log('🔍 调试信息 - 站点处理器:', siteHandler);
     
-        if (siteHandler && siteHandler.searchHandler && event.data.query) {
+    if (siteHandler && siteHandler.searchHandler && event.data.query) {
+        const searchId = event.data.searchId || createSearchSessionId(siteHandler.name || event.data.siteName || domain);
         // 记录本次搜索关联的 historyId（父页面会在消息里携带）
         if (event.data.historyId) {
             __aiCompareHistoryContext.historyId = event.data.historyId;
             __aiCompareHistoryContext.siteName = siteHandler.name;
         }
+
+        stopActiveSearchMonitor('new-search-message');
+        postSiteRuntimeUpdate({
+            siteName: siteHandler.name,
+            query: event.data.query,
+            searchId,
+            phase: 'script_start',
+            content: '',
+            url: '',
+            error: '',
+            final: false,
+            startedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
 
         console.log(`✅ 使用 ${siteHandler.name} 配置化处理器处理消息`);
         console.log('🔍 调试信息 - 搜索处理器配置:', siteHandler.searchHandler);
@@ -2324,6 +2600,7 @@ window.addEventListener('message', async function(event) {
             console.log(`✅ ${siteHandler.name} 处理完成`);
             scheduleTimelinePromptSnapshot(200, { force: true });
             setTimeout(() => scheduleTimelinePromptSnapshot(0, { force: true }), 1200);
+            startActiveSearchMonitor(siteHandler.name, event.data.query, searchId);
             
             // 执行完成后，启动 URL 检测逻辑（如果配置了 historyHandler）
             console.log('🔍 检查 historyHandler 配置:', {
@@ -2349,6 +2626,18 @@ window.addEventListener('message', async function(event) {
                 errorMessage: error?.message || String(error),
                 manualRetryRequired: error?.manualRetryRequired === true
             });
+            postSiteRuntimeUpdate({
+                siteName: siteHandler.name,
+                query: event.data.query,
+                searchId,
+                phase: 'error',
+                content: '',
+                url: await resolveCurrentPageUrl(siteHandler.name),
+                error: error?.message || String(error),
+                final: true,
+                startedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
         }
         return;
     }
@@ -2364,6 +2653,18 @@ window.addEventListener('message', async function(event) {
             siteName: event.data.siteName || domain,
             status: 'error',
             errorMessage: t('injectProgressErrorNoSiteHandler', '未找到站点处理器')
+        });
+        postSiteRuntimeUpdate({
+            siteName: event.data.siteName || domain,
+            query: event.data.query,
+            searchId: event.data.searchId || createSearchSessionId(event.data.siteName || domain),
+            phase: 'error',
+            content: '',
+            url: await resolveCurrentPageUrl(event.data.siteName || domain),
+            error: t('injectProgressErrorNoSiteHandler', '未找到站点处理器'),
+            final: true,
+            startedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         });
     }
 }); 
@@ -2472,7 +2773,7 @@ function showClipboardPermissionTip() {
 }
 
 // 提取页面内容
-async function extractPageContent() {
+async function extractPageContent(preferredSiteName = null) {
     console.log('🔍 开始提取页面内容...');
     
     try {
@@ -2482,7 +2783,7 @@ async function extractPageContent() {
         
         
         // 获取站点配置
-        const siteHandler = await getSiteHandler(domain);
+        const siteHandler = await getSiteHandler(domain, preferredSiteName || __aiCompareHistoryContext.siteName || null);
         console.log('🔍 站点处理器:', siteHandler);
         
         let content = '';
@@ -2801,7 +3102,7 @@ async function extractTimelineContentFromNodes(nodes) {
         segments.push(text);
     }
 
-    return segments.join('\n\n').trim();
+    return segments;
 }
 
 async function scrollToPromptForTimeline(siteHandler, query, occurrenceIndex) {
@@ -2860,10 +3161,11 @@ async function extractPromptResponseForTimeline(siteHandler, query, occurrenceIn
         });
     }
 
-    const content = await extractTimelineContentFromNodes(responseCandidates);
+    const answers = await extractTimelineContentFromNodes(responseCandidates);
     return {
         found: true,
-        content
+        answers,
+        content: answers.join('\n\n').trim()
     };
 }
 

@@ -62,6 +62,16 @@ function applySidebarI18n(root) {
     });
 }
 
+function applySidebarBranding(root) {
+    if (!root) return;
+    const appIcon = root.querySelector('.app-icon');
+    if (!appIcon) return;
+
+    if (window.ExtensionEnvironment && typeof window.ExtensionEnvironment.applyBrandIconToImage === 'function') {
+        window.ExtensionEnvironment.applyBrandIconToImage(appIcon, 48);
+    }
+}
+
 async function initializeSidebarActionLinks() {
     try {
         const config = await AppConfigManager.loadConfig();
@@ -114,7 +124,7 @@ async function initializeSidebarActionLinks() {
             reviewLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 const reviewUrl = externalLinks.reviewLink ||
-                    'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
+                    'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/hhkhgpadepocnmjfpohcmjdcgkmfnadi/reviews';
                 safeTrackEvent('sidebar_review_click', {
                     has_review_link: Boolean(externalLinks.reviewLink)
                 });
@@ -168,7 +178,7 @@ async function initializeSidebarActionLinks() {
             reviewLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 chrome.tabs.create({
-                    url: 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews'
+                    url: 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/hhkhgpadepocnmjfpohcmjdcgkmfnadi/reviews'
                 });
             });
         }
@@ -478,6 +488,7 @@ async function openSidebarFavoriteItem(item) {
         params.set('query', item.query || '');
         const siteNames = (item.sites || []).map(site => site.name).filter(Boolean);
         if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        if (item.id) params.set('historyId', item.id);
         const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
         await chrome.tabs.create({ url: iframeUrl, active: true });
         setTimeout(async () => {
@@ -486,7 +497,8 @@ async function openSidebarFavoriteItem(item) {
                 try {
                     await chrome.tabs.sendMessage(tabs[0].id, {
                         type: 'loadHistoryIframes',
-                        sites: item.sites || []
+                        sites: item.sites || [],
+                        historyId: item.id
                     });
                 } catch (err) {}
             }
@@ -524,6 +536,7 @@ async function initSharedSidebar() {
     const mount = await loadSidebarMarkup();
     if (!mount) return;
     applySidebarI18n(mount);
+    applySidebarBranding(mount);
     markActiveSidebarLink();
     bindSyncBar();
     bindSidebarStorageListeners();

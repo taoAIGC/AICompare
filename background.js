@@ -1,5 +1,27 @@
 importScripts('./config/baseConfig.js');     // 加载基础配置（包含开发环境配置）
 
+function getExtensionActionIconPaths() {
+  if (self.ExtensionEnvironment && typeof self.ExtensionEnvironment.getActionIconPaths === 'function') {
+    return self.ExtensionEnvironment.getActionIconPaths();
+  }
+
+  return {
+    16: 'icons/icon16.png',
+    48: 'icons/icon48.png',
+    128: 'icons/icon128.png'
+  };
+}
+
+async function applyExtensionActionBranding() {
+  try {
+    await chrome.action.setIcon({
+      path: getExtensionActionIconPaths()
+    });
+  } catch (error) {
+    console.error('设置扩展图标失败:', error);
+  }
+}
+
 // 开发环境：输出当前扩展ID供search_url使用
 function logExtensionIdForDevelopment() {
   const extensionId = chrome.runtime.id;
@@ -172,6 +194,7 @@ function parseTemplateIdFromMenuItemId(menuItemId) {
 // 扩展启动时检查配置更新
 chrome.runtime.onStartup.addListener(async () => {
   try {
+    await applyExtensionActionBranding();
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
     await initializeDefaultPromptTemplates();
@@ -199,6 +222,7 @@ chrome.runtime.onStartup.addListener(async () => {
 // 扩展安装和更新时的统一处理
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
+    await applyExtensionActionBranding();
     console.log('扩展事件触发:', details.reason, '版本:', details.previousVersion, '->', chrome.runtime.getManifest().version);
     
     // 开发环境调试：显示当前扩展ID
@@ -853,6 +877,8 @@ chrome.action.onClicked.addListener((tab) => {
     url: chrome.runtime.getURL('homepage/homepage.html')
   });
 });
+
+applyExtensionActionBranding();
 
 
 // 错误处理监听器已移除，避免干扰其他消息处理

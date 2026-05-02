@@ -2,6 +2,17 @@
 
 This folder provides a practical bridge so OpenClaw can trigger the AI Compare extension by opening a direct browser query link and waiting for structured multi-site results to be posted back locally.
 
+## Positioning
+
+For end users, the recommended install path is now [openclaw-extension](/Users/hasee/Documents/同步文稿/multi-AI/AIShortcuts/openclaw-extension/README.md), which provides the plugin-style hard router.
+
+This `openclaw/` folder should be treated as:
+
+1. the shared GUI runner layer used by the hard router
+2. the compatibility layer for older skill-style installs
+
+If your goal is "users can just say `搜索 XX` and OpenClaw routes it automatically", install the plugin from `openclaw-extension/` and keep this folder as the runner backend.
+
 ## What this integration does
 
 1. Build a direct `chrome-extension://...` query URL that can auto-trigger search in the browser.
@@ -107,8 +118,8 @@ Success returns:
 {
   "ok": true,
   "mode": "gui",
-  "extensionId": "dkhpgbbhlnmjbkihoeniojpkggkabbbl",
-  "triggerUrl": "chrome-extension://dkhpgbbhlnmjbkihoeniojpkggkabbbl/iframe/iframe.html?openclaw=1&query=%E4%BD%A0%E5%A5%BD%E4%B8%96%E7%95%8C",
+  "extensionId": "hhkhgpadepocnmjfpohcmjdcgkmfnadi",
+  "triggerUrl": "chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi/iframe/iframe.html?openclaw=1&query=%E4%BD%A0%E5%A5%BD%E4%B8%96%E7%95%8C",
   "openedBrowser": true,
   "callbackReceived": true,
   "result": {
@@ -137,6 +148,8 @@ If failed, stdout returns:
 
 `openclaw/SKILL.md` is already written as an OpenClaw skill package. You can either copy the `openclaw/` folder into `~/.openclaw/workspace/skills/ai-compare-bridge/` or publish it through your usual skill workflow.
 
+Use this only when you explicitly need the legacy skill-style path. For new user installs, prefer the plugin path in `openclaw-extension/`.
+
 Use this as the skill behavior contract:
 
 ```md
@@ -154,6 +167,7 @@ Return the raw per-site content verbatim plus the JSON payload, with no secondar
 
 ## Notes
 
+- The latest end-to-end verified path uses `openclaw-extension/` as the OpenClaw entry layer and this folder as the runner layer.
 - `--sites` is optional. If omitted, the query link embeds no site filter and the extension uses its current site selection.
 - The skill only adds `--sites` when the user explicitly names one or more AI sites; it does not infer sites from the question text.
 - If the extension is not installed in the connected Chrome profile, GUI mode now fails fast with install / reload guidance instead of waiting for a timeout.

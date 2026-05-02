@@ -5,7 +5,7 @@ Use this guide when the OpenClaw runner says the AI Compare browser extension is
 ## Install from Chrome Web Store
 
 1. Open:
-   `https://chromewebstore.google.com/detail/multi-ai/dkhpgbbhlnmjbkihoeniojpkggkabbbl`
+   `https://chromewebstore.google.com/detail/multi-ai/hhkhgpadepocnmjfpohcmjdcgkmfnadi`
 2. Install AI Compare into the same Chrome profile that OpenClaw will connect to.
 
 ## Load unpacked for local development

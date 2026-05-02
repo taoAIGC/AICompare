@@ -220,6 +220,10 @@
     "message": "重新整理",
     "description": "Tooltip for the refresh button"
   },
+  "resetIframePageTitle": {
+    "message": "新對話",
+    "description": "重置 iframe 頁面到預設資訊模式的提示與無障礙標籤"
+  },
   "openInNewTab": {
     "message": "在新标签页打开",
     "description": "Tooltip for the open in new tab button"
@@ -468,7 +472,7 @@
     "message": "儲存"
   },
   "saveFavoriteSitesTitle": {
-    "message": "儲存当前选中的站點为常用站點"
+    "message": "儲存為預設站點"
   },
   "favoriteSitesSaved": {
     "message": "常用站點已儲存"
@@ -1017,7 +1021,7 @@
     "message": "AI 站點"
   },
   "favoriteAllSites": {
-    "message": "收藏全部回答"
+    "message": "收藏目前對話到收藏夾"
   },
   "editPromptTemplate": {
     "message": "編輯提示詞模板"
@@ -1174,6 +1178,42 @@
   },
   "timelineActionTimeout": {
     "message": "請求逾時"
+  },
+  "openclawModeTitle": {
+    "message": "OpenClaw 模式"
+  },
+  "openclawStatusRunning": {
+    "message": "執行中"
+  },
+  "openclawStatusCompleted": {
+    "message": "已完成"
+  },
+  "openclawStatusTimedOut": {
+    "message": "已逾時"
+  },
+  "openclawStatusError": {
+    "message": "出錯"
+  },
+  "openclawDebugQuery": {
+    "message": "問題"
+  },
+  "openclawDebugCallback": {
+    "message": "回傳"
+  },
+  "openclawDebugProgress": {
+    "message": "進度"
+  },
+  "openclawDebugLastCallback": {
+    "message": "最近回傳"
+  },
+  "openclawDebugCallbackWaiting": {
+    "message": "等待中"
+  },
+  "openclawDebugCallbackSent": {
+    "message": "已發送"
+  },
+  "openclawDebugCallbackFailed": {
+    "message": "發送失敗"
   },
   "confirmButton": {
     "message": "確定"

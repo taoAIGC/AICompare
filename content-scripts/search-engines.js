@@ -18,6 +18,14 @@ const SEARCH_ENGINE_CONFIGS = {
   }
 };
 
+function getBrandIconUrl(size = 48) {
+  if (window.ExtensionEnvironment && typeof window.ExtensionEnvironment.getBrandIconUrl === 'function') {
+    return window.ExtensionEnvironment.getBrandIconUrl(size);
+  }
+
+  return chrome.runtime.getURL(`icons/icon${size}.png`);
+}
+
 // 从 URL 获取搜索词
 function getQueryFromUrl() {
   const url = new URL(window.location.href);
@@ -149,7 +157,7 @@ async function createSearchToolbar(container, position) {
 
   // 创建对比按钮
   const compareButton = document.createElement('img');
-  compareButton.src = chrome.runtime.getURL('icons/icon48.png');
+  compareButton.src = getBrandIconUrl(48);
   compareButton.title = chrome.i18n.getMessage('searchWithMultiAI');
   compareButton.className = 'multi-ai-compare-button';
   
@@ -283,5 +291,4 @@ chrome.storage.sync.get(['buttonConfig'], function(result) {
     console.log('浮动按钮已禁用');
   }
 });
-
 

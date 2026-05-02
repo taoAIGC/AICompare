@@ -103,7 +103,7 @@ From content creators, product managers, and freelancers, to editors, foreign tr
 
 ### 📥 Install
 
-- **Chrome**: [Chrome Web Store](https://chromewebstore.google.com/detail/multi-ai/dkhpgbbhlnmjbkihoeniojpkggkabbbl)
+- **Chrome**: [Chrome Web Store](https://chromewebstore.google.com/detail/multi-ai/hhkhgpadepocnmjfpohcmjdcgkmfnadi)
 - **Edge**: [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/ai-%E4%BB%BB%E6%84%8F%E9%97%A8-%E5%BF%AB%E9%80%9F%E8%AE%BF%E9%97%A8-chatgpt-%E8%B1%86%E5%8C%85-/pehoogkkiaidofipnnafdpcfbkhkhddo)
 
 ### 📬 Contact
@@ -124,6 +124,12 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 ### OpenClaw skill integration
 
+- There are two OpenClaw-facing folders in this repo, with different roles:
+  - `openclaw-extension/`: the maintainable OpenClaw plugin / hard-router layer. It intercepts search-style requests before normal model dispatch and is the recommended default integration path.
+  - `openclaw/`: the runner + skill compatibility layer. It contains the GUI runner, fast wrapper, and installable skill package used by the hard router and by legacy skill-style installs.
+- The browser extension itself still lives in the main repo root (`manifest.json`, `iframe/`, `content-scripts/`, etc.). `openclaw-extension/` is not the browser extension bundle; it is the OpenClaw plugin that routes requests into the browser extension.
+- Latest end-to-end verification passed on the formal hard-router path: `openclaw-extension/` as the entry layer, `openclaw/ai-compare-openclaw-fast.js` / `openclaw/ai-compare-openclaw-runner.js` as the runner layer, and the browser extension runtime (`iframe/inject.js`, `iframe/iframe.js`, `iframe/openclaw-bridge.js`) as the execution layer.
+- If you want the production-style behavior where users can say `搜索 XX` directly without explicitly naming the skill, prefer installing `openclaw-extension/`. Keep `openclaw/` available as the shared runner / compatibility package.
 - A ready-to-use bridge is available under `openclaw/`.
 - `openclaw/SKILL.md` is now an installable OpenClaw skill package for "ask once -> search through the browser extension -> return per-site results".
 - Runner entry: `node openclaw/ai-compare-openclaw-runner.js --query "your query"`.
@@ -233,7 +239,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 
 ### 📥 安装
 
-- **Chrome**：[Chrome 网上应用店](https://chromewebstore.google.com/detail/multi-ai/dkhpgbbhlnmjbkihoeniojpkggkabbbl)
+- **Chrome**：[Chrome 网上应用店](https://chromewebstore.google.com/detail/multi-ai/hhkhgpadepocnmjfpohcmjdcgkmfnadi)
 - **Edge**：[Edge 加载项](https://microsoftedge.microsoft.com/addons/detail/ai%E6%AF%94%E4%B8%80%E6%AF%94-%E5%BF%AB%E9%80%9F%E8%AE%BF%E9%97%A8-chatgpt-%E8%B1%86%E5%8C%85-/pehoogkkiaidofipnnafdpcfbkhkhddo)
 
 ### 📬 联系我们
@@ -254,6 +260,12 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 
 ### OpenClaw 技能接入
 
+- 仓库里有两个面向 OpenClaw 的目录，但职责不同：
+  - `openclaw-extension/`：可维护的 OpenClaw plugin / 硬路由层，会在正常模型分发前拦截“搜索类”请求，是当前推荐的默认接入方式。
+  - `openclaw/`：runner + skill 兼容层，里面放 GUI runner、fast wrapper 和可安装的 skill 包，既可单独做传统 skill 安装，也被硬路由方案复用。
+- 真正执行多站点搜索的浏览器扩展本体仍然在仓库根目录，例如 `manifest.json`、`iframe/`、`content-scripts/` 等。`openclaw-extension/` 不是浏览器扩展包，而是 OpenClaw 侧的插件入口层。
+- 最近一次端到端验证通过的，是正式硬路由链路：`openclaw-extension/` 负责入口拦截，`openclaw/ai-compare-openclaw-fast.js` / `openclaw/ai-compare-openclaw-runner.js` 负责拉起 GUI runner，浏览器扩展运行时 `iframe/inject.js`、`iframe/iframe.js`、`iframe/openclaw-bridge.js` 负责真正执行搜索与主动上报结果。
+- 如果你希望 OpenClaw 用户只说 `搜索 XX` 就能直接触发，而不需要显式提到 skill，优先安装 `openclaw-extension/`；`openclaw/` 建议保留为共享 runner / 兼容层。
 - 仓库 `openclaw/` 目录提供了可直接使用的桥接方案。
 - `openclaw/SKILL.md` 现已整理为可安装的 OpenClaw skill，支持“用户提问 -> 调起浏览器插件搜索 -> 返回每个站点结果”。
 - Runner 入口：`node openclaw/ai-compare-openclaw-runner.js --query "你的问题"`。
@@ -271,7 +283,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-01 09:11:15 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-02 22:40:49 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `.DS_Store`
@@ -285,26 +297,48 @@ Last auto-update / 最近自动更新：2026-05-01 09:11:15 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `iframe/export-responses.js`
+- `M` `background.js`
+- `M` `config/appConfig.json`
+- `M` `config/baseConfig.js`
+- `M` `content-scripts/float-button.js`
+- `M` `content-scripts/search-engines.js`
+- `M` `content-scripts/site-button.js`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `A` `icons/dev-icon128.png`
+- `A` `icons/dev-icon16.png`
+- `A` `icons/dev-icon32.png`
+- `A` `icons/dev-icon48.png`
+- `A` `icons/paw-print.svg`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `iframe/openclaw-bridge.js`
-- `A` `iframe/timeline-utils.js`
+- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
+- `A` `openclaw-extension/README.md`
+- `A` `openclaw-extension/config/route-rules.js`
+- `A` `openclaw-extension/index.js`
+- `A` `openclaw-extension/lib/defaults.js`
+- `A` `openclaw-extension/lib/formatters.js`
+- `A` `openclaw-extension/lib/intent.js`
+- `A` `openclaw-extension/lib/logging.js`
+- `A` `openclaw-extension/lib/runner.js`
+- `A` `openclaw-extension/openclaw.plugin.json`
+- `A` `openclaw-extension/package.json`
 - `M` `openclaw/README.md`
 - `M` `openclaw/SKILL.md`
-- `A` `openclaw/ai-compare-openclaw-fast.js`
 - `M` `openclaw/ai-compare-openclaw-runner.js`
-- `A` `tests/iframe-timeline-utils.test.js`
+- `M` `openclaw/references/install-browser-extension.md`
+- `M` `shared/sidebar.js`
 
 ### Recent commits / 最近提交
+- `ed56762` 2026-05-01 V2.21.9 收起输入框
 - `c0a228a` 2026-04-30 V2.17.8 龙虾支持、发送消息后清空输入框
 - `44a31f8` 2026-04-20 V 2.21.7 支持点点，默认模板增加翻译到中文
 - `660c1c6` 2026-04-12 V2.21.6 修复豆包
 - `ef11035` 2026-04-08 V 2.21.5 修复不支持 iframe 的站点
-- `d671284` 2026-03-30 V 2.21.4 修复秘塔、claude，提示词分组
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

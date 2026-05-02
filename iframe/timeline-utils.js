@@ -48,19 +48,24 @@
 
     for (const response of Array.isArray(responses) ? responses : []) {
       const siteName = String(response?.siteName || 'Unknown');
+      const answers = (Array.isArray(response?.answers) ? response.answers : [])
+        .map((answer) => normalizeTimelineQuery(answer))
+        .filter(Boolean);
       const content = normalizeTimelineQuery(response?.content);
       const error = normalizeTimelineQuery(response?.error);
-      let body = '未提取到回答';
+      let bodyLines = ['未提取到回答'];
 
       if (error) {
-        body = `提取失败：${error}`;
+        bodyLines = [`提取失败：${error}`];
+      } else if (answers.length) {
+        bodyLines = answers.map((answer, index) => `回答${index + 1}：\n${answer}`);
       } else if (content) {
-        body = content;
+        bodyLines = [content];
       }
 
       lines.push('');
       lines.push(`【${siteName}】`);
-      lines.push(body);
+      lines.push(bodyLines.join('\n\n'));
     }
 
     return lines.join('\n').trim();

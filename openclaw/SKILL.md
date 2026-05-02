@@ -51,7 +51,7 @@ node /Users/hasee/.openclaw/workspace/skills/ai-compare-bridge/ai-compare-opencl
 这次没有通过 AI Compare 返回站点结果，因为当前 Chrome profile 里还没有可用的 AI Compare 扩展。
 
 安装插件：
-https://chromewebstore.google.com/detail/multi-ai/dkhpgbbhlnmjbkihoeniojpkggkabbbl
+https://chromewebstore.google.com/detail/multi-ai/hhkhgpadepocnmjfpohcmjdcgkmfnadi
 
 或者加载本地开发版：
 - 打开 `chrome://extensions`

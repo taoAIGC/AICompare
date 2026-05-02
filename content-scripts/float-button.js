@@ -2,6 +2,14 @@ function t(key, fallback = '') {
   return chrome?.i18n?.getMessage?.(key) || fallback;
 }
 
+function getBrandIconUrl(size = 48) {
+  if (window.ExtensionEnvironment && typeof window.ExtensionEnvironment.getBrandIconUrl === 'function') {
+    return window.ExtensionEnvironment.getBrandIconUrl(size);
+  }
+
+  return chrome.runtime.getURL(`icons/icon${size}.png`);
+}
+
 // 创建浮动按钮和对话框
 async function createFloatButton() {
   console.log('脚本开始加载');
@@ -26,7 +34,7 @@ async function createFloatButton() {
   
   // 添加主按钮图标
   const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('icons/icon48.png');
+  img.src = getBrandIconUrl(48);
   button.appendChild(img);
 
   // 创建对话框

@@ -1556,20 +1556,61 @@ body.search-bar-bottom .timeline-panel {
     color: #8a8a8a;
 }
 
+.timeline-item-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .timeline-item-copy {
     border: 1px solid #dfdfdf;
     background: #fff;
     color: #333;
     border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-    line-height: 1;
+    width: 34px;
+    height: 34px;
+    padding: 0;
     cursor: pointer;
-    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .timeline-item-copy:hover {
     border-color: #111;
+}
+
+.timeline-item-copy-icon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.timeline-item-favorite {
+    border: 1px solid #dfdfdf;
+    background: #fff;
+    color: #333;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.timeline-item-favorite:hover {
+    border-color: #111;
+}
+
+.timeline-item-favorite-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 @media (max-width: 960px) {
@@ -1896,4 +1937,151 @@ body.search-bar-bottom .timeline-panel {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.openclaw-debug-panel {
+    position: fixed;
+    top: 72px;
+    right: 16px;
+    width: min(340px, calc(100vw - 32px));
+    max-height: calc(100vh - 88px);
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+    padding: 12px;
+    z-index: 1200;
+    backdrop-filter: blur(10px);
+}
+
+.openclaw-debug-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.openclaw-debug-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.openclaw-debug-phase {
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.openclaw-debug-panel[data-phase="completed"] .openclaw-debug-phase {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.openclaw-debug-panel[data-phase="timed_out"] .openclaw-debug-phase,
+.openclaw-debug-panel[data-phase="error"] .openclaw-debug-phase {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.openclaw-debug-meta {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.openclaw-debug-meta-row {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 8px;
+    align-items: start;
+}
+
+.openclaw-debug-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.openclaw-debug-value {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.openclaw-debug-sites {
+    display: grid;
+    gap: 8px;
+}
+
+.openclaw-debug-site {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.openclaw-debug-site-name {
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.openclaw-debug-site-status {
+    flex-shrink: 0;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 700;
+    text-transform: lowercase;
+    letter-spacing: 0.01em;
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.openclaw-debug-site[data-status="ok"] .openclaw-debug-site-status {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.openclaw-debug-site[data-status="pending"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="short"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="extraction_error"] .openclaw-debug-site-status {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.openclaw-debug-site[data-status="rate_limited"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="blocked"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="login_required"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="landing_page"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="not_submitted"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="timeout"] .openclaw-debug-site-status,
+.openclaw-debug-site[data-status="error"] .openclaw-debug-site-status {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+@media (max-width: 900px) {
+    .openclaw-debug-panel {
+        left: 12px;
+        right: 12px;
+        top: auto;
+        bottom: 12px;
+        width: auto;
+        max-height: min(42vh, 360px);
+    }
 }

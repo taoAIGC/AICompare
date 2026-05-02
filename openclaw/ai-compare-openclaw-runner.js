@@ -17,8 +17,8 @@ function getChromium() {
 }
 
 const DEFAULT_EXTENSION_IDS = [
-  'dkhpgbbhlnmjbkihoeniojpkggkabbbl',
-  'hhkhgpadepocnmjfpohcmjdcgkmfnadi'
+  'hhkhgpadepocnmjfpohcmjdcgkmfnadi',
+  'dkhpgbbhlnmjbkihoeniojpkggkabbbl'
 ];
 
 function parseArgs(argv) {
@@ -214,17 +214,18 @@ async function getPersistentContext(browser, waitMs = 5000, pollMs = 100) {
 }
 
 function getInstallInstructions(attemptedIds, explicitExtensionId) {
+  const repoRoot = path.resolve(__dirname, '..');
   const installLines = [
     'AI Compare browser extension is not available in the connected Chrome profile.',
     '',
     'How to fix:',
     '1. Install AI Compare in that same Chrome profile.',
-    '   Chrome Web Store: https://chromewebstore.google.com/detail/multi-ai/dkhpgbbhlnmjbkihoeniojpkggkabbbl',
+    '   Chrome Web Store: https://chromewebstore.google.com/detail/multi-ai/hhkhgpadepocnmjfpohcmjdcgkmfnadi',
     '2. Or load this repository as an unpacked extension:',
     '   - Open chrome://extensions',
     '   - Enable Developer mode',
     '   - Click "Load unpacked"',
-    `   - Select this folder: ${process.cwd()}`,
+    `   - Select this folder: ${repoRoot}`,
     '3. Open the generated chrome-extension://... link in that same browser profile.',
     '4. If you installed an unpacked build or a different extension id, pass --extension-id <your-id> or set AI_COMPARE_EXTENSION_ID=<your-id>.'
   ];
@@ -261,6 +262,36 @@ function buildGuiCallbackTimeoutInstructions(timeoutMs) {
     '4. Retry with a smaller site set, for example --sites "ChatGPT,Gemini".',
     '5. If you only want to trigger the browser search and do not need to wait for results, use --open-only.'
   ].join('\n');
+}
+
+function summarizeProgressPayload(payload) {
+  const result = payload && typeof payload === 'object' ? payload.result : null;
+  const results = Array.isArray(result && result.results) ? result.results : [];
+  if (results.length === 0) {
+    return '';
+  }
+
+  const resolvedCount = results.filter((item) => item && (item.status === 'ok' || item.status === 'error' || item.status === 'timeout' || item.status === 'rate_limited' || item.status === 'blocked' || item.status === 'login_required' || item.status === 'landing_page' || item.status === 'not_submitted')).length;
+  const lines = [
+    '',
+    'Last callback progress:',
+    `- Phase: ${result && result.phase ? result.phase : (payload && payload.completed ? 'completed' : 'running')}`,
+    `- Resolved sites: ${resolvedCount}/${results.length}`
+  ];
+
+  results.forEach((item) => {
+    const status = item && item.status ? item.status : 'unknown';
+    const suffix = item && item.error ? ` (${item.error})` : '';
+    lines.push(`- ${item.siteName || 'Unknown'}: ${status}${suffix}`);
+  });
+
+  return lines.join('\n');
+}
+
+function buildGuiCallbackTimeoutError(timeoutMs, lastPayload) {
+  const base = buildGuiCallbackTimeoutInstructions(timeoutMs);
+  const progress = summarizeProgressPayload(lastPayload);
+  return progress ? `${base}\n${progress}` : base;
 }
 
 function looksLikeErrorPage(url) {
@@ -327,6 +358,7 @@ function createDeferred() {
 async function createCallbackServer(timeoutMs) {
   const token = crypto.randomBytes(16).toString('hex');
   const deferred = createDeferred();
+  let lastPayload = null;
   const server = http.createServer((req, res) => {
     const requestUrl = new URL(req.url, 'http://127.0.0.1');
     if (req.method !== 'POST' || requestUrl.pathname !== `/openclaw-callback/${token}`) {
@@ -349,10 +381,18 @@ async function createCallbackServer(timeoutMs) {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
+        lastPayload = payload;
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ ok: true }));
-        deferred.resolve(payload);
+        const isFinal = payload && typeof payload === 'object' && (
+          payload.ok === false
+          || payload.completed === true
+          || (payload.result && payload.result.finished === true)
+        );
+        if (isFinal) {
+          deferred.resolve(payload);
+        }
       } catch (error) {
         res.statusCode = 400;
         res.end('invalid json');
@@ -373,8 +413,8 @@ async function createCallbackServer(timeoutMs) {
   const port = address && typeof address === 'object' ? address.port : 0;
   const callbackUrl = `http://127.0.0.1:${port}/openclaw-callback/${token}`;
   const timer = setTimeout(() => {
-    deferred.reject(new Error(buildGuiCallbackTimeoutInstructions(timeoutMs)));
-  }, timeoutMs);
+    deferred.reject(new Error(buildGuiCallbackTimeoutError(timeoutMs, lastPayload)));
+  }, timeoutMs + 10000);
 
   let closed = false;
   return {
@@ -436,14 +476,10 @@ async function runGuiMode(args, query, sites) {
   const explicitExtensionId = typeof args['extension-id'] === 'string' ? args['extension-id'].trim() : '';
   const extensionCandidates = getExtensionCandidates(explicitExtensionId);
   const installedExtensionIds = getInstalledExtensionCandidates(extensionCandidates);
-  const extensionId = installedExtensionIds[0] || '';
+  const extensionId = extensionCandidates[0] || installedExtensionIds[0] || '';
 
   if (extensionCandidates.length === 0) {
     throw new Error('No extension id candidates available for GUI mode. Pass --extension-id or set AI_COMPARE_EXTENSION_ID.');
-  }
-
-  if (!extensionId) {
-    throw new Error(getInstallInstructions(extensionCandidates, explicitExtensionId));
   }
 
   const browserApp = typeof args['browser-app'] === 'string' ? args['browser-app'].trim() : '';
@@ -495,6 +531,7 @@ async function runGuiMode(args, query, sites) {
         openedBrowser,
         browserApp: browserApp || null,
         result: null,
+        localInstallProbeMatched: installedExtensionIds.includes(extensionId),
         note
       };
     }
@@ -515,6 +552,7 @@ async function runGuiMode(args, query, sites) {
       openedBrowser,
       browserApp: browserApp || null,
       callbackReceived: true,
+      localInstallProbeMatched: installedExtensionIds.includes(extensionId),
       result: callbackPayload.result,
       note
     };

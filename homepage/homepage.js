@@ -1006,7 +1006,7 @@ function initializeSaveSitesButton() {
     // 使用自定义 tooltip（快速显示），仅设置 aria-label 供无障碍
     const saveTitle = chrome.i18n.getMessage('saveFavoriteSitesTitle') || 
         chrome.i18n.getMessage('saveFavoriteSites') || 
-        '保存当前选中的站点为常用站点';
+        '保存为默认站点';
     saveBtn.setAttribute('aria-label', saveTitle);
     
     // 点击保存按钮

@@ -220,6 +220,10 @@
     "message": "Refresh",
     "description": "Tooltip for the refresh button"
   },
+  "resetIframePageTitle": {
+    "message": "New conversation",
+    "description": "Tooltip and ARIA label for resetting the iframe page to the default information mode"
+  },
   "openInNewTab": {
     "message": "Open in New Tab",
     "description": "Tooltip for the open in new tab button"
@@ -468,7 +472,7 @@
     "message": "Save"
   },
   "saveFavoriteSitesTitle": {
-    "message": "Save selected sites as favorites"
+    "message": "Save as default sites"
   },
   "favoriteSitesSaved": {
     "message": "Favorite sites saved"
@@ -1032,7 +1036,7 @@
     "message": "AI sites"
   },
   "favoriteAllSites": {
-    "message": "Save all responses to favorites"
+    "message": "Save this conversation to favorites"
   },
   "editPromptTemplate": {
     "message": "Edit prompt templates"
@@ -1189,6 +1193,42 @@
   },
   "timelineActionTimeout": {
     "message": "Request timed out"
+  },
+  "openclawModeTitle": {
+    "message": "OpenClaw mode"
+  },
+  "openclawStatusRunning": {
+    "message": "Running"
+  },
+  "openclawStatusCompleted": {
+    "message": "Completed"
+  },
+  "openclawStatusTimedOut": {
+    "message": "Timed out"
+  },
+  "openclawStatusError": {
+    "message": "Error"
+  },
+  "openclawDebugQuery": {
+    "message": "Query"
+  },
+  "openclawDebugCallback": {
+    "message": "Callback"
+  },
+  "openclawDebugProgress": {
+    "message": "Progress"
+  },
+  "openclawDebugLastCallback": {
+    "message": "Last callback"
+  },
+  "openclawDebugCallbackWaiting": {
+    "message": "Waiting"
+  },
+  "openclawDebugCallbackSent": {
+    "message": "Sent"
+  },
+  "openclawDebugCallbackFailed": {
+    "message": "Send failed"
   },
   "confirmButton": {
     "message": "Confirm"

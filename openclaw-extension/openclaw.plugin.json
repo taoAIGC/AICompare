@@ -1,0 +1,72 @@
+{
+  "id": "ai-compare-hard-router",
+  "name": "AI Compare Hard Router",
+  "description": "Intercepts search-style user requests before model dispatch and routes them directly to the AI Compare GUI runner.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "runnerPath": {
+        "type": "string"
+      },
+      "extensionId": {
+        "type": "string"
+      },
+      "browserApp": {
+        "type": "string"
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1000
+      },
+      "installUrl": {
+        "type": "string"
+      },
+      "debugLogPath": {
+        "type": "string"
+      },
+      "includeRawJson": {
+        "type": "boolean"
+      },
+      "maxOutputCharsPerSite": {
+        "type": "integer",
+        "minimum": 200
+      }
+    }
+  },
+  "uiHints": {
+    "runnerPath": {
+      "label": "Runner Path",
+      "help": "Absolute path to ai-compare-openclaw-fast.js. If empty, the plugin will try the linked repo sibling path first, then ~/.openclaw/workspace/skills/ai-compare-bridge/ai-compare-openclaw-fast.js."
+    },
+    "extensionId": {
+      "label": "Extension ID",
+      "help": "Optional AI Compare extension id override."
+    },
+    "browserApp": {
+      "label": "Browser App",
+      "help": "Optional browser app name such as Google Chrome or chrome."
+    },
+    "timeoutMs": {
+      "label": "Runner Timeout",
+      "help": "How long to wait for ai-compare-openclaw-fast.js before returning a timeout error."
+    },
+    "installUrl": {
+      "label": "Install URL",
+      "help": "Optional browser extension install page URL shown in missing-extension guidance."
+    },
+    "debugLogPath": {
+      "label": "Debug Log Path",
+      "help": "Optional absolute path for hard-router debug logs. Defaults to ~/.openclaw/logs/ai-compare-hard-router.log."
+    },
+    "includeRawJson": {
+      "label": "Include Raw JSON",
+      "help": "Append the runner JSON payload to the final reply."
+    },
+    "maxOutputCharsPerSite": {
+      "label": "Per-site Output Limit",
+      "help": "Soft character limit for each site block before truncation."
+    }
+  }
+}

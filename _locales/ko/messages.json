@@ -220,6 +220,10 @@
     "message": "새로고침",
     "description": "Tooltip for the refresh button"
   },
+  "resetIframePageTitle": {
+    "message": "새 대화",
+    "description": "Tooltip and ARIA label for resetting the iframe page to the default information mode"
+  },
   "openInNewTab": {
     "message": "새 탭에서 열기",
     "description": "Tooltip for the open in new tab button"
@@ -468,7 +472,7 @@
     "message": "저장"
   },
   "saveFavoriteSitesTitle": {
-    "message": "선택한 사이트를 즐겨찾기로 저장"
+    "message": "기본 사이트로 저장"
   },
   "favoriteSitesSaved": {
     "message": "즐겨찾는 사이트가 저장되었습니다"
@@ -1017,7 +1021,7 @@
     "message": "AI sites"
   },
   "favoriteAllSites": {
-    "message": "Save all responses to favorites"
+    "message": "Save this conversation to favorites"
   },
   "editPromptTemplate": {
     "message": "Edit prompt templates"
@@ -1174,6 +1178,42 @@
   },
   "timelineActionTimeout": {
     "message": "Request timed out"
+  },
+  "openclawModeTitle": {
+    "message": "OpenClaw mode"
+  },
+  "openclawStatusRunning": {
+    "message": "Running"
+  },
+  "openclawStatusCompleted": {
+    "message": "Completed"
+  },
+  "openclawStatusTimedOut": {
+    "message": "Timed out"
+  },
+  "openclawStatusError": {
+    "message": "Error"
+  },
+  "openclawDebugQuery": {
+    "message": "Query"
+  },
+  "openclawDebugCallback": {
+    "message": "Callback"
+  },
+  "openclawDebugProgress": {
+    "message": "Progress"
+  },
+  "openclawDebugLastCallback": {
+    "message": "Last callback"
+  },
+  "openclawDebugCallbackWaiting": {
+    "message": "Waiting"
+  },
+  "openclawDebugCallbackSent": {
+    "message": "Sent"
+  },
+  "openclawDebugCallbackFailed": {
+    "message": "Send failed"
   },
   "confirmButton": {
     "message": "Confirm"

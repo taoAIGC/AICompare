@@ -11,6 +11,14 @@
     return chrome?.i18n?.getMessage?.(key) || fallback;
   }
 
+  function getBrandIconUrl(size = 48) {
+    if (window.ExtensionEnvironment && typeof window.ExtensionEnvironment.getBrandIconUrl === 'function') {
+      return window.ExtensionEnvironment.getBrandIconUrl(size);
+    }
+
+    return chrome.runtime.getURL(`icons/icon${size}.png`);
+  }
+
   // 只在主窗口中运行，不在 iframe 中运行
   if (window.self !== window.top) {
     return;
@@ -363,7 +371,7 @@
 
     // 创建图标
     const icon = document.createElement('img');
-    icon.src = chrome.runtime.getURL('icons/icon48.png');
+    icon.src = getBrandIconUrl(48);
     icon.className = 'multi-ai-site-button-icon';
     button.appendChild(icon);
 

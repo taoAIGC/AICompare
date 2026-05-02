@@ -15,6 +15,72 @@ const DEV_CONFIG = {
 
 };
 
+const DEV_EXTENSION_ID = 'hhkhgpadepocnmjfpohcmjdcgkmfnadi';
+const DEFAULT_BRAND_ICON_PATHS = Object.freeze({
+  16: 'icons/icon16.png',
+  48: 'icons/icon48.png',
+  128: 'icons/icon128.png'
+});
+const DEV_BRAND_ACTION_ICON_PATHS = Object.freeze({
+  16: 'icons/dev-icon16.png',
+  32: 'icons/dev-icon32.png',
+  48: 'icons/dev-icon48.png',
+  128: 'icons/dev-icon128.png'
+});
+
+function getCurrentExtensionId() {
+  try {
+    return chrome?.runtime?.id || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function isDevelopmentExtensionId(extensionId = getCurrentExtensionId()) {
+  return extensionId === DEV_EXTENSION_ID;
+}
+
+function getBrandIconAssetPath(size = 48) {
+  if (isDevelopmentExtensionId()) {
+    return 'icons/paw-print.svg';
+  }
+
+  return DEFAULT_BRAND_ICON_PATHS[size] || DEFAULT_BRAND_ICON_PATHS[48];
+}
+
+function getBrandIconUrl(size = 48) {
+  return chrome.runtime.getURL(getBrandIconAssetPath(size));
+}
+
+function applyBrandIconToImage(img, size = 48) {
+  if (!img) {
+    return;
+  }
+
+  img.src = getBrandIconUrl(size);
+}
+
+function getActionIconPaths() {
+  if (isDevelopmentExtensionId()) {
+    return DEV_BRAND_ACTION_ICON_PATHS;
+  }
+
+  return DEFAULT_BRAND_ICON_PATHS;
+}
+
+const ExtensionEnvironment = {
+  DEV_EXTENSION_ID,
+  getCurrentExtensionId,
+  isDevelopmentExtensionId,
+  isDevelopmentExtension() {
+    return isDevelopmentExtensionId();
+  },
+  getBrandIconAssetPath,
+  getBrandIconUrl,
+  applyBrandIconToImage,
+  getActionIconPaths
+};
+
 // 生产环境 console 重写（仅在 production 模式下）
 if (DEV_CONFIG.IS_PRODUCTION) {
   console.log = function() { return undefined; };
@@ -513,6 +579,7 @@ if (typeof window === 'undefined') {
 
   self.AppConfigManager = AppConfigManager;
   self.RemoteConfigManager = RemoteConfigManager;
+  self.ExtensionEnvironment = ExtensionEnvironment;
   
   // 开发环境配置切换函数
   self.toggleDevMode = function() {
@@ -530,6 +597,8 @@ if (typeof window === 'undefined') {
       forceLocalConfig: DEV_CONFIG.FORCE_LOCAL_CONFIG
     };
   };
+
+  self.BaseConfigLoaded = true;
 }
 // 浏览器环境
 else {
@@ -699,6 +768,7 @@ else {
   
   window.AppConfigManager = AppConfigManager;
   window.RemoteConfigManager = RemoteConfigManager;
+  window.ExtensionEnvironment = ExtensionEnvironment;
   
   // 开发环境配置切换函数
   window.toggleDevMode = function() {
@@ -752,6 +822,9 @@ else {
   };
   
   // 标记配置已加载，避免重复声明
+  if (typeof self !== 'undefined') {
+    self.ExtensionEnvironment = ExtensionEnvironment;
+  }
   if (typeof window !== 'undefined') {
     window.BaseConfigLoaded = true;
   } else if (typeof self !== 'undefined') {

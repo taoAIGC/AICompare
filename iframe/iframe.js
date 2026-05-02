@@ -48,17 +48,205 @@ const timelineState = {
   entries: [],
   isOpen: false,
   activeTimelineId: null,
-  promptSnapshotsBySite: new Map()
+  promptSnapshotsBySite: new Map(),
+  favoriteEntryKeys: new Set()
 };
 let timelineSyncTimer = null;
 let timelineMessageBridgeInitialized = false;
+const AI_COMPARE_RUNTIME_EVENT = 'aicompare:site-runtime-update';
+
+function ensureAiCompareSiteRuntimeStore() {
+  if (!window.__AI_COMPARE_SITE_RUNTIME__ || typeof window.__AI_COMPARE_SITE_RUNTIME__ !== 'object') {
+    window.__AI_COMPARE_SITE_RUNTIME__ = {
+      version: 1,
+      updatedAt: '',
+      sites: {}
+    };
+  }
+  if (!window.__AI_COMPARE_SITE_RUNTIME__.sites || typeof window.__AI_COMPARE_SITE_RUNTIME__.sites !== 'object') {
+    window.__AI_COMPARE_SITE_RUNTIME__.sites = {};
+  }
+  return window.__AI_COMPARE_SITE_RUNTIME__;
+}
+
+function createSiteSearchId(siteName) {
+  return `${String(siteName || 'site').replace(/\s+/g, '-').toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function dispatchAiCompareSiteRuntimeEvent(detail) {
+  try {
+    window.dispatchEvent(new CustomEvent(AI_COMPARE_RUNTIME_EVENT, {
+      detail
+    }));
+  } catch (_) {
+    // ignore
+  }
+}
+
+function cloneAiCompareSiteRuntimeEntry(entry) {
+  if (!entry) return null;
+  return {
+    ...entry
+  };
+}
+
+function queueAiCompareSiteRuntime(siteName, query, context = {}) {
+  const normalizedSiteName = String(siteName || '').trim();
+  if (!normalizedSiteName) return '';
+
+  const store = ensureAiCompareSiteRuntimeStore();
+  const searchId = context.searchId || createSiteSearchId(normalizedSiteName);
+  const now = new Date().toISOString();
+  const nextEntry = {
+    siteName: normalizedSiteName,
+    query: String(query || '').trim(),
+    searchId,
+    phase: 'queued',
+    content: '',
+    url: '',
+    error: '',
+    final: false,
+    source: 'iframe-parent',
+    updatedAt: now,
+    requestedAt: now,
+    iframeSrc: context.iframeSrc || ''
+  };
+
+  store.sites[normalizedSiteName] = nextEntry;
+  store.updatedAt = now;
+  dispatchAiCompareSiteRuntimeEvent({
+    siteName: normalizedSiteName,
+    entry: cloneAiCompareSiteRuntimeEntry(nextEntry),
+    reason: 'queued'
+  });
+  return searchId;
+}
+
+function applyAiCompareSiteRuntimeUpdate(payload, sourceIframe = null) {
+  const normalizedSiteName = String(payload?.siteName || '').trim();
+  if (!normalizedSiteName) return null;
+
+  const store = ensureAiCompareSiteRuntimeStore();
+  const previous = store.sites[normalizedSiteName] || {
+    siteName: normalizedSiteName,
+    query: '',
+    searchId: '',
+    phase: 'idle',
+    content: '',
+    url: '',
+    error: '',
+    final: false,
+    source: 'inject-script',
+    updatedAt: ''
+  };
+
+  if (previous.searchId && payload?.searchId && previous.searchId !== payload.searchId) {
+    console.log('忽略过期的站点运行时消息:', {
+      siteName: normalizedSiteName,
+      currentSearchId: previous.searchId,
+      ignoredSearchId: payload.searchId
+    });
+    return previous;
+  }
+
+  const now = new Date().toISOString();
+  const nextEntry = {
+    ...previous,
+    siteName: normalizedSiteName,
+    query: payload?.query ? String(payload.query).trim() : previous.query,
+    searchId: payload?.searchId || previous.searchId || '',
+    phase: payload?.phase || previous.phase || 'idle',
+    content: typeof payload?.content === 'string' ? payload.content : previous.content,
+    url: payload?.url || previous.url || sourceIframe?.src || '',
+    error: payload?.error ? String(payload.error) : '',
+    final: payload?.final === true,
+    source: payload?.source || 'inject-script',
+    updatedAt: payload?.updatedAt || now,
+    startedAt: payload?.startedAt || previous.startedAt || '',
+    submittedAt: payload?.submittedAt || previous.submittedAt || '',
+    attempts: Number.isFinite(payload?.attempts) ? payload.attempts : (previous.attempts || 0),
+    stableRounds: Number.isFinite(payload?.stableRounds) ? payload.stableRounds : (previous.stableRounds || 0),
+    iframeSrc: sourceIframe?.src || previous.iframeSrc || ''
+  };
+
+  store.sites[normalizedSiteName] = nextEntry;
+  store.updatedAt = nextEntry.updatedAt || now;
+  dispatchAiCompareSiteRuntimeEvent({
+    siteName: normalizedSiteName,
+    entry: cloneAiCompareSiteRuntimeEntry(nextEntry),
+    reason: 'child-update'
+  });
+  return nextEntry;
+}
+
+function getAiCompareSiteRuntimeSnapshot(siteNames = null) {
+  const store = ensureAiCompareSiteRuntimeStore();
+  const requestedNames = Array.isArray(siteNames) && siteNames.length
+    ? siteNames.map((name) => String(name || '').trim()).filter(Boolean)
+    : Object.keys(store.sites);
+
+  const uniqueNames = Array.from(new Set(requestedNames));
+  const results = uniqueNames.map((siteName) => cloneAiCompareSiteRuntimeEntry(store.sites[siteName]) || {
+    siteName,
+    query: '',
+    searchId: '',
+    phase: 'pending',
+    content: '',
+    url: '',
+    error: '',
+    final: false,
+    source: 'iframe-parent',
+    updatedAt: store.updatedAt || ''
+  });
+
+  return {
+    updatedAt: store.updatedAt || '',
+    results,
+    bySite: results.reduce((acc, entry) => {
+      acc[entry.siteName] = entry;
+      return acc;
+    }, {})
+  };
+}
+
+function initializeAiCompareSiteRuntimeBridge() {
+  if (window.aiCompareSiteRuntime?.initialized) {
+    return window.aiCompareSiteRuntime;
+  }
+
+  window.addEventListener('message', (event) => {
+    const data = event?.data;
+    if (!data || data.type !== 'AI_COMPARE_SITE_RUNTIME' || data.source !== 'inject-script') {
+      return;
+    }
+
+    const sourceIframe = Array.from(document.querySelectorAll('.ai-iframe'))
+      .find((iframe) => iframe.contentWindow && iframe.contentWindow === event.source);
+
+    applyAiCompareSiteRuntimeUpdate(data, sourceIframe || null);
+  });
+
+  window.aiCompareSiteRuntime = {
+    initialized: true,
+    eventName: AI_COMPARE_RUNTIME_EVENT,
+    queueSiteRuntime: queueAiCompareSiteRuntime,
+    updateSiteRuntime: applyAiCompareSiteRuntimeUpdate,
+    getSnapshot: getAiCompareSiteRuntimeSnapshot,
+    getStore: ensureAiCompareSiteRuntimeStore
+  };
+
+  ensureAiCompareSiteRuntimeStore();
+  return window.aiCompareSiteRuntime;
+}
+
+initializeAiCompareSiteRuntimeBridge();
 
 // Keep iframe permissions narrow to avoid cross-site browser permission prompts
 // when opening many third-party AI sites in parallel.
 const IFRAME_ALLOW_PERMISSIONS = 'clipboard-read; clipboard-write; autoplay; fullscreen; picture-in-picture';
 
 async function getReviewUrlFromConfig() {
-  const fallbackUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
+  const fallbackUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/hhkhgpadepocnmjfpohcmjdcgkmfnadi/reviews';
   try {
     if (window.AppConfigManager?.loadConfig) {
       const config = await window.AppConfigManager.loadConfig();
@@ -339,6 +527,216 @@ function setTimelinePanelOpen(isOpen) {
   }
 }
 
+function buildTimelineFavoriteKey(entry) {
+  const normalizedQuery = String(entry?.normalizedQuery || entry?.query || '').trim();
+  const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
+  return `${normalizedQuery}::${occurrenceIndex}`;
+}
+
+function normalizeRestoreContext(context, fallbackQuery = '') {
+  if (!context || typeof context !== 'object') return null;
+  const query = String(context?.query || fallbackQuery || '').trim();
+  if (!query) return null;
+
+  return {
+    source: String(context?.source || '').trim(),
+    query,
+    autoSearch: context?.autoSearch === true,
+    scrollToPrompt: context?.scrollToPrompt !== false,
+    occurrenceIndex: Math.max(0, Number(context?.occurrenceIndex) || 0),
+    sourceHistoryId: context?.sourceHistoryId ? String(context.sourceHistoryId) : null
+  };
+}
+
+async function getHistoryItemById(historyId) {
+  if (!historyId) return null;
+  const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+  return pkHistory.find((item) => String(item?.id || '') === String(historyId)) || null;
+}
+
+async function getHistoryRestoreContext(historyId) {
+  const historyItem = await getHistoryItemById(historyId);
+  if (!historyItem) return null;
+  return normalizeRestoreContext(historyItem.restoreContext, historyItem.query);
+}
+
+function isTimelineEntryFavorited(entry) {
+  return timelineState.favoriteEntryKeys.has(buildTimelineFavoriteKey(entry));
+}
+
+async function refreshTimelineFavoriteState() {
+  const sourceHistoryId = window._currentHistoryId ? String(window._currentHistoryId) : null;
+  const nextFavoriteKeys = new Set();
+
+  if (sourceHistoryId) {
+    const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+    pkHistory.forEach((item) => {
+      const restoreContext = normalizeRestoreContext(item?.restoreContext, item?.query);
+      const isFavorited = Array.isArray(item?.sites) && item.sites.some((site) => site?.isFavorite === true);
+      if (!restoreContext || !isFavorited) return;
+      if (restoreContext.source !== 'timeline') return;
+      if (restoreContext.sourceHistoryId !== sourceHistoryId) return;
+
+      nextFavoriteKeys.add(buildTimelineFavoriteKey({
+        query: item.query,
+        normalizedQuery: item.query,
+        occurrenceIndex: restoreContext.occurrenceIndex
+      }));
+    });
+  }
+
+  timelineState.favoriteEntryKeys = nextFavoriteKeys;
+  renderTimeline();
+}
+
+async function getTimelineFavoriteMatch(entry, pkHistory = null) {
+  const sourceHistoryId = window._currentHistoryId ? String(window._currentHistoryId) : null;
+  if (!sourceHistoryId) return { history: Array.isArray(pkHistory) ? pkHistory : [], index: -1 };
+
+  const historyList = Array.isArray(pkHistory)
+    ? pkHistory
+    : ((await chrome.storage.local.get('pkHistory')).pkHistory || []);
+  const index = historyList.findIndex((item) => {
+    const restoreContext = normalizeRestoreContext(item?.restoreContext, item?.query);
+    return Boolean(
+      restoreContext &&
+      restoreContext.source === 'timeline' &&
+      restoreContext.sourceHistoryId === sourceHistoryId &&
+      String(item?.query || '').trim() === String(entry?.query || '').trim() &&
+      restoreContext.occurrenceIndex === Math.max(0, Number(entry?.occurrenceIndex) || 0)
+    );
+  });
+
+  return { history: historyList, index };
+}
+
+async function getCurrentTimelineFavoriteSites(folderId) {
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
+  const sourceHistoryId = window._currentHistoryId || null;
+  const currentHistoryItem = sourceHistoryId ? await getHistoryItemById(sourceHistoryId) : null;
+
+  const sites = await Promise.all(iframes.map(async (iframe) => {
+    const siteName = String(iframe.getAttribute('data-site') || '').trim();
+    if (!siteName) return null;
+
+    const existingSite = currentHistoryItem?.sites?.find((site) => site?.name === siteName) || null;
+    const latestUrl = await getIframeLatestUrl(iframe, siteName, sourceHistoryId);
+
+    return {
+      ...(existingSite || {}),
+      name: siteName,
+      url: latestUrl || existingSite?.url || iframe.src || '',
+      isFavorite: true,
+      favoriteFolder: folderId
+    };
+  }));
+
+  return sites.filter((site) => site && site.name);
+}
+
+async function resolveMaxHistoryCount() {
+  let maxHistory = 100;
+  try {
+    if (window.AppConfigManager) {
+      const appConfig = await window.AppConfigManager.loadConfig();
+      if (appConfig && appConfig.history && appConfig.history.maxCount) {
+        maxHistory = appConfig.history.maxCount;
+      }
+    }
+  } catch (error) {
+    console.warn('读取历史记录数量配置失败，使用默认值 100:', error);
+  }
+  return maxHistory;
+}
+
+async function favoriteTimelineEntry(entry) {
+  if (!entry?.query) return;
+
+  const initialMatch = await getTimelineFavoriteMatch(entry);
+  const existingFavorite = initialMatch.index >= 0 ? initialMatch.history[initialMatch.index] : null;
+  const defaultFolderId = existingFavorite?.sites?.find((site) => site?.isFavorite)?.favoriteFolder || null;
+
+  const result = await window.showFavoriteFolderModal(
+    defaultFolderId ? { defaultFolderId } : {}
+  );
+  if (!result) return;
+
+  const { history: pkHistory, index: historyIndex } = await getTimelineFavoriteMatch(entry);
+  const favoriteKey = buildTimelineFavoriteKey(entry);
+
+  if (result.action === 'remove') {
+    if (historyIndex >= 0) {
+      const favoriteRecord = pkHistory[historyIndex];
+      if (Array.isArray(favoriteRecord.sites)) {
+        favoriteRecord.sites.forEach((site) => {
+          site.isFavorite = false;
+          delete site.favoriteFolder;
+        });
+      }
+      await chrome.storage.local.set({ pkHistory });
+      if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+    }
+
+    timelineState.favoriteEntryKeys.delete(favoriteKey);
+    renderTimeline();
+    showToast(t('removedFromFavorites', '已取消收藏'));
+    return;
+  }
+
+  const favoriteSites = await getCurrentTimelineFavoriteSites(result.folderId);
+  if (!favoriteSites.length) {
+    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    return;
+  }
+
+  const sourceHistoryId = window._currentHistoryId ? String(window._currentHistoryId) : null;
+  const now = Date.now();
+  const formattedDate = new Date(now).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const favoriteRecord = historyIndex >= 0
+    ? pkHistory[historyIndex]
+    : {
+        id: `timeline-favorite-${now}`,
+        query: String(entry.query || '').trim(),
+        timestamp: now,
+        date: formattedDate
+      };
+
+  favoriteRecord.query = String(entry.query || '').trim();
+  favoriteRecord.timestamp = now;
+  favoriteRecord.date = formattedDate;
+  favoriteRecord.sites = favoriteSites;
+  favoriteRecord.restoreContext = {
+    source: 'timeline',
+    query: String(entry.query || '').trim(),
+    autoSearch: true,
+    scrollToPrompt: true,
+    occurrenceIndex: Math.max(0, Number(entry?.occurrenceIndex) || 0),
+    sourceHistoryId
+  };
+
+  let nextHistory = [...pkHistory];
+  if (historyIndex >= 0) {
+    nextHistory.splice(historyIndex, 1);
+  }
+  nextHistory.unshift(favoriteRecord);
+
+  const maxHistory = await resolveMaxHistoryCount();
+  nextHistory = nextHistory.slice(0, maxHistory);
+
+  await chrome.storage.local.set({ pkHistory: nextHistory });
+  if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+
+  timelineState.favoriteEntryKeys.add(favoriteKey);
+  renderTimeline();
+  showToast(t('savedToFavorites', '已收藏'));
+}
+
 function renderTimeline() {
   const { list } = getTimelineElements();
   if (!list) return;
@@ -352,6 +750,7 @@ function renderTimeline() {
 
   timelineState.entries.forEach((entry, index) => {
     const item = document.createElement('div');
+    const isFavorited = isTimelineEntryFavorited(entry);
     item.className = 'timeline-item';
     if (entry.timelineId === timelineState.activeTimelineId) {
       item.classList.add('is-active');
@@ -367,7 +766,32 @@ function renderTimeline() {
             : (entry.dateLabel || formatTimelineDateLabel(entry.timestamp))
         )}</div>
       </button>
-      <button class="timeline-item-copy" type="button">${escapeHtml(t('timelineCopyButton', '复制'))}</button>
+      <div class="timeline-item-actions">
+        <button
+          class="timeline-item-copy"
+          type="button"
+          title="${escapeHtml(t('timelineCopyButton', '复制'))}"
+          aria-label="${escapeHtml(t('timelineCopyButton', '复制'))}"
+        >
+          <svg class="timeline-item-copy-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M9 9.75A2.25 2.25 0 0 1 11.25 7.5h7.5A2.25 2.25 0 0 1 21 9.75v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 9 17.25z"></path>
+            <path d="M5.25 15.75A2.25 2.25 0 0 1 3 13.5V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 15 6v.75h-3.75A3.75 3.75 0 0 0 7.5 10.5v5.25z"></path>
+          </svg>
+        </button>
+        <button
+          class="timeline-item-favorite"
+          type="button"
+          title="${escapeHtml(isFavorited ? t('iframeUnfavoriteTitle', '取消收藏') : t('iframeFavoriteTitle', '收藏'))}"
+          aria-label="${escapeHtml(isFavorited ? t('iframeUnfavoriteTitle', '取消收藏') : t('iframeFavoriteTitle', '收藏'))}"
+        >
+          <img
+            class="timeline-item-favorite-icon"
+            src="${isFavorited ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg'}"
+            alt=""
+            aria-hidden="true"
+          >
+        </button>
+      </div>
     `;
 
     item.querySelector('.timeline-item-main')?.addEventListener('click', async () => {
@@ -379,6 +803,11 @@ function renderTimeline() {
     item.querySelector('.timeline-item-copy')?.addEventListener('click', async (event) => {
       event.stopPropagation();
       await copyTimelineEntryResponses(entry);
+    });
+
+    item.querySelector('.timeline-item-favorite')?.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await favoriteTimelineEntry(entry);
     });
 
     fragment.appendChild(item);
@@ -433,6 +862,9 @@ function initializeTimelinePanel() {
     event.stopPropagation();
     setTimelinePanelOpen(!timelineState.isOpen);
     if (timelineState.isOpen) {
+      refreshTimelineFavoriteState().catch((error) => {
+        console.warn('刷新时间线收藏状态失败:', error);
+      });
       scheduleTimelineSync(0);
     }
     trackEvent('iframe_timeline_toggle', {
@@ -680,10 +1112,13 @@ function requestIframeTimelineAction(iframe, requestType, responseType, payload 
   });
 }
 
-async function scrollToTimelineEntry(entry) {
+async function scrollToTimelineEntry(entry, options = {}) {
+  const { showToast: shouldShowToast = true, trackEvent: shouldTrackEvent = true } = options;
   const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
   if (!iframes.length) {
-    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    if (shouldShowToast) {
+      showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    }
     return;
   }
 
@@ -701,15 +1136,21 @@ async function scrollToTimelineEntry(entry) {
 
   const successCount = results.filter((item) => item?.found).length;
   if (successCount === 0) {
-    showToast(t('timelineScrollNotFound', '没有在当前子页面中找到这条提问'));
+    if (shouldShowToast) {
+      showToast(t('timelineScrollNotFound', '没有在当前子页面中找到这条提问'));
+    }
   } else {
-    showToast(t('timelineScrollSuccess', '已定位 $1/$2 个子页面', [String(successCount), String(results.length)]));
+    if (shouldShowToast) {
+      showToast(t('timelineScrollSuccess', '已定位 $1/$2 个子页面', [String(successCount), String(results.length)]));
+    }
   }
 
-  trackEvent('iframe_timeline_scroll', {
-    sites_total: results.length,
-    sites_found: successCount
-  });
+  if (shouldTrackEvent) {
+    trackEvent('iframe_timeline_scroll', {
+      sites_total: results.length,
+      sites_found: successCount
+    });
+  }
 }
 
 async function copyTextToClipboard(text) {
@@ -751,13 +1192,19 @@ async function copyTimelineEntryResponses(entry) {
 
   const copyText = timelineBuildCopyText(entry, responses.map((item) => ({
     siteName: item?.siteName || '',
+    answers: Array.isArray(item?.answers) ? item.answers : [],
     content: item?.content || '',
     error: item?.error || ''
   })));
 
   try {
     await copyTextToClipboard(copyText);
-    const successCount = responses.filter((item) => String(item?.content || '').trim()).length;
+    const successCount = responses.filter((item) => {
+      if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
+        return true;
+      }
+      return String(item?.content || '').trim().length > 0;
+    }).length;
     showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [String(successCount), String(responses.length)]));
     trackEvent('iframe_timeline_copy', {
       sites_total: responses.length,
@@ -1382,12 +1829,16 @@ async function retryInjectForIframe(iframe, siteName, query) {
       return;
     }
     const domain = new URL(iframe.src).hostname;
+    const searchId = window.aiCompareSiteRuntime?.queueSiteRuntime
+      ? window.aiCompareSiteRuntime.queueSiteRuntime(siteName, query, { iframeSrc: iframe.src })
+      : createSiteSearchId(siteName);
     iframe.contentWindow?.postMessage({
       type: 'search',
       query,
       domain,
       historyId,
-      siteName
+      siteName,
+      searchId
     }, '*');
   } catch (error) {
     console.error('重试失败:', error);
@@ -1699,6 +2150,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 如果 URL 中携带了 historyId，表示从历史/收藏页打开，直接恢复该记录的 ID，
     // 避免 createIframes → savePKHistory 创建重复记录
     const urlHistoryId = urlParams.get('historyId');
+    const historyRestoreContext = urlHistoryId ? await getHistoryRestoreContext(urlHistoryId) : null;
+    const shouldDeferQueryDrivenInit = Boolean(historyRestoreContext?.autoSearch);
     if (urlHistoryId) {
         window._currentHistoryId = urlHistoryId;
         window._openedFromHistory = true;
@@ -1717,7 +2170,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     if (hasQueryParam) {
         // 从 URL 参数中获取查询内容
-        const query = urlParams.get('query');
+        const query = historyRestoreContext?.query || urlParams.get('query');
         console.log('从 URL 参数获取查询内容:', query);
         
         if (query && query !== 'true') {
@@ -1727,44 +2180,48 @@ document.addEventListener('DOMContentLoaded', async function() {
                 searchInput.value = query;
                 updateFavoriteButtonVisibility(query);
             }
-            
-            // 获取站点配置并创建 iframes
-            getDefaultSites().then((sites) => {
-                if (sites && sites.length > 0) {
-                    // 如果指定了站点列表，优先使用选中的站点（忽略 enabled 状态）
-                    if (selectedSiteNames && selectedSiteNames.length > 0) {
-                        let availableSites = sites.filter(site => 
-                            selectedSiteNames.includes(site.name) &&
-                            !site.hidden &&
-                            siteMatchesRequestedType(site)
-                        );
-                        availableSites = sortSitesFavoriteFirst(availableSites);
-                        console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
-                        
-                        if (availableSites.length > 0) {
-                            console.log('使用查询内容创建 iframes:', query, availableSites);
-                            createIframes(query, availableSites);
-                        } else {
-                            console.log('没有可用的站点');
-                        }
-                    } else {
-                        // 如果没有指定站点列表，使用默认过滤（需要 enabled）
-                        let availableSites = sites.filter(site => 
-                            site.enabled && 
-                            !site.hidden &&
-                            siteMatchesRequestedType(site)
-                        );
-                        availableSites = sortSitesFavoriteFirst(availableSites);
 
-                        if (availableSites.length > 0) {
-                            console.log('使用查询内容创建 iframes:', query, availableSites);
-                            createIframes(query, availableSites);
+            if (shouldDeferQueryDrivenInit) {
+                console.log('检测到收藏恢复上下文，等待历史 iframe 恢复消息');
+            } else {
+                // 获取站点配置并创建 iframes
+                getDefaultSites().then((sites) => {
+                    if (sites && sites.length > 0) {
+                        // 如果指定了站点列表，优先使用选中的站点（忽略 enabled 状态）
+                        if (selectedSiteNames && selectedSiteNames.length > 0) {
+                            let availableSites = sites.filter(site => 
+                                selectedSiteNames.includes(site.name) &&
+                                !site.hidden &&
+                                siteMatchesRequestedType(site)
+                            );
+                            availableSites = sortSitesFavoriteFirst(availableSites);
+                            console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                            
+                            if (availableSites.length > 0) {
+                                console.log('使用查询内容创建 iframes:', query, availableSites);
+                                createIframes(query, availableSites);
+                            } else {
+                                console.log('没有可用的站点');
+                            }
                         } else {
-                            console.log('没有可用的站点');
+                            // 如果没有指定站点列表，使用默认过滤（需要 enabled）
+                            let availableSites = sites.filter(site => 
+                                site.enabled && 
+                                !site.hidden &&
+                                siteMatchesRequestedType(site)
+                            );
+                            availableSites = sortSitesFavoriteFirst(availableSites);
+
+                            if (availableSites.length > 0) {
+                                console.log('使用查询内容创建 iframes:', query, availableSites);
+                                createIframes(query, availableSites);
+                            } else {
+                                console.log('没有可用的站点');
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         } else {
             // 如果查询参数是 'true' 或空，按直接打开处理
             console.log('URL 参数 query=true，按直接打开处理');
@@ -2935,7 +3392,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       window._currentHistoryId = message.historyId;
       console.log('设置当前历史记录 ID:', message.historyId);
     }
-    loadHistoryIframes(message.sites);
+    Promise.resolve()
+      .then(async () => {
+        const restoreContext = message.historyId
+          ? await getHistoryRestoreContext(message.historyId)
+          : null;
+        await loadHistoryIframes(message.sites, restoreContext);
+      })
+      .catch((error) => {
+        console.error('恢复历史记录 iframe 失败:', error);
+      });
   }
 });
 
@@ -3078,6 +3544,7 @@ async function createIframes(query, sites) {
   // 方便用户直接输入下一轮问题。
   if (query && query.trim() !== '' && !window._openedFromHistory) {
     clearIframeSearchInput();
+    armSearchBarAutoCollapse();
   }
 }
 
@@ -3287,6 +3754,56 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     if (event.data.type === 'INJECT_PROGRESS' && event.data.source === 'inject-script') {
       if (iframe.contentWindow && event.source === iframe.contentWindow) {
         if (!event.data.siteName || event.data.siteName === siteName) {
+          const runtimeEntry = window.aiCompareSiteRuntime?.getSnapshot
+            ? window.aiCompareSiteRuntime.getSnapshot([siteName]).bySite?.[siteName]
+            : null;
+          const runtimeSearchId = runtimeEntry?.searchId || '';
+          const runtimeQuery = runtimeEntry?.query || (iframeContainer?.dataset.lastQuery || '').trim();
+
+          if (window.aiCompareSiteRuntime?.updateSiteRuntime) {
+            if (event.data.status === 'start' || event.data.status === 'step' || event.data.status === 'step_complete') {
+              window.aiCompareSiteRuntime.updateSiteRuntime({
+                siteName,
+                searchId: runtimeSearchId,
+                query: runtimeQuery,
+                phase: 'script_start',
+                url: iframe.src || '',
+                final: false
+              }, iframe);
+            } else if (event.data.status === 'complete') {
+              window.aiCompareSiteRuntime.updateSiteRuntime({
+                siteName,
+                searchId: runtimeSearchId,
+                query: runtimeQuery,
+                phase: 'submitted',
+                url: iframe.src || '',
+                final: false
+              }, iframe);
+              if (runtimeQuery) {
+                try {
+                  iframe.contentWindow?.postMessage({
+                    type: 'SET_ACTIVE_SEARCH_CONTEXT',
+                    siteName,
+                    query: runtimeQuery,
+                    searchId: runtimeSearchId || createSiteSearchId(siteName)
+                  }, '*');
+                } catch (error) {
+                  console.warn('触发主动结果监控失败:', error);
+                }
+              }
+            } else if (event.data.status === 'error') {
+              window.aiCompareSiteRuntime.updateSiteRuntime({
+                siteName,
+                searchId: runtimeSearchId,
+                query: runtimeQuery,
+                phase: 'error',
+                url: iframe.src || '',
+                error: event.data.errorMessage || '',
+                final: true
+              }, iframe);
+            }
+          }
+
           if (event.data.status === 'start') {
             hideIframeHeaderStatus(iframeContainer);
           }
@@ -3545,6 +4062,10 @@ async function getIframeHandler(iframeUrl, preferredSiteName = null) {
         try {
           // 等待页面加载
           await new Promise(resolve => setTimeout(resolve, 2000));
+          const targetSiteName = preferredSiteName || matchedSite.name;
+          const searchId = window.aiCompareSiteRuntime?.queueSiteRuntime
+            ? window.aiCompareSiteRuntime.queueSiteRuntime(targetSiteName, query, { iframeSrc: iframe.src })
+            : createSiteSearchId(targetSiteName);
 
           // 向 iframe 发送统一格式的消息
           iframe.contentWindow.postMessage({
@@ -3552,12 +4073,14 @@ async function getIframeHandler(iframeUrl, preferredSiteName = null) {
             query: query,
             domain: domain,
             historyId: historyId || null,
-            siteName: preferredSiteName || matchedSite.name
+            siteName: targetSiteName,
+            searchId
           }, '*');
 
           console.log(`已向 ${domain} 发送搜索消息`, {
             preferredSiteName,
-            resolvedSiteName: matchedSite.name
+            resolvedSiteName: matchedSite.name,
+            searchId
           });
         } catch (error) {
           console.error(`${domain} iframe 处理失败:`, error);
@@ -4122,6 +4645,11 @@ function clearIframeSearchInput() {
   searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function resetIframePageToDefaultType() {
+  const targetUrl = `${chrome.runtime.getURL('iframe/iframe.html')}?type=information`;
+  window.location.href = targetUrl;
+}
+
 async function submitIframeSearch(trigger) {
   const searchInput = document.getElementById('searchInput');
   const query = searchInput ? searchInput.value.trim() : '';
@@ -4144,21 +4672,23 @@ async function submitIframeSearch(trigger) {
   return sent;
 }
 
+async function runQueryAcrossOpenIframes(query, options = {}) {
+      const {
+        persistHistory = true,
+        historyId: providedHistoryId = null,
+        preferCurrentPage = false
+      } = options;
 
-async function iframeFresh(query) {    
-      // 立即记录历史：不需要等待 iframe 加载完成（sites 会由后续机制更新）
-      // 并返回本次 PK 的 historyId，避免后续 iframe URL 更新“写错历史记录”
-      let historyId = null;
-      try {
-        historyId = await savePKHistory(query);
-      } catch (error) {
-        console.error('立即保存 PK 历史记录失败（将继续执行 PK）:', error);
+      let historyId = providedHistoryId || window._currentHistoryId || null;
+      if (persistHistory) {
+        try {
+          historyId = await savePKHistory(query);
+        } catch (error) {
+          console.error('立即保存 PK 历史记录失败（将继续执行 PK）:', error);
+        }
       }
         
-      // 获取所有 iframe
       const iframes = document.querySelectorAll('iframe');
-          // 使用 getDefaultSites 获取合并后的站点配置
-     
       let sites = [];
       try {
         sites = await getDefaultSites();
@@ -4167,14 +4697,10 @@ async function iframeFresh(query) {
         sites = [];
       }
 
-        // 遍历每个 iframe
       iframes.forEach(iframe => {
         try {
-            // 从 src 中提取域名
             const url = new URL(iframe.src);
             const domain = url.hostname;
-            console.log('当前iframe网站hostname:', domain);
-            // 通过 data-site 属性获取站点名
             const siteName = iframe.getAttribute('data-site');
             const iframeContainer = iframe.closest('.iframe-container');
             if (iframeContainer) {
@@ -4182,40 +4708,39 @@ async function iframeFresh(query) {
             }
 
             const siteConfig = sites.find(site => site.name === siteName);
-            // 如果站点配置存在并且支持 URL 查询
-            if (siteConfig && siteConfig.supportUrlQuery) {
-                if (iframeContainer) {
-                  setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
-                }
-                // 获取 URL
-                const url = siteConfig.url;
-                // 根据 URL 和 query 拼接新的 URL
-                const newUrl = url.replace('{query}', encodeURIComponent(query));
-                console.log(`为 ${siteName} iframe 生成新的 URL: ${newUrl}`);
-                // URL 查询站点会直接导航：在新页面 load 后再下发 history 上下文
-                if (historyId) {
-                  const onLoadSendHistoryContext = () => {
-                    try {
-                      iframe.removeEventListener('load', onLoadSendHistoryContext);
-                      iframe.contentWindow?.postMessage({
-                        type: 'SET_HISTORY_CONTEXT',
-                        historyId,
-                        siteName
-                      }, '*');
-                    } catch (e) {
-                      // ignore
-                    }
-                  };
-                  iframe.addEventListener('load', onLoadSendHistoryContext);
-                }
-                // 让 iframe 访问新的 URL
-                iframe.src = newUrl;
-                if (iframeContainer) {
-                  scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
-                }
-            }
-            else{
-              // 使用动态处理函数
+            const fallbackToUrlQuery = () => {
+              if (!(siteConfig && siteConfig.supportUrlQuery)) {
+                console.log('没有找到处理函数');
+                return;
+              }
+
+              if (iframeContainer) {
+                setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
+              }
+              const nextUrl = siteConfig.url.replace('{query}', encodeURIComponent(query));
+              console.log(`为 ${siteName} iframe 生成新的 URL: ${nextUrl}`);
+              if (historyId) {
+                const onLoadSendHistoryContext = () => {
+                  try {
+                    iframe.removeEventListener('load', onLoadSendHistoryContext);
+                    iframe.contentWindow?.postMessage({
+                      type: 'SET_HISTORY_CONTEXT',
+                      historyId,
+                      siteName
+                    }, '*');
+                  } catch (_) {}
+                };
+                iframe.addEventListener('load', onLoadSendHistoryContext);
+              }
+              iframe.src = nextUrl;
+              if (iframeContainer) {
+                scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
+              }
+            };
+
+            if (siteConfig && siteConfig.supportUrlQuery && !preferCurrentPage) {
+              fallbackToUrlQuery();
+            } else {
               getIframeHandler(iframe.src, siteName).then(handler => {
                 if (handler) {
                   if (iframeContainer) {
@@ -4225,7 +4750,6 @@ async function iframeFresh(query) {
                       时间: new Date().toISOString(),
                       query: query
                   });
-                  // 下发 history 上下文（不依赖 inject 是否处理 search 携带的 historyId）
                   if (historyId) {
                     try {
                       iframe.contentWindow?.postMessage({
@@ -4233,19 +4757,18 @@ async function iframeFresh(query) {
                         historyId,
                         siteName
                       }, '*');
-                    } catch (e) {
-                      // ignore
-                    }
+                    } catch (_) {}
                   }
-                  // 调用处理函数
                   handler(iframe, query, historyId);
+                } else if (siteConfig && siteConfig.supportUrlQuery) {
+                  fallbackToUrlQuery();
                 } else {
                   console.log('没有找到处理函数');
                 }
               }).catch(error => {
                 console.error('获取处理函数失败:', error);
               });
-          }
+            }
         } catch (error) {
             console.error('处理 iframe 失败:', error);
         }
@@ -4255,10 +4778,56 @@ async function iframeFresh(query) {
       return iframes.length > 0;
 }
 
+function scheduleRestoreScrollToPrompt(restoreContext) {
+  if (!restoreContext?.query || restoreContext.scrollToPrompt !== true) return;
+
+  const entry = {
+    query: restoreContext.query,
+    occurrenceIndex: restoreContext.occurrenceIndex
+  };
+
+  [2800, 5600, 9000].forEach((delayMs) => {
+    setTimeout(() => {
+      scrollToTimelineEntry(entry, {
+        showToast: false,
+        trackEvent: false
+      }).catch((error) => {
+        console.warn('恢复收藏提问定位失败:', error);
+      });
+    }, delayMs);
+  });
+}
+
+async function restoreFavoriteHistoryContext(restoreContext) {
+  if (!restoreContext?.query) return;
+
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.value = restoreContext.query;
+    updateFavoriteButtonVisibility(restoreContext.query);
+  }
+
+  if (restoreContext.autoSearch) {
+    await runQueryAcrossOpenIframes(restoreContext.query, {
+      persistHistory: false,
+      historyId: window._currentHistoryId || null,
+      preferCurrentPage: true
+    });
+  }
+
+  scheduleRestoreScrollToPrompt(restoreContext);
+}
+
+async function iframeFresh(query) {
+      return runQueryAcrossOpenIframes(query, {
+        persistHistory: true
+      });
+}
+
 
 
 // 从历史记录加载 iframe
-async function loadHistoryIframes(sites) {
+async function loadHistoryIframes(sites, restoreContext = null) {
   try {
     const container = document.getElementById('iframes-container');
     if (!container) {
@@ -4389,6 +4958,7 @@ async function loadHistoryIframes(sites) {
     const allFavorited = sites.length > 0 && sites.every(s => s.isFavorite);
     updateFavoriteAllIcon(allFavorited);
     await renderSideNav();
+    await refreshTimelineFavoriteState();
     
     // 创建导航栏
     // const nav = document.createElement('nav');
@@ -4428,13 +4998,22 @@ async function loadHistoryIframes(sites) {
     
     // 设置搜索框的值（如果有的话）
     const urlParams = new URLSearchParams(window.location.search);
-    const query = urlParams.get('query');
+    const resolvedRestoreContext = normalizeRestoreContext(restoreContext, '');
+    const query = resolvedRestoreContext?.query || urlParams.get('query');
     if (query) {
       const searchInput = document.getElementById('searchInput');
       if (searchInput) {
         searchInput.value = query;
         updateFavoriteButtonVisibility(query);
       }
+    }
+
+    if (resolvedRestoreContext) {
+      setTimeout(() => {
+        restoreFavoriteHistoryContext(resolvedRestoreContext).catch((error) => {
+          console.error('恢复收藏提问上下文失败:', error);
+        });
+      }, 900);
     }
     
   } catch (error) {
@@ -4726,6 +5305,9 @@ async function savePKHistory(query) {
     
     // 将历史记录 ID 存储到全局变量，供 iframe 内部脚本更新 URL 时使用
     window._currentHistoryId = historyId;
+    refreshTimelineFavoriteState().catch((error) => {
+      console.warn('刷新时间线收藏状态失败:', error);
+    });
     
     if (existingHistoryId) {
       console.log('PK 历史记录已更新（待 iframe 更新 URL）:', historyItem);
@@ -4918,6 +5500,12 @@ function initQuickTooltips() {
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
   initializeTimelinePanel();
+  const resetIframePageButton = document.getElementById('resetIframePageButton');
+  if (resetIframePageButton) {
+    resetIframePageButton.addEventListener('click', () => {
+      resetIframePageToDefaultType();
+    });
+  }
   await initializeFavorites();
   if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
   checkForSiteConfigUpdates();
