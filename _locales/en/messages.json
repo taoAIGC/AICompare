@@ -3,7 +3,7 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - OneClick to compare ChatGPT, Gemini, Grok and more."
+    "message": "AI Compare - One-Click AI Comparison: ChatGPT, Gemini, Grok & More."
   },
   "extDescription": {
     "message": "AI Compare helps you find the best answer from multiple AI quickly."
@@ -221,7 +221,7 @@
     "description": "Tooltip for the refresh button"
   },
   "resetIframePageTitle": {
-    "message": "New conversation",
+    "message": "New chat",
     "description": "Tooltip and ARIA label for resetting the iframe page to the default information mode"
   },
   "openInNewTab": {
@@ -1036,7 +1036,7 @@
     "message": "AI sites"
   },
   "favoriteAllSites": {
-    "message": "Save this conversation to favorites"
+    "message": "Save these chats to favorites"
   },
   "editPromptTemplate": {
     "message": "Edit prompt templates"
@@ -1159,13 +1159,13 @@
     "message": "(Can be re-enabled in Settings)"
   },
   "timelineToggleTitle": {
-    "message": "Question timeline"
+    "message": "Chat timeline"
   },
   "timelinePanelTitle": {
-    "message": "In development"
+    "message": "Chat timeline"
   },
   "timelineEmpty": {
-    "message": "No prompts detected in this conversation yet."
+    "message": "No prompts detected in this chat yet."
   },
   "timelineCopyButton": {
     "message": "Copy"

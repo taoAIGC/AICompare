@@ -924,6 +924,48 @@ body.search-bar-bottom #iframes-container {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
+.timeline-edge-trigger {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 28px;
+    z-index: 1090;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.timeline-edge-trigger::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 28px;
+    height: 44px;
+    transform: translateY(-50%);
+    border: 1px solid #dddddd;
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    background: #ffffff url('../icons/history.svg') center / 16px 16px no-repeat;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    pointer-events: none;
+}
+
+.timeline-edge-trigger:hover::after,
+.timeline-edge-trigger.is-active::after {
+    background-color: #f7f7f7;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.timeline-edge-trigger:focus,
+.timeline-edge-trigger:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
 .nav {
     position: fixed;
     left: 0;
@@ -1446,15 +1488,30 @@ body.search-bar-bottom #iframes-container {
     display: flex;
     flex-direction: column;
     backdrop-filter: blur(10px);
+    transform: none;
 }
 
 .timeline-panel[hidden] {
     display: none !important;
 }
 
+.timeline-panel.is-edge-preview {
+    top: 50%;
+    right: 20px;
+    bottom: auto;
+    transform: translateY(-50%);
+    max-height: min(72vh, calc(100vh - 48px));
+}
+
 body.search-bar-bottom .timeline-panel {
     top: auto;
     bottom: 82px;
+}
+
+body.search-bar-bottom .timeline-panel.is-edge-preview {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
 }
 
 .timeline-panel-header {
@@ -1586,6 +1643,31 @@ body.search-bar-bottom .timeline-panel {
     width: 16px;
     height: 16px;
     fill: currentColor;
+}
+
+.timeline-item-export {
+    border: 1px solid #dfdfdf;
+    background: #fff;
+    color: #333;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.timeline-item-export:hover {
+    border-color: #111;
+}
+
+.timeline-item-export-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 .timeline-item-favorite {
@@ -1885,58 +1967,10 @@ body.search-bar-bottom .timeline-panel {
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* iframe 悬浮收藏按钮：默认隐藏，仅在该 iframe 内悬停时显示 */
-.iframe-favorite-btn-float {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ddd;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    z-index: 100;
-    padding: 0;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.iframe-container:hover .iframe-favorite-btn-float {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.iframe-favorite-btn-float:hover {
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
-    transform: translateY(-1px);
-}
-
-.iframe-favorite-btn-float:active {
-    transform: translateY(0);
-}
-
 .iframe-favorite-icon {
     width: 12px;
     height: 12px;
     display: block;
-}
-
-.iframe-favorite-btn-header {
-    width: 14px;
-    height: 14px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .openclaw-debug-panel {

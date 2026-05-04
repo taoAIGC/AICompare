@@ -91,6 +91,65 @@
           "removeParams": [
             "locale"
           ]
+        },
+        "latestVisibleResponse": {
+          "messageSelector": "[data-message-author-role=\"assistant\"]",
+          "ignoredAncestorSelectors": [
+            "script",
+            "style",
+            "noscript",
+            "svg",
+            "button",
+            "nav",
+            "footer",
+            "form"
+          ],
+          "ignoredTextPatterns": [
+            "^ChatGPT said:?$",
+            "^You said:?$",
+            "^●$",
+            "^Free offer$",
+            "^Open sidebar$",
+            "^Show moreShow less$",
+            "^ChatGPT can make mistakes\\.$",
+            "^Cookie Preferences\\.?$",
+            "^Copy response$",
+            "^Good response$",
+            "^Bad response$",
+            "^Share$",
+            "^Switch model$",
+            "^More actions$"
+          ],
+          "shellPatterns": [
+            "window\\.__reactRouterRouteModules",
+            "window\\.__reactRouterContext",
+            "window\\.__REACT_QUERY_CACHE__",
+            "window\\.__oai_",
+            "import\\(\"/cdn/assets/entry\\.client",
+            "Skip to content",
+            "ChatGPT can make mistakes\\. Check important info\\."
+          ]
+        }
+      },
+      "openclawRuntime": {
+        "landingPage": {
+          "requireRootLikeUrl": true,
+          "contentPatterns": [
+            "what(?:'|’)?s on the agenda today\\??",
+            "^ask anything",
+            "^what can i help",
+            "^how can i help",
+            "welcome back",
+            "start a new chat"
+          ]
+        },
+        "notSubmitted": {
+          "urlPatterns": [
+            "^https://chatgpt\\.com/?$"
+          ],
+          "contentPatterns": [
+            "what(?:'|’)?s on the agenda today\\??"
+          ]
         }
       },
       "historyHandler": {
@@ -172,6 +231,7 @@
         "contentSelectors": [
           "model-response .model-response-text"
         ],
+        "exportLatestOnly": true,
         "thinkingSelector": ":scope > div:not(.model-response-text)",
         "excludeSelectors": [],
         "extractThinking": true,
@@ -183,6 +243,78 @@
           "removeParams": [
             "locale"
           ]
+        }
+      },
+      "openclawRuntime": {
+        "landingPage": {
+          "requireRootLikeUrl": true,
+          "contentPatterns": [
+            "meet gemini",
+            "^ask anything",
+            "^what can i help",
+            "^how can i help",
+            "welcome back",
+            "start a new chat"
+          ]
+        },
+        "notSubmitted": {
+          "requireRootLikeUrl": true,
+          "contentPatterns": [
+            "meet gemini"
+          ]
+        },
+        "pendingShell": {
+          "signals": [
+            "展开菜单",
+            "使用麦克风",
+            "添加文件",
+            "设置和帮助",
+            "Untitled notebook",
+            "修改提示",
+            "停止回答"
+          ],
+          "minMatches": 3,
+          "fallbackMinMatches": 2,
+          "likelyTitleListMinLines": 8,
+          "likelyTitleListMaxLineLength": 24
+        },
+        "requireHistoryUrlFeature": true,
+        "sameOriginDirectRead": {
+          "selectors": [
+            "model-response .model-response-text",
+            "model-response",
+            "[class*=\"model-response\"]",
+            "[class*=\"response\"]",
+            "[class*=\"markdown\"]",
+            "[class*=\"prose\"]",
+            "[class*=\"message\"]",
+            "[class*=\"conversation\"]",
+            "[class*=\"chat\"]",
+            "main article",
+            "main section",
+            "main div"
+          ],
+          "preferSelectors": [
+            "model-response",
+            "[class*=\"model-response\"]",
+            "[class*=\"response\"]",
+            "[class*=\"markdown\"]",
+            "[class*=\"prose\"]"
+          ],
+          "excludeClosestSelectors": [
+            "nav",
+            "header",
+            "footer",
+            "aside",
+            "[role=\"navigation\"]",
+            "[class*=\"sidebar\"]",
+            "[aria-label*=\"history\" i]"
+          ],
+          "minTextLength": 80,
+          "minTopOffset": 180,
+          "preferLowerContentMinTopOffset": 320,
+          "minHeight": 120,
+          "maxChildElements": 12
         }
       },
       "historyHandler": {
@@ -283,13 +415,14 @@
         ]
       },
       "contentExtractor": {
-        "messageContainer": "[data-message-author-role=\"assistant\"]",
+        "containerSelector": "#last-reply-container",
+        "messageContainer": "#last-reply-container [id^=\"response-\"]",
         "contentSelectors": [
           ".response-content-markdown.markdown",
-          ".response-content-markdown",
-          ".markdown"
+          ".response-content-markdown"
         ],
         "excludeSelectors": [
+          ".action-buttons",
           "button",
           "[class*=\"copy\"]",
           "[class*=\"user\"]",
@@ -308,20 +441,49 @@
           ".transition-all.rounded-lg",
           "[class*=\"internal\"]"
         ],
+        "userMessageSelector": "#last-reply-container [id^=\"response-\"][class*=\"items-end\"]",
         "fallbackSelectors": [
+          "#last-reply-container .response-content-markdown.markdown",
+          "#last-reply-container .response-content-markdown",
+          "#last-reply-container .message-bubble.prose",
           ".grok-response",
-          "[class*=\"grok\"]",
           "[class*=\"ai-response\"]",
           "main",
           "article"
+        ],
+        "exportLatestOnly": true
+      },
+      "openclawRuntime": {
+        "landingPage": {
+          "requireRootLikeUrl": true,
+          "contentPatterns": [
+            "talk to grok",
+            "^ask anything",
+            "^what can i help",
+            "^how can i help",
+            "welcome back",
+            "start a new chat"
+          ]
+        },
+        "notSubmitted": {
+          "requireRootLikeUrl": true,
+          "contentPatterns": [
+            "^ask anything"
+          ]
+        },
+        "rateLimitedPatterns": [
+          "SuperGrok"
+        ],
+        "pendingContentPatterns": [
+          "^(?:思考了\\s*)?\\d+(?:\\.\\d+)?\\s*(?:ms|毫秒|s|秒)$"
         ]
       },
       "historyHandler": {
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "[id^=\"response-\"][class*=\"items-end\"]",
-        "textSelector": "div[class*=\"message-bubble\"]"
+        "containerSelector": "#last-reply-container [id^=\"response-\"][class*=\"items-end\"]",
+        "textSelector": ".response-content-markdown.markdown, .response-content-markdown"
       },
       "icon": "grok.com.png",
       "type": "information"
@@ -542,12 +704,13 @@
         ]
       },
       "contentExtractor": {
-        "messageContainer": "[data-testid=\"thread-messages-view\"]",
+        "messageContainer": "div.virtual-scroll-container.model-prompt-container[data-turn-role=\"Model\"]",
         "contentSelectors": [
-          "[data-testid^=\"message-result\"] .markdown",
-          "[data-testid^=\"message-result\"] .prose"
+          "ms-prompt-chunk p",
+          "ms-prompt-chunk span",
+          "span.thinking-shimmer"
         ],
-        "userMessageSelector": "[data-testid^=\"message-prompt\"] .markdown",
+        "userMessageSelector": "div.virtual-scroll-container.user-prompt-container[data-turn-role=\"User\"] ms-prompt-chunk p, div.virtual-scroll-container.user-prompt-container[data-turn-role=\"User\"] ms-prompt-chunk span",
         "excludeSelectors": [
           "button",
           "[class*=copy]",
@@ -559,9 +722,9 @@
         "extractThinking": false,
         "thinkingBlockFilters": [],
         "fallbackSelectors": [
-          "[data-testid^=\"message-result\"]",
-          ".markdown",
-          ".prose"
+          "div.virtual-scroll-container.model-prompt-container[data-turn-role=\"Model\"]",
+          "ms-thought-chunk .thinking-shimmer",
+          ".chat-turn-container.model"
         ],
         "editModeCheck": "textarea[formcontrolname=\"promptText\"], textarea.cdk-textarea-autosize"
       },
@@ -569,8 +732,8 @@
         "urlFeature": "/prompts/"
       },
       "userPrompt": {
-        "containerSelector": "[data-testid^=\"message-prompt\"]",
-        "textSelector": "[data-testid^=\"message-prompt\"] .markdown"
+        "containerSelector": "div.virtual-scroll-container.user-prompt-container[data-turn-role=\"User\"]",
+        "textSelector": "ms-prompt-chunk p, ms-prompt-chunk span"
       },
       "icon": "aistudio.google.com.png",
       "type": "Agents"
@@ -693,14 +856,14 @@
         "urlFeature": "/chat/"
       },
       "userPrompt": {
-        "containerSelector": "div.ds-message",
-        "textSelector": "div.ds-message > div"
+        "containerSelector": "div.ds-message:has(> div:not(.ds-markdown))",
+        "textSelector": ":scope > div:not(.ds-markdown)"
       },
       "icon": "chat.deepseek.com.png",
       "type": "information"
     },
     {
-      "name": "点点(小红书AI)",
+      "name": "点点",
       "url": "https://dots.ai/",
       "enabled": false,
       "supportUrlQuery": false,
@@ -842,8 +1005,23 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": ".inner-item-w21SQO [class*=\"flow-markdown-body\"], .inner-item-w21SQO [class*=\"markdown-body\"]",
+          "ignoredAncestorSelectors": [
+            "[class*=\"suggest-message\"]",
+            "[class*=\"copy\"]",
+            "[class*=\"regenerate\"]",
+            "[class*=\"stop\"]"
+          ],
+          "ignoredTextPatterns": [
+            "^内容由豆包 AI 生成，请仔细甄别$",
+            "^下载电脑版$"
+          ]
+        },
         "containerSelector": "div[aria-label=\"doc_editor\"]",
         "contentSelectors": [
+          ".inner-item-w21SQO [class*=\"flow-markdown-body\"]",
+          ".inner-item-w21SQO [class*=\"markdown-body\"]",
           ".container-PvPoAn:not(:has(.whitespace-pre-wrap))",
           ".item-kDun2N:not(:has(.whitespace-pre-wrap))",
           ".w-full.inner-item-w21SQO:not(:has(.whitespace-pre-wrap))"
@@ -1229,6 +1407,25 @@
         ],
         "exportLatestOnly": true
       },
+      "openclawRuntime": {
+        "pendingShell": {
+          "signals": [
+            "Hi~ 我是元宝",
+            "你身边的智能助手",
+            "Yuanbao",
+            "Deep Thinking",
+            "Download Center",
+            "Download for Desktop",
+            "AI-generated content",
+            "内容由AI生成，仅供参考",
+            "Drag the file here to upload"
+          ],
+          "minMatches": 3,
+          "fallbackMinMatches": 2,
+          "likelyTitleListMinLines": 6,
+          "likelyTitleListMaxLineLength": 40
+        }
+      },
       "historyHandler": {
         "urlFeature": "-"
       },
@@ -1268,7 +1465,7 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": true,
-      "note": "已验证基础页可访问，输入框为 textarea[name=\"message\"]。站点返回 X-Frame-Options: SAMEORIGIN 且 CSP frame-ancestors 仅允许 huggingface 域，扩展 iframe 不可嵌入。当前页面常见为脚本输入后发送按钮仍禁用，提交步骤设为可选并允许用户手动发送。",
+      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -1432,6 +1629,24 @@
         "textSelector": "div.question-text-style, div.question-txt"
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": "div.answer[id^=\"row-answer-\"] .answer-content-wrap, div.answer .answer-content-wrap",
+          "ignoredAncestorSelectors": [
+            ".assistant-name",
+            ".conversation-bottom",
+            ".operate-wrap",
+            ".answer-operate"
+          ],
+          "ignoredTextPatterns": [
+            "^ChatGLM$",
+            "^mermaid$",
+            "^代码$",
+            "^预览$",
+            "^复制$",
+            "^重试$",
+            "^重新生成$"
+          ]
+        },
         "messageContainer": "div.answer[id^=\"row-answer-\"], div.answer",
         "containerSelector": "div.detail.chatScrollContainer.conversation-list, div.conversation-list-outer, div.conversation-inner.scroll-display-none.dialogue",
         "contentSelectors": [
@@ -1474,6 +1689,12 @@
           "[class*=\"stop\"]",
           ".attachment",
           "[class*=\"attachment\"]"
+        ]
+      },
+      "openclawRuntime": {
+        "pendingContentPatterns": [
+          "搜索中\\.\\.\\.",
+          "正在查询"
         ]
       },
       "historyHandler": {
@@ -1678,37 +1899,27 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": "#qk-markdown-react, .chat-answers-card-wrap .markdown-pc-special-class",
+          "ignoredAncestorSelectors": [
+            ".message-card-j_n6rq",
+            "[class*=\"source\"]",
+            "[class*=\"recommend\"]"
+          ],
+          "ignoredTextPatterns": [
+            "^13篇来源$"
+          ]
+        },
         "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".tongyi-message .markdown",
-          ".tongyi-message",
-          ".message-content .markdown",
-          ".message-content",
-          "[class*=\"tongyi\"][class*=\"message\"]",
-          "[class*=\"tongyi\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".tongyi-response",
-          "[class*=\"tongyi-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]",
-          ".qwen-response",
-          "[class*=\"qwen\"]",
-          ".alibaba-response",
-          "[class*=\"alibaba\"]"
+          "#qk-markdown-react",
+          ".chat-answers-card-wrap .markdown-pc-special-class",
+          ".chat-answers-card-wrap .message-select-wrapper-answer-rqWekn",
+          ".chat-answers-card-wrap"
         ],
         "fallbackSelectors": [
-          "main",
-          "article",
-          ".container",
-          "[class*=\"content\"]",
-          "[class*=\"result\"]",
-          "[class*=\"output\"]"
+          ".chat-round.last-message-item .chat-answers-card-wrap",
+          ".message-list-content-container .chat-answers-card-wrap",
+          ".message-list-content-container"
         ],
         "excludeSelectors": [
           "nav",
@@ -1729,15 +1940,33 @@
           ".stop-button",
           "[class*=\"stop\"]",
           ".attachment",
-          "[class*=\"attachment\"]"
+          "[class*=\"attachment\"]",
+          ".message-card-wrap.question",
+          ".chat-question-wrap",
+          ".chat-question-card-wrap",
+          ".message-card-j_n6rq",
+          "[class*=\"source\"]",
+          "[class*=\"recommend\"]"
         ]
+      },
+      "openclawRuntime": {
+        "pendingShell": {
+          "signals": [
+            "Qwen0115",
+            "向千问提问"
+          ],
+          "minMatches": 2,
+          "fallbackMinMatches": 2,
+          "likelyTitleListMinLines": 2,
+          "likelyTitleListMaxLineLength": 24
+        }
       },
       "historyHandler": {
         "urlFeature": "/chat/"
       },
       "userPrompt": {
-        "containerSelector": "[class*=\"questionItem\"]",
-        "textSelector": "[class*=\"bubble\"]"
+        "containerSelector": ".message-card-wrap.question, .chat-question-card-wrap, .chat-question-wrap",
+        "textSelector": ".question-text-card, [class*=\"message-select-content\"]"
       },
       "icon": "chat.qwen.ai.png",
       "type": "information"
@@ -1755,34 +1984,66 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "聚焦输入框"
           },
           {
             "action": "setValue",
-            "selector": "textarea",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "设置输入框的值"
           },
           {
             "action": "triggerEvents",
-            "selector": "textarea",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
             "events": [
               "input",
               "change",
               "blur",
               "focus"
             ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "触发输入事件"
           },
           {
             "action": "wait",
-            "duration": 100,
-            "description": "等待100ms"
+            "duration": 200,
+            "description": "等待200ms让输入状态同步"
           },
           {
             "action": "sendKeys",
-            "selector": "textarea",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
             "keys": "Enter",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "发送回车键"
           },
           {
@@ -1812,35 +2073,32 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": ".response-message-content.t2t.phase-answer, .qwen-chat-message-assistant .response-message-content, .qwen-chat-message-assistant",
+          "ignoredAncestorSelectors": [
+            ".qwen-chat-thinking-status-card-content",
+            ".qwen-chat-search-card-source",
+            ".qwen-chat-search-card-footer",
+            ".chat-container-statement"
+          ],
+          "ignoredTextPatterns": [
+            "^Thinking completed$",
+            "^Skip$",
+            "^Auto$",
+            "^\\+\\d+$",
+            "^AI-generated content may not be accurate\\.$"
+          ]
+        },
         "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".qwen-message .markdown",
-          ".qwen-message",
-          ".message-content .markdown",
-          ".message-content",
-          "[class*=\"qwen\"][class*=\"message\"]",
-          "[class*=\"qwen\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".qwen-response",
-          "[class*=\"qwen-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]",
-          ".alibaba-response",
-          "[class*=\"alibaba\"]"
+          ".response-message-content.t2t.phase-answer",
+          ".qwen-chat-message-assistant .response-message-content",
+          ".qwen-chat-message-assistant [class*=\"qwen-markdown\"]",
+          ".qwen-chat-message-assistant"
         ],
         "fallbackSelectors": [
-          "main",
-          "article",
-          ".container",
-          "[class*=\"content\"]",
-          "[class*=\"result\"]",
-          "[class*=\"output\"]"
+          "#chat-message-container .qwen-chat-message-assistant .response-message-content",
+          "#chat-messages-scroll-container .qwen-chat-message-assistant",
+          "#chat-message-container"
         ],
         "excludeSelectors": [
           "nav",
@@ -1861,18 +2119,24 @@
           ".stop-button",
           "[class*=\"stop\"]",
           ".attachment",
-          "[class*=\"attachment\"]"
+          "[class*=\"attachment\"]",
+          ".qwen-chat-thinking-status-card-content",
+          ".user-message-content",
+          ".chat-container-statement",
+          "[class*=\"source\"]"
+        ]
+      },
+      "openclawRuntime": {
+        "pendingContentPatterns": [
+          "^\\?$"
         ]
       },
       "historyHandler": {
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "[data-message-author-role=\"user\"]",
-        "textSelector": "[data-message-author-role=\"user\"]",
-        "messageNodeSelector": "[data-testid=\"message-block-container\"], [data-message-id], [data-turn-id]",
-        "requireMessageNode": true,
-        "skipMessageIdPattern": "undefined"
+        "containerSelector": ".qwen-chat-message-user, .chat-user-message",
+        "textSelector": "p.whitespace-pre-wrap.user-message-content, .chunked-text-renderer-root"
       },
       "icon": "chat.qwen.ai.png",
       "type": "information"
@@ -1984,34 +2248,66 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea#userInput",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "聚焦Copilot输入框"
           },
           {
             "action": "setValue",
-            "selector": "textarea#userInput",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "设置Copilot输入框的值"
           },
           {
             "action": "triggerEvents",
-            "selector": "textarea#userInput",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
             "events": [
               "input",
               "change",
               "blur",
               "focus"
             ],
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "触发输入事件"
           },
           {
             "action": "wait",
-            "duration": 100,
-            "description": "等待100ms"
+            "duration": 200,
+            "description": "等待200ms让输入状态同步"
           },
           {
             "action": "sendKeys",
-            "selector": "textarea#userInput",
+            "selector": [
+              "textarea#userInput",
+              "textarea[aria-label*=\"message\" i]",
+              "textarea[placeholder]",
+              "textarea"
+            ],
             "keys": "Enter",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 300,
             "description": "发送回车键提交"
           }
         ]
@@ -2394,7 +2690,7 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在真实 Chrome 中验证：Tiptap/ProseMirror 输入 + 点击发送会创建真实 /chat?id=... 会话；站点返回 SAMEORIGIN，不能走 iframe",
+      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -2493,7 +2789,7 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在真实 Chrome 中验证：工作区首页与任务页都使用 ProseMirror contenteditable 输入框，写入后发送按钮会短暂延迟启用；点击发送会从 /app 进入真实 /app/<taskId> 任务页。manus.im/app 返回 SAMEORIGIN，不能走 iframe。",
+      "note": "",
       "searchHandler": {
         "steps": [
           {

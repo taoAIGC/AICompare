@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -45,6 +45,7 @@
       "js": [
         "config/baseConfig.js",
         "config/siteDetector.js",
+        "shared/extraction-core.js",
         "iframe/inject.js"
       ],
       "run_at": "document_start",

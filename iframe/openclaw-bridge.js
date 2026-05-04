@@ -2,7 +2,8 @@
   'use strict';
 
   const BRIDGE_VERSION = '1.1.0';
-  const DEFAULT_TIMEOUT_MS = 180000;
+  const DEFAULT_TIMEOUT_MS = 60000;
+  const DEFAULT_SITE_TIMEOUT_MS = 30000;
   const DEFAULT_POLL_INTERVAL_MS = 5000;
   const DEFAULT_MIN_CHARS = 20;
   const DEFAULT_STABLE_ROUNDS = 2;
@@ -15,6 +16,10 @@
     'blocked',
     'landing_page',
     'not_submitted'
+  ]);
+  const TERMINAL_STATUSES = new Set([
+    ...READY_STATUSES,
+    'timeout'
   ]);
   const STABLE_REQUIRED_STATUSES = new Set([
     'ok',
@@ -93,17 +98,36 @@
     return (searchInput && searchInput.value ? String(searchInput.value) : '').trim();
   }
 
-  function ensureRunTriggered(query, forceRun) {
+  function getAiCompareSearchApi() {
+    const api = window.aiCompareSearch;
+    if (api && typeof api.submitQuery === 'function') {
+      return api;
+    }
+    return null;
+  }
+
+  async function ensureRunTriggered(query, forceRun) {
     if (!query) return;
 
     const searchInput = document.getElementById('searchInput');
-    const searchButton = document.getElementById('searchButton');
-    if (!searchInput || !searchButton) return;
-
-    const current = (searchInput.value || '').trim();
+    const current = (searchInput && searchInput.value ? searchInput.value : '').trim();
     if (!forceRun && current === query) {
       return;
     }
+
+    const searchApi = getAiCompareSearchApi();
+    if (searchApi) {
+      await searchApi.submitQuery(query, {
+        trigger: 'openclaw',
+        syncInputValue: true,
+        clearInputOnSuccess: true,
+        armCollapseOnSuccess: true
+      });
+      return;
+    }
+
+    const searchButton = document.getElementById('searchButton');
+    if (!searchInput || !searchButton) return;
 
     searchInput.value = query;
     searchInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -117,6 +141,27 @@
 
   function matchesAny(text, patterns) {
     return patterns.some((pattern) => pattern.test(text));
+  }
+
+  function toArray(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    if (typeof value === 'string' && value.trim()) {
+      return [value.trim()];
+    }
+    return [];
+  }
+
+  function matchesConfiguredPatterns(text, patternConfigs) {
+    const normalizedText = String(text || '');
+    return toArray(patternConfigs).some((patternConfig) => {
+      try {
+        return new RegExp(patternConfig, 'i').test(normalizedText);
+      } catch (_) {
+        return false;
+      }
+    });
   }
 
   function parseUrl(url) {
@@ -133,17 +178,33 @@
     return parsed.pathname === '/' || parsed.pathname === '/chat' || parsed.pathname === '/home';
   }
 
-  function isRateLimitedContent(content) {
-    return matchesAny(content, [
+  function urlMatchesHistoryFeature(url, urlFeature) {
+    if (!urlFeature) return true;
+    try {
+      return new URL(url).pathname.includes(urlFeature);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getSiteRuntimeConfig(siteConfig) {
+    return siteConfig?.openclawRuntime || {};
+  }
+
+  function isRateLimitedContent(content, siteConfig) {
+    if (matchesAny(content, [
       /消息限制已达/i,
       /usage limit/i,
       /rate limit/i,
       /too many requests/i,
       /wait\s+\d+\s*(?:hour|minute|second)/i,
-      /SuperGrok/i,
       /quota exceeded/i,
       /已达到.*限制/i
-    ]);
+    ])) {
+      return true;
+    }
+
+    return matchesConfiguredPatterns(content, getSiteRuntimeConfig(siteConfig).rateLimitedPatterns);
   }
 
   function isLoginRequiredContent(content, url) {
@@ -174,47 +235,80 @@
     ]) || /\/pricing/i.test(url || '');
   }
 
-  function isLandingPageContent(siteName, url, content) {
+  function isLandingPageContent(siteConfig, url, content) {
+    const runtimeConfig = getSiteRuntimeConfig(siteConfig);
+    const landingPageConfig = runtimeConfig.landingPage || {};
     const text = (content || '').trim();
-    if (!text || !isRootLikeUrl(url)) {
+    if (!text) {
       return false;
     }
 
-    if (siteName === 'ChatGPT' && /what(?:'|’)?s on the agenda today\??/i.test(text)) {
-      return true;
+    if (landingPageConfig.requireRootLikeUrl !== false && !isRootLikeUrl(url)) {
+      return false;
     }
 
-    return matchesAny(text, [
-      /^ask anything/i,
-      /^what can i help/i,
-      /^how can i help/i,
-      /welcome back/i,
-      /meet gemini/i,
-      /talk to grok/i,
-      /start a new chat/i
-    ]);
+    return matchesConfiguredPatterns(text, landingPageConfig.contentPatterns);
   }
 
-  function isNotSubmittedContent(siteName, url, content) {
+  function isNotSubmittedContent(siteConfig, url, content) {
+    const runtimeConfig = getSiteRuntimeConfig(siteConfig);
+    const notSubmittedConfig = runtimeConfig.notSubmitted || {};
     const text = (content || '').trim();
     if (!text) return false;
 
-    if (siteName === 'ChatGPT' && /^https:\/\/chatgpt\.com\/?$/i.test(url || '')) {
-      return /what(?:'|’)?s on the agenda today\??/i.test(text);
+    if (notSubmittedConfig.requireRootLikeUrl === true && !isRootLikeUrl(url)) {
+      return false;
     }
 
-    if (siteName === 'Grok') {
-      return isRootLikeUrl(url) && /^ask anything/i.test(text);
+    const urlPatterns = toArray(notSubmittedConfig.urlPatterns);
+    if (urlPatterns.length > 0 && !matchesConfiguredPatterns(url || '', urlPatterns)) {
+      return false;
     }
 
-    if (siteName === 'Gemini') {
-      return isRootLikeUrl(url) && /meet gemini/i.test(text);
+    const contentPatterns = toArray(notSubmittedConfig.contentPatterns);
+    if (contentPatterns.length === 0) {
+      return false;
     }
 
-    return false;
+    return matchesConfiguredPatterns(text, contentPatterns);
   }
 
-  function classifyResponse(item, minChars) {
+  function looksLikePendingShellContent(content, siteConfig) {
+    const runtimeConfig = getSiteRuntimeConfig(siteConfig);
+    const pendingShellConfig = runtimeConfig.pendingShell || {};
+    const normalized = String(content || '').trim();
+    if (!normalized) return false;
+
+    const shellSignals = toArray(pendingShellConfig.signals);
+    if (shellSignals.length === 0) return false;
+
+    const matchedSignals = shellSignals.filter((signal) => normalized.includes(signal));
+    const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+    const likelyTitleList = lines.length >= (Number(pendingShellConfig.likelyTitleListMinLines) || 8)
+      && lines.every((line) => line.length <= (Number(pendingShellConfig.likelyTitleListMaxLineLength) || 24));
+
+    return matchedSignals.length >= (Number(pendingShellConfig.minMatches) || 3)
+      || (matchedSignals.length >= (Number(pendingShellConfig.fallbackMinMatches) || 2) && likelyTitleList);
+  }
+
+  function matchesPendingContentPatterns(content, siteConfig) {
+    const runtimeConfig = getSiteRuntimeConfig(siteConfig);
+    const normalized = String(content || '').trim();
+    if (!normalized) return false;
+    return matchesConfiguredPatterns(normalized, runtimeConfig.pendingContentPatterns);
+  }
+
+  function isAcceptableReadyContent(siteConfig, content, url) {
+    const normalized = String(content || '').trim();
+    if (!normalized) return false;
+    if (matchesPendingContentPatterns(normalized, siteConfig)) return false;
+    if (looksLikePendingShellContent(normalized, siteConfig)) return false;
+    if (isLandingPageContent(siteConfig, url, normalized)) return false;
+    if (isNotSubmittedContent(siteConfig, url, normalized)) return false;
+    return true;
+  }
+
+  function classifyResponse(item, minChars, siteConfig) {
     if (!item) {
       return { status: 'pending', error: '' };
     }
@@ -240,7 +334,7 @@
       return { status: 'pending', error: '' };
     }
 
-    if (isRateLimitedContent(content)) {
+    if (isRateLimitedContent(content, siteConfig)) {
       return { status: 'rate_limited', error: 'rate_limited' };
     }
 
@@ -256,11 +350,19 @@
       return { status: 'extraction_error', error: 'extraction_error' };
     }
 
-    if (isNotSubmittedContent(siteName, url, content)) {
+    if (matchesPendingContentPatterns(content, siteConfig)) {
+      return { status: 'pending', error: '' };
+    }
+
+    if (isNotSubmittedContent(siteConfig, url, content)) {
       return { status: 'not_submitted', error: 'not_submitted' };
     }
 
-    if (isLandingPageContent(siteName, url, content)) {
+    if (looksLikePendingShellContent(content, siteConfig)) {
+      return { status: 'pending', error: '' };
+    }
+
+    if (isLandingPageContent(siteConfig, url, content)) {
       return { status: 'landing_page', error: 'landing_page' };
     }
 
@@ -279,6 +381,15 @@
     return `Timed out waiting for ${siteName} after about ${seconds} seconds.${suffix}`;
   }
 
+  function shouldKeepTimeoutContent(item, minChars) {
+    const content = String(item?.content || '').trim();
+    if (!content) return false;
+    if (content.length < Math.max(1, Number(minChars) || 0)) return false;
+    if (content === '?') return false;
+    if (isExtractionFallbackContent(content)) return false;
+    return item?.status === 'streaming' || item?.status === 'short';
+  }
+
   function finalizeTimedOutResults(results, timeoutMs) {
     return (results || []).map((item) => {
       if (!item) return item;
@@ -292,6 +403,38 @@
         status: 'timeout',
         content: item.content || timeoutMessage,
         error: timeoutMessage
+      };
+    });
+  }
+
+  function applyPerSiteTimeouts(results, unresolvedSinceMap, siteTimeoutMs, minChars, now = Date.now()) {
+    return (results || []).map((item) => {
+      if (!item?.siteName) {
+        return item;
+      }
+
+      if (TERMINAL_STATUSES.has(item.status) || item.status === 'error') {
+        unresolvedSinceMap.delete(item.siteName);
+        return item;
+      }
+
+      const firstSeenAt = unresolvedSinceMap.get(item.siteName) || now;
+      if (!unresolvedSinceMap.has(item.siteName)) {
+        unresolvedSinceMap.set(item.siteName, firstSeenAt);
+      }
+
+      if (now - firstSeenAt < siteTimeoutMs) {
+        return item;
+      }
+
+      const timeoutMessage = buildSiteTimeoutMessage(item.siteName, siteTimeoutMs, item.status);
+      return {
+        ...item,
+        status: 'timeout',
+        content: shouldKeepTimeoutContent(item, minChars) ? item.content : timeoutMessage,
+        error: timeoutMessage,
+        runtimePhase: 'timeout',
+        final: true
       };
     });
   }
@@ -334,7 +477,314 @@
     return null;
   }
 
-  function normalizeRuntimeEntry(entry, minChars, fallbackSiteName) {
+  function findIframeBySiteName(siteName) {
+    if (!siteName) return null;
+    return document.querySelector(`.ai-iframe[data-site="${siteName}"]`);
+  }
+
+  async function getSiteConfigByName(siteName) {
+    return window.AICompareExtraction?.getSiteConfigByName?.(siteName) || null;
+  }
+
+  function buildIframeRequestId(prefix, siteName) {
+    return `${prefix}-${String(siteName || 'site').replace(/\s+/g, '-').toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  async function extractDirectIframeResult(siteName, siteConfig = null) {
+    const iframe = findIframeBySiteName(siteName);
+    if (!iframe) return null;
+
+    let iframeDoc = null;
+    let iframeUrl = '';
+
+    try {
+      iframeDoc = iframe.contentDocument || iframe.contentWindow?.document || null;
+      iframeUrl = iframe.contentWindow?.location?.href || iframe.getAttribute('src') || '';
+    } catch (_) {
+      return null;
+    }
+
+    if (!iframeDoc) {
+      return null;
+    }
+
+    let content = '';
+    try {
+      if (window.AICompareExtraction?.extractDocumentContent) {
+        const siteConfig = await getSiteConfigByName(siteName);
+        const extracted = await window.AICompareExtraction.extractDocumentContent(iframeDoc, siteName, siteConfig || {}, {
+          includePageTextFallback: true,
+          pageTextMaxLength: 1000,
+          waitTimeoutMs: 300
+        });
+        if (typeof extracted === 'string') {
+          content = extracted;
+        } else if (extracted && typeof extracted.content === 'string') {
+          content = extracted.content;
+        }
+      }
+    } catch (_) {
+      // Ignore direct extraction errors and fall back to URL-only repair when possible.
+    }
+
+    const runtimeConfig = getSiteRuntimeConfig(siteConfig);
+    const directReadConfig = runtimeConfig.sameOriginDirectRead || null;
+    if (directReadConfig && (!content || looksLikePendingShellContent(content, siteConfig))) {
+      const candidateSelectors = toArray(directReadConfig.selectors);
+      const seenNodes = new Set();
+      const candidates = [];
+
+      candidateSelectors.forEach((selector) => {
+        iframeDoc.querySelectorAll(selector).forEach((node) => {
+          if (seenNodes.has(node)) return;
+          seenNodes.add(node);
+          candidates.push(node);
+        });
+      });
+
+      const mainRoot = iframeDoc.querySelector('main');
+      if (mainRoot) {
+        mainRoot.querySelectorAll('div, article, section, p, li').forEach((node) => {
+          if (seenNodes.has(node)) return;
+          seenNodes.add(node);
+          candidates.push(node);
+        });
+      }
+
+      const scoredCandidates = candidates
+        .map((node) => {
+          const text = String(node.innerText || node.textContent || '').trim();
+          const minTextLength = Number(directReadConfig.minTextLength) || 80;
+          if (!text || text.length < minTextLength) return null;
+          const excludeClosestSelectors = toArray(directReadConfig.excludeClosestSelectors);
+          if (excludeClosestSelectors.some((selector) => {
+            try {
+              return Boolean(node.closest(selector));
+            } catch (_) {
+              return false;
+            }
+          })) {
+            return null;
+          }
+          if (looksLikePendingShellContent(text, siteConfig)) {
+            return null;
+          }
+
+          const rect = typeof node.getBoundingClientRect === 'function'
+            ? node.getBoundingClientRect()
+            : { width: 0, height: 0, top: 0 };
+          if (rect.width === 0 || rect.height === 0) {
+            return null;
+          }
+
+          let score = text.length;
+          const preferSelectors = toArray(directReadConfig.preferSelectors);
+          preferSelectors.forEach((selector, index) => {
+            try {
+              if (node.matches(selector)) {
+                score += Math.max(1, preferSelectors.length - index) * 600;
+              }
+            } catch (_) {
+              // ignore invalid selectors
+            }
+          });
+          if (/\n{2,}/.test(text)) score += 300;
+          if (/[：:。.!?]/.test(text)) score += 100;
+          if (rect.top > (Number(directReadConfig.minTopOffset) || 180)) score += 250;
+          if (rect.top > (Number(directReadConfig.preferLowerContentMinTopOffset) || 320)) score += 250;
+          if (rect.height > (Number(directReadConfig.minHeight) || 120)) score += 200;
+          if (node.childElementCount <= (Number(directReadConfig.maxChildElements) || 12)) score += 120;
+
+          return {
+            text,
+            score
+          };
+        })
+        .filter(Boolean)
+        .sort((left, right) => right.score - left.score);
+
+      if (scoredCandidates.length > 0) {
+        content = scoredCandidates[0].text.trim();
+      }
+    }
+
+    try {
+      const siteConfig = await getSiteConfigByName(siteName);
+      iframeUrl = window.AICompareExtraction?.resolveDocumentUrl?.(
+        iframeDoc,
+        iframeUrl || iframe.getAttribute('src') || window.location.href,
+        siteConfig || {}
+      ) || iframeUrl;
+    } catch (_) {
+      // Keep the current iframe URL if alternate-link extraction fails.
+    }
+
+    return {
+      content: String(content || '').trim(),
+      url: String(iframeUrl || '').trim()
+    };
+  }
+
+  async function requestIframeExtractedResult(siteName, timeoutMs = 2500) {
+    const iframe = findIframeBySiteName(siteName);
+    if (!iframe?.contentWindow) {
+      return null;
+    }
+
+    const requestId = buildIframeRequestId('extract', siteName);
+    return new Promise((resolve) => {
+      let finished = false;
+
+      const cleanup = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        window.removeEventListener('message', onMessage);
+      };
+
+      const onMessage = (event) => {
+        if (event.source !== iframe.contentWindow) return;
+        if (event.data?.type !== 'EXTRACTED_CONTENT') return;
+        if (event.data?.requestId && event.data.requestId !== requestId) return;
+        if (!event.data?.requestId && event.data?.siteName !== siteName) return;
+        cleanup();
+        resolve({
+          content: String(event.data?.content || '').trim(),
+          url: String(event.data?.url || '').trim()
+        });
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(null);
+      }, Math.max(300, Number(timeoutMs) || 0));
+
+      window.addEventListener('message', onMessage);
+
+      try {
+        iframe.contentWindow.postMessage({
+          type: 'EXTRACT_CONTENT',
+          siteName,
+          requestId
+        }, '*');
+      } catch (_) {
+        cleanup();
+        resolve(null);
+      }
+    });
+  }
+
+  function getResultQualityScore(item) {
+    if (!item) return -1;
+
+    const baseScores = {
+      ok: 700,
+      rate_limited: 650,
+      login_required: 650,
+      blocked: 650,
+      landing_page: 620,
+      not_submitted: 620,
+      timeout: 500,
+      streaming: 420,
+      short: 300,
+      pending: 200,
+      queued: 150,
+      executing: 140,
+      extraction_error: 60,
+      error: 50
+    };
+
+    const status = String(item.status || 'pending').trim();
+    const contentLength = String(item.content || '').trim().length;
+    const urlBonus = item.url ? 5 : 0;
+    return (baseScores[status] || 0) + Math.min(contentLength, 4000) / 20 + urlBonus;
+  }
+
+  function pickBetterResolvedResult(current, candidate) {
+    if (!candidate) return current;
+    if (!current) return candidate;
+    return getResultQualityScore(candidate) > getResultQualityScore(current) ? candidate : current;
+  }
+
+  function shouldResolveWithFallbackSources(item, siteConfig) {
+    if (!item) return true;
+
+    const runtimeConfig = getSiteRuntimeConfig(siteConfig);
+    if (looksLikePendingShellContent(item.content, siteConfig)) {
+      return true;
+    }
+
+    if (matchesPendingContentPatterns(item.content, siteConfig)) {
+      return true;
+    }
+
+    if (runtimeConfig.requireHistoryUrlFeature === true && !urlMatchesHistoryFeature(item.url || '', siteConfig?.historyHandler?.urlFeature || '')) {
+      return true;
+    }
+
+    if (item.status === 'short' || item.status === 'extraction_error') {
+      return true;
+    }
+
+    if (!item.content && (item.final || ['ready', 'error', 'timeout'].includes(item.runtimePhase))) {
+      return true;
+    }
+
+    if (item.status === 'pending' && item.final === true) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function normalizeResolvedEntry(entry, minChars, fallbackSiteName, siteConfig, extractionMethod) {
+    const normalized = normalizeRuntimeEntry(entry, minChars, fallbackSiteName, siteConfig);
+    return {
+      ...normalized,
+      extractionMethod: extractionMethod || normalized.extractionMethod
+    };
+  }
+
+  async function resolveSiteResultWithPriority(siteName, snapshotEntry, minChars) {
+    const siteConfig = await getSiteConfigByName(siteName);
+    let bestResult = normalizeResolvedEntry(snapshotEntry, minChars, siteName, siteConfig, 'active-report');
+    if (!shouldResolveWithFallbackSources(bestResult, siteConfig)) {
+      return bestResult;
+    }
+
+    const extractedResult = await requestIframeExtractedResult(siteName);
+    if (extractedResult && (extractedResult.content || extractedResult.url)) {
+      const extractedEntry = normalizeResolvedEntry({
+        ...snapshotEntry,
+        siteName,
+        content: extractedResult.content || bestResult.content,
+        url: extractedResult.url || bestResult.url,
+        phase: snapshotEntry?.phase || 'ready',
+        error: ''
+      }, minChars, siteName, siteConfig, 'extract-content');
+      bestResult = pickBetterResolvedResult(bestResult, extractedEntry);
+      if (!shouldResolveWithFallbackSources(extractedEntry, siteConfig)) {
+        return bestResult;
+      }
+    }
+
+    const directResult = await extractDirectIframeResult(siteName, siteConfig);
+    if (directResult && (directResult.content || directResult.url)) {
+      const directEntry = normalizeResolvedEntry({
+        ...snapshotEntry,
+        siteName,
+        content: directResult.content || bestResult.content,
+        url: directResult.url || bestResult.url,
+        phase: snapshotEntry?.phase || 'ready',
+        error: ''
+      }, minChars, siteName, siteConfig, 'same-origin-direct');
+      bestResult = pickBetterResolvedResult(bestResult, directEntry);
+    }
+
+    return bestResult;
+  }
+
+  function normalizeRuntimeEntry(entry, minChars, fallbackSiteName, siteConfig) {
     const siteName = entry?.siteName ? String(entry.siteName).trim() : String(fallbackSiteName || '').trim();
     const content = entry && typeof entry.content === 'string' ? entry.content.trim() : '';
     const url = entry?.url ? String(entry.url).trim() : '';
@@ -370,7 +820,7 @@
       url,
       error: runtimePhase === 'error',
       errorMessage: runtimeError
-    }, minChars);
+    }, minChars, siteConfig);
 
     if (runtimePhase === 'queued') {
       return {
@@ -406,8 +856,8 @@
     if (runtimePhase === 'ready') {
       const readyStatus = !content
         ? 'pending'
-        : (classified.status === 'pending' || classified.status === 'short'
-          ? 'ok'
+        : ((classified.status === 'pending' || classified.status === 'short')
+          ? (isAcceptableReadyContent(siteConfig, content, url) ? 'ok' : classified.status)
           : classified.status);
       return {
         ...baseItem,
@@ -431,14 +881,20 @@
     };
   }
 
-  function getRuntimeResults(siteNames, minChars) {
+  async function getRuntimeResults(siteNames, minChars) {
     const bridge = getSiteRuntimeBridge();
     if (!bridge) {
       throw new Error('aiCompareSiteRuntime is not available on window');
     }
 
     const snapshot = bridge.getSnapshot(siteNames);
-    return siteNames.map((siteName) => normalizeRuntimeEntry(snapshot?.bySite?.[siteName], minChars, siteName));
+    const results = [];
+
+    for (const siteName of siteNames) {
+      results.push(await resolveSiteResultWithPriority(siteName, snapshot?.bySite?.[siteName], minChars));
+    }
+
+    return results;
   }
 
   function waitForRuntimeUpdate(timeoutMs) {
@@ -476,6 +932,7 @@
       urlSites: parseSites(params.get('sites') || ''),
       urlCallback: (params.get('openclaw_callback') || '').trim(),
       urlTimeoutMs: parseNumber(params.get('openclaw_timeout_ms'), DEFAULT_TIMEOUT_MS),
+      urlSiteTimeoutMs: parseNumber(params.get('openclaw_site_timeout_ms'), DEFAULT_SITE_TIMEOUT_MS),
       urlPollIntervalMs: parseNumber(params.get('openclaw_poll_ms'), DEFAULT_POLL_INTERVAL_MS),
       urlMinChars: parseNumber(params.get('openclaw_min_chars'), DEFAULT_MIN_CHARS),
       urlStableRounds: parseNumber(params.get('openclaw_stable_rounds'), DEFAULT_STABLE_ROUNDS),
@@ -647,7 +1104,7 @@
   function buildRunResult(params) {
     const results = Array.isArray(params.results) ? params.results : [];
     const targetSites = Array.isArray(params.targetSites) ? params.targetSites : [];
-    const resolvedSites = results.filter((item) => READY_STATUSES.has(item.status) || item.status === 'timeout').length;
+    const resolvedSites = results.filter((item) => TERMINAL_STATUSES.has(item.status)).length;
 
     return {
       runId: params.runId,
@@ -725,6 +1182,7 @@
     const requestedSites = parseSites(opts.sites && opts.sites.length ? opts.sites : defaults.urlSites);
     const callbackUrl = (typeof opts.callbackUrl === 'string' ? opts.callbackUrl : defaults.urlCallback || '').trim();
     const timeoutMs = Math.max(1000, parseNumber(opts.timeoutMs, defaults.urlTimeoutMs));
+    const siteTimeoutMs = Math.max(1000, parseNumber(opts.siteTimeoutMs, defaults.urlSiteTimeoutMs));
     const pollIntervalMs = Math.max(500, parseNumber(opts.pollIntervalMs, defaults.urlPollIntervalMs));
     const minChars = Math.max(1, parseNumber(opts.minChars, defaults.urlMinChars));
     const stableRounds = Math.max(0, parseNumber(opts.stableRounds, defaults.urlStableRounds));
@@ -749,7 +1207,7 @@
       results: []
     });
 
-    ensureRunTriggered(query, forceRun);
+    await ensureRunTriggered(query, forceRun);
 
     const resolvedDefaultSites = requestedSites.length > 0 ? [] : await getDefaultEnabledSites();
     let frozenTargetSites = requestedSites.length > 0 ? requestedSites.slice() : [];
@@ -765,6 +1223,7 @@
     }
 
     const stableState = new Map();
+    const unresolvedSinceMap = new Map();
     let normalizedResults = [];
     let finalTargetSites = frozenTargetSites.slice();
     let timedOut = false;
@@ -797,7 +1256,13 @@
       }
 
       try {
-        normalizedResults = getRuntimeResults(finalTargetSites, minChars);
+        normalizedResults = await getRuntimeResults(finalTargetSites, minChars);
+        normalizedResults = applyPerSiteTimeouts(
+          normalizedResults,
+          unresolvedSinceMap,
+          siteTimeoutMs,
+          minChars
+        );
       } catch (error) {
         normalizedResults = finalTargetSites.map((siteName) => ({
           siteName,
@@ -838,7 +1303,7 @@
       await maybePostProgress(callbackUrl, runningResult, callbackState, false);
 
       const allResolved = normalizedResults.length > 0
-        && normalizedResults.every((item) => READY_STATUSES.has(item.status));
+        && normalizedResults.every((item) => TERMINAL_STATUSES.has(item.status));
 
       let stableEnough = stableRounds === 0;
       if (!stableEnough) {

@@ -3,7 +3,7 @@
     "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI比一比 - 多AI一键对比 ChatGPT, Gemini, Grok 等多个AI"
+    "message": "AI比一比 - 一键对比 ChatGPT, Gemini, Grok 等多个AI"
   },
   "extDescription": {
     "message": "帮你从十多个AI中快速找到最佳答案。"
@@ -1157,7 +1157,7 @@
     "message": "提问时间线"
   },
   "timelinePanelTitle": {
-    "message": "开发中"
+    "message": "Chat timeline"
   },
   "timelineEmpty": {
     "message": "当前对话里还没有识别到提问。"

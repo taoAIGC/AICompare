@@ -9,6 +9,10 @@ const { spawnSync } = require('child_process');
 
 let chromiumInstance = null;
 
+const DEFAULT_GUI_WAIT_RESULTS_MS = 90000;
+const DEFAULT_COMPARISON_TIMEOUT_MS = 60000;
+const DEFAULT_SITE_TIMEOUT_MS = 30000;
+
 function getChromium() {
   if (!chromiumInstance) {
     ({ chromium: chromiumInstance } = require('playwright'));
@@ -485,8 +489,9 @@ async function runGuiMode(args, query, sites) {
   const browserApp = typeof args['browser-app'] === 'string' ? args['browser-app'].trim() : '';
   const openBrowser = !args['print-only'];
   const openOnly = Boolean(args['open-only']);
-  const waitResultsMs = Math.max(1000, asNumber(args['wait-results-ms'], 240000));
-  const timeoutMs = Math.max(1000, asNumber(args['timeout-ms'], Math.min(waitResultsMs, 180000)));
+  const waitResultsMs = Math.max(1000, asNumber(args['wait-results-ms'], DEFAULT_GUI_WAIT_RESULTS_MS));
+  const timeoutMs = Math.max(1000, asNumber(args['timeout-ms'], Math.min(waitResultsMs, DEFAULT_COMPARISON_TIMEOUT_MS)));
+  const siteTimeoutMs = Math.max(1000, asNumber(args['site-timeout-ms'], Math.min(timeoutMs, DEFAULT_SITE_TIMEOUT_MS)));
   const pollMs = Math.max(500, asNumber(args['poll-ms'], 5000));
   const minChars = Math.max(1, asNumber(args['min-chars'], 20));
   const stableRounds = Math.max(0, asNumber(args['stable-rounds'], 2));
@@ -500,6 +505,7 @@ async function runGuiMode(args, query, sites) {
     {
       ...(callbackServer ? { openclaw_callback: callbackServer.callbackUrl } : {}),
       openclaw_timeout_ms: timeoutMs,
+      openclaw_site_timeout_ms: siteTimeoutMs,
       openclaw_poll_ms: pollMs,
       openclaw_min_chars: minChars,
       openclaw_stable_rounds: stableRounds,
@@ -643,9 +649,10 @@ function printUsage() {
     '  --browser-app <name>      Optional. Browser app name for gui mode, e.g. "Google Chrome"',
     '  --print-only              Optional. In gui mode, print trigger URL without opening browser',
     '  --open-only               Optional. In gui mode, open browser but do not wait for callback results',
-    '  --wait-results-ms <num>   Optional. In gui mode, max wait for callback results, default 240000',
+    '  --wait-results-ms <num>   Optional. In gui mode, max wait for callback results, default 90000',
     '  --cdp-endpoint <url>      Optional. Chrome CDP endpoint, default http://127.0.0.1:9222',
-    '  --timeout-ms <number>     Optional. Max wait time, default 180000',
+    '  --timeout-ms <number>     Optional. Max wait time, default 60000',
+    '  --site-timeout-ms <num>   Optional. Per-site unresolved timeout, default 30000',
     '  --poll-ms <number>        Optional. Poll interval, default 5000',
     '  --min-chars <number>      Optional. Ready threshold for content length, default 20',
     '  --stable-rounds <number>  Optional. Stable rounds before finish, default 2',
@@ -691,7 +698,8 @@ async function main() {
     || process.env.OPENCLAW_CDP_ENDPOINT
     || 'http://127.0.0.1:9222';
 
-  const timeoutMs = Math.max(1000, asNumber(args['timeout-ms'], 180000));
+  const timeoutMs = Math.max(1000, asNumber(args['timeout-ms'], DEFAULT_COMPARISON_TIMEOUT_MS));
+  const siteTimeoutMs = Math.max(1000, asNumber(args['site-timeout-ms'], Math.min(timeoutMs, DEFAULT_SITE_TIMEOUT_MS)));
   const pollMs = Math.max(500, asNumber(args['poll-ms'], 5000));
   const minChars = Math.max(1, asNumber(args['min-chars'], 20));
   const stableRounds = Math.max(0, asNumber(args['stable-rounds'], 2));
@@ -715,6 +723,7 @@ async function main() {
       query,
       sites,
       timeoutMs,
+      siteTimeoutMs,
       pollIntervalMs: pollMs,
       minChars,
       stableRounds,

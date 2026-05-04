@@ -1,7 +1,96 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { DEFAULT_INSTALL_URL } from "./defaults.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SITE_HANDLERS_PATH = path.resolve(__dirname, "../../config/siteHandlers.json");
+
+let cachedSiteHandlers = null;
+
+function loadSiteHandlers() {
+  if (cachedSiteHandlers) {
+    return cachedSiteHandlers;
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SITE_HANDLERS_PATH, "utf8"));
+    cachedSiteHandlers = Array.isArray(parsed?.sites) ? parsed.sites : [];
+  } catch (_) {
+    cachedSiteHandlers = [];
+  }
+
+  return cachedSiteHandlers;
+}
+
+function getSiteConfigByName(siteName) {
+  const normalizedName = String(siteName || "").trim();
+  if (!normalizedName) return null;
+  return loadSiteHandlers().find((site) => String(site?.name || "").trim() === normalizedName) || null;
+}
+
+function getSiteRuntimeConfig(siteName) {
+  return getSiteConfigByName(siteName)?.openclawRuntime || {};
+}
+
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+  return [];
+}
+
+function matchesConfiguredPatterns(text, patternConfigs) {
+  const normalizedText = String(text || "");
+  return toArray(patternConfigs).some((patternConfig) => {
+    try {
+      return new RegExp(patternConfig, "i").test(normalizedText);
+    } catch (_) {
+      return false;
+    }
+  });
+}
+
+function isRootLikeUrl(url) {
+  try {
+    const parsed = new URL(String(url || "").trim());
+    return parsed.pathname === "/" || parsed.pathname === "/chat" || parsed.pathname === "/home";
+  } catch (_) {
+    return false;
+  }
+}
+
+function isConfiguredNotSubmitted(siteName, url, content) {
+  const notSubmittedConfig = getSiteRuntimeConfig(siteName).notSubmitted || {};
+  const normalizedContent = String(content || "").trim();
+  if (!normalizedContent) return false;
+
+  if (notSubmittedConfig.requireRootLikeUrl === true && !isRootLikeUrl(url)) {
+    return false;
+  }
+
+  const urlPatterns = toArray(notSubmittedConfig.urlPatterns);
+  if (urlPatterns.length > 0 && !matchesConfiguredPatterns(url || "", urlPatterns)) {
+    return false;
+  }
+
+  const contentPatterns = toArray(notSubmittedConfig.contentPatterns);
+  if (contentPatterns.length === 0) {
+    return false;
+  }
+
+  return matchesConfiguredPatterns(normalizedContent, contentPatterns);
+}
+
+function isConfiguredRateLimited(siteName, content) {
+  return matchesConfiguredPatterns(content, getSiteRuntimeConfig(siteName).rateLimitedPatterns);
+}
 
 export function truncateContent(content, maxChars) {
   const text = String(content || "").trim();
@@ -10,30 +99,38 @@ export function truncateContent(content, maxChars) {
   return `${text.slice(0, maxChars)}\n\n[truncated ${text.length - maxChars} chars]`;
 }
 
+function sanitizeDisplayContent(content) {
+  return String(content || "")
+    .replace(/^\[\]\(\/\)\s*/u, "")
+    .replace(/(?:\r?\n){3,}/g, "\n\n")
+    .trim();
+}
+
+function buildInlinePreview(content, maxChars = 120) {
+  const normalized = sanitizeDisplayContent(content).replace(/\s+/g, " ").trim();
+  if (!normalized) return "(empty)";
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, maxChars - 1)}…`;
+}
+
 function normalizeSiteForDisplay(site) {
   const normalized = {
     ...(site || {})
   };
-  const content = String(site?.content || "").trim();
+  const content = sanitizeDisplayContent(site?.content || "");
   const url = String(site?.url || "").trim();
   const siteName = String(site?.siteName || "").trim();
+  normalized.content = content;
 
-  if (
-    siteName === "Grok"
-    && /消息限制已达|SuperGrok|usage limit|wait\s+\d+\s*(?:hour|minute)/i.test(content)
-  ) {
-    normalized.status = "error";
+  if (isConfiguredRateLimited(siteName, content)) {
+    normalized.status = "rate_limited";
     normalized.error = normalized.error || "rate_limited";
     return normalized;
   }
 
-  if (
-    siteName === "ChatGPT"
-    && /^https:\/\/chatgpt\.com\/?$/.test(url)
-    && /what(?:'|’)?s on the agenda today\??/i.test(content)
-  ) {
-    normalized.status = "error";
-    normalized.error = normalized.error || "possible_unsubmitted_prompt";
+  if (isConfiguredNotSubmitted(siteName, url, content)) {
+    normalized.status = "not_submitted";
+    normalized.error = normalized.error || "not_submitted";
     return normalized;
   }
 
@@ -49,6 +146,32 @@ function formatSiteBlock(site, maxChars) {
   lines.push("");
   lines.push(truncateContent(normalized.content || "", maxChars) || "(empty)");
   return lines.join("\n");
+}
+
+function formatSiteOverview(site) {
+  const parts = [
+    `${site.siteName || "Unknown"}: ${site.status || "unknown"}`
+  ];
+  if (site.length) {
+    parts.push(`${site.length} chars`);
+  }
+  if (site.error) {
+    parts.push(site.error);
+  }
+  parts.push(buildInlinePreview(site.content || "", 100));
+  return `- ${parts.join(" | ")}`;
+}
+
+function getSiteDisplayPriority(site) {
+  return site && site.status && site.status !== "ok" ? 0 : 1;
+}
+
+function sortSitesForDisplay(sites) {
+  return [...sites].sort((left, right) => {
+    const priorityDiff = getSiteDisplayPriority(left) - getSiteDisplayPriority(right);
+    if (priorityDiff !== 0) return priorityDiff;
+    return String(left?.siteName || "").localeCompare(String(right?.siteName || ""));
+  });
 }
 
 export function buildFailureMessage(params) {
@@ -126,8 +249,7 @@ export function formatRunnerPayload(payload, options) {
   const result = payload.result && typeof payload.result === "object" ? payload.result : null;
   const results = Array.isArray(result?.results) ? result.results : [];
   const header = [
-    `AI Compare 搜索结果：${query}`,
-    ...(payload.triggerUrl ? [`Trigger URL: ${payload.triggerUrl}`] : [])
+    `AI Compare 搜索结果：${query}`
   ];
 
   if (results.length === 0) {
@@ -135,12 +257,22 @@ export function formatRunnerPayload(payload, options) {
   }
 
   const normalizedResults = results.map((site) => normalizeSiteForDisplay(site));
-  const siteBlocks = normalizedResults.map((site) => formatSiteBlock(site, maxChars));
-  const failures = normalizedResults
+  const displayResults = sortSitesForDisplay(normalizedResults);
+  const overview = displayResults.length > 0
+    ? [
+        "站点概览：",
+        ...displayResults.map((site) => formatSiteOverview(site))
+      ].join("\n")
+    : "";
+  const siteBlocks = displayResults.map((site) => formatSiteBlock(site, maxChars));
+  const failures = displayResults
     .filter((site) => site.status && site.status !== "ok")
     .map((site) => `${site.siteName}: ${site.status}${site.error ? ` (${site.error})` : ""}`);
 
   const parts = [header.join("\n")];
+  if (overview) {
+    parts.push(overview);
+  }
   if (siteBlocks.length > 0) {
     parts.push(siteBlocks.join("\n\n"));
   }
@@ -152,4 +284,3 @@ export function formatRunnerPayload(payload, options) {
   }
   return parts.join("\n\n");
 }
-

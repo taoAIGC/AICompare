@@ -480,8 +480,23 @@
   "noSitesSelected": {
     "message": "少なくとも 1 つのサイトを選択してください"
   },
+  "homepageSearchFailed": {
+    "message": "検索を開始できませんでした。もう一度お試しください。"
+  },
   "automationNotice": {
     "message": "Web サイトが更新されると、自動問い合わせ機能が動作しなくなる場合があります。ご不便をおかけして申し訳ありません。動作しなくなった場合は、更新のためにご連絡ください。"
+  },
+  "iframeStatusNetworkLoading": {
+    "message": "ネットワークを読み込み中..."
+  },
+  "iframeStatusPageLoading": {
+    "message": "ページを読み込み中..."
+  },
+  "iframeStatusPageLoaded": {
+    "message": "ページの読み込みが完了しました"
+  },
+  "iframeStatusPreparingScript": {
+    "message": "スクリプトを実行する準備をしています..."
   },
   "injectProgressTitleRunning": {
     "message": "スクリプトを実行中..."
@@ -949,58 +964,58 @@
     "message": "Stripe Price ID が設定されていません。stripe-payment.js で設定してください。"
   },
   "sidebarPrimaryAriaLabel": {
-    "message": "Primary navigation"
+    "message": "メインナビゲーション"
   },
   "openHomepageLabel": {
-    "message": "Go to homepage"
+    "message": "ホームページへ移動"
   },
   "contactLink": {
-    "message": "Contact Me"
+    "message": "お問い合わせ"
   },
   "coffeeButtonAlt": {
-    "message": "Buy me a coffee"
+    "message": "コーヒーをごちそうする"
   },
   "syncOpeningGoogleSignIn": {
-    "message": "Opening Google sign-in..."
+    "message": "Google サインインを開いています..."
   },
   "syncSyncingFromCloud": {
-    "message": "Syncing from cloud..."
+    "message": "クラウドから同期中..."
   },
   "clearHistoryButton": {
-    "message": "Clear History"
+    "message": "履歴を消去"
   },
   "searchHistoryPlaceholder": {
-    "message": "Search by query ..."
+    "message": "クエリで検索..."
   },
   "noHistoryRecord": {
-    "message": "No history record"
+    "message": "履歴はありません"
   },
   "noResultsFound": {
-    "message": "No results found"
+    "message": "結果が見つかりません"
   },
   "tryDifferentKeywords": {
-    "message": "Try different keywords"
+    "message": "別のキーワードをお試しください"
   },
   "clearHistoryConfirm": {
-    "message": "Are you sure you want to clear all history records?"
+    "message": "すべての履歴を消去してもよろしいですか？"
   },
   "deleteHistoryConfirm": {
-    "message": "Are you sure you want to delete this history record?"
+    "message": "この履歴を削除してもよろしいですか？"
   },
   "clearFavoritesButton": {
-    "message": "Clear All Favorites"
+    "message": "お気に入りをすべて消去"
   },
   "searchFavoritesPlaceholder": {
-    "message": "Search by query ..."
+    "message": "クエリで検索..."
   },
   "noFavoriteRecord": {
-    "message": "No favorite record"
+    "message": "お気に入りはありません"
   },
   "clearFavoritesConfirm": {
-    "message": "Are you sure you want to clear all favorite records?"
+    "message": "お気に入りをすべて消去してもよろしいですか？"
   },
   "manageFavoriteItem": {
-    "message": "Manage favorite"
+    "message": "お気に入りを管理"
   },
   "contactWechatLabel": {
     "message": "WeChat"
@@ -1009,103 +1024,103 @@
     "message": "GitHub"
   },
   "contactEmailLabel": {
-    "message": "Email"
+    "message": "メール"
   },
   "contactEmpty": {
-    "message": "No contact information has been configured in appConfig.json yet."
+    "message": "appConfig.json にはまだ連絡先情報が設定されていません。"
   },
   "contactLoadFailed": {
-    "message": "Failed to load contact information. Please check appConfig.json."
+    "message": "連絡先情報を読み込めませんでした。appConfig.json を確認してください。"
   },
   "selectAISites": {
-    "message": "AI sites"
+    "message": "AI サイト"
   },
   "favoriteAllSites": {
-    "message": "Save this conversation to favorites"
+    "message": "これらのチャットをお気に入りに保存"
   },
   "editPromptTemplate": {
-    "message": "Edit prompt templates"
+    "message": "プロンプトテンプレートを編集"
   },
   "siteTypeTabsAriaLabel": {
-    "message": "Site types"
+    "message": "サイトの種類"
   },
   "pinGuideImageAlt": {
-    "message": "Pin guide"
+    "message": "固定ガイド"
   },
   "saveIconAlt": {
-    "message": "Save"
+    "message": "保存"
   },
   "downloadIconTitle": {
-    "message": "Download"
+    "message": "ダウンロード"
   },
   "homepageTypeInformation": {
-    "message": "Information"
+    "message": "情報"
   },
   "homepageTypeImage": {
-    "message": "Image Generation"
+    "message": "画像生成"
   },
   "homepageTypeVideo": {
-    "message": "Video"
+    "message": "動画"
   },
   "homepageTypeAudio": {
-    "message": "Audio"
+    "message": "音声"
   },
   "homepageTypeAgents": {
-    "message": "Agents"
+    "message": "エージェント"
   },
   "homepageTypeTranslate": {
-    "message": "Translation"
+    "message": "翻訳"
   },
   "homepageTypePpt": {
     "message": "PPT"
   },
   "homepageTypeOther": {
-    "message": "Other"
+    "message": "その他"
   },
   "siteListEmpty": {
-    "message": "No sites in this type yet"
+    "message": "この種類のサイトはまだありません"
   },
   "siteListLoadFailed": {
-    "message": "Failed to load site configuration. Please refresh and try again."
+    "message": "サイト設定を読み込めませんでした。更新してもう一度お試しください。"
   },
   "iframePageTitle": {
     "message": "AI Compare"
   },
   "refreshConfigChecking": {
-    "message": "Checking for updates..."
+    "message": "更新を確認中..."
   },
   "refreshConfigUpdated": {
-    "message": "Configuration has been updated to the latest version."
+    "message": "設定が最新バージョンに更新されました。"
   },
   "refreshConfigLatest": {
-    "message": "Already up to date."
+    "message": "すでに最新です。"
   },
   "refreshConfigUnavailable": {
-    "message": "Update check is unavailable."
+    "message": "更新確認は利用できません。"
   },
   "refreshConfigFailed": {
-    "message": "Failed to check for updates."
+    "message": "更新を確認できませんでした。"
   },
   "updateInfoShowFailed": {
-    "message": "Failed to show update details."
+    "message": "更新の詳細を表示できませんでした。"
   },
   "templateNamePlaceholder": {
-    "message": "For example: Risk analysis"
+    "message": "例: リスク分析"
   },
   "templateQueryPlaceholder": {
-    "message": "For example: Root cause of the failure:「{query}」"
+    "message": "例: 障害の根本原因:「{query}」"
   },
   "templateTypeLabel": {
-    "message": "Template type"
+    "message": "テンプレートの種類"
   },
   "templateTypeHelp": {
-    "message": "Homepage and iframe suggestions are filtered by the current site type."
+    "message": "ホームページと iframe の候補は、現在のサイト種別に応じて絞り込まれます。"
   },
   "defaultTemplateTranslateToChineseName": {
-    "message": "Translate to Chinese"
+    "message": "中国語に翻訳"
   },
   "defaultTemplateTranslateToChineseQuery": {
-    "message": "Translate the following content into Chinese:\n\n{query}"
+    "message": "次の内容を中国語に翻訳してください。\n\n{query}"
   },
   "syncProviderWebdav": {
     "message": "WebDAV"
@@ -1114,7 +1129,7 @@
     "message": "URL"
   },
   "syncTogglePasswordAriaLabel": {
-    "message": "Show or hide password"
+    "message": "パスワードを表示または非表示にする"
   },
   "membershipPlanFree": {
     "message": "Free"
@@ -1123,99 +1138,99 @@
     "message": "Pro"
   },
   "floatButtonShortcutMac": {
-    "message": "⌘+M Open side panel"
+    "message": "⌘+M サイドパネルを開く"
   },
   "floatButtonShortcutWindows": {
-    "message": "Ctrl+M Open side panel"
+    "message": "Ctrl+M サイドパネルを開く"
   },
   "floatButtonCloseDialogTitle": {
-    "message": "Hide floating button"
+    "message": "フローティングボタンを非表示"
   },
   "floatButtonCloseTemporary": {
-    "message": "Hide for this visit"
+    "message": "今回の訪問中は非表示"
   },
   "floatButtonCloseCurrentSite": {
-    "message": "Disable on this website"
+    "message": "このウェブサイトで無効にする"
   },
   "floatButtonClosePermanent": {
-    "message": "Disable permanently"
+    "message": "完全に無効にする"
   },
   "floatButtonEnableInSettingsHint": {
-    "message": "(Can be re-enabled in Settings)"
+    "message": "（設定で再度有効にできます）"
   },
   "timelineToggleTitle": {
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "開発中"
+    "message": "チャットのタイムライン"
   },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
   "timelineCopyButton": {
-    "message": "Copy"
+    "message": "コピー"
   },
   "timelineDetectedSites": {
-    "message": "Detected in $1 sub-pages"
+    "message": "サブページ $1 件で検出"
   },
   "timelineNoIframes": {
-    "message": "No sub-pages are available right now"
+    "message": "現在利用できるサブページはありません"
   },
   "timelineScrollNotFound": {
-    "message": "This prompt was not found in the current sub-pages"
+    "message": "このプロンプトは現在のサブページでは見つかりませんでした"
   },
   "timelineScrollSuccess": {
-    "message": "Located this prompt in $1/$2 sub-pages"
+    "message": "このプロンプトは $1/$2 件のサブページで見つかりました"
   },
   "timelineCopySuccess": {
-    "message": "Copied responses for this prompt ($1/$2)"
+    "message": "このプロンプトの回答をコピーしました ($1/$2)"
   },
   "timelineCopyFailed": {
-    "message": "Copy failed. Please try again."
+    "message": "コピーに失敗しました。もう一度お試しください。"
   },
   "timelineSiteNotReady": {
-    "message": "Page is not ready"
+    "message": "ページの準備ができていません"
   },
   "timelineActionTimeout": {
-    "message": "Request timed out"
+    "message": "リクエストがタイムアウトしました"
   },
   "openclawModeTitle": {
-    "message": "OpenClaw mode"
+    "message": "OpenClaw モード"
   },
   "openclawStatusRunning": {
-    "message": "Running"
+    "message": "実行中"
   },
   "openclawStatusCompleted": {
-    "message": "Completed"
+    "message": "完了"
   },
   "openclawStatusTimedOut": {
-    "message": "Timed out"
+    "message": "タイムアウト"
   },
   "openclawStatusError": {
-    "message": "Error"
+    "message": "エラー"
   },
   "openclawDebugQuery": {
-    "message": "Query"
+    "message": "問い合わせ"
   },
   "openclawDebugCallback": {
-    "message": "Callback"
+    "message": "コールバック"
   },
   "openclawDebugProgress": {
-    "message": "Progress"
+    "message": "進捗"
   },
   "openclawDebugLastCallback": {
-    "message": "Last callback"
+    "message": "前回のコールバック"
   },
   "openclawDebugCallbackWaiting": {
-    "message": "Waiting"
+    "message": "待機中"
   },
   "openclawDebugCallbackSent": {
-    "message": "Sent"
+    "message": "送信済み"
   },
   "openclawDebugCallbackFailed": {
-    "message": "Send failed"
+    "message": "送信に失敗しました"
   },
   "confirmButton": {
-    "message": "Confirm"
+    "message": "確認"
   }
 }

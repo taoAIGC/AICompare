@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.aicompare.site-checks</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/zsh</string>
+      <string>-lc</string>
+      <string>cd "__REPO_ROOT__" &amp;&amp; "__NODE_BIN__" debug/run-live-site-checks.js --group core --write-report debug/reports/core-latest.json &gt;&gt; debug/reports/launchd.log 2&gt;&amp;1</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__REPO_ROOT__</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+      <key>Hour</key>
+      <integer>9</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__REPO_ROOT__/debug/reports/launchd.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__REPO_ROOT__/debug/reports/launchd.stderr.log</string>
+  </dict>
+</plist>

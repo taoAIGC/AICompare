@@ -47,12 +47,17 @@ const timelineMergeSnapshots = typeof TimelineUtils.mergeTimelinePromptSnapshots
 const timelineState = {
   entries: [],
   isOpen: false,
+  isPinned: false,
+  openMode: null,
   activeTimelineId: null,
   promptSnapshotsBySite: new Map(),
   favoriteEntryKeys: new Set()
 };
 let timelineSyncTimer = null;
 let timelineMessageBridgeInitialized = false;
+const TIMELINE_EDGE_TRIGGER_ID = 'timelineEdgeTrigger';
+const TIMELINE_HIDE_DELAY_MS = 180;
+let timelineHideTimer = null;
 const AI_COMPARE_RUNTIME_EVENT = 'aicompare:site-runtime-update';
 
 function ensureAiCompareSiteRuntimeStore() {
@@ -263,6 +268,10 @@ async function getReviewUrlFromConfig() {
 
 async function startRatingPromptBatch(totalIframes) {
   if (!totalIframes || totalIframes <= 0) return null;
+  const currentParams = new URLSearchParams(window.location.search);
+  if (currentParams.get('openclaw') === '1' || currentParams.get('source') === 'openclaw') {
+    return null;
+  }
   try {
     const { ratingPromptShown = false, ratingPromptFinalDismissed = false } = await chrome.storage.local.get([
       'ratingPromptShown',
@@ -445,6 +454,8 @@ async function incrementRatingSuccessIfDeferred() {
 }
 
 async function handleRatingPromptAfterSuccess() {
+  const currentParams = new URLSearchParams(window.location.search);
+  if (currentParams.get('openclaw') === '1' || currentParams.get('source') === 'openclaw') return;
   try {
     const data = await chrome.storage.local.get([
       'ratingPromptShown',
@@ -497,7 +508,8 @@ function getTimelineElements() {
     panel: document.getElementById('timelinePanel'),
     list: document.getElementById('timelineList'),
     toggleButton: document.getElementById('timelineToggleButton'),
-    closeButton: document.getElementById('timelineCloseButton')
+    closeButton: document.getElementById('timelineCloseButton'),
+    edgeTrigger: document.getElementById(TIMELINE_EDGE_TRIGGER_ID)
   };
 }
 
@@ -515,16 +527,85 @@ function formatTimelineDateLabel(timestamp) {
   }
 }
 
-function setTimelinePanelOpen(isOpen) {
-  timelineState.isOpen = Boolean(isOpen);
-  const { panel, toggleButton } = getTimelineElements();
+function syncTimelinePanelUi() {
+  const { panel, toggleButton, edgeTrigger } = getTimelineElements();
   if (panel) {
     panel.hidden = !timelineState.isOpen;
+    panel.classList.toggle('is-edge-preview', timelineState.isOpen && timelineState.openMode === 'hover');
   }
   if (toggleButton) {
     toggleButton.classList.toggle('is-active', timelineState.isOpen);
     toggleButton.setAttribute('aria-expanded', timelineState.isOpen ? 'true' : 'false');
   }
+  if (edgeTrigger) {
+    edgeTrigger.classList.toggle('is-active', timelineState.isOpen);
+    edgeTrigger.setAttribute('aria-expanded', timelineState.isOpen ? 'true' : 'false');
+  }
+}
+
+function setTimelinePanelOpen(isOpen, options = {}) {
+  timelineState.isOpen = Boolean(isOpen);
+  timelineState.isPinned = timelineState.isOpen ? options.pinned === true : false;
+  timelineState.openMode = timelineState.isOpen ? (options.mode || (timelineState.isPinned ? 'toggle' : 'hover')) : null;
+  syncTimelinePanelUi();
+}
+
+function clearTimelineHideTimer() {
+  if (timelineHideTimer !== null) {
+    clearTimeout(timelineHideTimer);
+    timelineHideTimer = null;
+  }
+}
+
+function refreshTimelinePanelOnOpen() {
+  refreshTimelineFavoriteState().catch((error) => {
+    console.warn('刷新时间线收藏状态失败:', error);
+  });
+  scheduleTimelineSync(0);
+}
+
+function openTimelinePanel(options = {}) {
+  clearTimelineHideTimer();
+  const shouldRefresh = !timelineState.isOpen || options.refresh === true;
+  setTimelinePanelOpen(true, {
+    pinned: options.pinned === true,
+    mode: options.mode || (options.pinned ? 'toggle' : 'hover')
+  });
+  if (shouldRefresh) {
+    refreshTimelinePanelOnOpen();
+  }
+}
+
+function closeTimelinePanel() {
+  clearTimelineHideTimer();
+  setTimelinePanelOpen(false);
+}
+
+function scheduleHideTimelinePanel() {
+  if (timelineState.isPinned) return;
+  clearTimelineHideTimer();
+  timelineHideTimer = setTimeout(() => {
+    if (!timelineState.isPinned) {
+      closeTimelinePanel();
+    }
+  }, TIMELINE_HIDE_DELAY_MS);
+}
+
+function ensureTimelineEdgeTrigger() {
+  let trigger = document.getElementById(TIMELINE_EDGE_TRIGGER_ID);
+  if (!trigger) {
+    trigger = document.createElement('button');
+    trigger.id = TIMELINE_EDGE_TRIGGER_ID;
+    trigger.type = 'button';
+    trigger.className = 'timeline-edge-trigger';
+    document.body.appendChild(trigger);
+  }
+
+  const label = t('timelineToggleTitle', '聊天时间线');
+  trigger.title = label;
+  trigger.setAttribute('aria-label', label);
+  trigger.setAttribute('aria-expanded', timelineState.isOpen ? 'true' : 'false');
+  return trigger;
 }
 
 function buildTimelineFavoriteKey(entry) {
@@ -779,6 +860,19 @@ function renderTimeline() {
           </svg>
         </button>
         <button
+          class="timeline-item-export"
+          type="button"
+          title="${escapeHtml(t('exportResponsesTitle', '导出 AI 回答'))}"
+          aria-label="${escapeHtml(t('exportResponsesTitle', '导出 AI 回答'))}"
+        >
+          <img
+            class="timeline-item-export-icon"
+            src="../icons/download.svg"
+            alt=""
+            aria-hidden="true"
+          >
+        </button>
+        <button
           class="timeline-item-favorite"
           type="button"
           title="${escapeHtml(isFavorited ? t('iframeUnfavoriteTitle', '取消收藏') : t('iframeFavoriteTitle', '收藏'))}"
@@ -803,6 +897,11 @@ function renderTimeline() {
     item.querySelector('.timeline-item-copy')?.addEventListener('click', async (event) => {
       event.stopPropagation();
       await copyTimelineEntryResponses(entry);
+    });
+
+    item.querySelector('.timeline-item-export')?.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await exportTimelineEntryResponses(entry);
     });
 
     item.querySelector('.timeline-item-favorite')?.addEventListener('click', async (event) => {
@@ -849,51 +948,100 @@ function upsertTimelineEntry(entry, options = {}) {
 }
 
 function initializeTimelinePanel() {
+  const edgeTrigger = ensureTimelineEdgeTrigger();
   const { toggleButton, closeButton, panel } = getTimelineElements();
   initializeTimelineMessageBridge();
-  if (!toggleButton || toggleButton.dataset.bound === '1') {
-    renderTimeline();
-    return;
+  setTimelinePanelOpen(false);
+
+  if (toggleButton && toggleButton.dataset.bound !== '1') {
+    toggleButton.dataset.bound = '1';
+    toggleButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const shouldPinOpen = !(timelineState.isOpen && timelineState.isPinned);
+      if (shouldPinOpen) {
+        openTimelinePanel({
+          pinned: true,
+          mode: 'toggle',
+          refresh: true
+        });
+      } else {
+        closeTimelinePanel();
+      }
+      trackEvent('iframe_timeline_toggle', {
+        is_open: timelineState.isOpen
+      });
+    });
   }
 
-  setTimelinePanelOpen(false);
-  toggleButton.dataset.bound = '1';
-  toggleButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    setTimelinePanelOpen(!timelineState.isOpen);
-    if (timelineState.isOpen) {
-      refreshTimelineFavoriteState().catch((error) => {
-        console.warn('刷新时间线收藏状态失败:', error);
-      });
-      scheduleTimelineSync(0);
-    }
-    trackEvent('iframe_timeline_toggle', {
-      is_open: timelineState.isOpen
+  if (closeButton && closeButton.dataset.bound !== '1') {
+    closeButton.dataset.bound = '1';
+    closeButton.addEventListener('click', () => {
+      closeTimelinePanel();
     });
-  });
+  }
 
-  closeButton?.addEventListener('click', () => {
-    setTimelinePanelOpen(false);
-  });
+  if (panel && panel.dataset.bound !== '1') {
+    panel.dataset.bound = '1';
+    panel.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+    panel.addEventListener('mouseenter', () => {
+      clearTimelineHideTimer();
+    });
+    panel.addEventListener('mouseleave', () => {
+      scheduleHideTimelinePanel();
+    });
+  }
 
-  panel?.addEventListener('click', (event) => {
-    event.stopPropagation();
-  });
+  if (edgeTrigger && edgeTrigger.dataset.bound !== '1') {
+    edgeTrigger.addEventListener('mouseenter', () => {
+      if (timelineState.isPinned) {
+        clearTimelineHideTimer();
+        return;
+      }
+      openTimelinePanel({
+        pinned: false,
+        mode: 'hover'
+      });
+    });
+    edgeTrigger.addEventListener('mouseleave', () => {
+      scheduleHideTimelinePanel();
+    });
+    edgeTrigger.addEventListener('focus', () => {
+      if (timelineState.isPinned) {
+        clearTimelineHideTimer();
+        return;
+      }
+      openTimelinePanel({
+        pinned: false,
+        mode: 'hover'
+      });
+    });
+    edgeTrigger.addEventListener('blur', () => {
+      scheduleHideTimelinePanel();
+    });
+    edgeTrigger.dataset.bound = '1';
+  }
 
   document.addEventListener('click', (event) => {
     if (!timelineState.isOpen) return;
     const { panel: timelinePanel, toggleButton: timelineToggleButton } = getTimelineElements();
     if (!timelinePanel || timelinePanel.hidden) return;
-    if (timelinePanel.contains(event.target) || timelineToggleButton?.contains(event.target)) return;
-    setTimelinePanelOpen(false);
+    if (
+      timelinePanel.contains(event.target) ||
+      timelineToggleButton?.contains(event.target) ||
+      edgeTrigger?.contains(event.target)
+    ) return;
+    closeTimelinePanel();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && timelineState.isOpen) {
-      setTimelinePanelOpen(false);
+      closeTimelinePanel();
     }
   });
 
+  syncTimelinePanelUi();
   renderTimeline();
 }
 
@@ -1170,11 +1318,15 @@ async function copyTextToClipboard(text) {
   textarea.remove();
 }
 
-async function copyTimelineEntryResponses(entry) {
+async function collectTimelineEntryResponses(entry) {
   const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
   if (!iframes.length) {
-    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
-    return;
+    return {
+      responses: [],
+      copyText: '',
+      successCount: 0,
+      totalCount: 0
+    };
   }
 
   const responses = await Promise.all(iframes.map((iframe) => {
@@ -1190,29 +1342,91 @@ async function copyTimelineEntryResponses(entry) {
     );
   }));
 
-  const copyText = timelineBuildCopyText(entry, responses.map((item) => ({
+  const normalizedResponses = responses.map((item) => ({
     siteName: item?.siteName || '',
     answers: Array.isArray(item?.answers) ? item.answers : [],
     content: item?.content || '',
     error: item?.error || ''
-  })));
+  }));
+
+  const successCount = responses.filter((item) => {
+    if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
+      return true;
+    }
+    return String(item?.content || '').trim().length > 0;
+  }).length;
+
+  return {
+    responses: normalizedResponses,
+    copyText: timelineBuildCopyText(entry, normalizedResponses),
+    successCount,
+    totalCount: responses.length
+  };
+}
+
+function sanitizeTimelineExportFileName(entry) {
+  const queryPart = String(entry?.query || '')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, 48)
+    .trim();
+  const fallbackDate = new Date().toISOString().slice(0, 10);
+  const datePart = String(entry?.dateLabel || fallbackDate)
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .slice(0, 24);
+  const safeQuery = queryPart || 'chat-timeline';
+  const safeDate = datePart || fallbackDate;
+  return `${safeQuery}-${safeDate}.md`;
+}
+
+function downloadTimelineMarkdownFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function copyTimelineEntryResponses(entry) {
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
+  if (!iframes.length) {
+    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    return;
+  }
+
+  const { copyText, successCount, totalCount } = await collectTimelineEntryResponses(entry);
 
   try {
     await copyTextToClipboard(copyText);
-    const successCount = responses.filter((item) => {
-      if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
-        return true;
-      }
-      return String(item?.content || '').trim().length > 0;
-    }).length;
-    showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [String(successCount), String(responses.length)]));
+    showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [String(successCount), String(totalCount)]));
     trackEvent('iframe_timeline_copy', {
-      sites_total: responses.length,
+      sites_total: totalCount,
       sites_with_content: successCount
     });
   } catch (error) {
     console.error('复制时间线回答失败:', error);
     showToast(t('timelineCopyFailed', '复制失败，请重试'));
+  }
+}
+
+async function exportTimelineEntryResponses(entry) {
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
+  if (!iframes.length) {
+    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    return;
+  }
+
+  try {
+    const { copyText } = await collectTimelineEntryResponses(entry);
+    downloadTimelineMarkdownFile(copyText, sanitizeTimelineExportFileName(entry));
+  } catch (error) {
+    console.error('导出时间线回答失败:', error);
   }
 }
 
@@ -3830,6 +4044,21 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
         if (siteName && url && historyId) {
           console.log(`📝 收到 ${siteName} 的 URL 更新: ${url}，历史记录 ID: ${historyId}`);
           updateHistorySiteUrl(siteName, url, historyId);
+          const runtimeEntry = window.aiCompareSiteRuntime?.getSnapshot
+            ? window.aiCompareSiteRuntime.getSnapshot([siteName]).bySite?.[siteName]
+            : null;
+          if (window.aiCompareSiteRuntime?.updateSiteRuntime) {
+            window.aiCompareSiteRuntime.updateSiteRuntime({
+              siteName,
+              searchId: runtimeEntry?.searchId || '',
+              query: runtimeEntry?.query || (iframeContainer?.dataset.lastQuery || '').trim(),
+              phase: runtimeEntry?.phase || 'submitted',
+              content: runtimeEntry?.content || '',
+              url,
+              error: runtimeEntry?.error || '',
+              final: runtimeEntry?.final === true
+            }, iframe);
+          }
         } else {
           console.warn('历史记录 URL 更新消息缺少必要参数:', { siteName, url, historyId });
         }
@@ -3905,9 +4134,6 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
     <span class="iframe-header-status" aria-live="polite">${t('iframeStatusNetworkLoading', '网络加载中...')}</span>
     <div class="iframe-controls">
       <button class="refresh-page-btn"></button>
-      <button class="iframe-favorite-btn iframe-favorite-btn-header">
-        <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg">
-      </button>
       <button class="open-page-btn"></button>
       <button class="close-btn"></button>
     </div>
@@ -3930,12 +4156,8 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   container.appendChild(iframeContainer);
   scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
   
-  // 添加悬浮收藏按钮（新创建的 iframe 默认未收藏）
-  addFavoriteButtonToIframe(iframeContainer, siteName, false);
-  
   // 添加按钮事件处理
   const refreshPageBtn = header.querySelector('.refresh-page-btn');
-  const headerFavoriteBtn = header.querySelector('.iframe-favorite-btn-header');
   const openPageBtn = header.querySelector('.open-page-btn');
   const closeBtn = header.querySelector('.close-btn');
   
@@ -3943,15 +4165,6 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
   openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
   closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
-  headerFavoriteBtn.dataset.siteName = siteName;
-  updateFavoriteButtonState(headerFavoriteBtn, false);
-  
-  // 头部收藏按钮点击事件
-  headerFavoriteBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    await toggleIframeFavorite(siteName, headerFavoriteBtn);
-  });
 
   // 刷新按钮点击事件
   refreshPageBtn.onclick = (e) => {
@@ -4645,9 +4858,56 @@ function clearIframeSearchInput() {
   searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function setIframeSearchInputValue(query) {
+  const searchInput = document.getElementById('searchInput');
+  if (!searchInput) return false;
+
+  searchInput.value = String(query || '').trim();
+  searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+  searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+}
+
 function resetIframePageToDefaultType() {
   const targetUrl = `${chrome.runtime.getURL('iframe/iframe.html')}?type=information`;
   window.location.href = targetUrl;
+}
+
+async function runIframeSearchQuery(query, options = {}) {
+  const normalizedQuery = String(query || '').trim();
+  const trigger = options.trigger || 'button';
+  const clearInputOnSuccess = options.clearInputOnSuccess !== false;
+  const armCollapseOnSuccess = options.armCollapseOnSuccess !== false;
+
+  if (!normalizedQuery) return false;
+
+  if (options.syncInputValue !== false) {
+    setIframeSearchInputValue(normalizedQuery);
+  }
+
+  const openedSites = getOpenedSites();
+  trackEvent('iframe_search_submit', {
+    query_length: normalizedQuery.length,
+    selected_sites_count: openedSites.length,
+    selected_sites: openedSites,
+    trigger
+  });
+
+  shanshuo();
+  const sent = await iframeFresh(normalizedQuery, {
+    persistHistory: options.persistHistory,
+    historyId: options.historyId,
+    preferCurrentPage: options.preferCurrentPage
+  });
+  if (sent) {
+    if (clearInputOnSuccess) {
+      clearIframeSearchInput();
+    }
+    if (armCollapseOnSuccess) {
+      armSearchBarAutoCollapse();
+    }
+  }
+  return sent;
 }
 
 async function submitIframeSearch(trigger) {
@@ -4655,21 +4915,12 @@ async function submitIframeSearch(trigger) {
   const query = searchInput ? searchInput.value.trim() : '';
   if (!query) return false;
 
-  const openedSites = getOpenedSites();
-  trackEvent('iframe_search_submit', {
-    query_length: query.length,
-    selected_sites_count: openedSites.length,
-    selected_sites: openedSites,
-    trigger
+  return runIframeSearchQuery(query, {
+    trigger,
+    syncInputValue: false,
+    clearInputOnSuccess: true,
+    armCollapseOnSuccess: true
   });
-
-  shanshuo();
-  const sent = await iframeFresh(query);
-  if (sent) {
-    clearIframeSearchInput();
-    armSearchBarAutoCollapse();
-  }
-  return sent;
 }
 
 async function runQueryAcrossOpenIframes(query, options = {}) {
@@ -4818,11 +5069,34 @@ async function restoreFavoriteHistoryContext(restoreContext) {
   scheduleRestoreScrollToPrompt(restoreContext);
 }
 
-async function iframeFresh(query) {
+async function iframeFresh(query, options = {}) {
       return runQueryAcrossOpenIframes(query, {
-        persistHistory: true
+        persistHistory: options.persistHistory !== false,
+        historyId: options.historyId || null,
+        preferCurrentPage: options.preferCurrentPage === true
       });
 }
+
+window.aiCompareSearch = {
+  submitQuery(query, options = {}) {
+    return runIframeSearchQuery(query, {
+      trigger: options.trigger || 'api',
+      syncInputValue: options.syncInputValue !== false,
+      clearInputOnSuccess: options.clearInputOnSuccess !== false,
+      armCollapseOnSuccess: options.armCollapseOnSuccess !== false,
+      persistHistory: options.persistHistory,
+      historyId: options.historyId || null,
+      preferCurrentPage: options.preferCurrentPage === true
+    });
+  },
+  setQuery(query) {
+    return setIframeSearchInputValue(query);
+  },
+  getQuery() {
+    return getCurrentQueryText();
+  },
+  runQueryAcrossOpenIframes
+};
 
 
 
@@ -4873,9 +5147,6 @@ async function loadHistoryIframes(sites, restoreContext = null) {
         <span class="iframe-header-status" aria-live="polite">${t('iframeStatusNetworkLoading', '网络加载中...')}</span>
         <div class="iframe-controls">
           <button class="refresh-page-btn"></button>
-          <button class="iframe-favorite-btn iframe-favorite-btn-header">
-            <img class="iframe-favorite-icon" src="../icons/star_unsaved.svg">
-          </button>
           <button class="open-page-btn"></button>
           <button class="close-btn"></button>
         </div>
@@ -4883,7 +5154,6 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       
       // 添加按钮事件
       const refreshPageBtn = header.querySelector('.refresh-page-btn');
-      const headerFavoriteBtn = header.querySelector('.iframe-favorite-btn-header');
       const openPageBtn = header.querySelector('.open-page-btn');
       const closeBtn = header.querySelector('.close-btn');
       
@@ -4891,21 +5161,10 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
       openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
       closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
-      
-      // 初始化头部收藏按钮状态
-      headerFavoriteBtn.dataset.siteName = siteName;
-      updateFavoriteButtonState(headerFavoriteBtn, site.isFavorite);
 
       iframe.addEventListener('load', () => {
         setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
         scheduleTimelineSync(900);
-      });
-
-      // 头部收藏按钮点击事件
-      headerFavoriteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        await toggleIframeFavorite(siteName, headerFavoriteBtn);
       });
 
       // 刷新按钮点击事件
@@ -4949,9 +5208,6 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       container.appendChild(iframeContainer);
       scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
       
-      // 添加悬浮收藏按钮
-      const isFavorite = site.isFavorite || false;
-      addFavoriteButtonToIframe(iframeContainer, siteName, isFavorite);
     });
     
     // 仅当当前记录下所有子 iframe 都被收藏时，顶部「收藏全部」图标才显示为已收藏
@@ -6369,7 +6625,6 @@ function initializeExportResponses() {
   const exportButton = document.getElementById('exportResponsesButton');
   
   if (!exportButton) {
-    console.warn('导出回答按钮未找到');
     return;
   }
   

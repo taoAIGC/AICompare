@@ -480,8 +480,23 @@
   "noSitesSelected": {
     "message": "Selecciona al menos un sitio"
   },
+  "homepageSearchFailed": {
+    "message": "No se pudo iniciar la búsqueda. Inténtalo de nuevo."
+  },
   "automationNotice": {
     "message": "Si un sitio web se actualiza, su funcion de consulta automatica puede dejar de funcionar. Disculpa las molestias. Si notas que ha dejado de funcionar, contactanos para actualizarla."
+  },
+  "iframeStatusNetworkLoading": {
+    "message": "Cargando por red..."
+  },
+  "iframeStatusPageLoading": {
+    "message": "Cargando página..."
+  },
+  "iframeStatusPageLoaded": {
+    "message": "Página cargada"
+  },
+  "iframeStatusPreparingScript": {
+    "message": "Preparando la ejecución del script..."
   },
   "injectProgressTitleRunning": {
     "message": "Ejecutando script..."
@@ -949,58 +964,58 @@
     "message": "El Stripe Price ID no esta configurado. Configuralo en stripe-payment.js."
   },
   "sidebarPrimaryAriaLabel": {
-    "message": "Primary navigation"
+    "message": "Navegación principal"
   },
   "openHomepageLabel": {
-    "message": "Go to homepage"
+    "message": "Ir a la página principal"
   },
   "contactLink": {
-    "message": "Contact Me"
+    "message": "Contáctame"
   },
   "coffeeButtonAlt": {
-    "message": "Buy me a coffee"
+    "message": "Invítame un café"
   },
   "syncOpeningGoogleSignIn": {
-    "message": "Opening Google sign-in..."
+    "message": "Abriendo el inicio de sesión de Google..."
   },
   "syncSyncingFromCloud": {
-    "message": "Syncing from cloud..."
+    "message": "Sincronizando desde la nube..."
   },
   "clearHistoryButton": {
-    "message": "Clear History"
+    "message": "Borrar historial"
   },
   "searchHistoryPlaceholder": {
-    "message": "Search by query ..."
+    "message": "Buscar por consulta..."
   },
   "noHistoryRecord": {
-    "message": "No history record"
+    "message": "No hay historial"
   },
   "noResultsFound": {
-    "message": "No results found"
+    "message": "No se encontraron resultados"
   },
   "tryDifferentKeywords": {
-    "message": "Try different keywords"
+    "message": "Prueba con otras palabras clave"
   },
   "clearHistoryConfirm": {
-    "message": "Are you sure you want to clear all history records?"
+    "message": "¿Seguro que quieres borrar todo el historial?"
   },
   "deleteHistoryConfirm": {
-    "message": "Are you sure you want to delete this history record?"
+    "message": "¿Seguro que quieres eliminar este registro del historial?"
   },
   "clearFavoritesButton": {
-    "message": "Clear All Favorites"
+    "message": "Borrar todos los favoritos"
   },
   "searchFavoritesPlaceholder": {
-    "message": "Search by query ..."
+    "message": "Buscar por consulta..."
   },
   "noFavoriteRecord": {
-    "message": "No favorite record"
+    "message": "No hay favoritos"
   },
   "clearFavoritesConfirm": {
-    "message": "Are you sure you want to clear all favorite records?"
+    "message": "¿Seguro que quieres borrar todos los favoritos?"
   },
   "manageFavoriteItem": {
-    "message": "Manage favorite"
+    "message": "Gestionar favorito"
   },
   "contactWechatLabel": {
     "message": "WeChat"
@@ -1009,103 +1024,103 @@
     "message": "GitHub"
   },
   "contactEmailLabel": {
-    "message": "Email"
+    "message": "Correo electrónico"
   },
   "contactEmpty": {
-    "message": "No contact information has been configured in appConfig.json yet."
+    "message": "Todavía no se ha configurado información de contacto en appConfig.json."
   },
   "contactLoadFailed": {
-    "message": "Failed to load contact information. Please check appConfig.json."
+    "message": "No se pudo cargar la información de contacto. Revisa appConfig.json."
   },
   "selectAISites": {
-    "message": "AI sites"
+    "message": "Sitios de IA"
   },
   "favoriteAllSites": {
-    "message": "Save this conversation to favorites"
+    "message": "Guardar estos chats en favoritos"
   },
   "editPromptTemplate": {
-    "message": "Edit prompt templates"
+    "message": "Editar plantillas de prompt"
   },
   "siteTypeTabsAriaLabel": {
-    "message": "Site types"
+    "message": "Tipos de sitios"
   },
   "pinGuideImageAlt": {
-    "message": "Pin guide"
+    "message": "Guía para fijar"
   },
   "saveIconAlt": {
-    "message": "Save"
+    "message": "Guardar"
   },
   "downloadIconTitle": {
-    "message": "Download"
+    "message": "Descargar"
   },
   "homepageTypeInformation": {
-    "message": "Information"
+    "message": "Información"
   },
   "homepageTypeImage": {
-    "message": "Image Generation"
+    "message": "Generación de imágenes"
   },
   "homepageTypeVideo": {
-    "message": "Video"
+    "message": "Vídeo"
   },
   "homepageTypeAudio": {
     "message": "Audio"
   },
   "homepageTypeAgents": {
-    "message": "Agents"
+    "message": "Agentes"
   },
   "homepageTypeTranslate": {
-    "message": "Translation"
+    "message": "Traducción"
   },
   "homepageTypePpt": {
     "message": "PPT"
   },
   "homepageTypeOther": {
-    "message": "Other"
+    "message": "Otros"
   },
   "siteListEmpty": {
-    "message": "No sites in this type yet"
+    "message": "Aún no hay sitios de este tipo"
   },
   "siteListLoadFailed": {
-    "message": "Failed to load site configuration. Please refresh and try again."
+    "message": "No se pudo cargar la configuración de sitios. Actualiza la página y vuelve a intentarlo."
   },
   "iframePageTitle": {
     "message": "AI Compare"
   },
   "refreshConfigChecking": {
-    "message": "Checking for updates..."
+    "message": "Buscando actualizaciones..."
   },
   "refreshConfigUpdated": {
-    "message": "Configuration has been updated to the latest version."
+    "message": "La configuración se ha actualizado a la última versión."
   },
   "refreshConfigLatest": {
-    "message": "Already up to date."
+    "message": "Ya está actualizado."
   },
   "refreshConfigUnavailable": {
-    "message": "Update check is unavailable."
+    "message": "La comprobación de actualizaciones no está disponible."
   },
   "refreshConfigFailed": {
-    "message": "Failed to check for updates."
+    "message": "No se pudieron comprobar las actualizaciones."
   },
   "updateInfoShowFailed": {
-    "message": "Failed to show update details."
+    "message": "No se pudieron mostrar los detalles de la actualización."
   },
   "templateNamePlaceholder": {
-    "message": "For example: Risk analysis"
+    "message": "Por ejemplo: Análisis de riesgos"
   },
   "templateQueryPlaceholder": {
-    "message": "For example: Root cause of the failure:「{query}」"
+    "message": "Por ejemplo: Causa raíz del fallo:「{query}」"
   },
   "templateTypeLabel": {
-    "message": "Template type"
+    "message": "Tipo de plantilla"
   },
   "templateTypeHelp": {
-    "message": "Homepage and iframe suggestions are filtered by the current site type."
+    "message": "Las sugerencias de la página principal y del iframe se filtran según el tipo de sitio actual."
   },
   "defaultTemplateTranslateToChineseName": {
-    "message": "Translate to Chinese"
+    "message": "Traducir al chino"
   },
   "defaultTemplateTranslateToChineseQuery": {
-    "message": "Translate the following content into Chinese:\n\n{query}"
+    "message": "Traduce el siguiente contenido al chino:\n\n{query}"
   },
   "syncProviderWebdav": {
     "message": "WebDAV"
@@ -1114,7 +1129,7 @@
     "message": "URL"
   },
   "syncTogglePasswordAriaLabel": {
-    "message": "Show or hide password"
+    "message": "Mostrar u ocultar contraseña"
   },
   "membershipPlanFree": {
     "message": "Free"
@@ -1123,99 +1138,99 @@
     "message": "Pro"
   },
   "floatButtonShortcutMac": {
-    "message": "⌘+M Open side panel"
+    "message": "⌘+M Abrir panel lateral"
   },
   "floatButtonShortcutWindows": {
-    "message": "Ctrl+M Open side panel"
+    "message": "Ctrl+M Abrir panel lateral"
   },
   "floatButtonCloseDialogTitle": {
-    "message": "Hide floating button"
+    "message": "Ocultar botón flotante"
   },
   "floatButtonCloseTemporary": {
-    "message": "Hide for this visit"
+    "message": "Ocultar durante esta visita"
   },
   "floatButtonCloseCurrentSite": {
-    "message": "Disable on this website"
+    "message": "Desactivar en este sitio web"
   },
   "floatButtonClosePermanent": {
-    "message": "Disable permanently"
+    "message": "Desactivar permanentemente"
   },
   "floatButtonEnableInSettingsHint": {
-    "message": "(Can be re-enabled in Settings)"
+    "message": "(Se puede volver a activar en Configuración)"
   },
   "timelineToggleTitle": {
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "En desarrollo"
+    "message": "Línea de tiempo del chat"
   },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
   "timelineCopyButton": {
-    "message": "Copy"
+    "message": "Copiar"
   },
   "timelineDetectedSites": {
-    "message": "Detected in $1 sub-pages"
+    "message": "Detectado en $1 subpáginas"
   },
   "timelineNoIframes": {
-    "message": "No sub-pages are available right now"
+    "message": "Ahora mismo no hay subpáginas disponibles"
   },
   "timelineScrollNotFound": {
-    "message": "This prompt was not found in the current sub-pages"
+    "message": "No se encontró este prompt en las subpáginas actuales"
   },
   "timelineScrollSuccess": {
-    "message": "Located this prompt in $1/$2 sub-pages"
+    "message": "Este prompt se encontró en $1/$2 subpáginas"
   },
   "timelineCopySuccess": {
-    "message": "Copied responses for this prompt ($1/$2)"
+    "message": "Se copiaron las respuestas de este prompt ($1/$2)"
   },
   "timelineCopyFailed": {
-    "message": "Copy failed. Please try again."
+    "message": "La copia falló. Inténtalo de nuevo."
   },
   "timelineSiteNotReady": {
-    "message": "Page is not ready"
+    "message": "La página no está lista"
   },
   "timelineActionTimeout": {
-    "message": "Request timed out"
+    "message": "La solicitud agotó el tiempo de espera"
   },
   "openclawModeTitle": {
-    "message": "OpenClaw mode"
+    "message": "Modo OpenClaw"
   },
   "openclawStatusRunning": {
-    "message": "Running"
+    "message": "En ejecución"
   },
   "openclawStatusCompleted": {
-    "message": "Completed"
+    "message": "Completado"
   },
   "openclawStatusTimedOut": {
-    "message": "Timed out"
+    "message": "Tiempo agotado"
   },
   "openclawStatusError": {
     "message": "Error"
   },
   "openclawDebugQuery": {
-    "message": "Query"
+    "message": "Consulta"
   },
   "openclawDebugCallback": {
-    "message": "Callback"
+    "message": "Retorno"
   },
   "openclawDebugProgress": {
-    "message": "Progress"
+    "message": "Progreso"
   },
   "openclawDebugLastCallback": {
-    "message": "Last callback"
+    "message": "Último retorno"
   },
   "openclawDebugCallbackWaiting": {
-    "message": "Waiting"
+    "message": "En espera"
   },
   "openclawDebugCallbackSent": {
-    "message": "Sent"
+    "message": "Enviado"
   },
   "openclawDebugCallbackFailed": {
-    "message": "Send failed"
+    "message": "Error al enviar"
   },
   "confirmButton": {
-    "message": "Confirm"
+    "message": "Confirmar"
   }
 }

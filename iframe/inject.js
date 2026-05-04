@@ -53,10 +53,11 @@ let __timelinePromptPushTimer = null;
 let __timelinePromptObserver = null;
 let __timelinePromptLastSignature = null;
 let __activeSearchMonitor = null;
+let __lastStableSearchRuntime = null;
 
 const ACTIVE_SEARCH_MONITOR_INTERVAL_MS = 1500;
 const ACTIVE_SEARCH_MONITOR_SETTLE_MS = 400;
-const ACTIVE_SEARCH_MONITOR_TIMEOUT_MS = 120000;
+const ACTIVE_SEARCH_MONITOR_TIMEOUT_MS = 30000;
 const ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS = 2;
 
 function t(key, fallback = '', substitutions = undefined) {
@@ -258,35 +259,90 @@ function stopActiveSearchMonitor(reason = 'replaced') {
 }
 
 async function resolveCurrentPageUrl(preferredSiteName = null) {
-  let pageUrl = window.location.href;
   try {
     const siteHandler = await getSiteHandler(window.location.hostname, preferredSiteName || __aiCompareHistoryContext.siteName || null);
-    const urlExtractor = siteHandler?.contentExtractor?.urlExtractor;
-    if (urlExtractor?.alternateLinkSelector) {
-      const link = document.querySelector(urlExtractor.alternateLinkSelector);
-      const href = link?.getAttribute('href');
-      if (href) {
-        const nextUrl = new URL(href, window.location.href);
-        const removeParams = Array.isArray(urlExtractor.removeParams) ? urlExtractor.removeParams : [];
-        removeParams.forEach((param) => nextUrl.searchParams.delete(param));
-        return nextUrl.toString();
-      }
-    }
-
-    const alternateLinks = document.querySelectorAll('link[rel="alternate"]');
-    for (const link of alternateLinks) {
-      const href = link.getAttribute('href');
-      if (href && href.includes('chatgpt.com/c/')) {
-        const url = new URL(href);
-        url.searchParams.delete('locale');
-        pageUrl = url.toString();
-        break;
-      }
-    }
+    return window.AICompareExtraction?.resolveDocumentUrl?.(document, window.location.href, siteHandler || {}) || window.location.href;
   } catch (error) {
     console.log('⚠️ URL清理失败，使用原始URL:', error);
   }
-  return pageUrl;
+  return window.location.href;
+}
+
+function urlMatchesHistoryFeature(url, urlFeature) {
+  if (!urlFeature) return true;
+  try {
+    return new URL(url).pathname.includes(urlFeature);
+  } catch (_) {
+    return false;
+  }
+}
+
+function toPatternArray(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [value.trim()];
+  }
+  return [];
+}
+
+function matchesRuntimePatterns(text, patternConfigs) {
+  const normalizedText = String(text || '');
+  return toPatternArray(patternConfigs).some((patternConfig) => {
+    try {
+      return new RegExp(patternConfig, 'i').test(normalizedText);
+    } catch (_) {
+      return false;
+    }
+  });
+}
+
+function getSiteRuntimeConfig(siteHandler) {
+  return siteHandler?.openclawRuntime || {};
+}
+
+function looksLikePendingShellFromConfig(content, siteHandler) {
+  const runtimeConfig = getSiteRuntimeConfig(siteHandler);
+  const pendingShellConfig = runtimeConfig.pendingShell || {};
+  const normalized = cleanExtractedText(String(content || ''));
+  if (!normalized) return false;
+
+  const shellSignals = toPatternArray(pendingShellConfig.signals);
+  if (shellSignals.length === 0) return false;
+
+  const matchedSignals = shellSignals.filter((signal) => normalized.includes(signal));
+  const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+  const likelyTitleList = lines.length >= (Number(pendingShellConfig.likelyTitleListMinLines) || 8)
+    && lines.every((line) => line.length <= (Number(pendingShellConfig.likelyTitleListMaxLineLength) || 24));
+
+  return matchedSignals.length >= (Number(pendingShellConfig.minMatches) || 3)
+    || (matchedSignals.length >= (Number(pendingShellConfig.fallbackMinMatches) || 2) && likelyTitleList);
+}
+
+function looksLikeConfiguredPendingContent(content, siteHandler) {
+  const runtimeConfig = getSiteRuntimeConfig(siteHandler);
+  const normalized = cleanExtractedText(String(content || ''));
+  if (!normalized) return false;
+
+  return matchesRuntimePatterns(normalized, runtimeConfig.pendingContentPatterns);
+}
+
+function shouldTreatAsPendingSiteContent(siteHandler, content, url) {
+  if (looksLikeConfiguredPendingContent(content, siteHandler)) {
+    return true;
+  }
+
+  if (looksLikePendingShellFromConfig(content, siteHandler)) {
+    return true;
+  }
+
+  const runtimeConfig = getSiteRuntimeConfig(siteHandler);
+  if (runtimeConfig.requireHistoryUrlFeature === true && url && !urlMatchesHistoryFeature(url, siteHandler?.historyHandler?.urlFeature || '')) {
+    return true;
+  }
+
+  return false;
 }
 
 function buildSiteRuntimeSignature(payload) {
@@ -299,6 +355,104 @@ function buildSiteRuntimeSignature(payload) {
     url: String(payload?.url || '').trim(),
     content: buildSearchContentComparable(payload?.content || '')
   });
+}
+
+function normalizeStableSearchRuntimePayload(payload = {}) {
+  const siteName = String(payload.siteName || '').trim();
+  if (!siteName) return null;
+
+  return {
+    siteName,
+    query: String(payload.query || '').trim(),
+    searchId: String(payload.searchId || '').trim(),
+    phase: String(payload.phase || '').trim(),
+    content: typeof payload.content === 'string' ? payload.content : '',
+    url: String(payload.url || '').trim(),
+    error: String(payload.error || '').trim(),
+    final: payload.final === true,
+    updatedAt: payload.updatedAt || new Date().toISOString(),
+    stableRounds: Number.isFinite(payload.stableRounds) ? payload.stableRounds : 0
+  };
+}
+
+function rememberStableSearchRuntime(payload) {
+  const normalized = normalizeStableSearchRuntimePayload(payload);
+  if (!normalized) return null;
+  __lastStableSearchRuntime = normalized;
+  return normalized;
+}
+
+function getActiveSearchMonitorSnapshot(siteName = null) {
+  if (!__activeSearchMonitor || __activeSearchMonitor.stopped) {
+    return null;
+  }
+
+  const normalizedSiteName = String(siteName || '').trim();
+  if (normalizedSiteName && normalizedSiteName !== String(__activeSearchMonitor.siteName || '').trim()) {
+    return null;
+  }
+
+  return normalizeStableSearchRuntimePayload({
+    siteName: __activeSearchMonitor.siteName,
+    query: __activeSearchMonitor.query,
+    searchId: __activeSearchMonitor.searchId,
+    phase: __activeSearchMonitor.phase,
+    content: __activeSearchMonitor.lastContent,
+    url: __activeSearchMonitor.lastUrl,
+    error: '',
+    final: __activeSearchMonitor.phase === 'ready',
+    updatedAt: new Date().toISOString(),
+    stableRounds: __activeSearchMonitor.stableRounds || 0
+  });
+}
+
+function getLastStableSearchRuntime(siteName = null) {
+  if (!__lastStableSearchRuntime) return null;
+  const normalizedSiteName = String(siteName || '').trim();
+  if (normalizedSiteName && normalizedSiteName !== String(__lastStableSearchRuntime.siteName || '').trim()) {
+    return null;
+  }
+  return {
+    ...__lastStableSearchRuntime
+  };
+}
+
+function isReusableSearchRuntimePayload(payload, siteName = null) {
+  if (!payload) return false;
+
+  const normalizedSiteName = String(siteName || '').trim();
+  if (normalizedSiteName && normalizedSiteName !== String(payload.siteName || '').trim()) {
+    return false;
+  }
+
+  if (!String(payload.content || '').trim() && !String(payload.url || '').trim()) {
+    return false;
+  }
+
+  if (String(payload.phase || '').trim() === 'error') {
+    return false;
+  }
+
+  if (shouldTreatAsPendingSiteContent(payload.siteName, payload.content || '', payload.url || '')) {
+    return false;
+  }
+
+  const stableRounds = Number(payload.stableRounds) || 0;
+  return payload.final === true || stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS;
+}
+
+function getPreferredExtractContentResult(siteName = null) {
+  const activeSnapshot = getActiveSearchMonitorSnapshot(siteName);
+  if (isReusableSearchRuntimePayload(activeSnapshot, siteName)) {
+    return activeSnapshot;
+  }
+
+  const stableSnapshot = getLastStableSearchRuntime(siteName);
+  if (isReusableSearchRuntimePayload(stableSnapshot, siteName)) {
+    return stableSnapshot;
+  }
+
+  return null;
 }
 
 async function postMonitorRuntimeUpdate(monitor, patch = {}) {
@@ -339,6 +493,9 @@ async function postMonitorRuntimeUpdate(monitor, patch = {}) {
     return;
   }
   monitor.lastPostedSignature = signature;
+  if (payload.final || payload.phase === 'ready') {
+    rememberStableSearchRuntime(payload);
+  }
   postSiteRuntimeUpdate(payload);
 }
 
@@ -377,8 +534,20 @@ async function runActiveSearchMonitorCheck(monitor) {
     const content = await extractPageContent(monitor.siteName);
     const normalizedContent = buildSearchContentComparable(content);
     const url = await resolveCurrentPageUrl(monitor.siteName);
+    const siteHandler = await getSiteHandler(window.location.hostname, monitor.siteName);
+    const requiredUrlFeature = String(siteHandler?.historyHandler?.urlFeature || '').trim();
+    const hasRequiredUrl = urlMatchesHistoryFeature(url, requiredUrlFeature);
 
     if (!normalizedContent) {
+      await postMonitorRuntimeUpdate(monitor, {
+        phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
+        content: '',
+        url
+      });
+      return;
+    }
+
+    if (shouldTreatAsPendingSiteContent(siteHandler, content, url)) {
       await postMonitorRuntimeUpdate(monitor, {
         phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
         content: '',
@@ -415,7 +584,7 @@ async function runActiveSearchMonitorCheck(monitor) {
     }
 
     monitor.stableRounds = (monitor.stableRounds || 0) + 1;
-    const isReady = monitor.stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS;
+    const isReady = monitor.stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS && hasRequiredUrl;
     await postMonitorRuntimeUpdate(monitor, {
       phase: isReady ? 'ready' : 'streaming',
       content,
@@ -433,6 +602,7 @@ async function runActiveSearchMonitorCheck(monitor) {
 
 function startActiveSearchMonitor(siteName, query, searchId) {
   stopActiveSearchMonitor('new-search');
+  __lastStableSearchRuntime = null;
 
   const monitor = {
     siteName,
@@ -2412,29 +2582,17 @@ window.addEventListener('message', async function(event) {
     // 处理获取当前 URL 消息
     if (event.data.type === 'GET_CURRENT_URL') {
         console.log('🎯 收到获取当前 URL 请求:', event.data);
-        
-        // 提取当前页面的URL（去掉locale等参数）
-        let pageUrl = window.location.href;
-        try {
-            // 查找alternate链接获取清洁的URL
-            const alternateLinks = document.querySelectorAll('link[rel="alternate"]');
-            for (const link of alternateLinks) {
-                const href = link.getAttribute('href');
-                if (href && href.includes('chatgpt.com/c/')) {
-                    const url = new URL(href);
-                    url.searchParams.delete('locale');
-                    pageUrl = url.toString();
-                    console.log(`🔗 从alternate标签获取清洁URL: ${pageUrl}`);
-                    break;
-                }
-            }
-        } catch (error) {
-            console.log('⚠️ URL清理失败，使用原始URL:', error);
+
+        const preferredResult = getPreferredExtractContentResult(event.data.siteName || null);
+        let pageUrl = preferredResult?.url || '';
+        if (!pageUrl) {
+            pageUrl = await resolveCurrentPageUrl(event.data.siteName || null);
         }
         
         // 发送当前 URL 回父窗口
         window.parent.postMessage({
             type: 'GET_CURRENT_URL_RESPONSE',
+            requestId: event.data.requestId || null,
             siteName: event.data.siteName,
             url: pageUrl
         }, '*');
@@ -2518,13 +2676,14 @@ window.addEventListener('message', async function(event) {
         // 使用 async/await 处理异步内容提取
         (async () => {
             try {
-                // 提取页面内容
-                const content = await extractPageContent(event.data.siteName || null);
-                const pageUrl = await resolveCurrentPageUrl(event.data.siteName || null);
+                const preferredResult = getPreferredExtractContentResult(event.data.siteName || null);
+                const content = preferredResult?.content || await extractPageContent(event.data.siteName || null);
+                const pageUrl = preferredResult?.url || await resolveCurrentPageUrl(event.data.siteName || null);
                 
                 // 发送提取结果回主窗口
                 window.parent.postMessage({
                     type: 'EXTRACTED_CONTENT',
+                    requestId: event.data.requestId || null,
                     siteName: event.data.siteName,
                     content: content,
                     url: pageUrl
@@ -2537,6 +2696,7 @@ window.addEventListener('message', async function(event) {
                 // 发送错误结果
                 window.parent.postMessage({
                     type: 'EXTRACTED_CONTENT',
+                    requestId: event.data.requestId || null,
                     siteName: event.data.siteName,
                     content: `内容提取失败: ${error.message}`
                 }, '*');
@@ -2789,19 +2949,21 @@ async function extractPageContent(preferredSiteName = null) {
         let content = '';
         
         if (siteHandler && siteHandler.contentExtractor) {
-            if (siteHandler.name === 'ChatGPT') {
-                const visibleResponse = extractChatGPTVisibleResponse();
+            if (siteHandler.contentExtractor?.latestVisibleResponse) {
+                const visibleResponse = extractLatestVisibleResponseByConfig(siteHandler);
                 if (visibleResponse) {
-                    console.log('✅ 使用 ChatGPT 可见回答提取成功');
+                    console.log('✅ 使用配置化可见回答提取成功');
                     return visibleResponse;
                 }
+                console.log('⏳ 配置化可见回答容器尚无稳定可导出回答，跳过泛化提取以避免把用户提问误当回答');
+                return '';
             }
 
             // 使用配置文件中的提取规则
             console.log('✅ 使用配置文件中的内容提取规则');
             content = await extractWithConfig(siteHandler.contentExtractor, siteHandler.name);
-            if (siteHandler.name === 'ChatGPT' && looksLikeChatGPTPageShell(content)) {
-                console.log('⏳ ChatGPT 仍处于页面壳或流式加载阶段，继续等待真实回答');
+            if (looksLikeConfiguredPageShell(siteHandler, content)) {
+                console.log('⏳ 站点仍处于页面壳或流式加载阶段，继续等待真实回答');
                 return '';
             }
         } else {
@@ -3169,29 +3331,22 @@ async function extractPromptResponseForTimeline(siteHandler, query, occurrenceIn
     };
 }
 
-function extractChatGPTVisibleResponse() {
-    const assistantMessages = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+function extractLatestVisibleResponseByConfig(siteHandler) {
+    const visibleResponseConfig = siteHandler?.contentExtractor?.latestVisibleResponse || {};
+    const assistantMessages = Array.from(document.querySelectorAll(visibleResponseConfig.messageSelector || ''));
     const lastAssistantMessage = assistantMessages.pop();
     if (!lastAssistantMessage) {
         return '';
     }
 
-    const ignoredTextPatterns = [
-        /^ChatGPT said:?$/i,
-        /^You said:?$/i,
-        /^●$/i,
-        /^Free offer$/i,
-        /^Open sidebar$/i,
-        /^Show moreShow less$/i,
-        /^ChatGPT can make mistakes\./i,
-        /^Cookie Preferences\.?$/i,
-        /^Copy response$/i,
-        /^Good response$/i,
-        /^Bad response$/i,
-        /^Share$/i,
-        /^Switch model$/i,
-        /^More actions$/i
-    ];
+    const ignoredTextPatterns = toPatternArray(visibleResponseConfig.ignoredTextPatterns).map((pattern) => {
+        try {
+            return new RegExp(pattern, 'i');
+        } catch (_) {
+            return null;
+        }
+    }).filter(Boolean);
+    const ignoredAncestorSelectors = toPatternArray(visibleResponseConfig.ignoredAncestorSelectors);
 
     const seen = new Set();
     const lines = [];
@@ -3206,7 +3361,13 @@ function extractChatGPTVisibleResponse() {
         if (parent && text) {
             const rect = parent.getBoundingClientRect();
             const hidden = rect.width === 0 || rect.height === 0;
-            const insideIgnoredUi = parent.closest('script, style, noscript, svg, button, nav, footer, form');
+            const insideIgnoredUi = ignoredAncestorSelectors.some((selector) => {
+                try {
+                    return Boolean(parent.closest(selector));
+                } catch (_) {
+                    return false;
+                }
+            });
             const looksLikeUiText = ignoredTextPatterns.some((pattern) => pattern.test(text));
             const looksLikeScript = /window\.__|__reactRouter|requestAnimationFrame|\bimport\(\"\/cdn\//.test(text);
 
@@ -3222,7 +3383,7 @@ function extractChatGPTVisibleResponse() {
     return cleanExtractedText(lines.join('\n\n'));
 }
 
-function looksLikeChatGPTPageShell(content) {
+function looksLikeConfiguredPageShell(siteHandler, content) {
     if (!content) return true;
 
     const normalized = String(content).trim();
@@ -3230,17 +3391,14 @@ function looksLikeChatGPTPageShell(content) {
         return true;
     }
 
-    const shellSignals = [
-        'window.__reactRouterRouteModules',
-        'window.__reactRouterContext',
-        'window.__REACT_QUERY_CACHE__',
-        'window.__oai_',
-        'import("/cdn/assets/entry.client',
-        'Skip to content',
-        'ChatGPT can make mistakes. Check important info.'
-    ];
+    return matchesRuntimePatterns(normalized, siteHandler?.contentExtractor?.latestVisibleResponse?.shellPatterns || []);
+}
 
-    return shellSignals.some(signal => normalized.includes(signal));
+async function extractMessagesWithContainerForInject(contentExtractor, siteName) {
+    const result = await window.AICompareExtraction?.extractMessagesWithContainer?.(document, { contentExtractor }, siteName, {
+        waitTimeoutMs: 1000
+    });
+    return result?.content || '';
 }
 
 // 使用配置文件提取内容（优化版）
@@ -3253,40 +3411,15 @@ async function extractWithConfig(contentExtractor, siteName) {
     let extractionMethod = '';
     
     try {
-        // 1. 首先尝试主要选择器
-        if (contentExtractor.contentSelectors && contentExtractor.contentSelectors.length > 0) {
-            console.log('🔍 尝试主要选择器...');
-            content = await extractWithSelectorsOptimized(
-                contentExtractor.contentSelectors, 
-                siteName, 
-                contentExtractor.excludeSelectors,
-                contentExtractor.messageContainer,
-                contentExtractor.exportLatestOnly ? 1 : null
-            );
-            
-            if (content.trim() && !content.includes('无法自动提取')) {
-                extractionMethod = '主要选择器';
-                console.log('✅ 主要选择器提取成功');
-                return content;
-            }
-        }
-        
-        // 2. 如果主要选择器失败，尝试备用选择器
-        if (contentExtractor.fallbackSelectors && contentExtractor.fallbackSelectors.length > 0) {
-            console.log('🔍 主要选择器失败，尝试备用选择器...');
-            content = await extractWithSelectorsOptimized(
-                contentExtractor.fallbackSelectors, 
-                siteName, 
-                contentExtractor.excludeSelectors,
-                contentExtractor.messageContainer,
-                contentExtractor.exportLatestOnly ? 1 : null
-            );
-            
-            if (content.trim() && !content.includes('无法自动提取')) {
-                extractionMethod = '备用选择器';
-                console.log('✅ 备用选择器提取成功');
-                return content;
-            }
+        const sharedResult = await window.AICompareExtraction?.extractDocumentContent?.(document, siteName, { contentExtractor }, {
+            includePageTextFallback: false,
+            waitTimeoutMs: 1000
+        });
+
+        if (sharedResult?.content && !sharedResult.content.includes('无法自动提取')) {
+            extractionMethod = sharedResult.extractionMethod || 'shared-core';
+            console.log(`✅ 共享提取内核成功: ${extractionMethod}`);
+            return sharedResult.content;
         }
         
         // 3. 尝试智能内容检测
@@ -3954,11 +4087,6 @@ async function initDirectUserPromptButtons() {
   if (__userPromptButtonsInit) return;
   __userPromptButtonsInit = true;
 
-  if (isRunningInExtensionIframe()) {
-    console.log('DirectUserPrompt: in extension iframe, skip');
-    return;
-  }
-
   const isAI = await checkAISite();
   if (!isAI) {
     console.log('DirectUserPrompt: not AI site, skip');
@@ -4005,6 +4133,7 @@ async function initDirectUserPromptButtons() {
   }
 
   console.log('DirectUserPrompt: init', { siteName, config });
+  const inExtensionIframe = isRunningInExtensionIframe();
   let userPromptLabel = chrome?.i18n?.getMessage?.('compareButtonLabel') || '多AI 对比';
   const labelZh = chrome?.i18n?.getMessage?.('compareButtonLabelZh') || '多AI 对比';
   const labelEn = chrome?.i18n?.getMessage?.('compareButtonLabelEn') || 'Multi-AI Compare';
@@ -4026,6 +4155,66 @@ async function initDirectUserPromptButtons() {
   const wrapToMessageNode = new WeakMap();
   const messageNodeToWrap = new WeakMap();
   const messageKeyToWrap = new Map();
+  const ensureUserPromptButtonStyles = (() => {
+    let injected = false;
+    return () => {
+      if (injected) return;
+      injected = true;
+      const style = document.createElement('style');
+      style.id = 'ai-compare-userprompt-btn-styles';
+      style.textContent = `
+        .ai-compare-userprompt-btn-wrap {
+          position: fixed;
+          transform: translateY(-50%);
+          z-index: 9999;
+          pointer-events: auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.15s ease;
+        }
+        html:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension,
+        body:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .ai-compare-userprompt-action-btn {
+          border: 1px solid #dfdfdf;
+          background: #fff;
+          color: #333;
+          border-radius: 8px;
+          width: 34px;
+          height: 34px;
+          padding: 0;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          box-shadow: none;
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .ai-compare-userprompt-action-btn:hover {
+          border-color: #111;
+        }
+        .ai-compare-userprompt-action-btn:focus,
+        .ai-compare-userprompt-action-btn:focus-visible {
+          outline: none;
+          border-color: #111;
+        }
+        .ai-compare-userprompt-action-icon {
+          width: 16px;
+          height: 16px;
+          display: block;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(style);
+    };
+  })();
   const messageNodeSelector = config.messageNodeSelector || '[data-testid="message-block-container"], [data-message-id], [data-turn-id]';
   const requireMessageNode = !!config.requireMessageNode;
   let skipMessageIdRegex = null;
@@ -4104,8 +4293,8 @@ async function initDirectUserPromptButtons() {
       if (rect.top < -50 || rect.bottom > vh + 50) {
         btnWrap.style.visibility = 'hidden';
       } else {
-        const btnWidth = Math.max(btnWrap.offsetWidth || 0, 120);
-        const btnHeight = Math.max(btnWrap.offsetHeight || 0, 28);
+        const btnWidth = Math.max(btnWrap.offsetWidth || 0, 34);
+        const btnHeight = Math.max(btnWrap.offsetHeight || 0, 34);
         const gap = 10;
         const maxX = Math.max(8, vw - btnWidth - 8);
         const rightX = rect.right + gap;
@@ -4158,57 +4347,57 @@ async function initDirectUserPromptButtons() {
     if (keyedWrap && document.contains(keyedWrap)) return;
     if (keyedWrap) messageKeyToWrap.delete(messageKey);
 
+    ensureUserPromptButtonStyles();
     const btnWrap = document.createElement('span');
     btnWrap.className = 'ai-compare-userprompt-btn-wrap';
+    if (inExtensionIframe) {
+      btnWrap.classList.add('ai-compare-userprompt-btn-wrap-extension');
+    }
     btnWrap.dataset.messageKey = messageKey;
-    btnWrap.style.cssText = 'position:fixed;transform:translateY(-50%);z-index:9999;pointer-events:auto;display:inline-flex;align-items:center;align-self:center;flex-shrink:0;height:fit-content;';
     wrapToContainer.set(btnWrap, container);
     containerToWrap.set(container, btnWrap);
     wrapToMessageNode.set(btnWrap, messageNode);
     messageNodeToWrap.set(messageNode, btnWrap);
     messageKeyToWrap.set(messageKey, btnWrap);
 
-    const btn = document.createElement('button');
-    btn.className = 'ai-compare-userprompt-btn';
-    const icon = document.createElement('img');
-    icon.src = chrome.runtime.getURL('icons/columns-2.svg');
-    icon.alt = '';
-    icon.style.cssText = 'width:12px;height:12px;margin-right:4px;display:inline-block;vertical-align:middle;';
-    btn.appendChild(icon);
-    const label = document.createElement('span');
-    label.textContent = userPromptLabel;
-    btn.appendChild(label);
-    btn.style.cssText = 'display:inline-flex;align-items:center;padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#333;white-space:nowrap;line-height:1;height:fit-content;';
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const url = buildCompareUrl(text);
-      if (url) {
-        window.open(url, '_blank');
-      }
-    });
-    btnWrap.appendChild(btn);
+    if (!inExtensionIframe) {
+      const btn = document.createElement('button');
+      btn.className = 'ai-compare-userprompt-btn ai-compare-userprompt-action-btn';
+      btn.title = userPromptLabel;
+      btn.setAttribute('aria-label', userPromptLabel);
+      const icon = document.createElement('img');
+      icon.className = 'ai-compare-userprompt-action-icon';
+      icon.src = chrome.runtime.getURL('icons/columns-2.svg');
+      icon.alt = '';
+      btn.appendChild(icon);
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = buildCompareUrl(text);
+        if (url) {
+          window.open(url, '_blank');
+        }
+      });
+      btnWrap.appendChild(btn);
+    }
 
     // 收藏按钮
     const favBtn = document.createElement('button');
-    favBtn.className = 'ai-compare-userprompt-fav-btn';
-    favBtn.style.cssText = 'display:inline-flex;align-items:center;padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#333;white-space:nowrap;line-height:1;height:fit-content;margin-left:4px;transition:border-color 0.15s ease;';
+    favBtn.className = 'ai-compare-userprompt-fav-btn ai-compare-userprompt-action-btn';
     const favIcon = document.createElement('img');
+    favIcon.className = 'ai-compare-userprompt-action-icon';
     favIcon.alt = '';
-    favIcon.style.cssText = 'width:12px;height:12px;margin-right:4px;display:inline-block;vertical-align:middle;';
-    const favLabel = document.createElement('span');
 
     const updateFavBtnState = (isFavd) => {
       favIcon.src = chrome.runtime.getURL(isFavd ? 'icons/star_saved.svg' : 'icons/star_unsaved.svg');
-      favLabel.textContent = isFavd ? t('favButtonSaved', 'Saved') : t('saveButton', 'Save');
-      favBtn.title = isFavd ? t('removeFromFavorites', '取消收藏') : t('addToFavorites', '收藏');
-      favBtn.style.borderColor = isFavd ? '#f5a623' : '#ccc';
+      const title = isFavd ? t('removeFromFavorites', '取消收藏') : t('addToFavorites', '收藏');
+      favBtn.title = title;
+      favBtn.setAttribute('aria-label', title);
       favBtn.dataset.favorited = isFavd ? '1' : '0';
     };
 
     updateFavBtnState(false);
     favBtn.appendChild(favIcon);
-    favBtn.appendChild(favLabel);
     checkPromptIsFavorited(text, siteName).then(state => updateFavBtnState(state));
 
     favBtn.addEventListener('click', async (e) => {
@@ -4408,121 +4597,17 @@ async function extractWithSelectorsOptimized(selectors, siteName, excludeSelecto
 
 // 等待内容加载完成
 async function waitForContentLoad(element, timeout = 1000) {
-    return new Promise((resolve) => {
-        const startTime = Date.now();
-        
-        const checkContent = () => {
-            const hasContent = element.textContent && element.textContent.trim().length > 10;
-            const isTimeout = Date.now() - startTime > timeout;
-            
-            if (hasContent || isTimeout) {
-                resolve();
-            } else {
-                setTimeout(checkContent, 50);
-            }
-        };
-        
-        checkContent();
-    });
+    return window.AICompareExtraction?.waitForContentLoad?.(element, timeout);
 }
 
 // 提取元素内容（优化版）
 async function extractElementContent(element) {
-    let text = '';
-    
-    try {
-        // 方法1: 检查是否是 markdown 容器，直接使用 innerHTML
-        if (element.classList.contains('markdown') || 
-            element.classList.contains('response-content-markdown') ||
-            element.classList.contains('prose')) {
-            // ChatGPT、GROK 等站点的 markdown 容器，直接使用 innerHTML 然后转换
-            const html = element.innerHTML || '';
-            if (html.trim()) {
-                text = convertHtmlToMarkdown(html);
-            } else {
-                text = element.textContent || element.innerText || '';
-            }
-        } else if (element.dataset.markdown) {
-            // 方法2: 尝试获取 markdown 属性或数据
-            text = element.dataset.markdown;
-        } else if (element.getAttribute('data-markdown')) {
-            text = element.getAttribute('data-markdown');
-        } else {
-            // 方法3: 使用 innerHTML 保留格式，然后转换为 markdown
-            const html = element.innerHTML || '';
-            if (html.trim()) {
-                text = convertHtmlToMarkdown(html);
-            } else {
-                // 方法4: 降级到纯文本
-                text = element.textContent || element.innerText || '';
-            }
-        }
-        
-        // 清理和优化文本
-        text = cleanExtractedText(text);
-        
-    } catch (error) {
-        console.warn('提取元素内容失败:', error);
-        text = element.textContent || element.innerText || '';
-    }
-    
-    return text;
+    return window.AICompareExtraction?.extractElementContent?.(element) || '';
 }
 
 // 清理提取的文本（保留换行，仅压缩行内空白）
 function cleanExtractedText(text) {
-    if (!text) return '';
-    
-    // 保留换行，仅压缩行内空白（不要用 \s+ 替换，否则会丢失换行）
-    text = text.replace(/\r\n/g, '\n');
-    text = text
-        .split('\n')
-        .map(line => line.replace(/[ \t]+/g, ' ').trim())
-        .join('\n');
-    
-    // 折叠过多空行，保留段落
-    text = text.replace(/\n{3,}/g, '\n\n').trim();
-    
-    // 移除常见的无用内容
-    const unwantedPatterns = [
-        /^Loading\.\.\.$/i,
-        /^Please wait\.\.\.$/i,
-        /^Generating\.\.\.$/i,
-        /^Thinking\.\.\.$/i,
-        /^Processing\.\.\.$/i
-    ];
-    
-    for (const pattern of unwantedPatterns) {
-        text = text.replace(pattern, '');
-    }
-
-    const unwantedLinePatterns = [
-        /^window\.__oai_/i,
-        /^requestAnimationFrame\(/i,
-        /^ChatGPT can make mistakes\./i,
-        /^Cookie Preferences\.?$/i,
-        /^Free offer$/i,
-        /^Open sidebar$/i,
-        /^Show moreShow less$/i,
-        /^ChatGPT said:?$/i,
-        /^You said:?$/i
-    ];
-
-    text = text
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => {
-            if (!line) return true;
-            return !unwantedLinePatterns.some(pattern => pattern.test(line));
-        })
-        .join('\n');
-
-    text = text.replace(/(^|\n)#+\s*You said:\s*\n[\s\S]*?(?=\n#+\s*ChatGPT said:|$)/i, '$1');
-    text = text.replace(/^#+\s*ChatGPT said:\s*$/gim, '');
-    text = text.replace(/window\.__oai_[\s\S]*?(?=\n{2,}|$)/gi, '').trim();
-    text = text.replace(/\n{3,}/g, '\n\n').trim();
-    
-    return text.trim();
+    return window.AICompareExtraction?.cleanExtractedText?.(text) || '';
 }
 
 // 智能内容检测

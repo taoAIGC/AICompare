@@ -21,9 +21,6 @@
                     rows="1"
                 ></textarea>
                 <div class="input-actions">
-                    <!-- <button id="favoriteButton" class="favorite-btn" style="display: none;" data-i18n-title="favoriteButton" title="">
-                        <img id="favoriteIcon" src="../icons/star_unsaved.svg" alt="收藏">
-                    </button> -->
                     <!-- 文件上传按钮 -->
                     <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
                         <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
@@ -40,24 +37,6 @@
             <!-- <div id="iconContainer">
                 <img id="toggleIcon" src="../icons/down.svg" alt="Toggle" />
             </div> -->
-            
-            <!-- 导出回答按钮 -->
-            <button id="exportResponsesButton" class="export-responses-btn" data-i18n="exportResponses" data-i18n-title="exportResponsesTitle" title="">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <title data-i18n="downloadIconTitle">Download</title>
-                    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <!-- 托盘 -->
-                        <path d="M4 17h16v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2z"/>
-                        <!-- 箭头 -->
-                        <path d="M12 3v12" />
-                        <path d="M8 9l4 4 4-4" />
-                    </g>
-                </svg>
-            </button>
-
-            <button id="timelineToggleButton" class="timeline-toggle-btn" type="button" data-i18n-title="timelineToggleTitle" data-i18n-aria-label="timelineToggleTitle" title="" aria-label="">
-                <img src="../icons/history.svg" data-i18n-alt="timelineToggleTitle" alt="">
-            </button>
 
             <button id="resetIframePageButton" class="timeline-toggle-btn" type="button" data-i18n-title="resetIframePageTitle" data-i18n-aria-label="resetIframePageTitle" title="" aria-label="">
                 <img src="../icons/refresh-cw.svg" data-i18n-alt="resetIframePageTitle" alt="">
@@ -72,9 +51,6 @@
                 <option value="">深度分析</option>
             </select>
             -->
-            <div class="favorite-icon-container">
-                <img src="../icons/star_unsaved.svg" class="favorite-icon" data-i18n="favoriteAllSites" title="Save All Response to Favorites">
-            </div>
         </div> <!-- 结束 search-bar-right-buttons 容器 -->
     </div>
     <div id="iframes-container">
@@ -85,7 +61,7 @@
     </div>
     <div id="timelinePanel" class="timeline-panel" hidden>
         <div class="timeline-panel-header">
-            <div class="timeline-panel-title" data-i18n="timelinePanelTitle">提问时间线</div>
+            <div class="timeline-panel-title" data-i18n="timelinePanelTitle">Chat timeline</div>
             <button id="timelineCloseButton" class="timeline-close-btn" type="button" data-i18n-title="closeButton" data-i18n-aria-label="closeButton" title="" aria-label="">×</button>
         </div>
         <div id="timelineList" class="timeline-list"></div>
@@ -98,6 +74,7 @@
     <script src="../firebase/firebase-sync.js"></script>
     <script src="../shared/prompt-template-utils.js"></script>
     <script src="../shared/favorite-folder-modal.js"></script>
+    <script src="../shared/extraction-core.js"></script>
     <script src="timeline-utils.js"></script>
     <script type="module" src="iframe.js"></script>
     <script src="export-responses.js"></script>

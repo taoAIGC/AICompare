@@ -118,9 +118,17 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 ### Development / Live verification
 
 - For AI site adapter debugging, the repo includes real-browser live verifier scripts under `debug/`.
+- Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow.
-- Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, and `debug/verify-metaso-live.js`.
+- ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
+- Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, `debug/verify-metaso-live.js`, `debug/verify-ai-studio-live.js`, `debug/verify-yuanbao-live.js`, `debug/verify-qianwen-live.js`, and `debug/verify-qwen-live.js`.
 - `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]`, and submits through the arrow-up send button.
+- Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
+- Static config drift can be checked with `node debug/validate-site-configs.js`.
+- A scheduled real-browser sweep can be run with `node debug/run-live-site-checks.js --group core --write-report`.
+- `--group core` is intended for daily smoke checks on the highest-risk adapters; `--group full` adds the broader verifier set and logic/config probes.
+- The aggregated report includes pass/fail status, soft external failures such as login/rate-limit, and the current coverage gap list for configured sites that still do not have dedicated live verifiers.
+- macOS users can adapt `debug/launchd/com.aicompare.site-checks.plist.template` into `~/Library/LaunchAgents/` to run the core check on a schedule with the real Chrome profile.
 
 ### OpenClaw skill integration
 
@@ -254,9 +262,17 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 ### 开发 / 实时验证
 
 - 仓库在 `debug/` 目录下提供了面向真实浏览器会话的 AI 站点验证脚本，便于排查站点适配问题。
+- 目前 core 端到端验证已覆盖 ChatGPT、Gemini、DeepSeek、Grok、Claude、MiniMax、Manus、点点、Nano Banana、Google Translate、Bing Translate。
 - Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。
-- 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`。
+- ChatGPT / Gemini / DeepSeek 也已支持走扩展自身端到端链路的验证脚本：`node debug/verify-chatgpt-live.js`、`node debug/verify-gemini-live.js`、`node debug/verify-deepseek-live.js`。
+- 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`、`debug/verify-ai-studio-live.js`、`debug/verify-yuanbao-live.js`、`debug/verify-qianwen-live.js`、`debug/verify-qwen-live.js`。
 - `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]`，发送方式为点击箭头发送按钮。
+- Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
+- 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
+- 面向真实 Chrome 的定期巡检可通过 `node debug/run-live-site-checks.js --group core --write-report` 执行。
+- `--group core` 适合每天跑核心站点烟雾检查；`--group full` 会额外跑更广的 verifier 以及逻辑 / 配置探针。
+- 汇总报告会同时给出通过 / 失败状态、登录失效 / 限额等软失败分类，以及“当前哪些已配置站点还没有专用 live verifier 覆盖”的缺口清单。
+- macOS 可基于 `debug/launchd/com.aicompare.site-checks.plist.template` 生成 `~/Library/LaunchAgents/` 里的定时任务，直接复用真实 Chrome 用户态。
 
 ### OpenClaw 技能接入
 
@@ -283,10 +299,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-02 22:40:49 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-04 20:32:41 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
+- `M` `.gitignore`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -297,48 +313,36 @@ Last auto-update / 最近自动更新：2026-05-02 22:40:49 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
-- `M` `config/appConfig.json`
-- `M` `config/baseConfig.js`
-- `M` `content-scripts/float-button.js`
-- `M` `content-scripts/search-engines.js`
-- `M` `content-scripts/site-button.js`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `A` `icons/dev-icon128.png`
-- `A` `icons/dev-icon16.png`
-- `A` `icons/dev-icon32.png`
-- `A` `icons/dev-icon48.png`
-- `A` `icons/paw-print.svg`
+- `M` `config/siteHandlers.json`
+- `A` `debug/extension-flow-common.js`
+- `A` `debug/launchd/com.aicompare.site-checks.plist.template`
+- `A` `debug/run-live-site-checks.js`
+- `A` `debug/validate-site-configs.js`
+- `A` `debug/verify-chatgpt-live.js`
+- `A` `debug/verify-deepseek-live.js`
+- `A` `debug/verify-dots-ai-config.js`
+- `A` `debug/verify-dots-ai-live.js`
+- `A` `debug/verify-gemini-live.js`
+- `A` `debug/verify-nano-banana-live.js`
+- `M` `iframe/export-responses.js`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `iframe/openclaw-bridge.js`
-- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
-- `A` `openclaw-extension/README.md`
-- `A` `openclaw-extension/config/route-rules.js`
-- `A` `openclaw-extension/index.js`
-- `A` `openclaw-extension/lib/defaults.js`
-- `A` `openclaw-extension/lib/formatters.js`
-- `A` `openclaw-extension/lib/intent.js`
-- `A` `openclaw-extension/lib/logging.js`
-- `A` `openclaw-extension/lib/runner.js`
-- `A` `openclaw-extension/openclaw.plugin.json`
-- `A` `openclaw-extension/package.json`
-- `M` `openclaw/README.md`
-- `M` `openclaw/SKILL.md`
+- `M` `openclaw-extension/lib/defaults.js`
+- `M` `openclaw-extension/lib/formatters.js`
+- `M` `openclaw/ai-compare-openclaw-fast.js`
 - `M` `openclaw/ai-compare-openclaw-runner.js`
-- `M` `openclaw/references/install-browser-extension.md`
-- `M` `shared/sidebar.js`
+- `A` `shared/extraction-core.js`
 
 ### Recent commits / 最近提交
+- `9bf7958` 2026-05-02 V3.0.1 支持龙虾插件模式
 - `ed56762` 2026-05-01 V2.21.9 收起输入框
 - `c0a228a` 2026-04-30 V2.17.8 龙虾支持、发送消息后清空输入框
 - `44a31f8` 2026-04-20 V 2.21.7 支持点点，默认模板增加翻译到中文
 - `660c1c6` 2026-04-12 V2.21.6 修复豆包
-- `ef11035` 2026-04-08 V 2.21.5 修复不支持 iframe 的站点
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

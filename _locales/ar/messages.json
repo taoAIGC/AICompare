@@ -480,8 +480,23 @@
   "noSitesSelected": {
     "message": "يرجى اختيار موقع واحد على الاقل"
   },
+  "homepageSearchFailed": {
+    "message": "تعذر بدء البحث. يرجى المحاولة مرة أخرى."
+  },
   "automationNotice": {
     "message": "اذا تم تحديث موقع ويب فقد تتوقف ميزة الاستعلام التلقائي فيه عن العمل. نعتذر عن اي ازعاج. اذا لاحظت انها توقفت عن العمل، فيرجى التواصل معنا لتحديثها."
+  },
+  "iframeStatusNetworkLoading": {
+    "message": "جارٍ التحميل عبر الشبكة..."
+  },
+  "iframeStatusPageLoading": {
+    "message": "جارٍ تحميل الصفحة..."
+  },
+  "iframeStatusPageLoaded": {
+    "message": "تم تحميل الصفحة"
+  },
+  "iframeStatusPreparingScript": {
+    "message": "جارٍ التحضير لتشغيل البرنامج النصي..."
   },
   "injectProgressTitleRunning": {
     "message": "جار تشغيل السكربت..."
@@ -949,58 +964,58 @@
     "message": "لم يتم تكوين Stripe Price ID. يرجى ضبطه في stripe-payment.js."
   },
   "sidebarPrimaryAriaLabel": {
-    "message": "Primary navigation"
+    "message": "التنقل الرئيسي"
   },
   "openHomepageLabel": {
-    "message": "Go to homepage"
+    "message": "الانتقال إلى الصفحة الرئيسية"
   },
   "contactLink": {
-    "message": "Contact Me"
+    "message": "اتصل بي"
   },
   "coffeeButtonAlt": {
-    "message": "Buy me a coffee"
+    "message": "اشترِ لي قهوة"
   },
   "syncOpeningGoogleSignIn": {
-    "message": "Opening Google sign-in..."
+    "message": "جارٍ فتح تسجيل الدخول إلى Google..."
   },
   "syncSyncingFromCloud": {
-    "message": "Syncing from cloud..."
+    "message": "جارٍ المزامنة من السحابة..."
   },
   "clearHistoryButton": {
-    "message": "Clear History"
+    "message": "مسح السجل"
   },
   "searchHistoryPlaceholder": {
-    "message": "Search by query ..."
+    "message": "ابحث باستخدام الاستعلام..."
   },
   "noHistoryRecord": {
-    "message": "No history record"
+    "message": "لا توجد سجلات في السجل"
   },
   "noResultsFound": {
-    "message": "No results found"
+    "message": "لم يتم العثور على نتائج"
   },
   "tryDifferentKeywords": {
-    "message": "Try different keywords"
+    "message": "جرّب كلمات مفتاحية مختلفة"
   },
   "clearHistoryConfirm": {
-    "message": "Are you sure you want to clear all history records?"
+    "message": "هل أنت متأكد من أنك تريد مسح جميع سجلات السجل؟"
   },
   "deleteHistoryConfirm": {
-    "message": "Are you sure you want to delete this history record?"
+    "message": "هل أنت متأكد من أنك تريد حذف سجل السجل هذا؟"
   },
   "clearFavoritesButton": {
-    "message": "Clear All Favorites"
+    "message": "مسح جميع المفضلات"
   },
   "searchFavoritesPlaceholder": {
-    "message": "Search by query ..."
+    "message": "ابحث باستخدام الاستعلام..."
   },
   "noFavoriteRecord": {
-    "message": "No favorite record"
+    "message": "لا توجد سجلات مفضلة"
   },
   "clearFavoritesConfirm": {
-    "message": "Are you sure you want to clear all favorite records?"
+    "message": "هل أنت متأكد من أنك تريد مسح جميع سجلات المفضلة؟"
   },
   "manageFavoriteItem": {
-    "message": "Manage favorite"
+    "message": "إدارة المفضلة"
   },
   "contactWechatLabel": {
     "message": "WeChat"
@@ -1009,103 +1024,103 @@
     "message": "GitHub"
   },
   "contactEmailLabel": {
-    "message": "Email"
+    "message": "البريد الإلكتروني"
   },
   "contactEmpty": {
-    "message": "No contact information has been configured in appConfig.json yet."
+    "message": "لم يتم إعداد معلومات اتصال في appConfig.json بعد."
   },
   "contactLoadFailed": {
-    "message": "Failed to load contact information. Please check appConfig.json."
+    "message": "فشل تحميل معلومات الاتصال. يرجى التحقق من appConfig.json."
   },
   "selectAISites": {
-    "message": "AI sites"
+    "message": "مواقع الذكاء الاصطناعي"
   },
   "favoriteAllSites": {
-    "message": "Save this conversation to favorites"
+    "message": "احفظ هذه الدردشات في المفضلة"
   },
   "editPromptTemplate": {
-    "message": "Edit prompt templates"
+    "message": "تحرير قوالب المطالبات"
   },
   "siteTypeTabsAriaLabel": {
-    "message": "Site types"
+    "message": "أنواع المواقع"
   },
   "pinGuideImageAlt": {
-    "message": "Pin guide"
+    "message": "دليل التثبيت"
   },
   "saveIconAlt": {
-    "message": "Save"
+    "message": "حفظ"
   },
   "downloadIconTitle": {
-    "message": "Download"
+    "message": "تنزيل"
   },
   "homepageTypeInformation": {
-    "message": "Information"
+    "message": "معلومات"
   },
   "homepageTypeImage": {
-    "message": "Image Generation"
+    "message": "توليد الصور"
   },
   "homepageTypeVideo": {
-    "message": "Video"
+    "message": "فيديو"
   },
   "homepageTypeAudio": {
-    "message": "Audio"
+    "message": "صوت"
   },
   "homepageTypeAgents": {
-    "message": "Agents"
+    "message": "وكلاء"
   },
   "homepageTypeTranslate": {
-    "message": "Translation"
+    "message": "ترجمة"
   },
   "homepageTypePpt": {
     "message": "PPT"
   },
   "homepageTypeOther": {
-    "message": "Other"
+    "message": "أخرى"
   },
   "siteListEmpty": {
-    "message": "No sites in this type yet"
+    "message": "لا توجد مواقع من هذا النوع بعد"
   },
   "siteListLoadFailed": {
-    "message": "Failed to load site configuration. Please refresh and try again."
+    "message": "فشل تحميل إعدادات المواقع. يرجى التحديث والمحاولة مرة أخرى."
   },
   "iframePageTitle": {
     "message": "AI Compare"
   },
   "refreshConfigChecking": {
-    "message": "Checking for updates..."
+    "message": "جارٍ التحقق من التحديثات..."
   },
   "refreshConfigUpdated": {
-    "message": "Configuration has been updated to the latest version."
+    "message": "تم تحديث الإعدادات إلى أحدث إصدار."
   },
   "refreshConfigLatest": {
-    "message": "Already up to date."
+    "message": "الإعدادات محدثة بالفعل."
   },
   "refreshConfigUnavailable": {
-    "message": "Update check is unavailable."
+    "message": "التحقق من التحديثات غير متاح."
   },
   "refreshConfigFailed": {
-    "message": "Failed to check for updates."
+    "message": "فشل التحقق من التحديثات."
   },
   "updateInfoShowFailed": {
-    "message": "Failed to show update details."
+    "message": "فشل عرض تفاصيل التحديث."
   },
   "templateNamePlaceholder": {
-    "message": "For example: Risk analysis"
+    "message": "على سبيل المثال: تحليل المخاطر"
   },
   "templateQueryPlaceholder": {
-    "message": "For example: Root cause of the failure:「{query}」"
+    "message": "على سبيل المثال: السبب الجذري للفشل:「{query}」"
   },
   "templateTypeLabel": {
-    "message": "Template type"
+    "message": "نوع القالب"
   },
   "templateTypeHelp": {
-    "message": "Homepage and iframe suggestions are filtered by the current site type."
+    "message": "يتم تصفية اقتراحات الصفحة الرئيسية وiframe حسب نوع الموقع الحالي."
   },
   "defaultTemplateTranslateToChineseName": {
-    "message": "Translate to Chinese"
+    "message": "الترجمة إلى الصينية"
   },
   "defaultTemplateTranslateToChineseQuery": {
-    "message": "Translate the following content into Chinese:\n\n{query}"
+    "message": "ترجم المحتوى التالي إلى الصينية:\n\n{query}"
   },
   "syncProviderWebdav": {
     "message": "WebDAV"
@@ -1114,7 +1129,7 @@
     "message": "URL"
   },
   "syncTogglePasswordAriaLabel": {
-    "message": "Show or hide password"
+    "message": "إظهار كلمة المرور أو إخفاؤها"
   },
   "membershipPlanFree": {
     "message": "Free"
@@ -1123,99 +1138,99 @@
     "message": "Pro"
   },
   "floatButtonShortcutMac": {
-    "message": "⌘+M Open side panel"
+    "message": "⌘+M فتح اللوحة الجانبية"
   },
   "floatButtonShortcutWindows": {
-    "message": "Ctrl+M Open side panel"
+    "message": "Ctrl+M فتح اللوحة الجانبية"
   },
   "floatButtonCloseDialogTitle": {
-    "message": "Hide floating button"
+    "message": "إخفاء الزر العائم"
   },
   "floatButtonCloseTemporary": {
-    "message": "Hide for this visit"
+    "message": "إخفاء لهذه الزيارة"
   },
   "floatButtonCloseCurrentSite": {
-    "message": "Disable on this website"
+    "message": "تعطيل على هذا الموقع"
   },
   "floatButtonClosePermanent": {
-    "message": "Disable permanently"
+    "message": "تعطيل بشكل دائم"
   },
   "floatButtonEnableInSettingsHint": {
-    "message": "(Can be re-enabled in Settings)"
+    "message": "(يمكن إعادة تفعيله من الإعدادات)"
   },
   "timelineToggleTitle": {
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "قيد التطوير"
+    "message": "الخط الزمني للدردشة"
   },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
   "timelineCopyButton": {
-    "message": "Copy"
+    "message": "نسخ"
   },
   "timelineDetectedSites": {
-    "message": "Detected in $1 sub-pages"
+    "message": "تم الاكتشاف في $1 صفحة فرعية"
   },
   "timelineNoIframes": {
-    "message": "No sub-pages are available right now"
+    "message": "لا توجد صفحات فرعية متاحة الآن"
   },
   "timelineScrollNotFound": {
-    "message": "This prompt was not found in the current sub-pages"
+    "message": "لم يتم العثور على هذه المطالبة في الصفحات الفرعية الحالية"
   },
   "timelineScrollSuccess": {
-    "message": "Located this prompt in $1/$2 sub-pages"
+    "message": "تم العثور على هذه المطالبة في $1/$2 صفحة فرعية"
   },
   "timelineCopySuccess": {
-    "message": "Copied responses for this prompt ($1/$2)"
+    "message": "تم نسخ الردود الخاصة بهذه المطالبة ($1/$2)"
   },
   "timelineCopyFailed": {
-    "message": "Copy failed. Please try again."
+    "message": "فشل النسخ. يرجى المحاولة مرة أخرى."
   },
   "timelineSiteNotReady": {
-    "message": "Page is not ready"
+    "message": "الصفحة غير جاهزة"
   },
   "timelineActionTimeout": {
-    "message": "Request timed out"
+    "message": "انتهت مهلة الطلب"
   },
   "openclawModeTitle": {
-    "message": "OpenClaw mode"
+    "message": "وضع OpenClaw"
   },
   "openclawStatusRunning": {
-    "message": "Running"
+    "message": "قيد التشغيل"
   },
   "openclawStatusCompleted": {
-    "message": "Completed"
+    "message": "مكتمل"
   },
   "openclawStatusTimedOut": {
-    "message": "Timed out"
+    "message": "انتهت المهلة"
   },
   "openclawStatusError": {
-    "message": "Error"
+    "message": "خطأ"
   },
   "openclawDebugQuery": {
-    "message": "Query"
+    "message": "الاستعلام"
   },
   "openclawDebugCallback": {
-    "message": "Callback"
+    "message": "الاستدعاء"
   },
   "openclawDebugProgress": {
-    "message": "Progress"
+    "message": "التقدم"
   },
   "openclawDebugLastCallback": {
-    "message": "Last callback"
+    "message": "آخر استدعاء"
   },
   "openclawDebugCallbackWaiting": {
-    "message": "Waiting"
+    "message": "قيد الانتظار"
   },
   "openclawDebugCallbackSent": {
-    "message": "Sent"
+    "message": "تم الإرسال"
   },
   "openclawDebugCallbackFailed": {
-    "message": "Send failed"
+    "message": "فشل الإرسال"
   },
   "confirmButton": {
-    "message": "Confirm"
+    "message": "تأكيد"
   }
 }

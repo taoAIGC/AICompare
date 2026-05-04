@@ -61,7 +61,7 @@
     "message": "對比按鈕語言"
   },
   "compareButtonLanguageAuto": {
-    "message": "跟隨系统"
+    "message": "跟隨系統"
   },
   "compareButtonLanguageZh": {
     "message": "中文"
@@ -480,8 +480,23 @@
   "noSitesSelected": {
     "message": "請至少选择一个站點"
   },
+  "homepageSearchFailed": {
+    "message": "搜尋啟動失敗，請再試一次。"
+  },
   "automationNotice": {
     "message": "如果網站更新，对应的自動化提问功能会失效，敬請谅解。发现失效，可以与我聯絡更新。"
+  },
+  "iframeStatusNetworkLoading": {
+    "message": "網路載入中..."
+  },
+  "iframeStatusPageLoading": {
+    "message": "頁面載入中..."
+  },
+  "iframeStatusPageLoaded": {
+    "message": "頁面已載入"
+  },
+  "iframeStatusPreparingScript": {
+    "message": "準備執行腳本..."
   },
   "injectProgressTitleRunning": {
     "message": "正在執行腳本..."
@@ -790,7 +805,7 @@
     "message": "密碼"
   },
   "syncUrlPlaceholder": {
-    "message": "https://your-webdav-server.com/dav/"
+    "message": "https://你的-webdav-伺服器.com/dav/"
   },
   "syncUsernamePlaceholder": {
     "message": "使用者名稱"
@@ -964,16 +979,16 @@
     "message": "正在開啟 Google 登入..."
   },
   "syncSyncingFromCloud": {
-    "message": "正在同步雲端資料..."
+    "message": "正在從雲端同步..."
   },
   "clearHistoryButton": {
     "message": "清空歷史"
   },
   "searchHistoryPlaceholder": {
-    "message": "按查詢內容搜尋..."
+    "message": "按提問搜尋..."
   },
   "noHistoryRecord": {
-    "message": "暫無歷史記錄"
+    "message": "沒有歷史紀錄"
   },
   "noResultsFound": {
     "message": "找不到結果"
@@ -982,22 +997,22 @@
     "message": "試試其他關鍵字"
   },
   "clearHistoryConfirm": {
-    "message": "確定要清空所有歷史記錄嗎？"
+    "message": "確定要清空所有歷史紀錄嗎？"
   },
   "deleteHistoryConfirm": {
-    "message": "確定要刪除這筆歷史記錄嗎？"
+    "message": "確定要刪除這條歷史紀錄嗎？"
   },
   "clearFavoritesButton": {
-    "message": "清空全部收藏"
+    "message": "清空所有收藏"
   },
   "searchFavoritesPlaceholder": {
-    "message": "按查詢內容搜尋..."
+    "message": "按提問搜尋..."
   },
   "noFavoriteRecord": {
-    "message": "暫無收藏記錄"
+    "message": "沒有收藏紀錄"
   },
   "clearFavoritesConfirm": {
-    "message": "確定要清空所有收藏記錄嗎？"
+    "message": "確定要清空所有收藏紀錄嗎？"
   },
   "manageFavoriteItem": {
     "message": "管理收藏"
@@ -1012,19 +1027,19 @@
     "message": "電子郵件"
   },
   "contactEmpty": {
-    "message": "appConfig.json 中還沒有設定聯絡方式。"
+    "message": "appConfig.json 中尚未設定聯絡資訊。"
   },
   "contactLoadFailed": {
-    "message": "聯絡方式載入失敗，請檢查 appConfig.json。"
+    "message": "載入聯絡資訊失敗，請檢查 appConfig.json。"
   },
   "selectAISites": {
-    "message": "AI 站點"
+    "message": "AI 網站"
   },
   "favoriteAllSites": {
-    "message": "收藏目前對話到收藏夾"
+    "message": "將這些對話加入收藏"
   },
   "editPromptTemplate": {
-    "message": "編輯提示詞模板"
+    "message": "編輯提示詞範本"
   },
   "siteTypeTabsAriaLabel": {
     "message": "站點類型"
@@ -1033,7 +1048,7 @@
     "message": "固定擴充功能指引"
   },
   "saveIconAlt": {
-    "message": "保存"
+    "message": "儲存"
   },
   "downloadIconTitle": {
     "message": "下載"
@@ -1063,10 +1078,10 @@
     "message": "其他"
   },
   "siteListEmpty": {
-    "message": "此類型暫無站點"
+    "message": "這個類型暫時還沒有網站"
   },
   "siteListLoadFailed": {
-    "message": "載入站點設定失敗，請重新整理頁面後再試"
+    "message": "載入網站設定失敗，請重新整理後再試。"
   },
   "iframePageTitle": {
     "message": "AI 比一比"
@@ -1075,37 +1090,37 @@
     "message": "正在檢查更新..."
   },
   "refreshConfigUpdated": {
-    "message": "設定已更新到最新版本！"
+    "message": "設定已更新到最新版本。"
   },
   "refreshConfigLatest": {
-    "message": "已是最新版本"
+    "message": "已經是最新版本。"
   },
   "refreshConfigUnavailable": {
-    "message": "更新檢查功能不可用"
+    "message": "目前無法檢查更新。"
   },
   "refreshConfigFailed": {
-    "message": "檢查更新失敗"
+    "message": "檢查更新失敗。"
   },
   "updateInfoShowFailed": {
-    "message": "顯示更新資訊失敗"
+    "message": "顯示更新詳情失敗。"
   },
   "templateNamePlaceholder": {
     "message": "例如：風險分析"
   },
   "templateQueryPlaceholder": {
-    "message": "例如：導致失敗的原因:「{query}」"
+    "message": "例如：失敗的根本原因：「{query}」"
   },
   "templateTypeLabel": {
-    "message": "模板類型"
+    "message": "範本類型"
   },
   "templateTypeHelp": {
-    "message": "homepage 和 iframe 會依目前站點類型過濾提示詞模板"
+    "message": "首頁與 iframe 建議會依目前網站類型進行篩選。"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "翻譯成中文"
   },
   "defaultTemplateTranslateToChineseQuery": {
-    "message": "請把以下內容翻譯成中文：\n\n{query}"
+    "message": "請將以下內容翻譯成中文：\n\n{query}"
   },
   "syncProviderWebdav": {
     "message": "WebDAV"
@@ -1123,31 +1138,31 @@
     "message": "Pro"
   },
   "floatButtonShortcutMac": {
-    "message": "⌘+M 打開側邊欄"
+    "message": "⌘+M 開啟側邊面板"
   },
   "floatButtonShortcutWindows": {
-    "message": "Ctrl+M 打開側邊欄"
+    "message": "Ctrl+M 開啟側邊面板"
   },
   "floatButtonCloseDialogTitle": {
-    "message": "關閉浮動球"
+    "message": "隱藏浮動按鈕"
   },
   "floatButtonCloseTemporary": {
-    "message": "本次關閉直到下次造訪"
+    "message": "本次造訪期間隱藏"
   },
   "floatButtonCloseCurrentSite": {
-    "message": "目前網站停用"
+    "message": "在這個網站停用"
   },
   "floatButtonClosePermanent": {
     "message": "永久停用"
   },
   "floatButtonEnableInSettingsHint": {
-    "message": "(可在設定頁重新啟用)"
+    "message": "（可在設定中重新啟用）"
   },
   "timelineToggleTitle": {
     "message": "提問時間線"
   },
   "timelinePanelTitle": {
-    "message": "開發中"
+    "message": "對話時間線"
   },
   "timelineEmpty": {
     "message": "目前對話裡還沒有識別到提問。"
@@ -1156,25 +1171,25 @@
     "message": "複製"
   },
   "timelineDetectedSites": {
-    "message": "已在 $1 個子頁面中識別"
+    "message": "已在 $1 個子頁面中偵測到"
   },
   "timelineNoIframes": {
     "message": "目前沒有可用的子頁面"
   },
   "timelineScrollNotFound": {
-    "message": "沒有在目前子頁面中找到這條提問"
+    "message": "目前的子頁面中找不到這條提示詞"
   },
   "timelineScrollSuccess": {
-    "message": "已定位 $1/$2 個子頁面"
+    "message": "已在 $1/$2 個子頁面中定位到這條提示詞"
   },
   "timelineCopySuccess": {
-    "message": "已複製這條提問的回答（$1/$2）"
+    "message": "已複製這條提示詞的回答（$1/$2）"
   },
   "timelineCopyFailed": {
-    "message": "複製失敗，請重試"
+    "message": "複製失敗，請再試一次。"
   },
   "timelineSiteNotReady": {
-    "message": "頁面尚未就緒"
+    "message": "頁面尚未準備好"
   },
   "timelineActionTimeout": {
     "message": "請求逾時"
@@ -1192,7 +1207,7 @@
     "message": "已逾時"
   },
   "openclawStatusError": {
-    "message": "出錯"
+    "message": "錯誤"
   },
   "openclawDebugQuery": {
     "message": "問題"
@@ -1216,6 +1231,6 @@
     "message": "發送失敗"
   },
   "confirmButton": {
-    "message": "確定"
+    "message": "確認"
   }
 }
