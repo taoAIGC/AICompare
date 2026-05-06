@@ -2,7 +2,7 @@
  * 将历史记录（pkHistory）与收藏（favoritePrompts、favoriteSites）同步到 Firestore
  * 依赖 firebase-auth.js 提供 getIdToken / getCurrentUid，以及 Firebase 配置
  */
-// 每个用户一个文档：users/{uid}，字段 pkHistoryJson、favoritePromptsJson、favoriteSitesJson、updatedAt
+// 每个用户一个文档：users/{uid}，字段 pkHistoryJson、favoritePromptsJson、favoriteSitesJson、customSitesJson、updatedAt
 
 async function getSyncConfig() {
   // 统一使用扩展内置的云端配置（firebaseConfig.js）
@@ -247,6 +247,7 @@ async function downloadUserData() {
       favoritePrompts: [],
       favoriteSites: [],
       favoriteFolders: [],
+      customSites: [],
       promptTemplates: [],
       sites: {},
       buttonConfig: {},
@@ -283,6 +284,7 @@ async function downloadUserData() {
     favoritePrompts: parseJson(fields.favoritePromptsJson),
     favoriteSites: parseJson(fields.favoriteSitesJson),
     favoriteFolders: parseJson(fields.favoriteFoldersJson),
+    customSites: parseJson(fields.customSitesJson),
     promptTemplates: parseJson(fields.promptTemplatesJson),
     sites: parseJsonObject(fields.sitesJson),
     buttonConfig: parseJsonObject(fields.buttonConfigJson),
@@ -311,6 +313,25 @@ function mergeFavoriteSites(localList, cloudList) {
     if (item && item.name) byName.set(item.name, item);
   }
   return Array.from(byName.values());
+}
+
+/**
+ * 合并自定义站点：按 id 或 name 去重，保留云端优先
+ */
+function mergeCustomSites(localList, cloudList) {
+  const byKey = new Map();
+  const getKey = (item) => String(item?.id || item?.name || '').trim();
+
+  for (const item of localList || []) {
+    const key = getKey(item);
+    if (key) byKey.set(key, item);
+  }
+  for (const item of cloudList || []) {
+    const key = getKey(item);
+    if (key) byKey.set(key, item);
+  }
+
+  return Array.from(byKey.values()).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 }
 
 /**
@@ -368,7 +389,7 @@ function mergeDisabledSites(localList, cloudList) {
 /**
  * 上传收藏（favoritePrompts、favoriteSites）到 Firestore
  */
-async function uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, sites, buttonConfig, disabledSites, siteSettings) {
+async function uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, sites, customSites, buttonConfig, disabledSites, siteSettings) {
   const uid = await (typeof window !== 'undefined' && window.firebaseGetCurrentUid ? window.firebaseGetCurrentUid() : (async () => {
     const r = await chrome.storage.local.get('firebase_uid');
     return r.firebase_uid || null;
@@ -396,6 +417,10 @@ async function uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, 
   if (sites && typeof sites === 'object' && !Array.isArray(sites)) {
     maskParts.push('sitesJson');
     fields.sitesJson = { stringValue: JSON.stringify(sites) };
+  }
+  if (Array.isArray(customSites)) {
+    maskParts.push('customSitesJson');
+    fields.customSitesJson = { stringValue: JSON.stringify(customSites) };
   }
   if (buttonConfig && typeof buttonConfig === 'object' && !Array.isArray(buttonConfig)) {
     maskParts.push('buttonConfigJson');
@@ -490,6 +515,7 @@ async function mergeFromCloudAndUpload() {
     'favoriteSites',
     'promptTemplates',
     'sites',
+    'customSites',
     'buttonConfig',
     'disabledSites',
     'siteSettings',
@@ -498,6 +524,7 @@ async function mergeFromCloudAndUpload() {
   const localSites = syncData.favoriteSites || [];
   const localTemplates = syncData.promptTemplates || [];
   const localCommonSites = syncData.sites || {};
+  const localCustomSites = syncData.customSites || [];
   const localButtonConfig = syncData.buttonConfig || {};
   const localDisabledSites = syncData.disabledSites || [];
   const localSiteSettings = syncData.siteSettings || {};
@@ -505,6 +532,7 @@ async function mergeFromCloudAndUpload() {
   const mergedSites = mergeFavoriteSites(localSites, cloud.favoriteSites);
   const mergedTemplates = mergePromptTemplates(localTemplates, cloud.promptTemplates || []);
   const mergedCommonSites = mergeSitesSettings(localCommonSites, cloud.sites || {});
+  const mergedCustomSites = mergeCustomSites(localCustomSites, cloud.customSites || []);
   const mergedButtonConfig = mergeObjectConfig(localButtonConfig, cloud.buttonConfig || {});
   const mergedDisabledSites = mergeDisabledSites(localDisabledSites, cloud.disabledSites || []);
   const mergedSiteSettings = mergeObjectConfig(localSiteSettings, cloud.siteSettings || {});
@@ -513,6 +541,7 @@ async function mergeFromCloudAndUpload() {
     favoriteSites: mergedSites,
     promptTemplates: mergedTemplates,
     sites: mergedCommonSites,
+    customSites: mergedCustomSites,
     buttonConfig: mergedButtonConfig,
     disabledSites: mergedDisabledSites,
     siteSettings: mergedSiteSettings,
@@ -529,6 +558,7 @@ async function mergeFromCloudAndUpload() {
     mergedSites,
     mergedTemplates,
     mergedCommonSites,
+    mergedCustomSites,
     mergedButtonConfig,
     mergedDisabledSites,
     mergedSiteSettings
@@ -577,6 +607,7 @@ async function uploadFavoritesIfLoggedIn() {
     favoriteSites = [],
     promptTemplates = [],
     sites = {},
+    customSites = [],
     buttonConfig = {},
     disabledSites = [],
     siteSettings = {},
@@ -585,11 +616,12 @@ async function uploadFavoritesIfLoggedIn() {
     'favoriteSites',
     'promptTemplates',
     'sites',
+    'customSites',
     'buttonConfig',
     'disabledSites',
     'siteSettings',
   ]);
-  await uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, sites, buttonConfig, disabledSites, siteSettings);
+  await uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, sites, customSites, buttonConfig, disabledSites, siteSettings);
 }
 
 async function runFirebaseAutoUpload(changes, areaName) {
@@ -625,6 +657,7 @@ async function runFirebaseAutoUpload(changes, areaName) {
       || Object.prototype.hasOwnProperty.call(changes, 'favoriteSites')
       || Object.prototype.hasOwnProperty.call(changes, 'promptTemplates')
       || Object.prototype.hasOwnProperty.call(changes, 'sites')
+      || Object.prototype.hasOwnProperty.call(changes, 'customSites')
       || Object.prototype.hasOwnProperty.call(changes, 'buttonConfig')
       || Object.prototype.hasOwnProperty.call(changes, 'disabledSites')
       || Object.prototype.hasOwnProperty.call(changes, 'siteSettings');
@@ -635,6 +668,7 @@ async function runFirebaseAutoUpload(changes, areaName) {
       favoriteSites = [],
       promptTemplates = [],
       sites = {},
+      customSites = [],
       buttonConfig = {},
       disabledSites = [],
       siteSettings = {},
@@ -643,11 +677,12 @@ async function runFirebaseAutoUpload(changes, areaName) {
       'favoriteSites',
       'promptTemplates',
       'sites',
+      'customSites',
       'buttonConfig',
       'disabledSites',
       'siteSettings',
     ]);
-    await uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, sites, buttonConfig, disabledSites, siteSettings);
+    await uploadFavorites(favoritePrompts, favoriteSites, promptTemplates, sites, customSites, buttonConfig, disabledSites, siteSettings);
   }
 }
 
@@ -668,6 +703,7 @@ function initializeFirebaseAutoSync() {
         || Object.prototype.hasOwnProperty.call(changes, 'favoriteSites')
         || Object.prototype.hasOwnProperty.call(changes, 'promptTemplates')
         || Object.prototype.hasOwnProperty.call(changes, 'sites')
+        || Object.prototype.hasOwnProperty.call(changes, 'customSites')
         || Object.prototype.hasOwnProperty.call(changes, 'buttonConfig')
         || Object.prototype.hasOwnProperty.call(changes, 'disabledSites')
         || Object.prototype.hasOwnProperty.call(changes, 'siteSettings'));

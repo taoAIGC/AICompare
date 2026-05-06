@@ -12,9 +12,10 @@ export function resolveIframeAutoRunQuery({
 
 export function shouldAutoRunIframeQuery({
   query = '',
-  supportUrlQuery = false
+  supportUrlQuery = false,
+  queryInUrl = false
 } = {}) {
-  return Boolean(normalizeQuery(query)) && supportUrlQuery !== true;
+  return Boolean(normalizeQuery(query)) && supportUrlQuery !== true && queryInUrl !== true;
 }
 
 export function getIframeLoadBehavior({
@@ -22,6 +23,7 @@ export function getIframeLoadBehavior({
   lastQuery = '',
   currentInputQuery = '',
   supportUrlQuery = false,
+  queryInUrl = false,
   clickHandlerAdded = false
 } = {}) {
   const resolvedQuery = resolveIframeAutoRunQuery({
@@ -34,7 +36,8 @@ export function getIframeLoadBehavior({
     resolvedQuery,
     shouldAutoRunQuery: shouldAutoRunIframeQuery({
       query: resolvedQuery,
-      supportUrlQuery
+      supportUrlQuery,
+      queryInUrl
     }),
     shouldBindClickHandler: clickHandlerAdded !== true
   };

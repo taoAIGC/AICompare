@@ -115,7 +115,24 @@ body {
 }
 
 .settings-section {
-  margin-bottom: 40px;
+  display: none;
+  margin-bottom: 0;
+}
+
+.settings-section.is-active {
+  display: block;
+  animation: settingsSectionIn 0.18s ease-out;
+}
+
+@keyframes settingsSectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h1 {
@@ -363,6 +380,19 @@ input:checked + .slider:before {
 .site-configs {
     display: grid;
     gap: 5px;
+}
+
+.custom-site-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.custom-site-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-color: #d4d4d4;
 }
 
 /* 响应式设计 */

@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { CDPClient } = require('./cdp-client');
 
 const EXTENSION_ID = process.env.EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi';
 const SITE_NAME = 'Nano Banana';
@@ -22,61 +23,6 @@ function readChromeEndpoint() {
     throw new Error(`DevToolsActivePort is invalid: ${DEVTOOLS_ACTIVE_PORT}`);
   }
   return `ws://127.0.0.1:${port}${browserPath}`;
-}
-
-class CDPClient {
-  constructor(endpoint) {
-    this.endpoint = endpoint;
-    this.ws = null;
-    this.id = 0;
-    this.pending = new Map();
-  }
-
-  async connect() {
-    await new Promise((resolve, reject) => {
-      const ws = new WebSocket(this.endpoint);
-      this.ws = ws;
-
-      ws.addEventListener('open', () => resolve());
-      ws.addEventListener('error', (error) => reject(error));
-      ws.addEventListener('message', (event) => {
-        const msg = JSON.parse(String(event.data));
-        if (msg.id && this.pending.has(msg.id)) {
-          const pending = this.pending.get(msg.id);
-          this.pending.delete(msg.id);
-          if (msg.error) {
-            pending.reject(new Error(JSON.stringify(msg.error)));
-          } else {
-            pending.resolve(msg.result);
-          }
-        }
-      });
-      ws.addEventListener('close', () => {
-        for (const pending of this.pending.values()) {
-          pending.reject(new Error('CDP connection closed'));
-        }
-        this.pending.clear();
-      });
-    });
-  }
-
-  send(method, params = {}, sessionId = undefined) {
-    return new Promise((resolve, reject) => {
-      const id = ++this.id;
-      this.pending.set(id, { resolve, reject });
-      const payload = { id, method, params };
-      if (sessionId) payload.sessionId = sessionId;
-      this.ws.send(JSON.stringify(payload));
-    });
-  }
-
-  async close() {
-    if (!this.ws) return;
-    await new Promise((resolve) => {
-      this.ws.addEventListener('close', () => resolve(), { once: true });
-      this.ws.close();
-    }).catch(() => {});
-  }
 }
 
 async function createPage(client, url) {

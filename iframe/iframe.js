@@ -2,6 +2,8 @@ import {
   getIframeLoadBehavior
 } from '../shared/iframe-query-run-utils.mjs';
 
+const SiteLaunchUtils = window.SiteLaunchUtils || {};
+
 // 全局文件粘贴检测和处理
 let filePasteHandlerAdded = false;
 
@@ -527,6 +529,137 @@ function formatTimelineDateLabel(timestamp) {
   }
 }
 
+function ensureTimelineCopyPreviewModal() {
+  let overlay = document.getElementById('timelineCopyPreviewOverlay');
+  if (overlay) {
+    return overlay;
+  }
+
+  overlay = document.createElement('div');
+  overlay.id = 'timelineCopyPreviewOverlay';
+  overlay.className = 'timeline-copy-preview-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'timelineCopyPreviewTitle');
+  overlay.innerHTML = `
+    <div class="timeline-copy-preview-modal">
+      <button
+        class="timeline-copy-preview-close"
+        type="button"
+        aria-label="${escapeHtml(t('closeButton', '关闭'))}"
+      >×</button>
+      <div class="timeline-copy-preview-title" id="timelineCopyPreviewTitle">${escapeHtml(t('timelineCopyPreviewTitle', '复制回答汇总'))}</div>
+      <div class="timeline-copy-preview-meta"></div>
+      <pre class="timeline-copy-preview-content" aria-live="polite"></pre>
+      <div class="timeline-copy-preview-actions">
+        <button class="timeline-copy-preview-confirm" type="button">${escapeHtml(t('timelineCopyPreviewConfirm', '确认复制'))}</button>
+      </div>
+    </div>
+  `;
+
+  const closeModal = () => {
+    overlay.classList.remove('is-visible');
+  };
+
+  overlay.querySelector('.timeline-copy-preview-confirm')?.addEventListener('click', async () => {
+    const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+    if (!(confirmBtn instanceof HTMLButtonElement)) return;
+
+    const copyText = confirmBtn.dataset.copyText || '';
+    const successCount = confirmBtn.dataset.successCount || '0';
+    const totalCount = confirmBtn.dataset.totalCount || '0';
+    if (!copyText.trim()) return;
+
+    try {
+      await copyTextToClipboard(copyText);
+      closeModal();
+      showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [successCount, totalCount]));
+      trackEvent('iframe_timeline_copy', {
+        sites_total: Number(totalCount) || 0,
+        sites_with_content: Number(successCount) || 0
+      });
+    } catch (error) {
+      console.error('复制时间线回答失败:', error);
+      showToast(t('timelineCopyFailed', '复制失败，请重试'));
+    }
+  });
+
+  overlay.querySelector('.timeline-copy-preview-close')?.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && overlay.classList.contains('is-visible')) {
+      closeModal();
+    }
+  });
+
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+async function showTimelineCopyPreviewModal(entry) {
+  const overlay = ensureTimelineCopyPreviewModal();
+  const metaEl = overlay.querySelector('.timeline-copy-preview-meta');
+  const contentEl = overlay.querySelector('.timeline-copy-preview-content');
+  const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+  const closeBtn = overlay.querySelector('.timeline-copy-preview-close');
+  if (!metaEl || !contentEl || !confirmBtn || !closeBtn) return;
+
+  const activeEntryKey = String(entry?.timelineId || buildTimelineFavoriteKey(entry));
+  const isSameVisibleEntry = overlay.classList.contains('is-visible')
+    && overlay.dataset.activeEntryKey === activeEntryKey;
+  if (isSameVisibleEntry && overlay.dataset.loading !== 'true') {
+    return;
+  }
+
+  const requestToken = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  overlay.dataset.requestToken = requestToken;
+  overlay.dataset.activeEntryKey = activeEntryKey;
+  overlay.dataset.loading = 'true';
+  overlay.classList.add('is-visible');
+  closeBtn.focus();
+
+  metaEl.textContent = t('timelineCopyPreviewLoading', '正在收集各站点回答...');
+  contentEl.textContent = '';
+  confirmBtn.disabled = true;
+  confirmBtn.dataset.copyText = '';
+  confirmBtn.dataset.successCount = '0';
+  confirmBtn.dataset.totalCount = '0';
+
+  try {
+    const { copyText, successCount, totalCount } = await collectTimelineEntryResponses(entry);
+    if (overlay.dataset.requestToken !== requestToken) {
+      return;
+    }
+
+    const previewText = String(copyText || '').trim() || t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。');
+    metaEl.textContent = t(
+      'timelineCopyPreviewSummary',
+      '已汇总 $1/$2 个子页面的回答，请确认后复制。',
+      [String(successCount), String(totalCount)]
+    );
+    contentEl.textContent = previewText;
+    confirmBtn.disabled = !String(copyText || '').trim();
+    confirmBtn.dataset.copyText = copyText || '';
+    confirmBtn.dataset.successCount = String(successCount);
+    confirmBtn.dataset.totalCount = String(totalCount);
+    overlay.dataset.loading = 'false';
+  } catch (error) {
+    if (overlay.dataset.requestToken !== requestToken) {
+      return;
+    }
+    console.error('收集时间线回答预览失败:', error);
+    metaEl.textContent = t('timelineCopyPreviewLoadFailed', '加载回答失败，请稍后重试。');
+    contentEl.textContent = error?.message || String(error);
+    confirmBtn.disabled = true;
+    overlay.dataset.loading = 'false';
+  }
+}
+
 function syncTimelinePanelUi() {
   const { panel, toggleButton, edgeTrigger } = getTimelineElements();
   if (panel) {
@@ -860,19 +993,6 @@ function renderTimeline() {
           </svg>
         </button>
         <button
-          class="timeline-item-export"
-          type="button"
-          title="${escapeHtml(t('exportResponsesTitle', '导出 AI 回答'))}"
-          aria-label="${escapeHtml(t('exportResponsesTitle', '导出 AI 回答'))}"
-        >
-          <img
-            class="timeline-item-export-icon"
-            src="../icons/download.svg"
-            alt=""
-            aria-hidden="true"
-          >
-        </button>
-        <button
           class="timeline-item-favorite"
           type="button"
           title="${escapeHtml(isFavorited ? t('iframeUnfavoriteTitle', '取消收藏') : t('iframeFavoriteTitle', '收藏'))}"
@@ -897,11 +1017,6 @@ function renderTimeline() {
     item.querySelector('.timeline-item-copy')?.addEventListener('click', async (event) => {
       event.stopPropagation();
       await copyTimelineEntryResponses(entry);
-    });
-
-    item.querySelector('.timeline-item-export')?.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      await exportTimelineEntryResponses(entry);
     });
 
     item.querySelector('.timeline-item-favorite')?.addEventListener('click', async (event) => {
@@ -955,10 +1070,37 @@ function initializeTimelinePanel() {
 
   if (toggleButton && toggleButton.dataset.bound !== '1') {
     toggleButton.dataset.bound = '1';
+    toggleButton.addEventListener('mouseenter', () => {
+      if (timelineState.isPinned) {
+        clearTimelineHideTimer();
+        return;
+      }
+      openTimelinePanel({
+        pinned: false,
+        mode: 'hover',
+        refresh: true
+      });
+    });
+    toggleButton.addEventListener('mouseleave', () => {
+      scheduleHideTimelinePanel();
+    });
+    toggleButton.addEventListener('focus', () => {
+      if (timelineState.isPinned) {
+        clearTimelineHideTimer();
+        return;
+      }
+      openTimelinePanel({
+        pinned: false,
+        mode: 'hover',
+        refresh: true
+      });
+    });
+    toggleButton.addEventListener('blur', () => {
+      scheduleHideTimelinePanel();
+    });
     toggleButton.addEventListener('click', (event) => {
       event.stopPropagation();
-      const shouldPinOpen = !(timelineState.isOpen && timelineState.isPinned);
-      if (shouldPinOpen) {
+      if (!timelineState.isPinned) {
         openTimelinePanel({
           pinned: true,
           mode: 'toggle',
@@ -1302,20 +1444,37 @@ async function scrollToTimelineEntry(entry, options = {}) {
 }
 
 async function copyTextToClipboard(text) {
+  const copyWithExecCommand = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const succeeded = document.execCommand('copy');
+    textarea.remove();
+    if (!succeeded) {
+      throw new Error('execCommand copy failed');
+    }
+  };
+
   if (navigator?.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      console.warn('navigator.clipboard.writeText failed, falling back to execCommand:', error);
+      copyWithExecCommand();
+      return;
+    }
   }
 
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  textarea.remove();
+  copyWithExecCommand();
 }
 
 async function collectTimelineEntryResponses(entry) {
@@ -1400,34 +1559,7 @@ async function copyTimelineEntryResponses(entry) {
     return;
   }
 
-  const { copyText, successCount, totalCount } = await collectTimelineEntryResponses(entry);
-
-  try {
-    await copyTextToClipboard(copyText);
-    showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [String(successCount), String(totalCount)]));
-    trackEvent('iframe_timeline_copy', {
-      sites_total: totalCount,
-      sites_with_content: successCount
-    });
-  } catch (error) {
-    console.error('复制时间线回答失败:', error);
-    showToast(t('timelineCopyFailed', '复制失败，请重试'));
-  }
-}
-
-async function exportTimelineEntryResponses(entry) {
-  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
-  if (!iframes.length) {
-    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
-    return;
-  }
-
-  try {
-    const { copyText } = await collectTimelineEntryResponses(entry);
-    downloadTimelineMarkdownFile(copyText, sanitizeTimelineExportFileName(entry));
-  } catch (error) {
-    console.error('导出时间线回答失败:', error);
-  }
+  await showTimelineCopyPreviewModal(entry);
 }
 
 function setIframeHeaderStatus(iframeContainer, text, isHidden = false) {
@@ -2360,12 +2492,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('query');
     const hasSitesParam = urlParams.has('sites');
+    const hasCustomSitesParam = urlParams.has('customSites');
 
     // 如果 URL 中携带了 historyId，表示从历史/收藏页打开，直接恢复该记录的 ID，
     // 避免 createIframes → savePKHistory 创建重复记录
     const urlHistoryId = urlParams.get('historyId');
+    const historyItem = urlHistoryId ? await getHistoryItemById(urlHistoryId) : null;
     const historyRestoreContext = urlHistoryId ? await getHistoryRestoreContext(urlHistoryId) : null;
-    const shouldDeferQueryDrivenInit = Boolean(historyRestoreContext?.autoSearch);
     if (urlHistoryId) {
         window._currentHistoryId = urlHistoryId;
         window._openedFromHistory = true;
@@ -2381,8 +2514,41 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('从 URL 参数获取指定的站点列表:', selectedSiteNames);
         }
     }
+
+    let selectedCustomSiteIds = null;
+    if (hasCustomSitesParam) {
+        const customSitesParam = urlParams.get('customSites');
+        if (customSitesParam) {
+            selectedCustomSiteIds = customSitesParam.split(',').map(id => id.trim()).filter(Boolean);
+            console.log('从 URL 参数获取指定的 customSites:', selectedCustomSiteIds);
+        }
+    }
+
+    const allCustomSites = typeof window.getCustomSites === 'function'
+      ? await window.getCustomSites()
+      : [];
+    const selectedCustomSites = selectedCustomSiteIds && selectedCustomSiteIds.length > 0
+      ? allCustomSites.filter(site => selectedCustomSiteIds.includes(site.id) || selectedCustomSiteIds.includes(site.name))
+      : [];
+
+    let restoredHistoryIframesOnInit = false;
+    const historySites = Array.isArray(historyItem?.sites) ? historyItem.sites : [];
+    const filteredHistorySites = selectedSiteNames && selectedSiteNames.length > 0
+      ? historySites.filter((site) => selectedSiteNames.includes(site?.name))
+      : historySites;
+    const initialHistorySites = filteredHistorySites.length > 0 ? filteredHistorySites : historySites;
+    const shouldDeferQueryDrivenInit = initialHistorySites.length > 0 && Boolean(historyRestoreContext?.autoSearch);
+
+    if (urlHistoryId && initialHistorySites.length > 0) {
+        console.log('检测到 historyId，首屏直接恢复历史 iframe:', {
+            historyId: urlHistoryId,
+            sites: initialHistorySites.map((site) => site?.name).filter(Boolean)
+        });
+        await loadHistoryIframes(initialHistorySites, historyRestoreContext);
+        restoredHistoryIframesOnInit = true;
+    }
     
-    if (hasQueryParam) {
+    if (!restoredHistoryIframesOnInit && hasQueryParam) {
         // 从 URL 参数中获取查询内容
         const query = historyRestoreContext?.query || urlParams.get('query');
         console.log('从 URL 参数获取查询内容:', query);
@@ -2413,7 +2579,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             
                             if (availableSites.length > 0) {
                                 console.log('使用查询内容创建 iframes:', query, availableSites);
-                                createIframes(query, availableSites);
+                                createIframes(query, availableSites, selectedCustomSites);
                             } else {
                                 console.log('没有可用的站点');
                             }
@@ -2428,7 +2594,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                             if (availableSites.length > 0) {
                                 console.log('使用查询内容创建 iframes:', query, availableSites);
-                                createIframes(query, availableSites);
+                                createIframes(query, availableSites, selectedCustomSites);
                             } else {
                                 console.log('没有可用的站点');
                             }
@@ -2453,7 +2619,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         
                         if (availableSites.length > 0) {
                             console.log('初始化可用站点:', availableSites);
-                            createIframes('', availableSites);
+                            createIframes('', availableSites, selectedCustomSites);
                         } else {
                             console.log('没有可用的站点');
                         }
@@ -2468,7 +2634,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                         if (availableSites.length > 0) {
                             console.log('初始化可用站点:', availableSites);
-                            createIframes('', availableSites);
+                            createIframes('', availableSites, selectedCustomSites);
                         } else {
                             console.log('没有可用的站点');
                         }
@@ -2476,7 +2642,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
         }
-    } else {
+    } else if (!restoredHistoryIframesOnInit) {
         // 直接打开（方式1）
         getDefaultSites().then((sites) => {
             if (sites && sites.length > 0) {
@@ -2492,7 +2658,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     if (availableSites.length > 0) {
                         console.log('初始化可用站点:', availableSites);
-                        createIframes('', availableSites);
+                        createIframes('', availableSites, selectedCustomSites);
                     } else {
                         console.log('没有可用的站点');
                     }
@@ -2507,7 +2673,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                     if (availableSites.length > 0) {
                         console.log('初始化可用站点:', availableSites);
-                        createIframes('', availableSites);
+                        createIframes('', availableSites, selectedCustomSites);
                     } else {
                         console.log('没有可用的站点');
                     }
@@ -2525,9 +2691,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 添加文件上传功能的事件监听器
     initializeFileUpload();
-    
-    // 添加导出回答功能的事件监听器
-    initializeExportResponses();
     
     // 检查 URL 参数，如果 upload=true，显示提示信息
     // 注意：urlParams 已经在上面第 169 行声明了，这里直接使用
@@ -3351,12 +3514,15 @@ function getCurrentQueryText() {
 
 function buildSiteUrlForQuery(site, query) {
   if (!site) return '';
-  if (query) {
-    return site.supportUrlQuery
-      ? site.url.replace('{query}', encodeURIComponent(query))
-      : site.url;
+  if (site.customSite === true || site.isCustomSite === true) {
+    return SiteLaunchUtils.resolveCustomLaunchTarget
+      ? SiteLaunchUtils.resolveCustomLaunchTarget(site, query).url
+      : (site.url || '');
   }
-  return site.url;
+
+  return SiteLaunchUtils.resolveOfficialLaunchTarget
+    ? SiteLaunchUtils.resolveOfficialLaunchTarget(site, query).url
+    : (site.url || '');
 }
 
 async function ensureSiteIframeByName(siteName) {
@@ -3598,7 +3764,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       searchInput.value = message.query;
       updateFavoriteButtonVisibility(message.query);
     }
-    createIframes(message.query, message.sites);
+    createIframes(message.query, message.sites, message.customSites || []);
   } else if (message.type === 'loadHistoryIframes') {
     console.log('开始加载历史记录 iframes:', message.sites);
     // 设置当前历史记录 ID（如果提供了）
@@ -3620,11 +3786,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // 处理 iframe 的创建和加载
-async function createIframes(query, sites) {
-    // 站点已经按order排序了，直接使用
-  const enabledSites = sites;
+async function createIframes(query, sites, customSites = []) {
+  const enabledSites = Array.isArray(sites) ? sites : [];
+  const normalizedCustomSites = SiteLaunchUtils.normalizeCustomSites
+    ? SiteLaunchUtils.normalizeCustomSites(customSites)
+    : [];
     
-  console.log('过滤后的站点:', enabledSites);
+  console.log('过滤后的官方站点:', enabledSites);
+  console.log('过滤后的 customSites:', normalizedCustomSites);
     
     // 获取容器元素
   const container = document.getElementById('iframes-container');
@@ -3651,24 +3820,39 @@ async function createIframes(query, sites) {
     // container.style.marginLeft = '72px';
     // 为每个启用的站点创建 iframe，传入 query 参数
     enabledSites.forEach(site => {
-      // 如果 query 为空,使用 site.url 的 hostname
-      let url;
-      if (!query) {
-        try {
-          url = new URL(site.url).hostname;
-          url = 'https://' + url;
-        } catch (e) {
-          console.error('URL解析失败:', site.url);
-          url = site.url;
-        }
-      } else {
-        url = site.supportUrlQuery 
-        ? site.url.replace('{query}', encodeURIComponent(query))
-        : site.url;
-      }
+      const launchTarget = SiteLaunchUtils.resolveOfficialLaunchTarget
+        ? SiteLaunchUtils.resolveOfficialLaunchTarget(site, query)
+        : {
+            url: site.url,
+            queryInUrl: Boolean(query) && site.supportUrlQuery === true,
+            shouldAutoRun: Boolean(query) && site.supportUrlQuery !== true
+          };
+      const url = launchTarget.url || site.url;
         
-      console.log("即将开始调用创建单个 iframe",site.name, url)
-      createSingleIframe(site.name, url, container, query, ratingBatchId);
+      console.log("即将开始调用创建单个 iframe", site.name, url);
+      createSingleIframe(site.name, url, container, query, ratingBatchId, {
+        site,
+        siteKind: 'official',
+        launchTarget
+      });
+    });
+
+    normalizedCustomSites.forEach(site => {
+      const launchTarget = SiteLaunchUtils.resolveCustomLaunchTarget
+        ? SiteLaunchUtils.resolveCustomLaunchTarget(site, query)
+        : {
+            url: site.url,
+            queryInUrl: false,
+            shouldAutoRun: false
+          };
+      const url = launchTarget.url || site.url;
+
+      console.log('即将开始调用创建 custom iframe', site.name, url);
+      createSingleIframe(site.name, url, container, query, ratingBatchId, {
+        site,
+        siteKind: 'custom',
+        launchTarget
+      });
     });
   } catch (error) {
     console.error('创建 iframes 失败:', error);
@@ -3773,7 +3957,7 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
     // 方法1: 尝试从 iframe.contentWindow.location.href 获取（如果同源）
     try {
       const currentUrl = iframe.contentWindow.location.href;
-      if (currentUrl && currentUrl !== 'about:blank') {
+      if (currentUrl && currentUrl !== 'about:blank' && !SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(currentUrl, siteName)) {
         console.log(`从 iframe.contentWindow 获取 ${siteName} 的 URL:`, currentUrl);
         return currentUrl;
       }
@@ -3816,7 +4000,7 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
         }
       });
       
-      if (urlFromMessage && urlFromMessage !== 'about:blank') {
+      if (urlFromMessage && urlFromMessage !== 'about:blank' && !SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(urlFromMessage, siteName)) {
         console.log(`通过 postMessage 获取 ${siteName} 的 URL:`, urlFromMessage);
         return urlFromMessage;
       }
@@ -3831,7 +4015,7 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
       const historyItem = pkHistory.find(item => item.id === targetHistoryId);
       if (historyItem && historyItem.sites) {
         const siteItem = historyItem.sites.find(s => s.name === siteName);
-        if (siteItem && siteItem.url) {
+        if (siteItem && siteItem.url && !SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(siteItem.url, siteName)) {
           console.log(`从历史记录获取 ${siteName} 的 URL:`, siteItem.url);
           return siteItem.url;
         }
@@ -3840,7 +4024,7 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
     
     // 方法4: 使用 iframe.src 作为后备
     const srcUrl = iframe.src;
-    if (srcUrl && srcUrl !== 'about:blank') {
+    if (srcUrl && srcUrl !== 'about:blank' && !SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(srcUrl, siteName)) {
       console.log(`使用 iframe.src 作为 ${siteName} 的 URL:`, srcUrl);
       return srcUrl;
     }
@@ -3855,11 +4039,15 @@ async function getIframeLatestUrl(iframe, siteName, historyId = null) {
 }
 
 // 创建单个 iframe 时添加标识
-function createSingleIframe(siteName, url, container, query, ratingBatchId) {
+function createSingleIframe(siteName, url, container, query, ratingBatchId, launchInfo = {}) {
   const iframeContainer = document.createElement('div');
   iframeContainer.className = 'iframe-container';
   iframeContainer.dataset.siteName = siteName;
   iframeContainer.dataset.lastQuery = query || '';
+  const isCustomSite = launchInfo.siteKind === 'custom' || launchInfo.isCustomSite === true;
+  if (isCustomSite) {
+    iframeContainer.dataset.customSite = 'true';
+  }
   setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
   
   // iframe容器不需要特殊的布局设置，CSS Grid会自动处理
@@ -3867,6 +4055,9 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   const iframe = document.createElement('iframe');
   iframe.className = 'ai-iframe';
   iframe.setAttribute('data-site', siteName);
+  if (isCustomSite) {
+    iframe.dataset.customSite = 'true';
+  }
   if (ratingBatchId) {
     iframe.dataset.ratingBatchId = String(ratingBatchId);
   }
@@ -3881,10 +4072,13 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
   
   iframe.addEventListener('load', () => {
     const currentInputQuery = document.getElementById('searchInput')?.value || '';
+    const launchTarget = launchInfo.launchTarget || null;
     const loadBehavior = getIframeLoadBehavior({
       initialQuery: query,
       lastQuery: iframeContainer.dataset.lastQuery,
       currentInputQuery,
+      supportUrlQuery: isCustomSite ? true : Boolean(launchTarget?.queryInUrl),
+      queryInUrl: isCustomSite ? true : Boolean(launchTarget?.queryInUrl),
       clickHandlerAdded
     });
     setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
@@ -3934,11 +4128,12 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId) {
           initialQuery: query,
           lastQuery: latestQuery,
           currentInputQuery,
-          supportUrlQuery: site.supportUrlQuery,
+          supportUrlQuery: isCustomSite ? true : Boolean(launchTarget?.queryInUrl),
+          queryInUrl: isCustomSite ? true : Boolean(launchTarget?.queryInUrl),
           clickHandlerAdded
         }).shouldAutoRunQuery : false;
 
-        if (shouldAutoRunQuery) {
+        if (shouldAutoRunQuery && !isCustomSite) {
           // 使用动态处理函数
           const handler = await getIframeHandler(url, site.name);
           if (handler) {
@@ -4927,8 +5122,13 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
       const {
         persistHistory = true,
         historyId: providedHistoryId = null,
-        preferCurrentPage = false
+        preferCurrentPage = false,
+        targetSiteNames = null
       } = options;
+
+      const targetSiteNameSet = Array.isArray(targetSiteNames) && targetSiteNames.length > 0
+        ? new Set(targetSiteNames.map((name) => String(name || '').trim()).filter(Boolean))
+        : null;
 
       let historyId = providedHistoryId || window._currentHistoryId || null;
       if (persistHistory) {
@@ -4953,14 +5153,30 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
             const url = new URL(iframe.src);
             const domain = url.hostname;
             const siteName = iframe.getAttribute('data-site');
+            if (targetSiteNameSet && !targetSiteNameSet.has(String(siteName || '').trim())) {
+              return;
+            }
             const iframeContainer = iframe.closest('.iframe-container');
             if (iframeContainer) {
               iframeContainer.dataset.lastQuery = query || '';
             }
 
             const siteConfig = sites.find(site => site.name === siteName);
+            const launchTarget = siteConfig
+              ? (SiteLaunchUtils.resolveOfficialLaunchTarget
+                ? SiteLaunchUtils.resolveOfficialLaunchTarget(siteConfig, query)
+                : {
+                    url: siteConfig.url,
+                    queryInUrl: Boolean(query) && siteConfig.supportUrlQuery === true,
+                    shouldAutoRun: Boolean(query) && siteConfig.supportUrlQuery !== true
+                  })
+              : null;
+            if (!siteConfig) {
+              console.log('custom site 保持只打开页面，不执行自动注入:', siteName);
+              return;
+            }
             const fallbackToUrlQuery = () => {
-              if (!(siteConfig && siteConfig.supportUrlQuery)) {
+              if (!(launchTarget && launchTarget.queryInUrl)) {
                 console.log('没有找到处理函数');
                 return;
               }
@@ -4968,7 +5184,7 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
               if (iframeContainer) {
                 setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
               }
-              const nextUrl = siteConfig.url.replace('{query}', encodeURIComponent(query));
+              const nextUrl = launchTarget.url;
               console.log(`为 ${siteName} iframe 生成新的 URL: ${nextUrl}`);
               if (historyId) {
                 const onLoadSendHistoryContext = () => {
@@ -4989,7 +5205,7 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
               }
             };
 
-            if (siteConfig && siteConfig.supportUrlQuery && !preferCurrentPage) {
+            if (launchTarget && launchTarget.queryInUrl && !preferCurrentPage) {
               fallbackToUrlQuery();
             } else {
               getIframeHandler(iframe.src, siteName).then(handler => {
@@ -5011,7 +5227,7 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
                     } catch (_) {}
                   }
                   handler(iframe, query, historyId);
-                } else if (siteConfig && siteConfig.supportUrlQuery) {
+                } else if (launchTarget && launchTarget.queryInUrl) {
                   fallbackToUrlQuery();
                 } else {
                   console.log('没有找到处理函数');
@@ -5112,6 +5328,14 @@ async function loadHistoryIframes(sites, restoreContext = null) {
     resetTimelinePromptSnapshots();
     // 清空现有 iframe
     container.innerHTML = '';
+
+    let siteConfigs = [];
+    try {
+      siteConfigs = await getDefaultSites();
+    } catch (error) {
+      console.warn('加载站点配置失败，历史恢复将使用保存的 URL:', error);
+    }
+    const replaySiteNames = [];
     
     // 调整主容器样式以适应导航栏
     // container.style.marginLeft = '72px';
@@ -5119,7 +5343,15 @@ async function loadHistoryIframes(sites, restoreContext = null) {
     // 为每个站点创建 iframe，直接使用历史记录中的 URL（不进行任何处理）
     sites.forEach(site => {
       const siteName = site.name;
-      const url = site.url; // 直接使用历史记录中保存的 URL
+      const savedUrl = site.url; // 直接使用历史记录中保存的 URL
+      const siteConfig = siteConfigs.find((item) => item.name === siteName) || null;
+      const shouldReplayQueryForSite = !savedUrl || SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(savedUrl, siteName);
+      const url = shouldReplayQueryForSite && siteConfig
+        ? (buildSiteUrlForQuery(siteConfig, '') || savedUrl)
+        : savedUrl;
+      if (shouldReplayQueryForSite) {
+        replaySiteNames.push(siteName);
+      }
       
       // 确保 isFavorite 字段存在（兼容旧数据）
       if (site.isFavorite === undefined) {
@@ -5270,6 +5502,19 @@ async function loadHistoryIframes(sites, restoreContext = null) {
           console.error('恢复收藏提问上下文失败:', error);
         });
       }, 900);
+    }
+
+    if (resolvedRestoreContext?.query && replaySiteNames.length > 0) {
+      setTimeout(() => {
+        runQueryAcrossOpenIframes(resolvedRestoreContext.query, {
+          persistHistory: false,
+          historyId: window._currentHistoryId || null,
+          preferCurrentPage: true,
+          targetSiteNames: replaySiteNames
+        }).catch((error) => {
+          console.error('重放占位历史站点失败:', error);
+        });
+      }, 1200);
     }
     
   } catch (error) {
@@ -5460,6 +5705,15 @@ async function savePKHistory(query) {
           }
         }
         
+        if (url && SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(url, siteName)) {
+          sites.push({
+            name: siteName,
+            url: '',
+            isFavorite: false
+          });
+          continue;
+        }
+
         // 如果未配置 urlFeature，或者 URL 包含 urlFeature，正常保存
         sites.push({
           name: siteName,
@@ -5580,6 +5834,10 @@ async function savePKHistory(query) {
 // 更新历史记录中特定站点的 URL
 async function updateHistorySiteUrl(siteName, url, historyId) {
   try {
+    if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(url, siteName)) {
+      console.log(`⚠️ ${siteName} 的 URL 仍是占位页，不更新历史记录: ${url}`);
+      return;
+    }
     // 获取站点配置，检查 urlFeature
     let siteConfigs = [];
     try {
@@ -6618,26 +6876,6 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-// 初始化导出回答功能
-function initializeExportResponses() {
-  const exportButton = document.getElementById('exportResponsesButton');
-  
-  if (!exportButton) {
-    return;
-  }
-  
-  // 点击导出按钮显示导出模态框
-  exportButton.addEventListener('click', () => {
-    console.log('🎯 导出按钮被点击');
-    trackEvent('iframe_export_click', {
-      trigger: 'button'
-    });
-    showExportModal();
-  });
-  
-  console.log('🎯 导出回答功能已初始化');
 }
 
 // 处理文件选择

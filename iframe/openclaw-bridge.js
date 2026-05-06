@@ -3,7 +3,7 @@
 
   const BRIDGE_VERSION = '1.1.0';
   const DEFAULT_TIMEOUT_MS = 60000;
-  const DEFAULT_SITE_TIMEOUT_MS = 30000;
+  const DEFAULT_SITE_TIMEOUT_MS = 60000;
   const DEFAULT_POLL_INTERVAL_MS = 5000;
   const DEFAULT_MIN_CHARS = 20;
   const DEFAULT_STABLE_ROUNDS = 2;
@@ -84,7 +84,7 @@
       }
 
       return sites
-        .filter((site) => site && site.enabled && !site.hidden)
+        .filter((site) => site && site.enabled && !site.hidden && site.supportIframe !== false)
         .map((site) => String(site.name || '').trim())
         .filter(Boolean);
     } catch (error) {
@@ -189,6 +189,68 @@
 
   function getSiteRuntimeConfig(siteConfig) {
     return siteConfig?.openclawRuntime || {};
+  }
+
+  function buildConfigPreflightResult(siteName, message, siteConfig = null) {
+    const content = String(message || '').trim();
+    return {
+      siteName: String(siteName || '').trim(),
+      status: 'error',
+      content,
+      url: String(siteConfig?.url || '').trim(),
+      length: content.length,
+      extractionMethod: 'config-preflight',
+      error: content,
+      runtimePhase: 'config_preflight',
+      final: true,
+      searchId: '',
+      updatedAt: new Date().toISOString(),
+      runtimeSource: 'config-preflight',
+      attempts: 0,
+      stableRounds: 0,
+      iframeSrc: '',
+      contentPreview: buildContentPreview(content),
+      receivedChildUpdate: false,
+      timeoutHint: ''
+    };
+  }
+
+  async function resolveRequestedSites(siteNames) {
+    const supportedSites = [];
+    const immediateResults = [];
+    const reportedSites = [];
+
+    for (const rawSiteName of siteNames || []) {
+      const siteName = String(rawSiteName || '').trim();
+      if (!siteName) continue;
+      reportedSites.push(siteName);
+
+      const siteConfig = await getSiteConfigByName(siteName);
+      if (!siteConfig) {
+        immediateResults.push(buildConfigPreflightResult(
+          siteName,
+          `No site config found for ${siteName}.`
+        ));
+        continue;
+      }
+
+      if (siteConfig.supportIframe === false) {
+        immediateResults.push(buildConfigPreflightResult(
+          siteName,
+          `${siteName} does not support iframe mode, so OpenClaw cannot run it inside the compare page.`,
+          siteConfig
+        ));
+        continue;
+      }
+
+      supportedSites.push(siteName);
+    }
+
+    return {
+      supportedSites,
+      immediateResults,
+      reportedSites
+    };
   }
 
   function isRateLimitedContent(content, siteConfig) {
@@ -381,6 +443,37 @@
     return `Timed out waiting for ${siteName} after about ${seconds} seconds.${suffix}`;
   }
 
+  function buildContentPreview(content, maxLength = 160) {
+    const normalized = String(content || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    return normalized.slice(0, Math.max(40, Number(maxLength) || 160));
+  }
+
+  function hasChildRuntimeUpdate(item) {
+    if (!item) return false;
+    if (item.runtimeSource && item.runtimeSource !== 'iframe-parent') return true;
+    if (item.url || item.error || item.content) return true;
+    return ['script_start', 'submitted', 'waiting_response', 'streaming', 'ready', 'error', 'timeout']
+      .includes(String(item.runtimePhase || '').trim());
+  }
+
+  function buildTimeoutHint(item) {
+    if (!item) return '';
+    if (!hasChildRuntimeUpdate(item)) {
+      return 'no_runtime_update_from_iframe';
+    }
+    if ((item.runtimePhase === 'submitted' || item.runtimePhase === 'waiting_response') && !String(item.content || '').trim()) {
+      return 'submitted_without_extractable_content';
+    }
+    if (item.runtimePhase === 'streaming') {
+      return 'streaming_never_stabilized';
+    }
+    if (!item.url && item.iframeSrc) {
+      return 'iframe_src_only_no_runtime_url';
+    }
+    return 'generic_timeout';
+  }
+
   function shouldKeepTimeoutContent(item, minChars) {
     const content = String(item?.content || '').trim();
     if (!content) return false;
@@ -400,9 +493,12 @@
       const timeoutMessage = buildSiteTimeoutMessage(item.siteName, timeoutMs, item.status);
       return {
         ...item,
+        url: item.url || item.iframeSrc || '',
         status: 'timeout',
         content: item.content || timeoutMessage,
-        error: timeoutMessage
+        error: timeoutMessage,
+        timeoutHint: item.timeoutHint || buildTimeoutHint(item),
+        contentPreview: buildContentPreview(item.content || timeoutMessage)
       };
     });
   }
@@ -430,11 +526,16 @@
       const timeoutMessage = buildSiteTimeoutMessage(item.siteName, siteTimeoutMs, item.status);
       return {
         ...item,
+        url: item.url || item.iframeSrc || '',
         status: 'timeout',
         content: shouldKeepTimeoutContent(item, minChars) ? item.content : timeoutMessage,
         error: timeoutMessage,
         runtimePhase: 'timeout',
-        final: true
+        final: true,
+        timeoutHint: item.timeoutHint || buildTimeoutHint(item),
+        contentPreview: buildContentPreview(
+          shouldKeepTimeoutContent(item, minChars) ? item.content : timeoutMessage
+        )
       };
     });
   }
@@ -788,19 +889,34 @@
     const siteName = entry?.siteName ? String(entry.siteName).trim() : String(fallbackSiteName || '').trim();
     const content = entry && typeof entry.content === 'string' ? entry.content.trim() : '';
     const url = entry?.url ? String(entry.url).trim() : '';
+    const iframeSrc = entry?.iframeSrc ? String(entry.iframeSrc).trim() : '';
     const runtimePhase = entry?.phase ? String(entry.phase).trim() : 'pending';
     const runtimeError = entry?.error ? String(entry.error).trim() : '';
     const baseItem = {
       siteName,
       status: 'pending',
       content,
-      url,
+      url: url || iframeSrc,
       length: content.length,
       extractionMethod: 'active-report',
       error: runtimeError,
       runtimePhase,
       final: entry?.final === true,
-      searchId: entry?.searchId || ''
+      searchId: entry?.searchId || '',
+      updatedAt: entry?.updatedAt || '',
+      runtimeSource: entry?.source || 'iframe-parent',
+      attempts: Number.isFinite(entry?.attempts) ? entry.attempts : 0,
+      stableRounds: Number.isFinite(entry?.stableRounds) ? entry.stableRounds : 0,
+      iframeSrc,
+      contentPreview: buildContentPreview(content),
+      receivedChildUpdate: hasChildRuntimeUpdate({
+        runtimeSource: entry?.source || 'iframe-parent',
+        runtimePhase,
+        url: url || iframeSrc,
+        error: runtimeError,
+        content
+      }),
+      timeoutHint: ''
     };
 
     if (!entry) {
@@ -810,7 +926,8 @@
     if (runtimePhase === 'timeout') {
       return {
         ...baseItem,
-        status: 'timeout'
+        status: 'timeout',
+        timeoutHint: buildTimeoutHint(baseItem)
       };
     }
 
@@ -1180,6 +1297,9 @@
 
     const query = (typeof opts.query === 'string' ? opts.query : defaults.urlQuery || getSearchQueryFromUi()).trim();
     const requestedSites = parseSites(opts.sites && opts.sites.length ? opts.sites : defaults.urlSites);
+    const requestedSiteResolution = requestedSites.length > 0
+      ? await resolveRequestedSites(requestedSites)
+      : { supportedSites: [], immediateResults: [], reportedSites: [] };
     const callbackUrl = (typeof opts.callbackUrl === 'string' ? opts.callbackUrl : defaults.urlCallback || '').trim();
     const timeoutMs = Math.max(1000, parseNumber(opts.timeoutMs, defaults.urlTimeoutMs));
     const siteTimeoutMs = Math.max(1000, parseNumber(opts.siteTimeoutMs, defaults.urlSiteTimeoutMs));
@@ -1207,18 +1327,27 @@
       results: []
     });
 
-    await ensureRunTriggered(query, forceRun);
-
     const resolvedDefaultSites = requestedSites.length > 0 ? [] : await getDefaultEnabledSites();
-    let frozenTargetSites = requestedSites.length > 0 ? requestedSites.slice() : [];
+    const immediateResults = requestedSiteResolution.immediateResults.slice();
+    const reportedRequestedSites = requestedSiteResolution.reportedSites.slice();
+    let frozenTargetSites = requestedSites.length > 0 ? requestedSiteResolution.supportedSites.slice() : [];
+    const shouldSkipQueryTrigger = requestedSites.length > 0
+      && frozenTargetSites.length === 0
+      && immediateResults.length > 0;
 
-    const waitIframesUntil = Date.now() + waitForIframesMs;
-    while (Date.now() < waitIframesUntil) {
-      if (getOpenedSites().length > 0) break;
-      await sleep(200);
+    if (!shouldSkipQueryTrigger) {
+      await ensureRunTriggered(query, forceRun);
     }
 
-    if (!getSiteRuntimeBridge()) {
+    if (!shouldSkipQueryTrigger) {
+      const waitIframesUntil = Date.now() + waitForIframesMs;
+      while (Date.now() < waitIframesUntil) {
+        if (getOpenedSites().length > 0) break;
+        await sleep(200);
+      }
+    }
+
+    if (!shouldSkipQueryTrigger && !getSiteRuntimeBridge()) {
       throw new Error('aiCompareSiteRuntime is not available on window');
     }
 
@@ -1244,8 +1373,10 @@
       }
 
       finalTargetSites = frozenTargetSites.slice();
+      const reportedTargetSites = requestedSites.length > 0 ? reportedRequestedSites : finalTargetSites;
+      const combinedTargetCount = finalTargetSites.length + immediateResults.length;
 
-      if (finalTargetSites.length === 0) {
+      if (combinedTargetCount === 0) {
         updateDebugState({
           totalSites: 0,
           resolvedSites: 0,
@@ -1253,6 +1384,11 @@
         });
         await sleep(Math.min(pollIntervalMs, 1000));
         continue;
+      }
+
+      if (finalTargetSites.length === 0) {
+        normalizedResults = [];
+        break;
       }
 
       try {
@@ -1279,6 +1415,8 @@
         break;
       }
 
+      const combinedResults = normalizedResults.concat(immediateResults);
+
       const runningResult = buildRunResult({
         runId,
         phase: 'running',
@@ -1290,8 +1428,8 @@
         stableRounds,
         timedOut: false,
         resolvedDefaultSites,
-        targetSites: finalTargetSites,
-        results: normalizedResults
+        targetSites: reportedTargetSites,
+        results: combinedResults
       });
 
       updateDebugState({
@@ -1303,7 +1441,7 @@
       await maybePostProgress(callbackUrl, runningResult, callbackState, false);
 
       const allResolved = normalizedResults.length > 0
-        && normalizedResults.every((item) => TERMINAL_STATUSES.has(item.status));
+        && combinedResults.every((item) => TERMINAL_STATUSES.has(item.status));
 
       let stableEnough = stableRounds === 0;
       if (!stableEnough) {
@@ -1333,6 +1471,9 @@
       normalizedResults = finalizeTimedOutResults(normalizedResults, timeoutMs);
     }
 
+    const finalResults = normalizedResults.concat(immediateResults);
+    const finalReportedSites = requestedSites.length > 0 ? reportedRequestedSites : finalTargetSites;
+
     const result = buildRunResult({
       runId,
       phase: timedOut ? 'timed_out' : 'completed',
@@ -1344,8 +1485,8 @@
       stableRounds,
       timedOut,
       resolvedDefaultSites,
-      targetSites: finalTargetSites,
-      results: normalizedResults
+      targetSites: finalReportedSites,
+      results: finalResults
     });
 
     lastResult = result;

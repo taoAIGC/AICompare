@@ -927,14 +927,16 @@ body.search-bar-bottom #iframes-container {
 .timeline-edge-trigger {
     position: fixed;
     right: 0;
-    top: 0;
-    bottom: 0;
-    width: 28px;
+    top: 50%;
+    width: 36px;
+    height: 72px;
+    transform: translateY(-50%);
     z-index: 1090;
     border: none;
     padding: 0;
     background: transparent;
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .timeline-edge-trigger::after {
@@ -943,7 +945,7 @@ body.search-bar-bottom #iframes-container {
     right: 0;
     top: 50%;
     width: 28px;
-    height: 44px;
+    height: 56px;
     transform: translateY(-50%);
     border: 1px solid #dddddd;
     border-right: none;
@@ -1384,30 +1386,6 @@ body.search-bar-bottom #iframes-container {
     background-color: #f8f9fa;
 }
 
-/* 导出回答按钮样式 */
-.export-responses-btn {
-    background: transparent;
-    border: 1px solid #e0e0e0; /* 添加默认边框 */
-    border-radius: 6px;
-    padding: 0 !important;      /* 强制移除内边距，覆盖通用样式 */
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;    /* 水平居中 */
-    gap: 0;                     /* 移除间距 */
-    font-size: 14px;
-    color: #333;
-    margin-left: auto;
-    flex-shrink: 0;
-    width: 36px !important;     /* 强制设置宽度 */
-    height: 36px !important;    /* 强制设置高度 */
-    min-width: 36px;            /* 确保最小宽度 */
-    min-height: 36px;           /* 确保最小高度 */
-    max-width: 36px;           /* 确保最大宽度 */
-    max-height: 36px;          /* 确保最大高度 */
-}
-
 .timeline-toggle-btn {
     background: transparent;
     border: 1px solid #e0e0e0;
@@ -1437,19 +1415,9 @@ body.search-bar-bottom #iframes-container {
     background: #f6f6f6;
 }
 
-.export-responses-btn:hover {
-    background: transparent;
-    transform: translateY(-1px);
-    box-shadow: none;
-}
 .timeline-toggle-btn:hover {
     background: transparent;
     transform: translateY(-1px);
-    box-shadow: none;
-}
-.export-responses-btn:focus,
-.export-responses-btn:focus-visible {
-    outline: none;
     box-shadow: none;
 }
 .timeline-toggle-btn:focus,
@@ -1458,19 +1426,8 @@ body.search-bar-bottom #iframes-container {
     box-shadow: none;
 }
 
-.export-responses-btn:active {
-    background: rgba(0, 0, 0, 0.1);
-}
 .timeline-toggle-btn:active {
     background: rgba(0, 0, 0, 0.1);
-}
-
-.export-responses-btn:disabled {
-    background: #6c757d;
-    border-color: #6c757d;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
 .timeline-panel {
@@ -1645,31 +1602,6 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     fill: currentColor;
 }
 
-.timeline-item-export {
-    border: 1px solid #dfdfdf;
-    background: #fff;
-    color: #333;
-    border-radius: 8px;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.timeline-item-export:hover {
-    border-color: #111;
-}
-
-.timeline-item-export-icon {
-    width: 16px;
-    height: 16px;
-    display: block;
-}
-
 .timeline-item-favorite {
     border: 1px solid #dfdfdf;
     background: #fff;
@@ -1695,6 +1627,103 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     display: block;
 }
 
+.timeline-copy-preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    z-index: 10020;
+}
+
+.timeline-copy-preview-overlay.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.timeline-copy-preview-modal {
+    width: min(760px, calc(100vw - 24px));
+    max-height: min(78vh, 860px);
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.timeline-copy-preview-close {
+    align-self: flex-end;
+    margin: 12px 12px 0 0;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+}
+
+.timeline-copy-preview-title {
+    padding: 4px 20px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111;
+}
+
+.timeline-copy-preview-meta {
+    padding: 10px 20px 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #707070;
+}
+
+.timeline-copy-preview-content {
+    margin: 14px 20px 0;
+    padding: 16px;
+    border: 1px solid #e8e8e8;
+    border-radius: 14px;
+    background: #fafafa;
+    color: #1f1f1f;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+    flex: 1;
+}
+
+.timeline-copy-preview-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 20px 20px;
+}
+
+.timeline-copy-preview-confirm {
+    border: none;
+    background: #111;
+    color: #fff;
+    border-radius: 12px;
+    min-width: 120px;
+    height: 42px;
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.timeline-copy-preview-confirm:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 @media (max-width: 960px) {
     .timeline-panel {
         top: 76px;
@@ -1708,248 +1737,16 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
         top: auto;
         bottom: 78px;
     }
-}
 
-/* 导出模态框样式 */
-.export-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 20000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.3s ease-out;
-}
+    .timeline-copy-preview-overlay {
+        padding: 12px;
+    }
 
-.export-modal-content {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    animation: slideInUp 0.3s ease-out;
-}
-
-.export-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.export-modal-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-    margin: 0;
-}
-
-.export-close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #999;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s;
-}
-
-/* 开发中功能提示样式 */
-.export-dev-notice {
-    margin-bottom: 20px;
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-    border: 1px solid #ffc107;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
-}
-
-.export-dev-notice-content {
-    color: #856404;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.export-close-btn:hover {
-    background: #f8f9fa;
-    color: #666;
-}
-
-.export-options {
-    margin-bottom: 20px;
-}
-
-.export-option-group {
-    margin-bottom: 16px;
-}
-
-.export-option-label {
-    display: block;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: #333;
-}
-
-.export-format-buttons {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.export-format-btn {
-    padding: 8px 16px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
-    color: #495057;
-}
-
-.export-format-btn:hover {
-    background: #f8f9fa;
-    border-color: #adb5bd;
-}
-
-.export-format-btn.active {
-    background: #007bff;
-    border-color: #007bff;
-    color: white;
-}
-
-.export-site-selection {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-}
-
-.export-site-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f8f9fa;
-}
-
-.export-site-item:last-child {
-    border-bottom: none;
-}
-
-.export-site-checkbox {
-    margin-right: 12px;
-}
-
-.export-site-name {
-    flex: 1;
-    font-size: 14px;
-    color: #333;
-}
-
-.export-preview {
-    margin-top: 20px;
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.export-preview-title {
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #333;
-}
-
-.export-preview-content {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #495057;
-    white-space: pre-wrap;
-}
-
-.export-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #e9ecef;
-}
-
-.export-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.export-btn-primary {
-    background: #007bff;
-    color: white;
-}
-
-.export-btn-primary:hover {
-    background: #0056b3;
-}
-
-.export-btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.export-btn-secondary:hover {
-    background: #545b62;
-}
-
-.export-btn:disabled {
-    background: #e9ecef;
-    color: #6c757d;
-    cursor: not-allowed;
-}
-
-/* 导出进度提示 */
-.export-progress {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 10001;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
-    min-width: 200px;
-    animation: slideInRight 0.3s ease-out;
+    .timeline-copy-preview-modal {
+        width: 100%;
+        max-height: min(82vh, calc(100vh - 24px));
+        border-radius: 16px;
+    }
 }
 
 @keyframes fadeIn {

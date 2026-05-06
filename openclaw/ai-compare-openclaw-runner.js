@@ -11,7 +11,7 @@ let chromiumInstance = null;
 
 const DEFAULT_GUI_WAIT_RESULTS_MS = 90000;
 const DEFAULT_COMPARISON_TIMEOUT_MS = 60000;
-const DEFAULT_SITE_TIMEOUT_MS = 30000;
+const DEFAULT_SITE_TIMEOUT_MS = 60000;
 
 function getChromium() {
   if (!chromiumInstance) {
@@ -652,7 +652,7 @@ function printUsage() {
     '  --wait-results-ms <num>   Optional. In gui mode, max wait for callback results, default 90000',
     '  --cdp-endpoint <url>      Optional. Chrome CDP endpoint, default http://127.0.0.1:9222',
     '  --timeout-ms <number>     Optional. Max wait time, default 60000',
-    '  --site-timeout-ms <num>   Optional. Per-site unresolved timeout, default 30000',
+    '  --site-timeout-ms <num>   Optional. Per-site unresolved timeout, default 60000',
     '  --poll-ms <number>        Optional. Poll interval, default 5000',
     '  --min-chars <number>      Optional. Ready threshold for content length, default 20',
     '  --stable-rounds <number>  Optional. Stable rounds before finish, default 2',

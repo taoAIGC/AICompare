@@ -1,4 +1,6 @@
-importScripts('./config/baseConfig.js');     // 加载基础配置（包含开发环境配置）
+importScripts('./shared/site-launch-utils.js', './config/baseConfig.js');     // 加载共享启动解析器和基础配置
+
+const SiteLaunchUtils = self.SiteLaunchUtils || {};
 
 function getExtensionActionIconPaths() {
   if (self.ExtensionEnvironment && typeof self.ExtensionEnvironment.getActionIconPaths === 'function') {
@@ -468,9 +470,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } 
   else if (message.action === 'processQuery') {
     // 添加对 processQuery 消息的处理
-    console.log('processQuery:', message.query, message.sites);
+    console.log('processQuery:', message.query, message.sites, message.customSiteIds);
     openSearchTabs(message.query, message.sites, {
-      openIframePage: message.openIframePage !== false
+      openIframePage: message.openIframePage !== false,
+      customSiteIds: message.customSiteIds
     }).then((result) => {
       sendResponse({ success: true, result });
     }).catch(error => {
@@ -615,6 +618,85 @@ async function executeSiteHandler(tabId, query, siteHandler) {
   }
 }
 
+function waitForTabComplete(tabId) {
+  return new Promise((resolve) => {
+    const listener = (updatedTabId, info) => {
+      if (updatedTabId === tabId && info.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
+
+async function openOfficialSiteTab(siteConfig, query) {
+  if (!siteConfig) {
+    return null;
+  }
+
+  const launchTarget = SiteLaunchUtils.resolveOfficialLaunchTarget(siteConfig, query);
+  if (!launchTarget.url) {
+    console.warn('站点没有可用的启动 URL:', siteConfig.name);
+    return null;
+  }
+
+  console.log('打开官方站点:', {
+    siteName: siteConfig.name,
+    url: launchTarget.url,
+    shouldAutoRun: launchTarget.shouldAutoRun,
+    source: launchTarget.source
+  });
+
+  const tab = await chrome.tabs.create({
+    url: launchTarget.url,
+    active: true
+  });
+
+  if (launchTarget.shouldAutoRun) {
+    await waitForTabComplete(tab.id);
+    await executeSiteHandler(tab.id, query, {
+      name: siteConfig.name,
+      searchHandler: siteConfig.searchHandler,
+      supportUrlQuery: siteConfig.supportUrlQuery,
+      entryUrl: siteConfig.entryUrl
+    });
+  }
+
+  return {
+    tab,
+    launchTarget
+  };
+}
+
+async function openCustomSiteTab(customSite) {
+  if (!customSite) {
+    return null;
+  }
+
+  const launchTarget = SiteLaunchUtils.resolveCustomLaunchTarget(customSite);
+  if (!launchTarget.url) {
+    console.warn('custom site 没有可用的启动 URL:', customSite.name);
+    return null;
+  }
+
+  console.log('打开 custom site:', {
+    siteName: customSite.name,
+    url: launchTarget.url,
+    supportIframe: customSite.supportIframe === true
+  });
+
+  const tab = await chrome.tabs.create({
+    url: launchTarget.url,
+    active: true
+  });
+
+  return {
+    tab,
+    launchTarget
+  };
+}
+
 // 根据 URL 获取处理函数
 async function getHandlerForUrl(url) {
   try {
@@ -731,35 +813,7 @@ async function getHandlerForUrl(url) {
       return;
     }
 
-      // 判断是否支持URL拼接查询
-      if (siteConfig.supportUrlQuery) {
-        // URL 拼接方式的站点,直接打开新标签页
-      const url = siteConfig.url.replace('{query}', encodeURIComponent(query));
-        console.log('使用URL拼接方式打开:', url);
-      await chrome.tabs.create({ url, active: true });
-      } else {
-        // 需要脚本控制的站点
-        console.log('使用脚本控制方式打开:', siteConfig.url);
-        const tab = await chrome.tabs.create({ url: siteConfig.url, active: true });
-        
-        // 等待标签页加载完成
-        await new Promise((resolve) => {
-          const listener = (tabId, info) => {
-            if (tabId === tab.id && info.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener);
-              resolve();
-            }
-          };
-          chrome.tabs.onUpdated.addListener(listener);
-        });
-        
-        // 执行对应站点的处理函数
-        await executeSiteHandler(tab.id, query, {
-          name: siteConfig.name,
-          searchHandler: siteConfig.searchHandler,
-          supportUrlQuery: siteConfig.supportUrlQuery
-        });
-      }
+    await openOfficialSiteTab(siteConfig, query);
   } catch (error) {
     console.error('单站点搜索失败:', error);
   }
@@ -769,44 +823,67 @@ async function getHandlerForUrl(url) {
 async function openSearchTabs(query, checkedSites = null, options = {}) {
   console.log('开始执行多AI查询 查询词:', query);
   const shouldOpenIframePage = options.openIframePage !== false;
-  const sites = await self.getDefaultSites();
+  const requestedCustomSiteIds = Array.isArray(options.customSiteIds)
+    ? options.customSiteIds.map((id) => String(id || '').trim()).filter(Boolean)
+    : [];
+
+  const [sites, customSites] = await Promise.all([
+    self.getDefaultSites(),
+    typeof self.getCustomSites === 'function' ? self.getCustomSites() : Promise.resolve([])
+  ]);
   
-  if (!sites || !sites.length) {
+  if ((!sites || !sites.length) && (!customSites || !customSites.length)) {
     console.error('未找到AI站点配置');
     return {
       iframeSiteNames: [],
       externalSiteNames: [],
+      customIframeSiteNames: [],
+      customExternalSiteNames: [],
       openedIframePage: false
     };
   }
   
-  // 首先检查是否有符合条件的站点
-
-  const result = checkedSites 
+  const selectedOfficialSites = checkedSites
     ? sites.filter(site => checkedSites.includes(site.name) && !site.hidden)
     : sites.filter(site => site.enabled && !site.hidden);
+  const selectedCustomSites = requestedCustomSiteIds.length > 0
+    ? customSites.filter(site => requestedCustomSiteIds.includes(site.id) || requestedCustomSiteIds.includes(site.name))
+    : [];
     
-  console.log('符合条件的站点:', result);
+  console.log('符合条件的官方站点:', selectedOfficialSites);
+  console.log('符合条件的 customSites:', selectedCustomSites);
 
-  // 过滤出支持 iframe 的站点
-  const iframeSites = result.filter(site => 
-      site.supportIframe === true
-  );
-  const externalSites = result.filter(site =>
-      site.supportIframe !== true
-  );
+  const iframeSites = selectedOfficialSites.filter(site => site.supportIframe === true);
+  const externalSites = selectedOfficialSites.filter(site => site.supportIframe !== true);
+
+  const customIframeSites = shouldOpenIframePage
+    ? selectedCustomSites.filter(site => site.supportIframe === true)
+    : [];
+  const customExternalSites = shouldOpenIframePage
+    ? selectedCustomSites.filter(site => site.supportIframe !== true)
+    : selectedCustomSites;
 
   if (externalSites.length > 0) {
-      console.log('找到不支持 iframe 的站点，将使用新标签页打开:', externalSites);
-      openExternalSitesSequentially(query, externalSites).catch(error => {
-          console.error('逐个打开非 iframe 站点失败:', error);
-      });
+    console.log('找到不支持 iframe 的官方站点，将使用新标签页打开:', externalSites);
+    openSitesSequentially(externalSites, (site) => openOfficialSiteTab(site, query)).catch(error => {
+      console.error('逐个打开非 iframe 官方站点失败:', error);
+    });
+  }
+
+  if (customExternalSites.length > 0) {
+    console.log('找到需要外部打开的 customSites:', customExternalSites);
+    openSitesSequentially(customExternalSites, openCustomSiteTab).catch(error => {
+      console.error('逐个打开 customSites 失败:', error);
+    });
   }
 
   let openedIframePage = false;
 
-  if (iframeSites.length > 0 && shouldOpenIframePage) {
-      console.log('找到支持 iframe 的启用站点:', iframeSites);
+  if ((iframeSites.length > 0 || customIframeSites.length > 0) && shouldOpenIframePage) {
+      console.log('找到支持 iframe 的站点:', {
+        official: iframeSites,
+        custom: customIframeSites
+      });
       
       const newTab = await chrome.tabs.create({
           url: chrome.runtime.getURL(`iframe/iframe.html?query=${encodeURIComponent(query)}`),
@@ -822,7 +899,8 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
               chrome.tabs.sendMessage(newTab.id, {
                   type: 'loadIframes',
                   query: query,
-                  sites: iframeSites
+                  sites: iframeSites,
+                  customSites: customIframeSites
               });
           }
       });
@@ -832,16 +910,18 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
   return {
       iframeSiteNames: iframeSites.map(site => site.name).filter(Boolean),
       externalSiteNames: externalSites.map(site => site.name).filter(Boolean),
+      customIframeSiteNames: customIframeSites.map(site => site.name).filter(Boolean),
+      customExternalSiteNames: customExternalSites.map(site => site.name).filter(Boolean),
       openedIframePage
   };
 }
 
-async function openExternalSitesSequentially(query, sites) {
+async function openSitesSequentially(sites, opener) {
   for (const site of sites) {
     try {
-      await handleSingleSiteSearch(query, site.name);
+      await opener(site);
     } catch (error) {
-      console.error(`非 iframe 站点打开失败: ${site.name}`, error);
+      console.error(`站点打开失败: ${site?.name || 'unknown'}`, error);
     }
   }
 }
@@ -998,7 +1078,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 const WEBDAV_SYNC_KEY      = 'webdavSyncConfig';
 const WEBDAV_SYNC_FILENAME = 'multiAI-settings.json';
 const WEBDAV_SYNC_KEYS = [
-  'buttonConfig', 'sites',
+  'buttonConfig', 'sites', 'customSites',
   'siteSettings', 'disabledSites', 'promptTemplates',
   'favoritePrompts', 'favoriteSites',
 ];

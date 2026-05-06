@@ -356,6 +356,287 @@
     };
   }
 
+  function normalizeTimelineComparableText(text) {
+    return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
+  }
+
+  function normalizeTimelineMatchText(text) {
+    return normalizeTimelineComparableText(text)
+      .normalize('NFKC')
+      .replace(/[\u00A0\u200B-\u200F\uFEFF\s]+/g, '')
+      .trim();
+  }
+
+  function sortNodesByDocumentOrder(nodes) {
+    return [...nodes].sort((a, b) => {
+      if (a === b) return 0;
+      const relation = a.compareDocumentPosition(b);
+      return relation & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+  }
+
+  function pruneNestedTimelineCandidates(nodes) {
+    const orderedNodes = sortNodesByDocumentOrder(nodes || []);
+    return orderedNodes.filter((node, index) => {
+      return !orderedNodes.some((otherNode, otherIndex) => {
+        if (index === otherIndex || !otherNode || otherNode === node) return false;
+        return node.contains(otherNode);
+      });
+    });
+  }
+
+  function isNodeAfter(startNode, candidateNode) {
+    if (!startNode || !candidateNode || startNode === candidateNode) return false;
+    return Boolean(startNode.compareDocumentPosition(candidateNode) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+
+  function isNodeBefore(candidateNode, endNode) {
+    if (!candidateNode || !endNode || candidateNode === endNode) return false;
+    return Boolean(candidateNode.compareDocumentPosition(endNode) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+
+  function isPromptRelatedNode(node, promptRecords) {
+    if (!node) return false;
+    return (promptRecords || []).some((record) => {
+      const promptNode = record?.container || record?.anchor || null;
+      if (!promptNode) return false;
+      return promptNode === node || promptNode.contains(node) || node.contains(promptNode);
+    });
+  }
+
+  function getTimelinePromptConfig(siteConfig) {
+    const fullConfig = siteConfig || {};
+    const userPrompt = fullConfig.userPrompt || {};
+    const contentExtractor = fullConfig.contentExtractor || {};
+
+    return {
+      containerSelectors: toArray(userPrompt.containerSelector || contentExtractor.userMessageSelector),
+      textSelector: userPrompt.textSelector || '',
+      messageNodeSelector: userPrompt.messageNodeSelector || '',
+      requireMessageNode: userPrompt.requireMessageNode === true
+    };
+  }
+
+  function resolveTimelinePromptAnchor(container, promptConfig) {
+    if (!container) return null;
+    if (promptConfig?.messageNodeSelector) {
+      const anchoredNode = container.closest(promptConfig.messageNodeSelector);
+      if (anchoredNode) return anchoredNode;
+      if (promptConfig.requireMessageNode) return null;
+    }
+    return container;
+  }
+
+  function collectTimelinePromptRecords(doc, siteConfig) {
+    const promptConfig = getTimelinePromptConfig(siteConfig);
+    const seenContainers = new Set();
+    const promptRecords = [];
+
+    promptConfig.containerSelectors.forEach((selector) => {
+      safeQueryAll(doc, selector).forEach((container) => {
+        if (seenContainers.has(container)) return;
+        seenContainers.add(container);
+
+        const anchor = resolveTimelinePromptAnchor(container, promptConfig);
+        if (!anchor) return;
+
+        const textNode = promptConfig.textSelector ? container.querySelector(promptConfig.textSelector) : container;
+        const text = normalizeTimelineComparableText(textNode?.textContent || container.textContent || '');
+        if (!text) return;
+
+        promptRecords.push({
+          container,
+          anchor,
+          text,
+          normalizedText: text
+        });
+      });
+    });
+
+    const sortedAnchors = sortNodesByDocumentOrder(promptRecords.map((item) => item.anchor));
+    const orderedRecords = sortedAnchors.map((anchor) => {
+      return promptRecords.find((record) => record.anchor === anchor) || null;
+    }).filter(Boolean);
+
+    const dedupedRecords = [];
+    for (const record of orderedRecords) {
+      const isDuplicate = dedupedRecords.some((existing) => {
+        if (existing.normalizedText !== record.normalizedText) return false;
+        return existing.anchor === record.anchor
+          || existing.anchor.contains(record.anchor)
+          || record.anchor.contains(existing.anchor);
+      });
+
+      if (!isDuplicate) {
+        dedupedRecords.push(record);
+      }
+    }
+
+    return dedupedRecords.map((item, index) => ({
+      ...item,
+      orderIndex: index
+    }));
+  }
+
+  function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
+    const normalizedQuery = normalizeTimelineComparableText(query);
+    if (!normalizedQuery) return null;
+
+    const exactMatches = (promptRecords || []).filter((item) => item.normalizedText === normalizedQuery);
+    if (exactMatches.length > 0) {
+      return exactMatches[Math.min(Math.max(occurrenceIndex || 0, 0), exactMatches.length - 1)];
+    }
+
+    const fuzzyMatches = (promptRecords || []).filter((item) => {
+      return item.normalizedText.includes(normalizedQuery) || normalizedQuery.includes(item.normalizedText);
+    });
+    if (fuzzyMatches.length > 0) {
+      return fuzzyMatches[Math.min(Math.max(occurrenceIndex || 0, 0), fuzzyMatches.length - 1)];
+    }
+
+    const compactQuery = normalizeTimelineMatchText(query);
+    if (!compactQuery) return null;
+
+    const compactMatches = (promptRecords || []).filter((item) => {
+      const compactText = normalizeTimelineMatchText(item.normalizedText);
+      return compactText.includes(compactQuery) || compactQuery.includes(compactText);
+    });
+    if (compactMatches.length > 0) {
+      return compactMatches[Math.min(Math.max(occurrenceIndex || 0, 0), compactMatches.length - 1)];
+    }
+
+    return null;
+  }
+
+  function collectTimelineResponseCandidates(doc, contentExtractor) {
+    const selectors = [
+      ...toArray(contentExtractor?.contentSelectors),
+      ...toArray(contentExtractor?.fallbackSelectors),
+      ...toArray(contentExtractor?.selectors)
+    ];
+    const excludeSelectors = [
+      'nav',
+      'header',
+      'footer',
+      '.sidebar',
+      '.menu',
+      ...(contentExtractor?.excludeSelectors || [])
+    ];
+    const seenNodes = new Set();
+    const candidates = [];
+
+    selectors.forEach((selector) => {
+      safeQueryAll(doc, selector).forEach((node) => {
+        if (seenNodes.has(node)) return;
+        if (excludeSelectors.some((excludeSelector) => {
+          try {
+            return node.closest(excludeSelector);
+          } catch (_) {
+            return false;
+          }
+        })) return;
+        seenNodes.add(node);
+        candidates.push(node);
+      });
+    });
+
+    return pruneNestedTimelineCandidates(candidates);
+  }
+
+  async function extractTimelineContentFromNodes(nodes) {
+    const segments = [];
+    const seenText = new Set();
+
+    for (const node of nodes || []) {
+      await waitForContentLoad(node, 300);
+      const text = normalizeTimelineComparableText(await extractElementContent(node));
+      if (!text || seenText.has(text)) continue;
+      seenText.add(text);
+      segments.push(text);
+    }
+
+    return segments;
+  }
+
+  async function extractTimelineResponseFallback(doc, siteConfig) {
+    const fullConfig = siteConfig || {};
+    const contentExtractor = fullConfig.contentExtractor || {};
+
+    if (contentExtractor.latestVisibleResponse) {
+      const visibleResponseResult = extractLatestVisibleResponse(doc, contentExtractor);
+      const visibleContent = normalizeTimelineComparableText(visibleResponseResult?.content || '');
+      if (visibleContent && visibleResponseResult?.pending !== true) {
+        return {
+          found: true,
+          answers: [visibleContent],
+          content: visibleContent,
+          fallbackUsed: 'latestVisibleResponse'
+        };
+      }
+    }
+
+    return null;
+  }
+
+  async function extractPromptResponseForTimeline(doc, siteConfig, query, occurrenceIndex = 0) {
+    const fullConfig = siteConfig || {};
+    const contentExtractor = fullConfig.contentExtractor || {};
+    const promptRecords = collectTimelinePromptRecords(doc, fullConfig);
+    const matchedPrompt = findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
+
+    if (!matchedPrompt) {
+      if (promptRecords.length === 0) {
+        const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
+        if (fallbackResult) {
+          return fallbackResult;
+        }
+      }
+      return {
+        found: false,
+        error: 'Prompt not found'
+      };
+    }
+
+    const nextPrompt = promptRecords.find((item) => item.orderIndex > matchedPrompt.orderIndex) || null;
+    let responseCandidates = collectTimelineResponseCandidates(doc, contentExtractor).filter((node) => {
+      if (!matchedPrompt.anchor || !node) return false;
+      if (!isNodeAfter(matchedPrompt.anchor, node)) return false;
+      if (nextPrompt && !isNodeBefore(node, nextPrompt.anchor)) return false;
+      if (isPromptRelatedNode(node, promptRecords)) return false;
+      return true;
+    });
+
+    if (responseCandidates.length === 0) {
+      const fallbackNodes = [];
+      toArray(contentExtractor?.messageContainer).forEach((selector) => {
+        safeQueryAll(doc, selector).forEach((node) => {
+          fallbackNodes.push(node);
+        });
+      });
+      responseCandidates = sortNodesByDocumentOrder(fallbackNodes).filter((node) => {
+        if (!matchedPrompt.anchor || !node) return false;
+        if (!isNodeAfter(matchedPrompt.anchor, node)) return false;
+        if (nextPrompt && !isNodeBefore(node, nextPrompt.anchor)) return false;
+        if (isPromptRelatedNode(node, promptRecords)) return false;
+        return true;
+      });
+    }
+
+    if (responseCandidates.length === 0) {
+      const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+    }
+
+    const answers = await extractTimelineContentFromNodes(responseCandidates);
+    return {
+      found: true,
+      answers,
+      content: answers.join('\n\n').trim()
+    };
+  }
+
   function extractLatestVisibleResponse(doc, contentExtractor) {
     const visibleResponseConfig = contentExtractor?.latestVisibleResponse || {};
     const messageSelector = String(visibleResponseConfig.messageSelector || '').trim();
@@ -628,6 +909,13 @@
     extractElementContent,
     extractWithSelectors,
     extractMessagesWithContainer,
+    normalizeTimelineComparableText,
+    normalizeTimelineMatchText,
+    collectTimelinePromptRecords,
+    findTimelinePromptRecord,
+    collectTimelineResponseCandidates,
+    extractTimelineContentFromNodes,
+    extractPromptResponseForTimeline,
     extractDocumentContent,
     resolveDocumentUrl,
     getSiteConfigByName

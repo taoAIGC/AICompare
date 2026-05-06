@@ -127,6 +127,123 @@
     "message": "快捷入口配置",
     "description": "入口配置标题"
   },
+  "launchSettingsTitle": {
+    "message": "自定义站点"
+  },
+  "launchSettingsDescription": {
+    "message": "为官方站点设置默认打开地址，或添加只打开页面的自定义网站。"
+  },
+  "officialEntryUrlTitle": {
+    "message": "官方站点入口 URL"
+  },
+  "officialEntryUrlDescription": {
+    "message": "为支持的官方站点覆盖默认落地页，URL 需要拼接查询词时可使用 {query}。"
+  },
+  "officialEntryUrlEmpty": {
+    "message": "未找到官方站点"
+  },
+  "officialEntryUrlLoadFailed": {
+    "message": "加载官方站点设置失败"
+  },
+  "entryUrlLabel": {
+    "message": "入口 URL"
+  },
+  "entryUrlPlaceholder": {
+    "message": "输入启动地址，或使用 {query}"
+  },
+  "entryUrlHelp": {
+    "message": "留空则使用内置默认地址。"
+  },
+  "entryUrlResetButton": {
+    "message": "重置"
+  },
+  "customSitesTitle": {
+    "message": "自定义网站"
+  },
+  "customSitesDescription": {
+    "message": "只负责打开页面，不做自动输入。选中后不会注入提示词或执行自动化。"
+  },
+  "addCustomSiteButton": {
+    "message": "添加自定义网站"
+  },
+  "customSiteListEmpty": {
+    "message": "暂无自定义网站"
+  },
+  "homepageCustomSiteEmptyText": {
+    "message": "没有自定义站点，"
+  },
+  "homepageCustomSiteEmptyAction": {
+    "message": "去添加"
+  },
+  "homepageCustomSiteEmptySuffix": {
+    "message": "。"
+  },
+  "customSiteListLoadFailed": {
+    "message": "加载自定义网站失败"
+  },
+  "customSiteAddTitle": {
+    "message": "添加自定义网站"
+  },
+  "customSiteEditTitle": {
+    "message": "编辑自定义网站"
+  },
+  "customSiteNameLabel": {
+    "message": "名称"
+  },
+  "customSiteNamePlaceholder": {
+    "message": "例如：DeepSeek 专家模式对话"
+  },
+  "customSiteUrlLabel": {
+    "message": "页面 URL"
+  },
+  "customSiteUrlPlaceholder": {
+    "message": "粘贴要打开的页面地址"
+  },
+  "customSiteEnabledLabel": {
+    "message": "默认打开"
+  },
+  "customSiteSupportIframeLabel": {
+    "message": "在 iframe 对比页中打开"
+  },
+  "customSiteOrderLabel": {
+    "message": "排序"
+  },
+  "customSiteOrderHelp": {
+    "message": "数字越小越靠前显示。"
+  },
+  "customSiteNoteLabel": {
+    "message": "备注"
+  },
+  "customSiteNotePlaceholder": {
+    "message": "可选备注，会在主页里作为悬停提示显示"
+  },
+  "customSiteNoteHelp": {
+    "message": "用于填写简短说明或提醒。"
+  },
+  "customSiteIconLabel": {
+    "message": "图标文件"
+  },
+  "customSiteIconPlaceholder": {
+    "message": "例如：agent.minimax.io.png"
+  },
+  "customSiteIconHelp": {
+    "message": "填写 siteIcons/ 目录下的文件名，留空则使用自动 favicon。"
+  },
+  "customSiteValidationFailed": {
+    "message": "请填写名称和 URL"
+  },
+  "customSiteDeleteConfirm": {
+    "message": "确定要删除这个自定义网站吗？"
+  },
+  "customSiteEnabledBadge": {
+    "message": "已启用"
+  },
+  "customSiteDisabledBadge": {
+    "message": "已禁用"
+  },
+  "customSiteIframeBadge": {
+    "message": "iframe"
+  },
   "inputPositionTitle": {
     "message": "输入框位置",
     "description": "输入框位置设置标题"
@@ -1165,6 +1282,9 @@
   "timelineCopyButton": {
     "message": "复制"
   },
+  "timelineCopying": {
+    "message": "复制中..."
+  },
   "timelineDetectedSites": {
     "message": "已在 $1 个子页面中识别"
   },
@@ -1182,6 +1302,32 @@
   },
   "timelineCopyFailed": {
     "message": "复制失败，请重试"
+  },
+  "timelineCopyPreviewTitle": {
+    "message": "回答汇总"
+  },
+  "timelineCopyPreviewLoading": {
+    "message": "正在收集各站点回答..."
+  },
+  "timelineCopyPreviewSummary": {
+    "message": "已汇总 $1/$2 个子页面的回答，请确认后复制。",
+    "placeholders": {
+      "success_count": {
+        "content": "$1"
+      },
+      "total_count": {
+        "content": "$2"
+      }
+    }
+  },
+  "timelineCopyPreviewEmpty": {
+    "message": "当前没有可复制的回答内容。"
+  },
+  "timelineCopyPreviewLoadFailed": {
+    "message": "加载回答失败，请稍后重试。"
+  },
+  "timelineCopyPreviewConfirm": {
+    "message": "确认复制"
   },
   "timelineSiteNotReady": {
     "message": "页面尚未就绪"

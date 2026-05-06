@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { CDPClient } = require('./cdp-client');
 
 const DEFAULT_EXTENSION_ID = process.env.EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi';
 const DEVTOOLS_ACTIVE_PORT =
@@ -20,61 +21,6 @@ function readChromeEndpoint() {
     throw new Error(`DevToolsActivePort is invalid: ${DEVTOOLS_ACTIVE_PORT}`);
   }
   return `ws://127.0.0.1:${port}${browserPath}`;
-}
-
-class CDPClient {
-  constructor(endpoint) {
-    this.endpoint = endpoint;
-    this.ws = null;
-    this.id = 0;
-    this.pending = new Map();
-  }
-
-  async connect() {
-    await new Promise((resolve, reject) => {
-      const ws = new WebSocket(this.endpoint);
-      this.ws = ws;
-
-      ws.addEventListener('open', () => resolve());
-      ws.addEventListener('error', (error) => reject(error));
-      ws.addEventListener('message', (event) => {
-        const msg = JSON.parse(String(event.data));
-        if (msg.id && this.pending.has(msg.id)) {
-          const pending = this.pending.get(msg.id);
-          this.pending.delete(msg.id);
-          if (msg.error) {
-            pending.reject(new Error(JSON.stringify(msg.error)));
-          } else {
-            pending.resolve(msg.result);
-          }
-        }
-      });
-      ws.addEventListener('close', () => {
-        for (const pending of this.pending.values()) {
-          pending.reject(new Error('CDP connection closed'));
-        }
-        this.pending.clear();
-      });
-    });
-  }
-
-  send(method, params = {}, sessionId = undefined) {
-    return new Promise((resolve, reject) => {
-      const id = ++this.id;
-      this.pending.set(id, { resolve, reject });
-      const payload = { id, method, params };
-      if (sessionId) payload.sessionId = sessionId;
-      this.ws.send(JSON.stringify(payload));
-    });
-  }
-
-  async close() {
-    if (!this.ws) return;
-    await new Promise((resolve) => {
-      this.ws.addEventListener('close', () => resolve(), { once: true });
-      this.ws.close();
-    }).catch(() => {});
-  }
 }
 
 async function createPage(client, url) {
@@ -152,17 +98,43 @@ async function collectResponses(client, sessionId, siteName) {
     client,
     sessionId,
     `(async () => {
-      if (typeof collectResponses !== 'function') {
-        return { ok: false, reason: 'collectResponses_missing' };
+      if (typeof collectResponses === 'function') {
+        const responses = await collectResponses(new Set([${JSON.stringify(siteName)}]));
+        const markdown = typeof generateExportContent === 'function'
+          ? generateExportContent(responses, 'markdown')
+          : '';
+        return {
+          ok: true,
+          source: 'export_responses',
+          responses,
+          markdown
+        };
       }
-      const responses = await collectResponses(new Set([${JSON.stringify(siteName)}]));
-      const markdown = typeof generateExportContent === 'function'
-        ? generateExportContent(responses, 'markdown')
-        : '';
+
+      const runtime = window.__OPENCLAW_LAST_RESULT__ || null;
+      const item = Array.isArray(runtime?.results)
+        ? runtime.results.find((entry) => String(entry?.siteName || '') === ${JSON.stringify(siteName)})
+        : null;
+
+      if (!item) {
+        return { ok: false, reason: 'runtime_result_missing' };
+      }
+
+      const normalizedResponse = {
+        siteName: String(item.siteName || ${JSON.stringify(siteName)}),
+        content: String(item.content || ''),
+        url: String(item.url || ''),
+        status: String(item.status || ''),
+        error: item.error || ''
+      };
+
       return {
         ok: true,
-        responses,
-        markdown
+        source: 'openclaw_runtime',
+        responses: [normalizedResponse],
+        markdown: normalizedResponse.content
+          ? '## ' + normalizedResponse.siteName + '\n\n' + normalizedResponse.content
+          : ''
       };
     })()`
   );

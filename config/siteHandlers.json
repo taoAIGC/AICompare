@@ -1,6 +1,6 @@
 {
   "version": "1.2.7",
-  "lastUpdated": "2026-04-08T00:00:00Z",
+  "lastUpdated": "2026-05-04T13:56:47.698Z",
   "description": "支持重试功能",
   "author": "AIShortcuts",
   "sites": [
@@ -18,13 +18,19 @@
           {
             "action": "focus",
             "selector": "#prompt-textarea",
-            "description": "聚焦ChatGPT输入框"
+            "description": "聚焦ChatGPT输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "#prompt-textarea",
             "inputType": "contenteditable",
-            "description": "设置ChatGPT输入框内容"
+            "description": "设置ChatGPT输入框内容",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -35,17 +41,25 @@
               "blur",
               "focus"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
             "selector": "button[data-testid=\"send-button\"]",
-            "description": "点击发送按钮"
+            "description": "点击发送按钮",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -54,12 +68,17 @@
           {
             "action": "focus",
             "selector": "#prompt-textarea",
-            "description": "聚焦ChatGPT输入框准备文件粘贴"
+            "description": "聚焦ChatGPT输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -176,13 +195,19 @@
           {
             "action": "focus",
             "selector": "[contenteditable=\"true\"]",
-            "description": "聚焦可编辑区域"
+            "description": "聚焦可编辑区域",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "[contenteditable=\"true\"]",
             "inputType": "contenteditable",
-            "description": "设置可编辑区域内容"
+            "description": "设置可编辑区域内容",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -193,18 +218,26 @@
               "blur",
               "focus"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "[contenteditable=\"true\"]",
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -213,12 +246,17 @@
           {
             "action": "focus",
             "selector": "[contenteditable=\"true\"]",
-            "description": "聚焦Gemini输入框准备文件粘贴"
+            "description": "聚焦Gemini输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -341,17 +379,19 @@
           {
             "action": "focus",
             "selector": "div[contenteditable=\"true\"].tiptap",
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "聚焦输入框"
+            "description": "聚焦输入框",
+            "waitForElement": true
           },
           {
             "action": "setValue",
             "selector": "div[contenteditable=\"true\"].tiptap",
             "inputType": "contenteditable",
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "设置输入框的值"
+            "description": "设置输入框的值",
+            "waitForElement": true
           },
           {
             "action": "triggerEvents",
@@ -359,9 +399,10 @@
             "events": [
               "input"
             ],
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true
           },
           {
             "action": "triggerEvents",
@@ -372,14 +413,15 @@
               "blur",
               "focus"
             ],
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "触发完整的输入事件序列"
+            "description": "触发完整的输入事件序列",
+            "waitForElement": true
           },
           {
             "action": "wait",
             "duration": 100,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "等待100ms"
           },
@@ -387,9 +429,10 @@
             "action": "sendKeys",
             "selector": "div[contenteditable=\"true\"].tiptap",
             "keys": "Enter",
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true
           }
         ]
       },
@@ -399,14 +442,16 @@
             "action": "focus",
             "selector": "div[contenteditable=\"true\"].tiptap",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "聚焦Grok输入框准备文件粘贴（支持重试）"
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -496,13 +541,15 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在真实 Chrome 中验证：Claude 当前使用 data-testid=chat-input 的 Tiptap/ProseMirror 输入框，点击 Send message 可创建真实 /chat/<id> 会话；优先使用精确 selector 降低页面改版带来的波动",
+      "note": "已在真实 Chrome 中验证：Claude 当前使用 data-testid=chat-input 的 Tiptap/ProseMirror 输入框，回答正文落在 main .font-claude-response，点击 Send message 可创建真实 /chat/<id> 会话；优先使用精确 selector 降低页面改版带来的波动",
       "searchHandler": {
         "steps": [
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "focus",
@@ -525,7 +572,7 @@
             ],
             "inputType": "contenteditable",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "设置可编辑区域内容（支持重试）"
           },
@@ -543,14 +590,16 @@
               "focus"
             ],
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "触发输入事件（支持重试）"
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms"
+            "description": "等待200ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
@@ -563,7 +612,7 @@
               "button[data-testid=\"send-button\"]"
             ],
             "retryOnDisabled": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "点击Claude发送按钮（支持重试）"
           }
@@ -578,12 +627,17 @@
               "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
               "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
             ],
-            "description": "聚焦Claude输入框准备文件粘贴"
+            "description": "聚焦Claude输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -592,7 +646,26 @@
         ]
       },
       "contentExtractor": {
-        "messageContainer": "[data-test-render-count]",
+        "latestVisibleResponse": {
+          "messageSelector": "main .font-claude-response",
+          "ignoredAncestorSelectors": [
+            "button",
+            "[class*=\"copy\"]",
+            "[class*=\"user\"]",
+            "[class*=\"input\"]",
+            "[class*=\"prompt\"]",
+            ".attachment",
+            "[class*=\"attachment\"]",
+            "textarea",
+            ".transition-all.rounded-lg",
+            "[class*=\"transition-all\"][class*=\"rounded-lg\"]",
+            "[aria-expanded]",
+            "nav",
+            "header",
+            "footer"
+          ]
+        },
+        "messageContainer": "main .font-claude-response",
         "contentSelectors": [
           ".font-claude-response",
           "[data-testid=\"ai-message\"]",
@@ -623,12 +696,15 @@
           "button[aria-expanded]"
         ],
         "fallbackSelectors": [
+          "main .font-claude-response",
+          ".font-claude-response",
           ".claude-response",
           "[class*=\"claude-response\"]",
           "[class*=\"ai-response\"]",
           "main",
           "article"
         ],
+        "exportLatestOnly": true,
         "editModeCheck": "textarea"
       },
       "historyHandler": {
@@ -656,7 +732,7 @@
             "action": "focus",
             "selector": "textarea[formcontrolname=\"promptText\"], textarea.cdk-textarea-autosize",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "聚焦AI Studio提示输入区域（支持重试）"
           },
@@ -665,20 +741,25 @@
             "selector": "textarea[formcontrolname=\"promptText\"], textarea.cdk-textarea-autosize",
             "inputType": "angular",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "设置AI Studio输入内容（Angular FormControl）"
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms，确保Angular变更检测完成"
+            "description": "等待200ms，确保Angular变更检测完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "textarea[formcontrolname=\"promptText\"], textarea.cdk-textarea-autosize",
             "keys": "⌘ + Enter",
-            "description": "发送 ⌘ + Enter (Mac) 或 Ctrl + Enter (Windows) 提交Prompt"
+            "description": "发送 ⌘ + Enter (Mac) 或 Ctrl + Enter (Windows) 提交Prompt",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -688,14 +769,16 @@
             "action": "focus",
             "selector": "textarea[formcontrolname=\"promptText\"], textarea.cdk-textarea-autosize",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "聚焦AI Studio输入框准备文件粘贴"
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -752,12 +835,18 @@
           {
             "action": "focus",
             "selector": "textarea",
-            "description": "聚焦输入框"
+            "description": "聚焦输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "textarea",
-            "description": "设置输入框的值"
+            "description": "设置输入框的值",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -768,18 +857,26 @@
               "blur",
               "focus"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "textarea",
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -788,12 +885,17 @@
           {
             "action": "focus",
             "selector": "textarea",
-            "description": "聚焦输入框准备文件粘贴"
+            "description": "聚焦输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -864,7 +966,7 @@
     },
     {
       "name": "点点",
-      "url": "https://dots.ai/",
+      "url": "https://dots.ai/chat/home/new",
       "enabled": false,
       "supportUrlQuery": false,
       "region": "Global",
@@ -907,7 +1009,9 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待发送按钮进入可点击状态"
+            "description": "等待发送按钮进入可点击状态",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
@@ -920,6 +1024,22 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": ".assistant-message-item",
+          "ignoredAncestorSelectors": [
+            "button",
+            "[class*=\"copy\"]",
+            "[class*=\"input\"]",
+            "[class*=\"prompt\"]",
+            ".attachment",
+            "[class*=\"attachment\"]",
+            "nav",
+            "header",
+            "footer",
+            "aside",
+            "textarea"
+          ]
+        },
         "messageContainer": ".assistant-message-item",
         "contentSelectors": [
           ".prose-dd"
@@ -962,7 +1082,10 @@
               "textarea[placeholder=\"发消息...\"]",
               "textarea[data-testid=\"chat_input_input\"]"
             ],
-            "description": "聚焦豆包输入框"
+            "description": "聚焦豆包输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
@@ -970,7 +1093,10 @@
               "textarea[placeholder=\"发消息...\"]",
               "textarea[data-testid=\"chat_input_input\"]"
             ],
-            "description": "设置豆包输入框的值"
+            "description": "设置豆包输入框的值",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
@@ -979,7 +1105,10 @@
               "textarea[data-testid=\"chat_input_input\"]"
             ],
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -991,12 +1120,17 @@
               "textarea[placeholder=\"发消息...\"]",
               "textarea[data-testid=\"chat_input_input\"]"
             ],
-            "description": "聚焦豆包输入框准备文件粘贴"
+            "description": "聚焦豆包输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1085,7 +1219,10 @@
               "textarea[placeholder=\"请输入您的问题\"]",
               "textarea[placeholder*=\"请输入\"]"
             ],
-            "description": "聚焦推荐框或输入框"
+            "description": "聚焦推荐框或输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
@@ -1094,7 +1231,10 @@
               "textarea[placeholder=\"请输入您的问题\"]",
               "textarea[placeholder*=\"请输入\"]"
             ],
-            "description": "设置秘塔输入框的值"
+            "description": "设置秘塔输入框的值",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -1106,7 +1246,10 @@
             "events": [
               "input"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
@@ -1116,7 +1259,10 @@
               "textarea[placeholder*=\"请输入\"]"
             ],
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -1129,12 +1275,17 @@
               "textarea[placeholder=\"请输入您的问题\"]",
               "textarea[placeholder*=\"请输入\"]"
             ],
-            "description": "聚焦秘塔AI输入框准备文件粘贴"
+            "description": "聚焦秘塔AI输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1164,8 +1315,12 @@
         "urlFeature": "/search-v2/"
       },
       "userPrompt": {
-        "containerSelector": "span.MuiBox-root.css-403oub",
-        "textSelector": "span.MuiBox-root.css-403oub > span[style*=\"margin-right\"]"
+        "containerSelector": [
+          ".search-title_result-title__Qtgg4",
+          ".resultTitle",
+          "[class*=\"result-title\"]"
+        ],
+        "textSelector": ""
       },
       "icon": "metaso.cn.png",
       "type": "information"
@@ -1184,14 +1339,20 @@
           {
             "action": "focus",
             "selector": ".yc-editor",
-            "description": "聚焦文心一言编辑器"
+            "description": "聚焦文心一言编辑器",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": ".yc-editor",
             "inputType": "special",
             "customSetValue": "wenxin",
-            "description": "设置文心一言特殊编辑器内容"
+            "description": "设置文心一言特殊编辑器内容",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -1201,18 +1362,23 @@
               "change"
             ],
             "inputType": "special",
-            "description": "触发特殊输入事件"
+            "description": "触发特殊输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
             "selector": "#sendBtn",
             "retryOnDisabled": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "点击发送按钮（支持重试）"
           }
@@ -1223,12 +1389,17 @@
           {
             "action": "focus",
             "selector": ".yc-editor",
-            "description": "聚焦文心一言编辑器准备文件粘贴"
+            "description": "聚焦文心一言编辑器准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1308,50 +1479,55 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
+      "note": "需要先聚焦 ql-editor，再点击 #yuanbao-send-btn；Enter 不是稳定的提交方式。",
       "searchHandler": {
         "steps": [
           {
             "action": "focus",
-            "selector": "[contenteditable=\"true\"]",
-            "maxAttempts": 5,
+            "selector": "div.ql-editor[contenteditable=\"true\"]",
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "聚焦可编辑区域"
+            "description": "聚焦元宝输入框",
+            "waitForElement": true
           },
           {
             "action": "setValue",
-            "selector": "[contenteditable=\"true\"]",
+            "selector": "div.ql-editor[contenteditable=\"true\"]",
             "inputType": "contenteditable",
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "设置可编辑区域内容"
+            "description": "设置元宝输入框内容",
+            "waitForElement": true
           },
           {
             "action": "triggerEvents",
-            "selector": "[contenteditable=\"true\"]",
+            "selector": "div.ql-editor[contenteditable=\"true\"]",
             "events": [
               "input",
               "change",
               "blur",
               "focus"
             ],
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "触发输入事件"
+            "description": "触发元宝输入事件",
+            "waitForElement": true
           },
           {
             "action": "wait",
-            "duration": 100,
-            "description": "等待100ms"
+            "duration": 200,
+            "description": "等待发送按钮启用",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
-            "action": "sendKeys",
-            "selector": "[contenteditable=\"true\"]",
-            "keys": "Enter",
+            "action": "click",
+            "selector": "#yuanbao-send-btn",
+            "retryOnDisabled": true,
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
-            "description": "发送回车键（支持重试）"
+            "description": "点击元宝发送按钮"
           }
         ]
       },
@@ -1359,13 +1535,18 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "[contenteditable=\"true\"]",
-            "description": "聚焦可编辑区域准备文件粘贴"
+            "selector": "div.ql-editor[contenteditable=\"true\"]",
+            "description": "聚焦元宝输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1374,6 +1555,33 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": ".agent-chat__list__item--ai",
+          "ignoredAncestorSelectors": [
+            ".hyc-component-reasoner",
+            "[class*=\"reasoner\"]",
+            "[class*=\"think-header\"]",
+            "nav",
+            "header",
+            "footer",
+            ".sidebar",
+            ".menu",
+            ".input",
+            ".prompt",
+            "[class*=\"input\"]",
+            "[class*=\"prompt\"]",
+            "[class*=\"user\"]",
+            "[class*=\"question\"]",
+            ".copy-button",
+            "[class*=\"copy\"]",
+            ".regenerate-button",
+            "[class*=\"regenerate\"]",
+            ".stop-button",
+            "[class*=\"stop\"]",
+            ".attachment",
+            "[class*=\"attachment\"]"
+          ]
+        },
         "messageContainer": ".agent-chat__list__item--ai",
         "contentSelectors": [
           ".agent-chat__conv--ai__speech_show"
@@ -1408,6 +1616,21 @@
         "exportLatestOnly": true
       },
       "openclawRuntime": {
+        "pendingContentPatterns": [
+          "Hi~ 我是元宝",
+          "Hi, 今天从哪里开始",
+          "你身边的智能助手",
+          "Yuanbao",
+          "Deep Thinking",
+          "Download Center",
+          "Download for Desktop",
+          "AI-generated content",
+          "AI-generated content, for reference only",
+          "Searching for information",
+          "Searching the web",
+          "内容由AI生成，仅供参考",
+          "Drag the file here to upload"
+        ],
         "pendingShell": {
           "signals": [
             "Hi~ 我是元宝",
@@ -1472,7 +1695,10 @@
             "action": "click",
             "selector": "text:agree",
             "required": false,
-            "description": "可选：关闭可能出现的条款同意层"
+            "description": "可选：关闭可能出现的条款同意层",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "focus",
@@ -1507,7 +1733,9 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待输入状态同步"
+            "description": "等待输入状态同步",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
@@ -1590,7 +1818,9 @@
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待输入状态同步"
+            "description": "等待输入状态同步",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
@@ -1616,7 +1846,9 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待输入框聚焦稳定"
+            "description": "等待输入框聚焦稳定",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1635,7 +1867,11 @@
             ".assistant-name",
             ".conversation-bottom",
             ".operate-wrap",
-            ".answer-operate"
+            ".answer-operate",
+            ".code-box",
+            "pre",
+            "code",
+            "[class*=\"code-box\"]"
           ],
           "ignoredTextPatterns": [
             "^ChatGLM$",
@@ -1653,9 +1889,7 @@
           "div.answer-content .markdown-body.md-body.tl",
           "div.answer-content-wrap .markdown-body.md-body.tl",
           "div.markdown-body.md-body.tl",
-          "div.answer-content-wrap",
-          "div.code-box",
-          "p"
+          "div.answer-content-wrap"
         ],
         "userMessageSelector": "div.question-text-style, div.question-txt, div.conversation.question",
         "exportLatestOnly": true,
@@ -1663,8 +1897,7 @@
           "div.answer-content .markdown-body.md-body.tl",
           "div.answer-content-wrap .markdown-body.md-body.tl",
           "div.markdown-body.md-body.tl",
-          "div.answer-content-wrap",
-          "div.code-box"
+          "div.answer-content-wrap"
         ],
         "fallbackSelectors": [
           "div.answer-content .markdown-body.md-body.tl",
@@ -1688,7 +1921,11 @@
           ".stop-button",
           "[class*=\"stop\"]",
           ".attachment",
-          "[class*=\"attachment\"]"
+          "[class*=\"attachment\"]",
+          "div.code-box",
+          "pre",
+          "code",
+          "[class*=\"code-box\"]"
         ]
       },
       "openclawRuntime": {
@@ -1718,7 +1955,7 @@
             "action": "focus",
             "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "聚焦 Lexical 编辑器输入框（支持重试）"
           },
@@ -1727,7 +1964,7 @@
             "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
             "inputType": "contenteditable",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "设置 Lexical 编辑器内容（自动创建 span[data-lexical-text] 结构）"
           },
@@ -1739,21 +1976,23 @@
               "change"
             ],
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "触发输入事件（支持重试）"
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
             "keys": "Enter",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "发送回车键提交（支持重试）"
           }
@@ -1765,14 +2004,16 @@
             "action": "focus",
             "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
             "waitForElement": true,
-            "maxAttempts": 5,
+            "maxAttempts": 10,
             "retryInterval": 200,
             "description": "聚焦Kimi Lexical编辑器输入框准备文件粘贴（支持重试）"
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1847,36 +2088,50 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
+      "note": "根页就是工作区，写入 Slate 编辑器后点击发送消息按钮。",
       "searchHandler": {
         "steps": [
           {
             "action": "focus",
-            "selector": "[data-slate-editor=\"true\"]",
-            "description": "聚焦输入框（Slate 编辑器）"
+            "selector": [
+              "div[role=\"textbox\"][data-slate-editor=\"true\"]",
+              "[data-slate-editor=\"true\"]"
+            ],
+            "description": "聚焦输入框（Slate 编辑器）",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
-            "selector": "[data-slate-editor=\"true\"]",
+            "selector": [
+              "div[role=\"textbox\"][data-slate-editor=\"true\"]",
+              "[data-slate-editor=\"true\"]"
+            ],
             "inputType": "contenteditable",
-            "description": "通过 beforeinput 事件写入 Slate 编辑器（已内置状态同步）"
+            "description": "通过 beforeinput 事件写入 Slate 编辑器（已内置状态同步）",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms让 Slate 状态同步并启用发送按钮"
+            "description": "等待200ms让 Slate 状态同步并启用发送按钮",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
-            "action": "sendKeys",
-            "selector": "[data-slate-editor=\"true\"]",
-            "keys": "Enter",
-            "description": "发送回车键"
-          },
-          {
-            "action": "custom",
-            "customAction": "send_message",
-            "messageType": "tongyi",
-            "description": "发送消息给父窗口"
+            "action": "click",
+            "selector": [
+              "button[aria-label=\"发送消息\"]",
+              "button.send-button"
+            ],
+            "description": "点击发送消息按钮",
+            "retryOnDisabled": true,
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -1885,12 +2140,17 @@
           {
             "action": "focus",
             "selector": "[data-slate-editor=\"true\"]",
-            "description": "聚焦通义千问输入框准备文件粘贴"
+            "description": "聚焦通义千问输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -1950,6 +2210,14 @@
         ]
       },
       "openclawRuntime": {
+        "pendingContentPatterns": [
+          "新建对话",
+          "我的空间",
+          "智能体",
+          "对话分组",
+          "下载电脑端",
+          "API服务"
+        ],
         "pendingShell": {
           "signals": [
             "Qwen0115",
@@ -1968,7 +2236,7 @@
         "containerSelector": ".message-card-wrap.question, .chat-question-card-wrap, .chat-question-wrap",
         "textSelector": ".question-text-card, [class*=\"message-select-content\"]"
       },
-      "icon": "chat.qwen.ai.png",
+      "icon": "www.qianwen.com.svg",
       "type": "information"
     },
     {
@@ -1979,43 +2247,28 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
+      "note": "需要先写入 textarea.message-input-textarea，再点击发送消息按钮；不要只依赖 Enter。",
       "searchHandler": {
         "steps": [
           {
             "action": "focus",
-            "selector": [
-              "textarea#userInput",
-              "textarea[aria-label*=\"message\" i]",
-              "textarea[placeholder]",
-              "textarea"
-            ],
+            "selector": "textarea.message-input-textarea",
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
-            "description": "聚焦输入框"
+            "description": "聚焦Qwen输入框"
           },
           {
             "action": "setValue",
-            "selector": [
-              "textarea#userInput",
-              "textarea[aria-label*=\"message\" i]",
-              "textarea[placeholder]",
-              "textarea"
-            ],
+            "selector": "textarea.message-input-textarea",
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
-            "description": "设置输入框的值"
+            "description": "设置Qwen输入框的值"
           },
           {
             "action": "triggerEvents",
-            "selector": [
-              "textarea#userInput",
-              "textarea[aria-label*=\"message\" i]",
-              "textarea[placeholder]",
-              "textarea"
-            ],
+            "selector": "textarea.message-input-textarea",
             "events": [
               "input",
               "change",
@@ -2025,32 +2278,26 @@
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
-            "description": "触发输入事件"
+            "description": "触发Qwen输入事件"
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms让输入状态同步"
+            "description": "等待发送按钮启用",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
-            "action": "sendKeys",
+            "action": "click",
             "selector": [
-              "textarea#userInput",
-              "textarea[aria-label*=\"message\" i]",
-              "textarea[placeholder]",
-              "textarea"
+              "div.message-input-right-button-send button.send-button",
+              "button.send-button"
             ],
-            "keys": "Enter",
+            "retryOnDisabled": true,
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
-            "description": "发送回车键"
-          },
-          {
-            "action": "custom",
-            "customAction": "send_message",
-            "messageType": "qwen",
-            "description": "发送消息给父窗口"
+            "description": "点击Qwen发送消息按钮"
           }
         ]
       },
@@ -2058,13 +2305,18 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea",
-            "description": "聚焦Qwen输入框准备文件粘贴"
+            "selector": "textarea.message-input-textarea",
+            "description": "聚焦Qwen输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -2074,7 +2326,7 @@
       },
       "contentExtractor": {
         "latestVisibleResponse": {
-          "messageSelector": ".response-message-content.t2t.phase-answer, .qwen-chat-message-assistant .response-message-content, .qwen-chat-message-assistant",
+          "messageSelector": ".custom-qwen-markdown, .response-message-content.t2t.phase-answer, .qwen-chat-message-assistant .response-message-content, .qwen-chat-message-assistant [class*=\"qwen-markdown\"], .qwen-chat-message-assistant",
           "ignoredAncestorSelectors": [
             ".qwen-chat-thinking-status-card-content",
             ".qwen-chat-search-card-source",
@@ -2090,12 +2342,14 @@
           ]
         },
         "selectors": [
+          ".custom-qwen-markdown",
           ".response-message-content.t2t.phase-answer",
           ".qwen-chat-message-assistant .response-message-content",
           ".qwen-chat-message-assistant [class*=\"qwen-markdown\"]",
           ".qwen-chat-message-assistant"
         ],
         "fallbackSelectors": [
+          "#chat-message-container .custom-qwen-markdown",
           "#chat-message-container .qwen-chat-message-assistant .response-message-content",
           "#chat-messages-scroll-container .qwen-chat-message-assistant",
           "#chat-message-container"
@@ -2135,8 +2389,10 @@
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": ".qwen-chat-message-user, .chat-user-message",
-        "textSelector": "p.whitespace-pre-wrap.user-message-content, .chunked-text-renderer-root"
+        "containerSelector": "#chat-message-container .qwen-chat-message-user, #chat-message-container .chat-user-message, .qwen-chat-message-user, .chat-user-message, [id^=\"qwen-chat-message-user-\"]",
+        "textSelector": ".user-message-content, .chunked-text-renderer-root, [class*=\"message-content\"], [class*=\"user-content\"], [class*=\"text\"]",
+        "messageNodeSelector": ".qwen-chat-message-user, .chat-user-message, [id^=\"qwen-chat-message-user-\"]",
+        "requireMessageNode": false
       },
       "icon": "chat.qwen.ai.png",
       "type": "information"
@@ -2155,12 +2411,18 @@
           {
             "action": "focus",
             "selector": "textarea",
-            "description": "聚焦输入框"
+            "description": "聚焦输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "textarea",
-            "description": "设置输入框的值"
+            "description": "设置输入框的值",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -2171,18 +2433,26 @@
               "blur",
               "focus"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "textarea",
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -2294,7 +2564,9 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms让输入状态同步"
+            "description": "等待200ms让输入状态同步",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
@@ -2317,12 +2589,17 @@
           {
             "action": "focus",
             "selector": "textarea#userInput",
-            "description": "聚焦Copilot输入框准备文件粘贴"
+            "description": "聚焦Copilot输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -2371,7 +2648,9 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待输入框聚焦稳定"
+            "description": "等待输入框聚焦稳定",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -2437,7 +2716,10 @@
             "selector": ".GrowingTextArea_growWrap__im5W3",
             "inputType": "special",
             "customSetValue": "poe",
-            "description": "设置POE特殊输入框的值"
+            "description": "设置POE特殊输入框的值",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -2445,17 +2727,25 @@
             "events": [
               "input"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
             "selector": "button[data-button-send=\"true\"]",
-            "description": "点击POE发送按钮"
+            "description": "点击POE发送按钮",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -2464,12 +2754,17 @@
           {
             "action": "focus",
             "selector": ".GrowingTextArea_growWrap__im5W3 textarea",
-            "description": "聚焦POE输入框准备文件粘贴"
+            "description": "聚焦POE输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -2478,6 +2773,22 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": "[class*=\"MessageBubble\"][class*=\"leftSide\"], [data-message-author-role=\"assistant\"], [class*=\"BotMessage\"]",
+          "ignoredAncestorSelectors": [
+            "button",
+            "[class*=\"copy\"]",
+            "[class*=\"input\"]",
+            "[class*=\"prompt\"]",
+            ".attachment",
+            "[class*=\"attachment\"]",
+            "[class*=\"MarkdownCodeBlock_codeHeader\"]",
+            ".sidebar",
+            "nav",
+            "header",
+            "footer"
+          ]
+        },
         "messageContainer": "[class*=\"MessageBubble\"][class*=\"leftSide\"], [data-message-author-role=\"assistant\"], [class*=\"BotMessage\"]",
         "contentSelectors": [
           "[class*=\"Markdown_markdownContainer\"]"
@@ -2493,6 +2804,7 @@
           "button",
           "[class*=\"MarkdownCodeBlock_codeHeader\"]"
         ],
+        "userMessageSelector": "[data-message-author-role=\"user\"], [class*=\"user-message\"], [class*=\"UserMessage\"], [class*=\"messageRow\"][class*=\"human\"]",
         "exportLatestOnly": true
       },
       "historyHandler": {
@@ -2519,12 +2831,18 @@
           {
             "action": "focus",
             "selector": "textarea",
-            "description": "聚焦输入框"
+            "description": "聚焦输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "textarea",
-            "description": "设置输入框的值"
+            "description": "设置输入框的值",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -2535,18 +2853,26 @@
               "blur",
               "focus"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "textarea",
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -2555,12 +2881,17 @@
           {
             "action": "focus",
             "selector": "textarea",
-            "description": "聚焦输入框准备文件粘贴"
+            "description": "聚焦输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -2607,13 +2938,19 @@
           {
             "action": "focus",
             "selector": "[contenteditable=\"true\"], .ProseMirror",
-            "description": "聚焦ProseMirror输入框"
+            "description": "聚焦ProseMirror输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "[contenteditable=\"true\"], .ProseMirror",
             "inputType": "contenteditable",
-            "description": "设置输入框内容"
+            "description": "设置输入框内容",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -2624,18 +2961,26 @@
               "blur",
               "focus"
             ],
-            "description": "触发输入事件"
+            "description": "触发输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
-            "description": "等待100ms"
+            "description": "等待100ms",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "sendKeys",
             "selector": "[contenteditable=\"true\"], .ProseMirror",
             "keys": "Enter",
-            "description": "发送回车键"
+            "description": "发送回车键",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -2644,12 +2989,17 @@
           {
             "action": "focus",
             "selector": "[contenteditable=\"true\"], .ProseMirror",
-            "description": "聚焦输入框准备文件粘贴"
+            "description": "聚焦输入框准备文件粘贴",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待200ms确保聚焦完成"
+            "description": "等待200ms确保聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -2689,8 +3039,8 @@
       "supportUrlQuery": false,
       "region": "China",
       "hidden": false,
-      "supportIframe": true,
-      "note": "",
+      "supportIframe": false,
+      "note": "已在真实页面验证：agent.minimax.io 返回 X-Frame-Options: SAMEORIGIN，不能走 iframe；输入框为 Tiptap/ProseMirror，点击 #input-send-icon 可创建 /chat?id=... 会话。",
       "searchHandler": {
         "steps": [
           {
@@ -2727,7 +3077,9 @@
           {
             "action": "wait",
             "duration": 900,
-            "description": "等待发送按钮变为可点状态"
+            "description": "等待发送按钮变为可点状态",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
@@ -2735,7 +3087,10 @@
               "#input-send-icon > div",
               "#input-send-icon"
             ],
-            "description": "点击 MiniMax Agent 发送按钮"
+            "description": "点击 MiniMax Agent 发送按钮",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -2886,7 +3241,10 @@
             "action": "click",
             "selector": "text:agree",
             "required": false,
-            "description": "关闭可选的 Cookie 同意弹窗"
+            "description": "关闭可选的 Cookie 同意弹窗",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
@@ -2894,12 +3252,17 @@
               "text:新建项目",
               "text:create new project"
             ],
-            "description": "进入 Nano Banana 新建项目页"
+            "description": "进入 Nano Banana 新建项目页",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 1500,
-            "description": "等待项目编辑器加载"
+            "description": "等待项目编辑器加载",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "focus",
@@ -2935,12 +3298,17 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待页面响应输入"
+            "description": "等待页面响应输入",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
             "selector": "text:arrow_forward",
-            "description": "点击 Nano Banana 右侧创建按钮"
+            "description": "点击 Nano Banana 右侧创建按钮",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -2950,7 +3318,10 @@
             "action": "click",
             "selector": "text:agree",
             "required": false,
-            "description": "关闭可选的 Cookie 同意弹窗"
+            "description": "关闭可选的 Cookie 同意弹窗",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "click",
@@ -2958,12 +3329,17 @@
               "text:新建项目",
               "text:create new project"
             ],
-            "description": "进入 Nano Banana 新建项目页"
+            "description": "进入 Nano Banana 新建项目页",
+            "retryOnDisabled": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 1500,
-            "description": "等待项目编辑器加载"
+            "description": "等待项目编辑器加载",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "focus",
@@ -2976,7 +3352,9 @@
           {
             "action": "wait",
             "duration": 200,
-            "description": "等待输入区域聚焦完成"
+            "description": "等待输入区域聚焦完成",
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "paste",
@@ -3001,12 +3379,18 @@
           {
             "action": "focus",
             "selector": "textarea[role=\"combobox\"]",
-            "description": "聚焦 Google Translate 源文本输入框"
+            "description": "聚焦 Google Translate 源文本输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
             "selector": "textarea[role=\"combobox\"]",
-            "description": "设置 Google Translate 源文本内容"
+            "description": "设置 Google Translate 源文本内容",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -3017,7 +3401,10 @@
               "blur",
               "focus"
             ],
-            "description": "触发 Google Translate 输入事件"
+            "description": "触发 Google Translate 输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },
@@ -3046,7 +3433,10 @@
           {
             "action": "focus",
             "selector": "#tta_input_ta",
-            "description": "聚焦 Bing Translate 源文本输入框"
+            "description": "聚焦 Bing Translate 源文本输入框",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "setValue",
@@ -3057,7 +3447,10 @@
               "selector": "#tta_input_ta",
               "method": "textContent"
             },
-            "description": "设置 Bing Translate 源文本内容（contenteditable 文本节点）"
+            "description": "设置 Bing Translate 源文本内容（contenteditable 文本节点）",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           },
           {
             "action": "triggerEvents",
@@ -3068,7 +3461,10 @@
               "blur",
               "focus"
             ],
-            "description": "触发 Bing Translate 输入事件"
+            "description": "触发 Bing Translate 输入事件",
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200
           }
         ]
       },

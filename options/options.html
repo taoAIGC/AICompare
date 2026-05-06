@@ -20,6 +20,10 @@
           <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
           <span data-i18n="configButtonTitle">快捷入口设置</span>
         </a>
+        <a href="#launch-settings" class="action-link nav-link" data-section="launch-settings">
+          <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+          <span data-i18n="launchSettingsTitle">自定义站点</span>
+        </a>
         <a href="#disabled-sites" class="action-link nav-link" data-section="disabled-sites">
           <img class="action-link-icon" src="../icons/close.svg" alt="" aria-hidden="true">
           <span data-i18n="disabledSitesTitle">禁用网站</span>
@@ -49,6 +53,34 @@
           <h1 data-i18n="configButtonTitle">快捷入口设置</h1>
           <div class="site-section">
             <div id="buttonSiteConfigs" class="site-configs"></div>
+          </div>
+        </section>
+
+        <!-- 启动网址设置 -->
+        <section id="launch-settings" class="settings-section">
+          <h1 data-i18n="launchSettingsTitle">自定义站点</h1>
+          <p class="section-description" data-i18n="launchSettingsDescription">为官方站点设置默认打开地址，或添加只打开页面的自定义网站。</p>
+
+          <div class="site-section">
+            <h2 data-i18n="officialEntryUrlTitle">官方站点入口 URL</h2>
+            <p class="section-description" data-i18n="officialEntryUrlDescription">为支持的官方站点覆盖默认落地页，URL 需要拼接查询词时可使用 {query}。</p>
+            <div id="officialEntryUrlConfigs" class="site-configs"></div>
+          </div>
+
+          <div id="custom-sites-settings" class="site-section" style="margin-top: 28px;">
+            <h2 data-i18n="customSitesTitle">自定义网站</h2>
+
+            <div class="template-header" style="margin-bottom: 20px;">
+              <button id="addCustomSiteBtn" class="btn-primary" style="
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+              ">
+                <span>+ </span><span data-i18n="addCustomSiteButton">添加自定义网站</span>
+              </button>
+            </div>
+
+            <div id="customSitesAdminList" class="site-configs"></div>
           </div>
         </section>
 
@@ -387,11 +419,159 @@
       </div>
     </main>
   </div>
+
+  <div id="customSiteDialog" class="template-dialog" style="display: none;">
+    <div class="dialog-overlay" id="customSiteDialogOverlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    "></div>
+    <div class="dialog-content" style="
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      padding: 0;
+      max-width: 560px;
+      width: 92%;
+      z-index: 1001;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+    ">
+      <div class="dialog-header" style="
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      ">
+        <h3 id="customSiteDialogTitle" data-i18n="customSiteAddTitle" style="margin: 0; font-size: 18px;">添加自定义网站</h3>
+        <button class="dialog-close" id="customSiteDialogClose" style="
+          background: none;
+          border: none;
+          font-size: 20px;
+          cursor: pointer;
+          color: #999;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">×</button>
+      </div>
+      <div class="dialog-body" style="padding: 20px 24px;">
+        <input type="hidden" id="customSiteId">
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="customSiteName" data-i18n="customSiteNameLabel" style="
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+          ">名称</label>
+          <input type="text" id="customSiteName" data-i18n-placeholder="customSiteNamePlaceholder" placeholder="例如：DeepSeek 专家模式对话" maxlength="80" style="
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="customSiteUrl" data-i18n="customSiteUrlLabel" style="
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+          ">页面 URL</label>
+          <input type="url" id="customSiteUrl" data-i18n-placeholder="customSiteUrlPlaceholder" placeholder="粘贴要直接打开的页面地址" style="
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px; display: flex; gap: 16px; flex-wrap: wrap;">
+          <label style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+          ">
+            <input type="checkbox" id="customSiteEnabled" checked>
+            <span data-i18n="customSiteEnabledLabel">默认打开</span>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="customSiteOrder" data-i18n="customSiteOrderLabel" style="
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+          ">排序</label>
+          <input type="number" id="customSiteOrder" min="0" max="9999" value="0" style="
+            width: 120px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+          ">
+          <div class="help-text" data-i18n="customSiteOrderHelp" style="
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+          ">数字越小越靠前显示。</div>
+        </div>
+      </div>
+      <div class="dialog-footer" style="
+        padding: 16px 24px 20px;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      ">
+        <button id="cancelCustomSite" class="btn-secondary" data-i18n="cancelButton" style="
+          background: #f5f5f5;
+          color: #666;
+          border: 1px solid #ddd;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        ">取消</button>
+        <button id="saveCustomSite" class="btn-primary" data-i18n="saveButton" style="
+          background: #4CAF50;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        ">保存</button>
+      </div>
+    </div>
+  </div>
   
   <!-- Toast提示 -->
   <div id="toast" class="toast"></div>
 
   <script src="../config/firebaseConfig.js"></script>
+  <script src="../shared/site-launch-utils.js"></script>
   <script src="../config/baseConfig.js"></script>
   <script src="../firebase/firebase-auth.js"></script>
   <script src="../shared/prompt-template-utils.js"></script>

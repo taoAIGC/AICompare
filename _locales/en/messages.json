@@ -132,6 +132,123 @@
     "message": "Shortcut Entry Configuration",
     "description": "Title for shortcut entry configuration"
   },
+  "launchSettingsTitle": {
+    "message": "Custom sites"
+  },
+  "launchSettingsDescription": {
+    "message": "Set a default opening URL for official sites or add standalone custom sites."
+  },
+  "officialEntryUrlTitle": {
+    "message": "Official site entry URLs"
+  },
+  "officialEntryUrlDescription": {
+    "message": "Override the default landing page for supported official sites. Use {query} when the URL should include the search text."
+  },
+  "officialEntryUrlEmpty": {
+    "message": "No official sites found"
+  },
+  "officialEntryUrlLoadFailed": {
+    "message": "Failed to load official site settings"
+  },
+  "entryUrlLabel": {
+    "message": "Entry URL"
+  },
+  "entryUrlPlaceholder": {
+    "message": "Enter a launch URL or use {query}"
+  },
+  "entryUrlHelp": {
+    "message": "Leave blank to use the built-in default URL."
+  },
+  "entryUrlResetButton": {
+    "message": "Reset"
+  },
+  "customSitesTitle": {
+    "message": "Custom sites"
+  },
+  "customSitesDescription": {
+    "message": "Open a page only. Selected custom sites do not inject text or run automation."
+  },
+  "addCustomSiteButton": {
+    "message": "Add custom site"
+  },
+  "customSiteListEmpty": {
+    "message": "No custom sites yet"
+  },
+  "homepageCustomSiteEmptyText": {
+    "message": "No custom sites yet, "
+  },
+  "homepageCustomSiteEmptyAction": {
+    "message": "add one"
+  },
+  "homepageCustomSiteEmptySuffix": {
+    "message": "."
+  },
+  "customSiteListLoadFailed": {
+    "message": "Failed to load custom sites"
+  },
+  "customSiteAddTitle": {
+    "message": "Add custom site"
+  },
+  "customSiteEditTitle": {
+    "message": "Edit custom site"
+  },
+  "customSiteNameLabel": {
+    "message": "Name"
+  },
+  "customSiteNamePlaceholder": {
+    "message": "e.g. DeepSeek expert chat"
+  },
+  "customSiteUrlLabel": {
+    "message": "Page URL"
+  },
+  "customSiteUrlPlaceholder": {
+    "message": "Paste the page URL to open"
+  },
+  "customSiteEnabledLabel": {
+    "message": "Open by default"
+  },
+  "customSiteSupportIframeLabel": {
+    "message": "Open in iframe comparison"
+  },
+  "customSiteOrderLabel": {
+    "message": "Order"
+  },
+  "customSiteOrderHelp": {
+    "message": "Lower numbers appear first."
+  },
+  "customSiteNoteLabel": {
+    "message": "Note"
+  },
+  "customSiteNotePlaceholder": {
+    "message": "Optional note shown as a tooltip on the homepage"
+  },
+  "customSiteNoteHelp": {
+    "message": "Use this for short reminders or context."
+  },
+  "customSiteIconLabel": {
+    "message": "Icon file"
+  },
+  "customSiteIconPlaceholder": {
+    "message": "e.g. agent.minimax.io.png"
+  },
+  "customSiteIconHelp": {
+    "message": "Enter a filename from the siteIcons/ folder. Leave blank to use the automatic favicon."
+  },
+  "customSiteValidationFailed": {
+    "message": "Please fill in a name and URL"
+  },
+  "customSiteDeleteConfirm": {
+    "message": "Delete this custom site?"
+  },
+  "customSiteEnabledBadge": {
+    "message": "Enabled"
+  },
+  "customSiteDisabledBadge": {
+    "message": "Disabled"
+  },
+  "customSiteIframeBadge": {
+    "message": "Iframe"
+  },
   "inputPositionTitle": {
     "message": "Input Position",
     "description": "Input position section title"
@@ -1170,6 +1287,9 @@
   "timelineCopyButton": {
     "message": "Copy"
   },
+  "timelineCopying": {
+    "message": "Copying..."
+  },
   "timelineDetectedSites": {
     "message": "Detected in $1 sub-pages"
   },
@@ -1187,6 +1307,32 @@
   },
   "timelineCopyFailed": {
     "message": "Copy failed. Please try again."
+  },
+  "timelineCopyPreviewTitle": {
+    "message": "Responses summary"
+  },
+  "timelineCopyPreviewLoading": {
+    "message": "Collecting responses from all sub-pages..."
+  },
+  "timelineCopyPreviewSummary": {
+    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "placeholders": {
+      "success_count": {
+        "content": "$1"
+      },
+      "total_count": {
+        "content": "$2"
+      }
+    }
+  },
+  "timelineCopyPreviewEmpty": {
+    "message": "No copyable responses were found in the current sub-pages."
+  },
+  "timelineCopyPreviewLoadFailed": {
+    "message": "Failed to load responses. Please try again."
+  },
+  "timelineCopyPreviewConfirm": {
+    "message": "Confirm copy"
   },
   "timelineSiteNotReady": {
     "message": "Page is not ready"

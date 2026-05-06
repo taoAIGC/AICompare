@@ -301,35 +301,29 @@ async function openHistoryItem(item) {
         const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
         
         // 打开新标签页
-        await chrome.tabs.create({
+        const newTab = await chrome.tabs.create({
             url: iframeUrl,
             active: true
         });
-        
-        // 等待标签页加载完成后，需要设置每个 iframe 的 URL
-        // 由于 iframe.html 会根据 sites 参数创建 iframe，但我们需要使用历史记录中的具体 URL
-        // 所以我们需要通过消息传递来设置每个 iframe 的 URL
-        setTimeout(async () => {
-            // 获取当前窗口的所有标签页
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs.length > 0) {
-                const currentTab = tabs[0];
-                if (currentTab.url && currentTab.url.includes('iframe.html')) {
-                    // 发送消息到 iframe.html，设置每个 iframe 的 URL
-                    try {
-                        await chrome.tabs.sendMessage(currentTab.id, {
-                            type: 'loadHistoryIframes',
-                            sites: item.sites,
-                            historyId: item.id  // 传递历史记录 ID
-                        });
-                    } catch (error) {
-                        console.error('发送消息失败:', error);
-                        // 如果消息发送失败，可能是因为页面还没有完全加载
-                        // 这种情况下，iframe.html 会根据 query 和 sites 参数自动创建 iframe
-                    }
+
+        // 现代记录会在 iframe.html 首屏直接根据 historyId 自恢复。
+        // 仅对缺少 historyId 的旧记录保留消息兜底，并使用目标 tabId + onUpdated 避免发错标签页。
+        if (!item.id && newTab?.id) {
+            chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+                if (tabId !== newTab.id || changeInfo.status !== 'complete') {
+                    return;
                 }
-            }
-        }, 1000);
+
+                chrome.tabs.onUpdated.removeListener(listener);
+                chrome.tabs.sendMessage(newTab.id, {
+                    type: 'loadHistoryIframes',
+                    sites: item.sites,
+                    historyId: item.id || null
+                }).catch((error) => {
+                    console.error('发送历史记录恢复消息失败:', error);
+                });
+            });
+        }
         
     } catch (error) {
         console.error('打开历史记录失败:', error);

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const http = require('http');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -8,6 +9,10 @@ const REPO_ROOT = path.join(__dirname, '..');
 const DEFAULT_REPORT_DIR = path.join(__dirname, 'reports');
 const DEFAULT_GROUP = 'core';
 const DEFAULT_TIMEOUT_MS = 8 * 60 * 1000;
+const DEFAULT_DEVTOOLS_ACTIVE_PORT = path.join(
+  process.env.HOME || '',
+  'Library/Application Support/Google/Chrome/DevToolsActivePort'
+);
 
 const CHECKS = [
   {
@@ -213,6 +218,7 @@ const EXTERNAL_STATUS_PATTERNS = [
 function parseArgs(argv) {
   const options = {
     group: DEFAULT_GROUP,
+    help: false,
     writeReport: false,
     reportPath: '',
     strictExternal: false,
@@ -227,6 +233,11 @@ function parseArgs(argv) {
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
+
+    if (token === '--help' || token === '-h') {
+      options.help = true;
+      continue;
+    }
 
     if (token === '--group' && argv[index + 1]) {
       options.group = String(argv[index + 1]).trim();
@@ -291,6 +302,28 @@ function parseArgs(argv) {
   }
 
   return options;
+}
+
+function printUsage() {
+  const usage = [
+    'Usage:',
+    '  node debug/run-live-site-checks.js [options]',
+    '',
+    'Options:',
+    '  --group <name>           Check group: core | full | all (default: core)',
+    '  --checks <a,b,c>         Run only the named check ids',
+    '  --sites <a,b,c>          Run checks that cover the named site(s)',
+    '  --timeout-ms <ms>        Per-check timeout (default: 480000)',
+    '  --write-report [path]    Persist JSON report to debug/reports or a custom path',
+    '  --strict-external        Treat login/rate-limit/blocked as hard failures',
+    '  --fail-on-coverage-gap   Fail when configured sites have no live verifier coverage',
+    '  --static-only            Run only static config checks',
+    '  --live-only              Run only live checks',
+    '  --list                   Print available checks as JSON',
+    '  --help, -h              Show this help'
+  ].join('\n');
+
+  console.log(usage);
 }
 
 function formatTimestamp(date) {
@@ -381,8 +414,109 @@ function parseJsonOutput(output) {
   }
 }
 
+function readChromeCdpEndpoint() {
+  const portFile = process.env.DEVTOOLS_ACTIVE_PORT || DEFAULT_DEVTOOLS_ACTIVE_PORT;
+  if (!fs.existsSync(portFile)) {
+    return {
+      ok: false,
+      reason: `Chrome DevToolsActivePort is missing: ${portFile}`
+    };
+  }
+
+  let raw = '';
+  try {
+    raw = fs.readFileSync(portFile, 'utf8').trim();
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `Unable to read DevToolsActivePort: ${error.message}`
+    };
+  }
+
+  const lines = raw.split('\n');
+  const port = String(lines[0] || '').trim();
+  const browserPath = String(lines[1] || '').trim();
+  if (!port || !browserPath) {
+    return {
+      ok: false,
+      reason: `DevToolsActivePort is invalid: ${portFile}`
+    };
+  }
+
+  return {
+    ok: true,
+    portFile,
+    port,
+    browserPath
+  };
+}
+
+function probeChromeCdp() {
+  const endpoint = readChromeCdpEndpoint();
+  if (!endpoint.ok) {
+    return Promise.resolve(endpoint);
+  }
+
+  return new Promise((resolve) => {
+    const request = http.get(
+      {
+        host: '127.0.0.1',
+        port: Number(endpoint.port),
+        path: '/json/version',
+        timeout: 1500
+      },
+      (response) => {
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          if (response.statusCode !== 200) {
+            resolve({
+              ok: false,
+              reason: `Chrome CDP probe failed with HTTP ${response.statusCode} on port ${endpoint.port}`
+            });
+            return;
+          }
+
+          try {
+            const payload = JSON.parse(body || '{}');
+            resolve({
+              ok: true,
+              portFile: endpoint.portFile,
+              port: endpoint.port,
+              browserPath: endpoint.browserPath,
+              webSocketDebuggerUrl: payload.webSocketDebuggerUrl || ''
+            });
+          } catch (error) {
+            resolve({
+              ok: false,
+              reason: `Chrome CDP probe returned invalid JSON: ${error.message}`
+            });
+          }
+        });
+      }
+    );
+
+    request.on('timeout', () => {
+      request.destroy(new Error('timeout'));
+    });
+
+    request.on('error', (error) => {
+      resolve({
+        ok: false,
+        reason: `Chrome CDP is unreachable on port ${endpoint.port}: ${error.message}`
+      });
+    });
+  });
+}
+
 function classifyFailure(output) {
   const combined = String(output || '');
+  if (/DevToolsActivePort|CDP|Chrome DevTools|ErrorEvent/i.test(combined)) {
+    return 'environment_blocked';
+  }
   if (/timed out|timeout|请求超时/i.test(combined)) {
     return 'timeout';
   }
@@ -444,6 +578,26 @@ function runCheck(check, timeoutMs) {
   };
 }
 
+function buildEnvBlockedResult(check, reason) {
+  const now = new Date().toISOString();
+  return {
+    id: check.id,
+    kind: check.kind,
+    label: check.label,
+    script: check.script,
+    siteNames: check.siteNames,
+    status: 'environment_blocked',
+    exitCode: null,
+    signal: null,
+    startedAt: now,
+    finishedAt: now,
+    durationMs: 0,
+    parsed: null,
+    stdoutPreview: '',
+    stderrPreview: reason
+  };
+}
+
 function listChecks() {
   const payload = CHECKS.map((check) => ({
     id: check.id,
@@ -462,8 +616,13 @@ function summarize(results) {
   }, {});
 }
 
-function main() {
+async function main() {
   const options = parseArgs(process.argv.slice(2));
+
+  if (options.help) {
+    printUsage();
+    return;
+  }
 
   if (options.list) {
     listChecks();
@@ -476,7 +635,14 @@ function main() {
   }
 
   const coverage = buildCoverageReport();
-  const results = checks.map((check) => runCheck(check, options.timeoutMs));
+  const requiresCdp = checks.some((check) => check.kind === 'live');
+  const cdpStatus = requiresCdp ? await probeChromeCdp() : null;
+  const results = checks.map((check) => {
+    if (check.kind === 'live' && cdpStatus && !cdpStatus.ok) {
+      return buildEnvBlockedResult(check, cdpStatus.reason);
+    }
+    return runCheck(check, options.timeoutMs);
+  });
   const hardFailureCount = results.filter((item) => isHardFailure(item.status, options.strictExternal)).length;
   const coverageGapCount = coverage.uncoveredSites.length;
 
@@ -494,6 +660,17 @@ function main() {
       staticOnly: options.staticOnly,
       liveOnly: options.liveOnly
     },
+    environment: cdpStatus
+      ? {
+          cdpRequired: requiresCdp,
+          cdpAvailable: cdpStatus.ok === true,
+          cdpReason: cdpStatus.ok ? '' : cdpStatus.reason
+        }
+      : {
+          cdpRequired: false,
+          cdpAvailable: null,
+          cdpReason: ''
+        },
     summary: summarize(results),
     coverage,
     results
@@ -513,9 +690,7 @@ function main() {
   process.exit(payload.ok ? 0 : 1);
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error(error.stack || String(error));
   process.exit(1);
-}
+});

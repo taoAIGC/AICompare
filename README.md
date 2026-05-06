@@ -19,9 +19,10 @@
 - **Loading status**: Each embedded iframe shows a top-center loading state before script execution starts.
 - **Layout**: Switch between 1 / 2 / 3 / 4 columns.
 - **File upload**: Upload files (images, documents, etc.) and send them to all AI sites in one go.
-- **Export**: Export all AI responses as a single file (e.g. Markdown).
 - **History**: History drawer lists recent comparison sessions; click to reopen a session.
 - **Query suggestions**: Prompt templates appear as buttons above the input; one click fills the query (e.g. `风险分析：「{query}」`). On `homepage` and `iframe`, suggestions are filtered by the currently selected site type.
+- **Launch URLs**: Official sites can use a custom `entryUrl` so the homepage, iframe comparison page, and external shortcuts open a saved session URL instead of the root page. Use `{query}` when the URL should include the search text.
+- **Custom sites**: Add standalone sites that only open the page. They do not inject prompts or run automation, and can optionally carry a note tooltip plus an icon filename for iframe navigation.
 - **Favorite query**: Star the current query to save it to Favorites.
 - **Site selection**: Choose which AI sites to load and save as default (collection mode settings).
 
@@ -77,6 +78,8 @@
 #### 9. Options page
 
 - **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`).
+- **Launch settings**: Customize official site entry URLs and manage standalone custom sites.
+- **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
 - **Prompt templates**: Add / edit / delete templates (name, query text with `{query}`, type, display order). Template type uses the same candidate set as site config types.
 - **Links**: Open History page, Favorites page.
@@ -118,13 +121,20 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 ### Development / Live verification
 
 - For AI site adapter debugging, the repo includes real-browser live verifier scripts under `debug/`.
+- The packaged MV3 extension no longer includes any Firebase JS SDK CDN imports; sync/auth use local extension code plus Firebase REST endpoints so store builds avoid Blue Argon remote-hosted-code violations.
+- Site handler synchronization now reads the bundled `config/siteHandlers.json` only; it no longer fetches handler logic from GitHub raw at runtime.
 - Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
-- Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow.
+- Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow. `node debug/inspect-claude-response.js` prints the outer shell versus the `main .font-claude-response` answer body.
+- Timeline copy now keeps each site response as one block, so multi-paragraph answers stay together instead of being split into numbered sub-answers.
 - ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, `debug/verify-metaso-live.js`, `debug/verify-ai-studio-live.js`, `debug/verify-yuanbao-live.js`, `debug/verify-qianwen-live.js`, and `debug/verify-qwen-live.js`.
+- Yuanbao / Qwen / 千问 verifiers now follow the explicit send-button or new-chat bootstrap paths exposed by the live pages, instead of relying on Enter alone.
 - `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]`, and submits through the arrow-up send button.
 - Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
+- The default retry ceiling for configured step retries is now 10 attempts.
+- Config-driven `sendKeys` steps now honor `waitForElement`, `maxAttempts`, and `retryInterval`, so Enter-based submits can retry like `focus` / `setValue` / `triggerEvents`.
+- Timeline copy now shows a "Copying..." toast first and falls back to `execCommand('copy')` if `navigator.clipboard.writeText` fails.
 - A scheduled real-browser sweep can be run with `node debug/run-live-site-checks.js --group core --write-report`.
 - `--group core` is intended for daily smoke checks on the highest-risk adapters; `--group full` adds the broader verifier set and logic/config probes.
 - The aggregated report includes pass/fail status, soft external failures such as login/rate-limit, and the current coverage gap list for configured sites that still do not have dedicated live verifiers.
@@ -169,6 +179,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **导出**：将所有 AI 的回答导出为一个文件（如 Markdown）。
 - **历史**：历史抽屉展示近期对比记录，点击可重新打开当次对比。
 - **查询建议**：输入框上方展示提示词模板按钮，点击即可填入（如「风险分析：「{query}」」）。在 `homepage` 和 `iframe` 中，联想模板会按当前选择的站点类型过滤。
+- **启动网址**：官方站点可以单独配置 `entryUrl`，让主页、iframe 对比页和外部快捷入口直接打开已存在的会话 URL，而不是始终回到根页面。URL 需要带查询词时可使用 `{query}`。
+- **自定义网站**：可添加只负责打开页面的独立网站，不做提示词注入或自动化操作，还可以附带备注和图标文件名，方便在主页和 iframe 导航中识别。
 - **收藏当前问题**：可将当前问题加星，保存到收藏记录。
 - **站点选择**：选择要加载的 AI 站点，并保存为合集模式默认。
 
@@ -221,6 +233,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 #### 9. 选项页
 
 - **快捷入口设置**：开关 悬浮球、划词搜索、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。
+- **启动网址设置**：可配置官方站点入口 URL，并管理独立的自定义网站。
+- **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
 - **提示词模板**：增删改模板（名称、带 `{query}` 的查询模板、类型、排序）。模板类型与站点配置里的 `type` 候选项保持一致。
 - **入口**：历史记录页、收藏记录页。
@@ -262,13 +276,20 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 ### 开发 / 实时验证
 
 - 仓库在 `debug/` 目录下提供了面向真实浏览器会话的 AI 站点验证脚本，便于排查站点适配问题。
+- 打包后的 MV3 扩展不再包含 Firebase JS SDK 的 CDN `import`；同步/登录走扩展内本地代码配合 Firebase REST 接口，以避免 Blue Argon 的远程托管代码拦截。
+- 站点处理器同步现在只读取扩展包内的 `config/siteHandlers.json`，不再在运行时从 GitHub raw 拉取处理器逻辑。
 - 目前 core 端到端验证已覆盖 ChatGPT、Gemini、DeepSeek、Grok、Claude、MiniMax、Manus、点点、Nano Banana、Google Translate、Bing Translate。
-- Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。
+- Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。`node debug/inspect-claude-response.js` 会把外层壳层和 `main .font-claude-response` 的答案正文分别打印出来。
+- 时间线复制现在会把每个站点的回答保留为一个整体，多段落内容不会再被拆成编号子回答。
 - ChatGPT / Gemini / DeepSeek 也已支持走扩展自身端到端链路的验证脚本：`node debug/verify-chatgpt-live.js`、`node debug/verify-gemini-live.js`、`node debug/verify-deepseek-live.js`。
 - 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`、`debug/verify-ai-studio-live.js`、`debug/verify-yuanbao-live.js`、`debug/verify-qianwen-live.js`、`debug/verify-qwen-live.js`。
+- 元宝 / Qwen / 千问 的验证脚本现已改为走页面上的真实发送按钮或“新建对话”引导路径，而不是只依赖 Enter。
 - `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]`，发送方式为点击箭头发送按钮。
 - Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
+- 配置步骤的默认重试上限现在是 10 次。
+- 配置驱动的 `sendKeys` 步骤现在也会遵循 `waitForElement`、`maxAttempts` 和 `retryInterval`，因此回车提交可以像 `focus` / `setValue` / `triggerEvents` 一样重试。
+- 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
 - 面向真实 Chrome 的定期巡检可通过 `node debug/run-live-site-checks.js --group core --write-report` 执行。
 - `--group core` 适合每天跑核心站点烟雾检查；`--group full` 会额外跑更广的 verifier 以及逻辑 / 配置探针。
 - 汇总报告会同时给出通过 / 失败状态、登录失效 / 限额等软失败分类，以及“当前哪些已配置站点还没有专用 live verifier 覆盖”的缺口清单。
@@ -299,10 +320,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-04 20:32:41 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-06 13:21:32 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.gitignore`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -313,36 +333,48 @@ Last auto-update / 最近自动更新：2026-05-04 20:32:41 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `M` `background.js`
+- `M` `config/baseConfig.js`
 - `M` `config/siteHandlers.json`
-- `A` `debug/extension-flow-common.js`
-- `A` `debug/launchd/com.aicompare.site-checks.plist.template`
-- `A` `debug/run-live-site-checks.js`
-- `A` `debug/validate-site-configs.js`
-- `A` `debug/verify-chatgpt-live.js`
-- `A` `debug/verify-deepseek-live.js`
-- `A` `debug/verify-dots-ai-config.js`
-- `A` `debug/verify-dots-ai-live.js`
-- `A` `debug/verify-gemini-live.js`
-- `A` `debug/verify-nano-banana-live.js`
-- `M` `iframe/export-responses.js`
+- `M` `contact/contact.html`
+- `M` `debug/debug-storage.html`
+- `M` `debug/extension-flow-common.js`
+- `M` `debug/run-live-site-checks.js`
+- `M` `debug/verify-dots-ai-live.js`
+- `M` `debug/verify-nano-banana-live.js`
+- `A` `docs/superpowers/plans/2026-05-04-entry-url-and-custom-sites.md`
+- `A` `docs/superpowers/specs/2026-05-04-entry-url-and-custom-sites-design.md`
+- `M` `favorites/favorites.html`
+- `M` `firebase/firebase-sync.js`
+- `M` `history/history.html`
+- `M` `history/history.js`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `iframe/openclaw-bridge.js`
+- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
-- `M` `openclaw-extension/lib/defaults.js`
-- `M` `openclaw-extension/lib/formatters.js`
+- `M` `openclaw/README.md`
 - `M` `openclaw/ai-compare-openclaw-fast.js`
 - `M` `openclaw/ai-compare-openclaw-runner.js`
-- `A` `shared/extraction-core.js`
+- `M` `options/options.css`
+- `M` `options/options.html`
+- `M` `options/options.js`
+- `M` `shared/extraction-core.js`
+- `M` `shared/iframe-query-run-utils.mjs`
+- `A` `shared/site-launch-utils.js`
+- `A` `siteIcons/www.qianwen.com.svg`
 
 ### Recent commits / 最近提交
+- `054839e` 2026-05-04 V3.1.0 支持时间线、复制回答
 - `9bf7958` 2026-05-02 V3.0.1 支持龙虾插件模式
 - `ed56762` 2026-05-01 V2.21.9 收起输入框
 - `c0a228a` 2026-04-30 V2.17.8 龙虾支持、发送消息后清空输入框
 - `44a31f8` 2026-04-20 V 2.21.7 支持点点，默认模板增加翻译到中文
-- `660c1c6` 2026-04-12 V2.21.6 修复豆包
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

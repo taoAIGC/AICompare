@@ -53,19 +53,20 @@
         .filter(Boolean);
       const content = normalizeTimelineQuery(response?.content);
       const error = normalizeTimelineQuery(response?.error);
-      let bodyLines = ['未提取到回答'];
+      let bodyText = '未提取到回答';
 
       if (error) {
-        bodyLines = [`提取失败：${error}`];
-      } else if (answers.length) {
-        bodyLines = answers.map((answer, index) => `回答${index + 1}：\n${answer}`);
+        bodyText = `提取失败：${error}`;
       } else if (content) {
-        bodyLines = [content];
+        // Keep a single site-level answer block; paragraph breaks stay inside content.
+        bodyText = content;
+      } else if (answers.length) {
+        bodyText = answers.join('\n\n');
       }
 
       lines.push('');
       lines.push(`【${siteName}】`);
-      lines.push(bodyLines.join('\n\n'));
+      lines.push(bodyText);
     }
 
     return lines.join('\n').trim();

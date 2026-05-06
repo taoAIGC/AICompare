@@ -66,6 +66,8 @@ Fast path for OpenClaw:
 node openclaw/ai-compare-openclaw-fast.js --query "你好世界"
 ```
 
+Per-site unresolved timeout defaults to 60 seconds. Override it with `--site-timeout-ms` when a site needs longer to settle.
+
 Only add `--sites` when the user explicitly named sites:
 
 ```bash

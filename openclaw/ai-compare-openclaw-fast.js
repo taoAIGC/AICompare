@@ -30,7 +30,7 @@ function buildRunnerArgs(args) {
     '--query', String(args.query || ''),
     '--wait-results-ms', '90000',
     '--timeout-ms', '60000',
-    '--site-timeout-ms', '30000',
+    '--site-timeout-ms', '60000',
     '--poll-ms', '5000',
     '--min-chars', '20',
     '--stable-rounds', '2',

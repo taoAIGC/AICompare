@@ -1,5 +1,6 @@
 
 console.log('🎯 inject.js 脚本已加载');
+const SiteLaunchUtils = window.SiteLaunchUtils || {};
 
 // 从 DOM 节点获取 React Fiber（用于 Slate 等 React 编辑器）
 function getReactFiber(domNode) {
@@ -57,7 +58,7 @@ let __lastStableSearchRuntime = null;
 
 const ACTIVE_SEARCH_MONITOR_INTERVAL_MS = 1500;
 const ACTIVE_SEARCH_MONITOR_SETTLE_MS = 400;
-const ACTIVE_SEARCH_MONITOR_TIMEOUT_MS = 30000;
+const ACTIVE_SEARCH_MONITOR_TIMEOUT_MS = 60000;
 const ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS = 2;
 
 function t(key, fallback = '', substitutions = undefined) {
@@ -660,6 +661,8 @@ function createRetryExhaustedError(message) {
   return error;
 }
 
+const DEFAULT_STEP_MAX_ATTEMPTS = 10;
+
 function reportStepRetry(attempts, maxAttempts) {
   if (!__currentInjectStepMeta) return;
   const description = __currentInjectStepMeta.description || __currentInjectStepMeta.action || '';
@@ -681,7 +684,7 @@ function getStepTimeoutMs(step) {
   if (!step) return 15000;
   if (Number.isFinite(step.timeoutMs)) return step.timeoutMs;
   const retryInterval = step.retryInterval || 200;
-  const maxAttempts = step.maxAttempts || (step.waitForElement ? 5 : (step.retryOnDisabled ? 5 : 1));
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : (step.retryOnDisabled ? DEFAULT_STEP_MAX_ATTEMPTS : 1));
   if (step.action === 'wait') {
     const rawDuration = Number(step.duration);
     const duration = Number.isFinite(rawDuration) && rawDuration >= 0 ? rawDuration : 0;
@@ -1111,7 +1114,7 @@ async function executeClick(step) {
 
   // 如果指定了重试机制，则使用重试逻辑
   if (step.retryOnDisabled) {
-    const maxAttempts = step.maxAttempts || 5;
+    const maxAttempts = step.maxAttempts || DEFAULT_STEP_MAX_ATTEMPTS;
     const retryInterval = step.retryInterval || 200;
     let attempts = 0;
     
@@ -1161,7 +1164,7 @@ async function executeFocus(step) {
   const selectors = Array.isArray(step.selector) ? step.selector : [step.selector];
   
   // 如果指定了重试机制，使用重试逻辑
-  const maxAttempts = step.maxAttempts || (step.waitForElement ? 5 : 1);
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : 1);
   const retryInterval = step.retryInterval || 200;
   let attempts = 0;
   
@@ -1238,7 +1241,7 @@ async function executeSetValue(step, query) {
   const selectors = Array.isArray(step.selector) ? step.selector : [step.selector];
   
   // 如果指定了重试机制，使用重试逻辑
-  const maxAttempts = step.maxAttempts || (step.waitForElement ? 5 : 1);
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : 1);
   const retryInterval = step.retryInterval || 200;
   let attempts = 0;
   
@@ -1986,7 +1989,7 @@ async function executeTriggerEvents(step) {
   const selectors = Array.isArray(step.selector) ? step.selector : [step.selector];
   
   // 如果指定了重试机制，使用重试逻辑
-  const maxAttempts = step.maxAttempts || (step.waitForElement ? 5 : 1);
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : 1);
   const retryInterval = step.retryInterval || 200;
   let attempts = 0;
   
@@ -2066,18 +2069,34 @@ async function executeSendKeys(step, query) {
   
   // 支持多个选择器
   const selectors = Array.isArray(step.selector) ? step.selector : [step.selector];
-  
-  for (const selector of selectors) {
-    element = document.querySelector(selector);
-    if (element) {
-      foundSelector = selector;
-      break;
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : 1);
+  const retryInterval = step.retryInterval || 200;
+  let attempts = 0;
+
+  const tryFindElement = async () => {
+    for (const selector of selectors) {
+      element = document.querySelector(selector);
+      if (element) {
+        foundSelector = selector;
+        break;
+      }
     }
-  }
-  
-  if (!element) {
-    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
-  }
+
+    if (!element) {
+      attempts++;
+      if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
+        reportStepRetry(attempts, maxAttempts);
+        console.log(`元素未找到，${retryInterval}ms后重试 (${attempts}/${maxAttempts}): ${selectors.join(', ')}`);
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        return tryFindElement();
+      }
+      throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
+    }
+
+    return element;
+  };
+
+  element = await tryFindElement();
 
   // 检测平台（Mac 使用 Command/Meta，Windows/Linux 使用 Ctrl）
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || 
@@ -2947,18 +2966,8 @@ async function extractPageContent(preferredSiteName = null) {
         console.log('🔍 站点处理器:', siteHandler);
         
         let content = '';
-        
-        if (siteHandler && siteHandler.contentExtractor) {
-            if (siteHandler.contentExtractor?.latestVisibleResponse) {
-                const visibleResponse = extractLatestVisibleResponseByConfig(siteHandler);
-                if (visibleResponse) {
-                    console.log('✅ 使用配置化可见回答提取成功');
-                    return visibleResponse;
-                }
-                console.log('⏳ 配置化可见回答容器尚无稳定可导出回答，跳过泛化提取以避免把用户提问误当回答');
-                return '';
-            }
 
+        if (siteHandler && siteHandler.contentExtractor) {
             // 使用配置文件中的提取规则
             console.log('✅ 使用配置文件中的内容提取规则');
             content = await extractWithConfig(siteHandler.contentExtractor, siteHandler.name);
@@ -2982,85 +2991,21 @@ async function extractPageContent(preferredSiteName = null) {
     }
 }
 
-function normalizeTimelineComparableText(text) {
-    return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
-}
-
-function toSelectorArray(selectors) {
-    if (Array.isArray(selectors)) {
-        return selectors.map(item => String(item || '').trim()).filter(Boolean);
-    }
-    if (typeof selectors === 'string' && selectors.trim()) {
-        return [selectors.trim()];
-    }
-    return [];
-}
-
-function sortNodesByDocumentOrder(nodes) {
-    return [...nodes].sort((a, b) => {
-        if (a === b) return 0;
-        const relation = a.compareDocumentPosition(b);
-        return relation & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-    });
-}
-
-function getTimelinePromptConfig(siteHandler) {
-    const userPrompt = siteHandler?.userPrompt || {};
-    const contentExtractor = siteHandler?.contentExtractor || {};
-
-    return {
-        containerSelectors: toSelectorArray(userPrompt.containerSelector || contentExtractor.userMessageSelector),
-        textSelector: userPrompt.textSelector || '',
-        messageNodeSelector: userPrompt.messageNodeSelector || '',
-        requireMessageNode: userPrompt.requireMessageNode === true
-    };
-}
-
-function resolveTimelinePromptAnchor(container, promptConfig) {
-    if (!container) return null;
-    if (promptConfig?.messageNodeSelector) {
-        const anchoredNode = container.closest(promptConfig.messageNodeSelector);
-        if (anchoredNode) return anchoredNode;
-        if (promptConfig.requireMessageNode) return null;
-    }
-    return container;
+function getAICompareExtractionCore() {
+    return window.AICompareExtraction || null;
 }
 
 function collectTimelinePromptRecords(siteHandler) {
-    const promptConfig = getTimelinePromptConfig(siteHandler);
-    const seenContainers = new Set();
-    const promptRecords = [];
+    const core = getAICompareExtractionCore();
+    return core?.collectTimelinePromptRecords?.(document, siteHandler) || [];
+}
 
-    promptConfig.containerSelectors.forEach((selector) => {
-        document.querySelectorAll(selector).forEach((container) => {
-            if (seenContainers.has(container)) return;
-            seenContainers.add(container);
-
-            const anchor = resolveTimelinePromptAnchor(container, promptConfig);
-            if (!anchor) return;
-
-            const textNode = promptConfig.textSelector ? container.querySelector(promptConfig.textSelector) : container;
-            const text = normalizeTimelineComparableText(textNode?.textContent || container.textContent || '');
-            if (!text) return;
-
-            promptRecords.push({
-                container,
-                anchor,
-                text,
-                normalizedText: text
-            });
-        });
-    });
-
-    const sortedAnchors = sortNodesByDocumentOrder(promptRecords.map(item => item.anchor));
-    return sortedAnchors.map((anchor, index) => {
-        const item = promptRecords.find(record => record.anchor === anchor);
-        if (!item) return null;
-        return {
-            ...item,
-            orderIndex: index
-        };
-    }).filter(Boolean);
+function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
+    const core = getAICompareExtractionCore();
+    if (typeof core?.findTimelinePromptRecord === 'function') {
+        return core.findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
+    }
+    return null;
 }
 
 function buildTimelinePromptSnapshotSignature(siteName, prompts) {
@@ -3158,25 +3103,6 @@ function initializeTimelinePromptPush() {
 
 initializeTimelinePromptPush();
 
-function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
-    const normalizedQuery = normalizeTimelineComparableText(query);
-    if (!normalizedQuery) return null;
-
-    const exactMatches = promptRecords.filter(item => item.normalizedText === normalizedQuery);
-    if (exactMatches.length > 0) {
-        return exactMatches[Math.min(Math.max(occurrenceIndex || 0, 0), exactMatches.length - 1)];
-    }
-
-    const fuzzyMatches = promptRecords.filter((item) => {
-        return item.normalizedText.includes(normalizedQuery) || normalizedQuery.includes(item.normalizedText);
-    });
-    if (fuzzyMatches.length > 0) {
-        return fuzzyMatches[Math.min(Math.max(occurrenceIndex || 0, 0), fuzzyMatches.length - 1)];
-    }
-
-    return null;
-}
-
 function ensureTimelinePromptHighlightStyle() {
     if (document.getElementById('ai-compare-timeline-highlight-style')) return;
     const style = document.createElement('style');
@@ -3213,60 +3139,6 @@ function highlightTimelinePromptNode(node) {
     }, 2200);
 }
 
-function isNodeAfter(startNode, candidateNode) {
-    if (!startNode || !candidateNode || startNode === candidateNode) return false;
-    return Boolean(startNode.compareDocumentPosition(candidateNode) & Node.DOCUMENT_POSITION_FOLLOWING);
-}
-
-function isNodeBefore(candidateNode, endNode) {
-    if (!candidateNode || !endNode || candidateNode === endNode) return false;
-    return Boolean(candidateNode.compareDocumentPosition(endNode) & Node.DOCUMENT_POSITION_FOLLOWING);
-}
-
-function collectTimelineResponseCandidates(contentExtractor) {
-    const selectors = [
-        ...toSelectorArray(contentExtractor?.contentSelectors),
-        ...toSelectorArray(contentExtractor?.fallbackSelectors),
-        ...toSelectorArray(contentExtractor?.selectors)
-    ];
-    const excludeSelectors = [
-        'nav',
-        'header',
-        'footer',
-        '.sidebar',
-        '.menu',
-        ...(contentExtractor?.excludeSelectors || [])
-    ];
-    const seenNodes = new Set();
-    const candidates = [];
-
-    selectors.forEach((selector) => {
-        document.querySelectorAll(selector).forEach((node) => {
-            if (seenNodes.has(node)) return;
-            if (excludeSelectors.some(excludeSelector => node.closest(excludeSelector))) return;
-            seenNodes.add(node);
-            candidates.push(node);
-        });
-    });
-
-    return sortNodesByDocumentOrder(candidates);
-}
-
-async function extractTimelineContentFromNodes(nodes) {
-    const segments = [];
-    const seenText = new Set();
-
-    for (const node of nodes) {
-        await waitForContentLoad(node, 1200);
-        const text = normalizeTimelineComparableText(await extractElementContent(node));
-        if (!text || seenText.has(text)) continue;
-        seenText.add(text);
-        segments.push(text);
-    }
-
-    return segments;
-}
-
 async function scrollToPromptForTimeline(siteHandler, query, occurrenceIndex) {
     const promptRecords = collectTimelinePromptRecords(siteHandler);
     const matchedPrompt = findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
@@ -3291,96 +3163,15 @@ async function scrollToPromptForTimeline(siteHandler, query, occurrenceIndex) {
 }
 
 async function extractPromptResponseForTimeline(siteHandler, query, occurrenceIndex) {
-    const contentExtractor = siteHandler?.contentExtractor || {};
-    const promptRecords = collectTimelinePromptRecords(siteHandler);
-    const matchedPrompt = findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
-
-    if (!matchedPrompt) {
+    const core = getAICompareExtractionCore();
+    if (!core?.extractPromptResponseForTimeline) {
         return {
             found: false,
-            error: 'Prompt not found'
+            error: 'Extraction core unavailable'
         };
     }
 
-    const nextPrompt = promptRecords.find((item) => item.orderIndex > matchedPrompt.orderIndex) || null;
-    let responseCandidates = collectTimelineResponseCandidates(contentExtractor).filter((node) => {
-        if (!isNodeAfter(matchedPrompt.anchor, node)) return false;
-        if (nextPrompt && !isNodeBefore(node, nextPrompt.anchor)) return false;
-        return true;
-    });
-
-    if (responseCandidates.length === 0) {
-        const fallbackNodes = [];
-        toSelectorArray(contentExtractor?.messageContainer).forEach((selector) => {
-            document.querySelectorAll(selector).forEach((node) => {
-                fallbackNodes.push(node);
-            });
-        });
-        responseCandidates = sortNodesByDocumentOrder(fallbackNodes).filter((node) => {
-            if (!isNodeAfter(matchedPrompt.anchor, node)) return false;
-            if (nextPrompt && !isNodeBefore(node, nextPrompt.anchor)) return false;
-            return true;
-        });
-    }
-
-    const answers = await extractTimelineContentFromNodes(responseCandidates);
-    return {
-        found: true,
-        answers,
-        content: answers.join('\n\n').trim()
-    };
-}
-
-function extractLatestVisibleResponseByConfig(siteHandler) {
-    const visibleResponseConfig = siteHandler?.contentExtractor?.latestVisibleResponse || {};
-    const assistantMessages = Array.from(document.querySelectorAll(visibleResponseConfig.messageSelector || ''));
-    const lastAssistantMessage = assistantMessages.pop();
-    if (!lastAssistantMessage) {
-        return '';
-    }
-
-    const ignoredTextPatterns = toPatternArray(visibleResponseConfig.ignoredTextPatterns).map((pattern) => {
-        try {
-            return new RegExp(pattern, 'i');
-        } catch (_) {
-            return null;
-        }
-    }).filter(Boolean);
-    const ignoredAncestorSelectors = toPatternArray(visibleResponseConfig.ignoredAncestorSelectors);
-
-    const seen = new Set();
-    const lines = [];
-    const walker = document.createTreeWalker(lastAssistantMessage, NodeFilter.SHOW_TEXT);
-    let currentNode = walker.nextNode();
-
-    while (currentNode) {
-        const parent = currentNode.parentElement;
-        const raw = currentNode.textContent || '';
-        const text = raw.replace(/[ \t]+/g, ' ').trim();
-
-        if (parent && text) {
-            const rect = parent.getBoundingClientRect();
-            const hidden = rect.width === 0 || rect.height === 0;
-            const insideIgnoredUi = ignoredAncestorSelectors.some((selector) => {
-                try {
-                    return Boolean(parent.closest(selector));
-                } catch (_) {
-                    return false;
-                }
-            });
-            const looksLikeUiText = ignoredTextPatterns.some((pattern) => pattern.test(text));
-            const looksLikeScript = /window\.__|__reactRouter|requestAnimationFrame|\bimport\(\"\/cdn\//.test(text);
-
-            if (!hidden && !insideIgnoredUi && !looksLikeUiText && !looksLikeScript && !seen.has(text)) {
-                seen.add(text);
-                lines.push(text);
-            }
-        }
-
-        currentNode = walker.nextNode();
-    }
-
-    return cleanExtractedText(lines.join('\n\n'));
+    return core.extractPromptResponseForTimeline(document, siteHandler, query, occurrenceIndex);
 }
 
 function looksLikeConfiguredPageShell(siteHandler, content) {
@@ -3420,6 +3211,11 @@ async function extractWithConfig(contentExtractor, siteName) {
             extractionMethod = sharedResult.extractionMethod || 'shared-core';
             console.log(`✅ 共享提取内核成功: ${extractionMethod}`);
             return sharedResult.content;
+        }
+
+        if (contentExtractor?.latestVisibleResponse) {
+            console.log('⏳ latestVisibleResponse 已启用，但当前尚无稳定内容，跳过额外兜底提取');
+            return '';
         }
         
         // 3. 尝试智能内容检测
@@ -3471,6 +3267,10 @@ function startHistoryUrlDetection(siteName, urlFeature, historyId) {
       
       // 检查 URL 路径是否包含 urlFeature
       if (currentPath.includes(urlFeature)) {
+        if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(currentUrl, siteName)) {
+          console.log(`⏳ ${siteName} 命中占位页 URL，继续等待真实历史地址: ${currentUrl}`);
+          return false;
+        }
         // URL 匹配，且与上次匹配的 URL 不同
         if (currentUrl !== lastMatchedUrl) {
           lastMatchedUrl = currentUrl;
@@ -3554,6 +3354,7 @@ function startHistoryUrlDetection(siteName, urlFeature, historyId) {
 async function updateLocalHistorySiteUrl(siteName, url, historyId) {
   try {
     if (!historyId || !siteName || !url) return;
+    if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(url, siteName)) return;
     const { pkHistory = [] } = await safeStorageGet('pkHistory');
     const historyIndex = pkHistory.findIndex(item => item.id === historyId);
     if (historyIndex === -1) return;
@@ -3584,6 +3385,9 @@ function startDirectHistoryUrlDetection(siteName, urlFeature, historyId) {
       const currentUrl = window.location.href;
       const currentPath = window.location.pathname;
       if (currentPath.includes(urlFeature)) {
+        if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(currentUrl, siteName)) {
+          return;
+        }
         if (currentUrl !== lastMatchedUrl) {
           lastMatchedUrl = currentUrl;
           await updateLocalHistorySiteUrl(siteName, currentUrl, targetHistoryId);
@@ -3637,6 +3441,9 @@ async function saveDirectHistory(query, siteName, siteConfig) {
   console.log('DirectHistory: save', { siteName, query: query.slice(0, 80) });
 
   let urlToSave = window.location.href;
+  if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(urlToSave, siteName)) {
+    urlToSave = '';
+  }
   if (siteConfig?.historyHandler?.urlFeature) {
     try {
       const currentPath = window.location.pathname;

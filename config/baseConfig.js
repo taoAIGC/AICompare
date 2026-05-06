@@ -224,13 +224,78 @@ async function loadLocalSitesConfig() {
   return Array.isArray(localConfig?.sites) ? localConfig.sites : [];
 }
 
+function getSiteLaunchUtils() {
+  if (typeof self !== 'undefined' && self.SiteLaunchUtils) {
+    return self.SiteLaunchUtils;
+  }
+  if (typeof window !== 'undefined' && window.SiteLaunchUtils) {
+    return window.SiteLaunchUtils;
+  }
+  return null;
+}
+
+function normalizeEntryUrlValue(value) {
+  const utils = getSiteLaunchUtils();
+  if (utils && typeof utils.normalizeEntryUrl === 'function') {
+    return utils.normalizeEntryUrl(value);
+  }
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeCustomSitesValue(customSites) {
+  const utils = getSiteLaunchUtils();
+  if (utils && typeof utils.normalizeCustomSites === 'function') {
+    return utils.normalizeCustomSites(customSites);
+  }
+
+  return Array.isArray(customSites)
+    ? customSites
+        .map((site, index) => {
+          if (!site || typeof site !== 'object' || Array.isArray(site)) {
+            return null;
+          }
+          const name = typeof site.name === 'string' ? site.name.trim() : '';
+          const url = typeof site.url === 'string' ? site.url.trim() : '';
+          if (!name || !url) {
+            return null;
+          }
+          return {
+            id: typeof site.id === 'string' ? site.id.trim() : `custom-site-${index}-${Date.now()}`,
+            name,
+            url,
+            enabled: site.enabled !== false,
+            supportIframe: true,
+            icon: typeof site.icon === 'string' ? site.icon.trim() : '',
+            note: typeof site.note === 'string' ? site.note.trim() : '',
+            order: Number.isFinite(Number(site.order)) ? Number(site.order) : index
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+    : [];
+}
+
+async function loadCustomSitesConfig() {
+  try {
+    const { customSites = [] } = await chrome.storage.sync.get('customSites');
+    return normalizeCustomSitesValue(customSites);
+  } catch (error) {
+    console.error('读取 customSites 失败:', error);
+    return [];
+  }
+}
+
 function mergeSitesWithUserSettings(baseSites, userSettings = {}) {
   const mergedSites = (baseSites || []).map(site => {
     const userSiteData = userSettings[site.name] || {};
+    const hasEntryUrlOverride = Object.prototype.hasOwnProperty.call(userSiteData, 'entryUrl');
     return {
       ...site,
       order: userSiteData.order !== undefined ? userSiteData.order : site.order,
-      enabled: userSiteData.enabled !== undefined ? userSiteData.enabled : site.enabled
+      enabled: userSiteData.enabled !== undefined ? userSiteData.enabled : site.enabled,
+      entryUrl: hasEntryUrlOverride
+        ? normalizeEntryUrlValue(userSiteData.entryUrl)
+        : normalizeEntryUrlValue(site.entryUrl)
     };
   });
 
@@ -307,21 +372,14 @@ function compareVersions(version1, version2) {
   return 0;
 }
 
-// 远程配置更新功能（仅更新配置数据，不更新代码）
+// 站点配置同步功能（仅在扩展包内同步配置，不加载远程代码）
 const RemoteConfigManager = {
-  // 远程配置服务器 - 根据环境选择不同的URL
+  // 配置来源始终指向扩展包内的本地文件，避免远程脚本/远程命令风险
   get configUrl() {
-    // 如果 DEV_CONFIG 对象存在，使用环境配置
-    if (typeof DEV_CONFIG !== 'undefined' && DEV_CONFIG.REMOTE_CONFIG_URL) {
-      return DEV_CONFIG.IS_PRODUCTION 
-        ? 'https://raw.githubusercontent.com/taoAIGC/AI-Shortcuts/main/config/siteHandlers.json'
-        : DEV_CONFIG.REMOTE_CONFIG_URL;
-    }
-    // 否则使用默认的生产环境URL
-    return 'https://raw.githubusercontent.com/taoAIGC/AI-Shortcuts/main/config/siteHandlers.json';
+    return chrome.runtime.getURL('config/siteHandlers.json');
   },
   
-  // 检查并更新配置
+  // 检查并同步本地配置
   async checkAndUpdateConfig() {
     try {
       const response = await fetch(this.configUrl);
@@ -405,7 +463,7 @@ const RemoteConfigManager = {
     }
   },
   
-  // 更新本地配置
+  // 更新本地配置快照
   async updateLocalConfig(remoteConfig) {
     try {
       const currentTime = Date.now();
@@ -557,7 +615,7 @@ if (typeof window === 'undefined') {
         return mergedSites;
       }
       
-      // 4. 如果远程配置不可用，尝试从本地文件加载
+      // 4. 如果本地缓存不可用，尝试从扩展包内文件加载
       console.log('remoteSiteHandlers 中无数据，尝试从本地文件加载...');
       try {
         const localSites = await loadLocalSitesConfig();
@@ -575,6 +633,10 @@ if (typeof window === 'undefined') {
       console.error('获取默认站点配置失败:', error);
       return [];
     }
+  };
+
+  self.getCustomSites = async function() {
+    return loadCustomSitesConfig();
   };
 
   self.AppConfigManager = AppConfigManager;
@@ -715,7 +777,7 @@ else {
         return mergedSites;
       }
       
-      // 4. 如果远程配置不可用，尝试从本地文件加载
+      // 4. 如果本地缓存不可用，尝试从扩展包内文件加载
       try {
         if (chrome.runtime?.getURL) {
           markHomepagePerf('get_default_sites_fallback_fetch_start');
@@ -765,7 +827,11 @@ else {
       return [];
     }
   };
-  
+
+  window.getCustomSites = async function() {
+    return loadCustomSitesConfig();
+  };
+
   window.AppConfigManager = AppConfigManager;
   window.RemoteConfigManager = RemoteConfigManager;
   window.ExtensionEnvironment = ExtensionEnvironment;

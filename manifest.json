@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -43,6 +43,7 @@
     {
       "matches": ["<all_urls>"],
       "js": [
+        "shared/site-launch-utils.js",
         "config/baseConfig.js",
         "config/siteDetector.js",
         "shared/extraction-core.js",
@@ -54,6 +55,7 @@
     {
       "matches": ["<all_urls>"],
       "js": [
+        "shared/site-launch-utils.js",
         "config/baseConfig.js",
         "content-scripts/selection.js"
       ],
@@ -63,6 +65,7 @@
       "matches": ["<all_urls>"],
       "css": ["content-scripts/float-button.css"],
       "js": [
+        "shared/site-launch-utils.js",
         "config/baseConfig.js",
         "content-scripts/float-button.js"
       ],
@@ -76,6 +79,7 @@
         "https://cn.bing.com/*"
       ],
       "js": [
+        "shared/site-launch-utils.js",
         "config/baseConfig.js",
         "content-scripts/search-engines.js"
       ]
@@ -84,6 +88,7 @@
       "matches": ["<all_urls>"],
       "css": ["content-scripts/site-button.css"],
       "js": [
+        "shared/site-launch-utils.js",
         "config/baseConfig.js",
         "content-scripts/site-button.js"
       ],

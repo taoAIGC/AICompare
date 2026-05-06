@@ -1017,6 +1017,31 @@ body.search-bar-bottom .query-suggestions {
     font-size: 14px;
 }
 
+.site-list-empty-action {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: #1a73e8;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.site-list-empty-action:hover {
+    color: #1557b0;
+}
+
+.custom-sites-empty-state {
+    margin: 8px 0 18px;
+    padding: 2px 4px;
+    color: #888;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: left;
+}
+
 /* 微信号弹窗 */
 .wechat-modal {
     position: fixed;

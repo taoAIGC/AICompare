@@ -146,6 +146,428 @@ function showMessage(message, isError = false) {
   }, 3000);
 }
 
+function getLaunchSettingsUtils() {
+  return window.SiteLaunchUtils || null;
+}
+
+function getLaunchMessage(key, fallback = '') {
+  return chrome.i18n.getMessage(key) || fallback;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case '\'':
+        return '&#39;';
+      default:
+        return char;
+    }
+  });
+}
+
+async function initializeLaunchSettings() {
+  try {
+    await Promise.allSettled([
+      renderOfficialEntryUrlConfigs(),
+      loadCustomSitesManager()
+    ]);
+    bindCustomSiteManagerEvents();
+  } catch (error) {
+    console.error('初始化 launch settings 失败:', error);
+  }
+}
+
+async function saveOfficialEntryUrl(siteName, entryUrl) {
+  try {
+    const normalizedEntryUrl = typeof entryUrl === 'string' ? entryUrl.trim() : '';
+    const { sites: existingUserSettings = {} } = await chrome.storage.sync.get('sites');
+    const updatedUserSettings = { ...existingUserSettings };
+    if (!updatedUserSettings[siteName]) {
+      updatedUserSettings[siteName] = {};
+    }
+
+    if (normalizedEntryUrl) {
+      updatedUserSettings[siteName].entryUrl = normalizedEntryUrl;
+    } else {
+      delete updatedUserSettings[siteName].entryUrl;
+    }
+
+    await chrome.storage.sync.set({ sites: updatedUserSettings });
+    showToast(getLaunchMessage('saveSuccess', 'Configuration saved'));
+    await renderOfficialEntryUrlConfigs();
+  } catch (error) {
+    console.error('保存 entryUrl 失败:', error);
+    showToast(getLaunchMessage('saveFailed', 'Save failed'), true);
+  }
+}
+
+async function renderOfficialEntryUrlConfigs() {
+  const container = document.getElementById('officialEntryUrlConfigs');
+  if (!container) {
+    return;
+  }
+
+  try {
+    const [sites, syncData] = await Promise.all([
+      window.getDefaultSites?.() || [],
+      chrome.storage.sync.get('sites')
+    ]);
+    const userSites = syncData?.sites || {};
+
+    container.innerHTML = '';
+
+    if (!Array.isArray(sites) || sites.length === 0) {
+      container.innerHTML = `
+        <div class="site-list-empty" style="grid-column: 1 / -1;">
+          ${getLaunchMessage('officialEntryUrlEmpty', 'No official sites found')}
+        </div>
+      `;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    sites.forEach((site, index) => {
+      const siteName = site?.name || '';
+      if (!siteName) {
+        return;
+      }
+
+      const storedEntryUrl = typeof userSites[siteName]?.entryUrl === 'string'
+        ? userSites[siteName].entryUrl
+        : '';
+      const currentEntryUrl = storedEntryUrl || site.entryUrl || '';
+      const safeId = `entry-url-${index}-${String(siteName).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+
+      const card = document.createElement('div');
+      card.className = 'site-config';
+      card.dataset.siteName = siteName;
+      card.innerHTML = `
+        <div class="site-header site-setting-row">
+          <span class="site-name-display">${siteName}</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn-secondary reset-entry-url-btn" data-site-name="${siteName}">
+              ${getLaunchMessage('entryUrlResetButton', 'Reset')}
+            </button>
+            <button type="button" class="btn-primary save-entry-url-btn" data-site-name="${siteName}">
+              ${getLaunchMessage('saveButton', 'Save')}
+            </button>
+          </div>
+        </div>
+        <div style="margin-top: 10px;">
+          <label for="${safeId}" style="display:block; margin-bottom: 6px; font-weight: 500; color: #333;">
+            ${getLaunchMessage('entryUrlLabel', 'Entry URL')}
+          </label>
+          <input
+            type="url"
+            id="${safeId}"
+            class="entry-url-input"
+            value="${currentEntryUrl.replace(/"/g, '&quot;')}"
+            placeholder="${getLaunchMessage('entryUrlPlaceholder', 'Enter a launch URL or use {query}')}"
+            style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+          >
+        </div>
+      `;
+
+      const input = card.querySelector('.entry-url-input');
+      const saveBtn = card.querySelector('.save-entry-url-btn');
+      const resetBtn = card.querySelector('.reset-entry-url-btn');
+
+      saveBtn?.addEventListener('click', async () => {
+        await saveOfficialEntryUrl(siteName, input?.value || '');
+      });
+      resetBtn?.addEventListener('click', async () => {
+        if (input) {
+          input.value = '';
+        }
+        await saveOfficialEntryUrl(siteName, '');
+      });
+
+      fragment.appendChild(card);
+    });
+
+    container.appendChild(fragment);
+  } catch (error) {
+    console.error('渲染 entryUrl 配置失败:', error);
+    container.innerHTML = `
+      <div class="site-list-empty" style="grid-column: 1 / -1;">
+        ${getLaunchMessage('officialEntryUrlLoadFailed', 'Failed to load official site settings')}
+      </div>
+    `;
+  }
+}
+
+async function loadCustomSitesManager() {
+  const container = document.getElementById('customSitesAdminList');
+  if (!container) {
+    return;
+  }
+
+  try {
+    const customSites = await window.getCustomSites?.() || [];
+    renderCustomSitesManager(customSites);
+  } catch (error) {
+    console.error('加载 customSites 管理列表失败:', error);
+    container.innerHTML = `
+      <div class="site-list-empty" style="grid-column: 1 / -1;">
+        ${getLaunchMessage('customSiteListLoadFailed', 'Failed to load custom sites.')}
+      </div>
+    `;
+  }
+}
+
+function renderCustomSitesManager(customSites = []) {
+  const container = document.getElementById('customSitesAdminList');
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = '';
+  const list = Array.isArray(customSites) ? customSites : [];
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="site-list-empty" style="grid-column: 1 / -1;">
+        ${getLaunchMessage('customSiteListEmpty', 'No custom sites yet')}
+      </div>
+    `;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  list.forEach(site => {
+    const siteId = escapeHtml(site?.id || '');
+    const siteName = escapeHtml(site?.name || '');
+    const siteUrl = escapeHtml(site?.url || '');
+    const siteNote = typeof site?.note === 'string' ? site.note.trim() : '';
+    const siteIcon = typeof site?.icon === 'string' ? site.icon.trim() : '';
+    const displayNote = siteNote
+      ? `
+        <div style="margin-top: 6px; font-size: 12px; color: #777; word-break: break-word; white-space: pre-wrap;">
+          ${getLaunchMessage('customSiteNoteLabel', 'Note')}: ${escapeHtml(siteNote)}
+        </div>
+      `
+      : '';
+    const displayIcon = siteIcon
+      ? `
+        <div style="margin-top: 4px; font-size: 12px; color: #777; word-break: break-word;">
+          ${getLaunchMessage('customSiteIconLabel', 'Icon')}: ${escapeHtml(siteIcon)}
+        </div>
+      `
+      : '';
+    const card = document.createElement('div');
+    card.className = 'template-item custom-site-card';
+    card.dataset.siteId = site?.id || '';
+    card.title = [siteNote, siteIcon, site?.url || '']
+      .filter(Boolean)
+      .join(' · ');
+    card.style.padding = '16px';
+    card.style.cursor = 'default';
+    card.innerHTML = `
+      <div style="display:flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+        <div style="min-width: 0; flex: 1;">
+          <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${siteName}</h4>
+          <div style="font-size: 12px; color: #666; word-break: break-all;">${siteUrl}</div>
+          ${displayNote}
+          ${displayIcon}
+          <div style="margin-top: 6px; font-size: 12px; color: #888;">
+            ${site.enabled ? getLaunchMessage('customSiteEnabledBadge', 'Enabled') : getLaunchMessage('customSiteDisabledBadge', 'Disabled')}
+            ${site.order !== undefined ? ` · #${site.order}` : ''}
+          </div>
+        </div>
+        <div style="display:flex; gap: 8px; flex-shrink: 0;">
+          <button type="button" class="btn-secondary edit-custom-site-btn" data-site-id="${siteId}">${getLaunchMessage('editButton', 'Edit')}</button>
+          <button type="button" class="btn-secondary delete-custom-site-btn" data-site-id="${siteId}">${getLaunchMessage('deleteButton', 'Delete')}</button>
+        </div>
+      </div>
+    `;
+    fragment.appendChild(card);
+  });
+
+  container.appendChild(fragment);
+}
+
+function bindCustomSiteManagerEvents() {
+  document.getElementById('addCustomSiteBtn')?.addEventListener('click', () => {
+    openCustomSiteDialog();
+  });
+
+  document.getElementById('customSitesAdminList')?.addEventListener('click', handleCustomSiteListClick);
+
+  document.getElementById('customSiteDialogClose')?.addEventListener('click', closeCustomSiteDialog);
+  document.getElementById('cancelCustomSite')?.addEventListener('click', closeCustomSiteDialog);
+  document.getElementById('saveCustomSite')?.addEventListener('click', saveCustomSiteFromDialog);
+  document.getElementById('customSiteDialogOverlay')?.addEventListener('click', closeCustomSiteDialog);
+}
+
+function openCustomSiteDialog(site = null) {
+  currentEditingCustomSiteId = site?.id || null;
+
+  const dialog = document.getElementById('customSiteDialog');
+  const title = document.getElementById('customSiteDialogTitle');
+  const idInput = document.getElementById('customSiteId');
+  const nameInput = document.getElementById('customSiteName');
+  const urlInput = document.getElementById('customSiteUrl');
+  const enabledInput = document.getElementById('customSiteEnabled');
+  const orderInput = document.getElementById('customSiteOrder');
+
+  if (!dialog) {
+    return;
+  }
+
+  if (title) {
+    title.textContent = site
+      ? getLaunchMessage('customSiteEditTitle', 'Edit custom site')
+      : getLaunchMessage('customSiteAddTitle', 'Add custom site');
+  }
+
+  if (idInput) idInput.value = site?.id || '';
+  if (nameInput) nameInput.value = site?.name || '';
+  if (urlInput) urlInput.value = site?.url || '';
+  if (enabledInput) enabledInput.checked = site?.enabled !== false;
+  if (orderInput) orderInput.value = Number.isFinite(Number(site?.order)) ? String(site.order) : '0';
+
+  dialog.style.display = 'block';
+}
+
+function closeCustomSiteDialog() {
+  const dialog = document.getElementById('customSiteDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
+  }
+  currentEditingCustomSiteId = null;
+}
+
+function readCustomSiteDialogValue() {
+  const idInput = document.getElementById('customSiteId');
+  const nameInput = document.getElementById('customSiteName');
+  const urlInput = document.getElementById('customSiteUrl');
+  const enabledInput = document.getElementById('customSiteEnabled');
+  const orderInput = document.getElementById('customSiteOrder');
+
+  const rawSite = {
+    id: idInput?.value || currentEditingCustomSiteId || '',
+    name: nameInput?.value.trim() || '',
+    url: urlInput?.value.trim() || '',
+    enabled: enabledInput?.checked !== false,
+    order: Number.isFinite(Number(orderInput?.value)) ? Number(orderInput.value) : 0
+  };
+
+  const utils = getLaunchSettingsUtils();
+  if (utils && typeof utils.normalizeCustomSite === 'function') {
+    const normalizedSite = utils.normalizeCustomSite(rawSite, rawSite.order);
+    if (!normalizedSite) {
+      return null;
+    }
+    const { note, icon, ...siteWithoutDialogOnlyFields } = normalizedSite;
+    return siteWithoutDialogOnlyFields;
+  }
+
+  if (!rawSite.name || !rawSite.url) {
+    return null;
+  }
+
+  return {
+    ...rawSite,
+    id: rawSite.id || `custom-site-${Date.now()}`,
+    supportIframe: true,
+    order: rawSite.order || 0
+  };
+}
+
+async function saveCustomSiteFromDialog() {
+  try {
+    const nextSite = readCustomSiteDialogValue();
+    if (!nextSite) {
+      showToast(getLaunchMessage('customSiteValidationFailed', 'Please fill in name and URL'), true);
+      return;
+    }
+
+    const { customSites: existingCustomSites = [] } = await chrome.storage.sync.get('customSites');
+    const currentList = Array.isArray(existingCustomSites) ? existingCustomSites : [];
+    const nextId = currentEditingCustomSiteId || nextSite.id;
+    const replaced = currentList.some(site => site.id === nextId)
+      ? currentList.map(site => (site.id === nextId ? { ...site, ...nextSite, id: nextId } : site))
+      : [...currentList, { ...nextSite, id: nextId }];
+
+    const utils = getLaunchSettingsUtils();
+    const normalized = utils && typeof utils.normalizeCustomSites === 'function'
+      ? utils.normalizeCustomSites(replaced)
+      : replaced;
+
+    await chrome.storage.sync.set({ customSites: normalized });
+    showToast(getLaunchMessage('saveSuccess', 'Configuration saved'));
+    await loadCustomSitesManager();
+    closeCustomSiteDialog();
+  } catch (error) {
+    console.error('保存 customSite 失败:', error);
+    showToast(getLaunchMessage('saveFailed', 'Save failed'), true);
+  }
+}
+
+async function deleteCustomSite(siteId) {
+  try {
+    const confirmMessage = getLaunchMessage('customSiteDeleteConfirm', 'Delete this custom site?');
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    const { customSites: existingCustomSites = [] } = await chrome.storage.sync.get('customSites');
+    const nextList = (Array.isArray(existingCustomSites) ? existingCustomSites : []).filter(site => site.id !== siteId);
+    const utils = getLaunchSettingsUtils();
+    const normalized = utils && typeof utils.normalizeCustomSites === 'function'
+      ? utils.normalizeCustomSites(nextList)
+      : nextList;
+
+    await chrome.storage.sync.set({ customSites: normalized });
+    showToast(getLaunchMessage('saveSuccess', 'Configuration saved'));
+    await loadCustomSitesManager();
+  } catch (error) {
+    console.error('删除 customSite 失败:', error);
+    showToast(getLaunchMessage('saveFailed', 'Save failed'), true);
+  }
+}
+
+function handleCustomSiteListClick(event) {
+  const editBtn = event.target.closest('.edit-custom-site-btn');
+  const deleteBtn = event.target.closest('.delete-custom-site-btn');
+  if (!editBtn && !deleteBtn) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const siteId = editBtn?.dataset.siteId || deleteBtn?.dataset.siteId;
+  if (!siteId) {
+    return;
+  }
+
+  (async () => {
+    const { customSites: existingCustomSites = [] } = await chrome.storage.sync.get('customSites');
+    const site = (Array.isArray(existingCustomSites) ? existingCustomSites : []).find(item => item.id === siteId);
+    if (!site) {
+      return;
+    }
+
+    if (editBtn) {
+      openCustomSiteDialog(site);
+      return;
+    }
+
+    if (deleteBtn) {
+      await deleteCustomSite(siteId);
+    }
+  })();
+}
+
 
 // 初始化快捷入口配置
 async function initializeButtonConfigs() {
@@ -224,64 +646,140 @@ async function initializeButtonConfigs() {
 document.addEventListener('DOMContentLoaded', function() {
   initializeI18n();
   loadConfig();
+  initializeLaunchSettings();
   initializeNavigation();
   initializeDisabledSites();
 });
 
+const DEFAULT_SETTINGS_SECTION = 'quick-entry';
+const SETTINGS_SCROLL_TARGET_PARAM = 'scrollTarget';
+
+function getSettingsSections() {
+  return Array.from(document.querySelectorAll('.settings-section'))
+    .map(section => section?.id)
+    .filter(Boolean);
+}
+
+function getSafeSettingsSection(sectionId) {
+  const sections = getSettingsSections();
+  if (sectionId && sections.includes(sectionId)) {
+    return sectionId;
+  }
+  return sections.includes(DEFAULT_SETTINGS_SECTION)
+    ? DEFAULT_SETTINGS_SECTION
+    : (sections[0] || '');
+}
+
+function showSettingsSection(sectionId, options = {}) {
+  const { updateHash = false, scrollToTop = true } = options;
+  const activeSection = getSafeSettingsSection(sectionId);
+  if (!activeSection) {
+    return;
+  }
+
+  document.querySelectorAll('.settings-section').forEach(section => {
+    const isActive = section.id === activeSection;
+    section.classList.toggle('is-active', isActive);
+    section.hidden = !isActive;
+    section.setAttribute('aria-hidden', String(!isActive));
+  });
+
+  document.querySelectorAll('.nav-link').forEach(link => {
+    const isActive = link.getAttribute('data-section') === activeSection;
+    link.classList.toggle('active', isActive);
+    if (isActive) {
+      link.setAttribute('aria-current', 'page');
+    } else {
+      link.removeAttribute('aria-current');
+    }
+  });
+
+  if (updateHash) {
+    const nextHash = `#${activeSection}`;
+    if (window.location.hash !== nextHash) {
+      window.history.pushState(null, '', nextHash);
+    }
+  }
+
+  if (scrollToTop) {
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+  }
+}
+
+function getRequestedSettingsScrollTarget() {
+  try {
+    return new URLSearchParams(window.location.search).get(SETTINGS_SCROLL_TARGET_PARAM) || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function clearRequestedSettingsScrollTarget() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(SETTINGS_SCROLL_TARGET_PARAM)) {
+      return;
+    }
+    url.searchParams.delete(SETTINGS_SCROLL_TARGET_PARAM);
+    window.history.replaceState(null, '', url.toString());
+  } catch (_) {}
+}
+
+function scrollToSettingsTarget(targetId) {
+  const normalizedTargetId = String(targetId || '').trim();
+  if (!normalizedTargetId) {
+    return false;
+  }
+
+  const target = document.getElementById(normalizedTargetId);
+  if (!target) {
+    return false;
+  }
+
+  const mainContent = document.querySelector('.main-content');
+  if (mainContent && typeof target.offsetTop === 'number') {
+    mainContent.scrollTo({
+      top: Math.max(0, target.offsetTop - 20),
+      behavior: 'smooth'
+    });
+  } else {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  return true;
+}
+
+function handleHashNavigation() {
+  const requestedSection = window.location.hash
+    ? window.location.hash.substring(1)
+    : DEFAULT_SETTINGS_SECTION;
+  const activeSection = getSafeSettingsSection(requestedSection);
+  showSettingsSection(activeSection, { updateHash: false, scrollToTop: false });
+
+  const scrollTarget = getRequestedSettingsScrollTarget();
+  if (!scrollTarget) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    scrollToSettingsTarget(scrollTarget);
+    clearRequestedSettingsScrollTarget();
+  });
+}
+
 // 初始化导航功能
 function initializeNavigation() {
   const navLinks = document.querySelectorAll('.nav-link');
-  
+
   navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      
       const targetSection = link.getAttribute('data-section');
-      const targetElement = document.getElementById(targetSection);
-      
-      if (targetElement) {
-        // 移除所有激活状态
-        navLinks.forEach(navLink => {
-          navLink.classList.remove('active');
-        });
-        
-        // 添加当前激活状态
-        link.classList.add('active');
-        
-        // 平滑滚动到目标区域
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
+      showSettingsSection(targetSection, { updateHash: true });
     });
-  });
-  
-  // 监听页面滚动，自动更新导航激活状态
-  window.addEventListener('scroll', updateActiveNavigation);
-}
-
-// 更新导航激活状态
-function updateActiveNavigation() {
-  const sections = document.querySelectorAll('.settings-section');
-  const navLinks = document.querySelectorAll('.nav-link');
-  
-  let currentSection = '';
-  
-  sections.forEach(section => {
-    const rect = section.getBoundingClientRect();
-    // 当section顶部距离视口顶部小于100px时，认为该section是当前激活的
-    if (rect.top <= 100 && rect.bottom > 100) {
-      currentSection = section.id;
-    }
-  });
-  
-  // 更新导航链接的激活状态
-  navLinks.forEach(link => {
-    link.classList.remove('active');
-    if (link.getAttribute('data-section') === currentSection) {
-      link.classList.add('active');
-    }
   });
 }
 
@@ -447,6 +945,7 @@ async function handleDisabledSiteAction(event) {
 
 // 当前编辑的模板ID
 let currentEditingTemplateId = null;
+let currentEditingCustomSiteId = null;
 
 // 初始化提示词模板管理
 async function initializePromptTemplates() {
@@ -794,61 +1293,6 @@ function generateTemplateId() {
   return 'template_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// 处理锚点跳转
-function handleHashNavigation() {
-  const hash = window.location.hash;
-  if (hash) {
-    // 移除 # 号
-    const targetId = hash.substring(1);
-    const targetElement = document.getElementById(targetId);
-    
-    if (targetElement) {
-      // 延迟滚动，确保页面完全加载
-      setTimeout(() => {
-        targetElement.scrollIntoView({ behavior: 'smooth' });
-        
-        // 更新导航状态
-        updateNavigationState(targetId);
-      }, 100);
-    }
-  }
-}
-
-// 更新导航状态
-function updateNavigationState(activeSection) {
-  // 移除所有导航项的 active 类
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.remove('active');
-  });
-  
-  // 添加 active 类到当前导航项
-  const activeLink = document.querySelector(`[data-section="${activeSection}"]`);
-  if (activeLink) {
-    activeLink.classList.add('active');
-  }
-}
-
-// 初始化导航事件
-function initializeNavigation() {
-  // 处理导航链接点击
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const section = link.getAttribute('data-section');
-      if (section) {
-        const targetElement = document.getElementById(section);
-        if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth' });
-          updateNavigationState(section);
-          
-          // 更新 URL hash
-          window.history.pushState(null, null, `#${section}`);
-        }
-      }
-    });
-  });
-}
-
 // ── 数据同步（WebDAV）──────────────────────────────────────────
 
 const SYNC_STORAGE_KEY = 'webdavSyncConfig';
@@ -858,6 +1302,7 @@ const SYNC_DATA_FILENAME = 'multiAI-settings.json';
 const SYNC_KEYS = [
   'buttonConfig',
   'sites',
+  'customSites',
   'siteSettings',
   'disabledSites',
   'promptTemplates',

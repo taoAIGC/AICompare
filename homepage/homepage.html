@@ -113,9 +113,36 @@
                     </div>
                 </div>
             </div>
+
+            <div id="customSitesEmptyState" class="custom-sites-empty-state" hidden>
+                <span data-i18n="homepageCustomSiteEmptyText">No custom sites yet, </span>
+                <button type="button" class="site-list-empty-action" data-i18n="homepageCustomSiteEmptyAction">add one</button>
+                <span data-i18n="homepageCustomSiteEmptySuffix">.</span>
+            </div>
+
+            <div class="sites-section custom-sites-section">
+                <div class="sites-header">
+                    <h3 class="sites-title" data-i18n="customSitesTitle">Custom sites</h3>
+                </div>
+                <div id="customSitesList" class="sites-list sites-list-skeleton" aria-busy="true">
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                    <div class="site-item site-item-skeleton" aria-hidden="true">
+                        <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-name-skeleton skeleton-block"></span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="../shared/site-launch-utils.js"></script>
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
     <script src="../config/firebaseConfig.js"></script>

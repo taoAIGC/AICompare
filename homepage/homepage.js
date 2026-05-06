@@ -13,6 +13,8 @@ const SITE_GROUP_LABELS = {
 const homepageSitesState = {
     supportedSites: [],
     selectedSites: new Map(),
+    customSites: [],
+    selectedCustomSites: new Map(),
     activeGroup: DEFAULT_SITE_GROUP,
     configuredGroups: [DEFAULT_SITE_GROUP],
     dragAndDropBound: false
@@ -89,6 +91,37 @@ function trackEvent(name, params = {}) {
 
 function t(key, fallback = '') {
     return chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
+function openCustomSitesSettingsPage() {
+    const targetUrl = chrome.runtime.getURL('options/options.html?scrollTarget=custom-sites-settings#launch-settings');
+    window.location.href = targetUrl;
+}
+
+function updateCustomSitesEmptyState(isEmpty) {
+    const emptyState = document.getElementById('customSitesEmptyState');
+    const customSitesSection = document.querySelector('.custom-sites-section');
+
+    if (emptyState) {
+        emptyState.hidden = !isEmpty;
+    }
+
+    if (customSitesSection) {
+        customSitesSection.hidden = isEmpty;
+    }
+}
+
+function bindCustomSitesEmptyStateAction() {
+    const actionButton = document.querySelector('#customSitesEmptyState .site-list-empty-action');
+    if (!actionButton || actionButton.dataset.bound === 'true') {
+        return;
+    }
+
+    actionButton.dataset.bound = 'true';
+    actionButton.addEventListener('click', () => {
+        trackEvent('homepage_custom_site_empty_add_click');
+        openCustomSitesSettingsPage();
+    });
 }
 
 function getSiteGroup(site) {
@@ -281,6 +314,93 @@ function renderSitesList() {
     sitesList.appendChild(fragment);
 }
 
+function getSelectedCustomSiteIds() {
+    return (homepageSitesState.customSites || [])
+        .filter(site => homepageSitesState.selectedCustomSites.get(site.id) === true)
+        .map(site => site.id);
+}
+
+function renderCustomSitesList() {
+    const customSitesList = document.getElementById('customSitesList');
+    if (!customSitesList) {
+        return;
+    }
+
+    const customSites = homepageSitesState.customSites || [];
+    customSitesList.innerHTML = '';
+
+    if (customSites.length === 0) {
+        updateCustomSitesEmptyState(true);
+        bindCustomSitesEmptyStateAction();
+        return;
+    }
+
+    updateCustomSitesEmptyState(false);
+
+    const fragment = document.createDocumentFragment();
+    customSites.forEach(site => {
+        const div = document.createElement('div');
+        div.className = 'site-item custom-site-item';
+        div.dataset.siteId = site.id;
+        div.title = site.note || site.url || '';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'site-checkbox';
+        checkbox.id = `custom-site-${site.id}`;
+        checkbox.checked = homepageSitesState.selectedCustomSites.get(site.id) === true;
+
+        checkbox.addEventListener('change', () => {
+            homepageSitesState.selectedCustomSites.set(site.id, checkbox.checked);
+            trackEvent('homepage_custom_site_toggle', {
+                site_name: site.name,
+                enabled: checkbox.checked
+            });
+        });
+
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = site.name;
+        nameLabel.htmlFor = `custom-site-${site.id}`;
+
+        div.addEventListener('click', (e) => {
+            if (e.target === checkbox || e.target === nameLabel) {
+                return;
+            }
+            checkbox.click();
+        });
+
+        div.appendChild(checkbox);
+        div.appendChild(nameLabel);
+        fragment.appendChild(div);
+    });
+
+    customSitesList.appendChild(fragment);
+}
+
+async function initializeCustomSitesList() {
+    const customSitesList = document.getElementById('customSitesList');
+    if (!customSitesList) {
+        return;
+    }
+
+    try {
+        const customSites = await window.getCustomSites?.() || [];
+        homepageSitesState.customSites = sortSitesFavoriteFirst(customSites);
+        homepageSitesState.selectedCustomSites = new Map(
+            homepageSitesState.customSites.map(site => [site.id, site.enabled === true])
+        );
+        renderCustomSitesList();
+        customSitesList.classList.remove('sites-list-skeleton');
+        customSitesList.removeAttribute('aria-busy');
+    } catch (error) {
+        console.error('获取 customSites 失败:', error);
+        updateCustomSitesEmptyState(false);
+        customSitesList.innerHTML = `<div style="padding: 20px; color: #666; text-align: center;">${t('customSiteListLoadFailed', 'Failed to load custom sites. Please refresh and try again.')}</div>`;
+        customSitesList.classList.remove('sites-list-skeleton');
+        customSitesList.removeAttribute('aria-busy');
+    }
+}
+
 // 页面加载完成后的初始化
 document.addEventListener('DOMContentLoaded', async function() {
     perfMark('dom_content_loaded');
@@ -457,7 +577,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     void Promise.allSettled([
         measureAsyncStep('pin_guide_init', () => checkAndShowPinGuide()),
         measureAsyncStep('query_suggestions_init', () => initializeQuerySuggestions()),
-        measureAsyncStep('sites_list_init', () => initializeSitesList())
+        measureAsyncStep('sites_list_init', () => initializeSitesList()),
+        measureAsyncStep('custom_sites_init', () => initializeCustomSitesList())
     ]).finally(() => {
         perfMark('non_critical_init_end');
         perfMeasure('non_critical_init_duration', 'non_critical_init_start', 'non_critical_init_end');
@@ -716,8 +837,12 @@ async function handleQuery(query) {
     
     // 获取选中的站点列表
     const selectedSites = getSelectedSites();
+    const selectedCustomSiteIds = getSelectedCustomSiteIds();
     const selectedSiteConfigs = homepageSitesState.supportedSites.filter(site =>
         selectedSites.includes(site.name)
+    );
+    const selectedCustomSiteConfigs = (homepageSitesState.customSites || []).filter(site =>
+        selectedCustomSiteIds.includes(site.id)
     );
     const iframeSiteNames = selectedSiteConfigs
         .filter(site => site.supportIframe === true)
@@ -726,6 +851,14 @@ async function handleQuery(query) {
     const externalSiteNames = selectedSiteConfigs
         .filter(site => site.supportIframe !== true)
         .map(site => site.name)
+        .filter(Boolean);
+    const customIframeSiteIds = selectedCustomSiteConfigs
+        .filter(site => site.supportIframe === true)
+        .map(site => site.id)
+        .filter(Boolean);
+    const customExternalSiteIds = selectedCustomSiteConfigs
+        .filter(site => site.supportIframe !== true)
+        .map(site => site.id)
         .filter(Boolean);
     
     // 检查当前页面是否在侧边栏中
@@ -737,9 +870,11 @@ async function handleQuery(query) {
     if (processedQuery) {
         params.set('query', processedQuery);
     }
-    if (selectedSites.length > 0) {
-        // 传递选中的站点名称列表
-        params.set('sites', selectedSites.join(','));
+    if (iframeSiteNames.length > 0) {
+        params.set('sites', iframeSiteNames.join(','));
+    }
+    if (customIframeSiteIds.length > 0) {
+        params.set('customSites', customIframeSiteIds.join(','));
     }
     if (homepageSitesState.activeGroup) {
         params.set('type', homepageSitesState.activeGroup);
@@ -753,21 +888,26 @@ async function handleQuery(query) {
         query_length: processedQuery.length,
         selected_sites_count: selectedSites.length,
         selected_sites: selectedSites,
+        custom_sites_count: selectedCustomSiteIds.length,
+        custom_sites: selectedCustomSiteIds,
         iframe_sites_count: iframeSiteNames.length,
         external_sites_count: externalSiteNames.length,
+        custom_iframe_sites_count: customIframeSiteIds.length,
+        custom_external_sites_count: customExternalSiteIds.length,
         side_panel: isSidePanel,
         has_query: Boolean(processedQuery)
     });
     
     try {
-        if (externalSiteNames.length > 0) {
+        if (externalSiteNames.length > 0 || customExternalSiteIds.length > 0) {
             const externalSearchPromise = chrome.runtime.sendMessage({
                 action: 'processQuery',
                 query: processedQuery,
                 sites: externalSiteNames,
+                customSiteIds: customExternalSiteIds,
                 openIframePage: false
             });
-            if (iframeSiteNames.length > 0) {
+            if (iframeSiteNames.length > 0 || customIframeSiteIds.length > 0) {
                 externalSearchPromise.catch((error) => {
                     console.error('homepage 外部站点查询处理失败:', error);
                 });
@@ -779,9 +919,7 @@ async function handleQuery(query) {
             }
         }
 
-        if (iframeSiteNames.length > 0) {
-            params.set('sites', iframeSiteNames.join(','));
-
+        if (iframeSiteNames.length > 0 || customIframeSiteIds.length > 0) {
             let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
             if (params.toString()) {
                 searchUrl += '?' + params.toString();
@@ -1018,9 +1156,11 @@ function initializeSaveSitesButton() {
         try {
             // 获取当前选中的站点
             const selectedSites = getSelectedSites();
+            const selectedCustomSiteIds = getSelectedCustomSiteIds();
             console.log('选中的站点:', selectedSites);
+            console.log('选中的 customSites:', selectedCustomSiteIds);
             
-            if (selectedSites.length === 0) {
+            if (selectedSites.length === 0 && selectedCustomSiteIds.length === 0) {
                 showToast(chrome.i18n.getMessage('noSitesSelected') || '请至少选择一个站点');
                 return;
             }
@@ -1051,17 +1191,34 @@ function initializeSaveSitesButton() {
                 // 根据是否在选中列表中设置 enabled 状态
                 updatedUserSettings[siteName].enabled = selectedSites.includes(siteName);
             });
+
+            const customSites = await window.getCustomSites?.() || [];
+            const updatedCustomSites = customSites.map(site => ({
+                ...site,
+                enabled: selectedCustomSiteIds.includes(site.id)
+            }));
             
             console.log('更新后的用户设置:', updatedUserSettings);
+            console.log('更新后的 customSites:', updatedCustomSites);
             
-            // 4. 保存到 chrome.storage.sync.sites
-            await chrome.storage.sync.set({ sites: updatedUserSettings });
+            // 4. 保存到 chrome.storage.sync.sites 和 customSites
+            await chrome.storage.sync.set({
+                sites: updatedUserSettings,
+                customSites: updatedCustomSites
+            });
+            homepageSitesState.customSites = updatedCustomSites;
+            homepageSitesState.selectedCustomSites = new Map(
+                updatedCustomSites.map(site => [site.id, site.enabled === true])
+            );
+            renderCustomSitesList();
             console.log('已保存到 chrome.storage.sync.sites');
             
             // 记录分析事件
             trackEvent('homepage_save_favorite_sites', {
                 sites_count: selectedSites.length,
-                sites: selectedSites
+                sites: selectedSites,
+                custom_sites_count: selectedCustomSiteIds.length,
+                custom_sites: selectedCustomSiteIds
             });
             
             // 显示成功提示
