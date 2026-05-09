@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
@@ -12,13 +11,9 @@ function fileExists(candidate) {
 }
 
 export function resolveRunnerPath(pluginConfig = {}, pluginDir) {
+  const bundledRunner = path.resolve(pluginDir, "bin/ai-compare-openclaw-fast.cjs");
   const configured = typeof pluginConfig.runnerPath === "string" ? pluginConfig.runnerPath.trim() : "";
-  const envConfigured = typeof process.env.AI_COMPARE_OPENCLAW_FAST_RUNNER === "string"
-    ? process.env.AI_COMPARE_OPENCLAW_FAST_RUNNER.trim()
-    : "";
-  const siblingRepoRunner = path.resolve(pluginDir, "../openclaw/ai-compare-openclaw-fast.js");
-  const workspaceRunner = path.join(os.homedir(), ".openclaw/workspace/skills/ai-compare-bridge/ai-compare-openclaw-fast.js");
-  const candidates = [configured, envConfigured, siblingRepoRunner, workspaceRunner].filter(Boolean);
+  const candidates = [bundledRunner, configured].filter(Boolean);
   return candidates.find(fileExists) || "";
 }
 
@@ -110,4 +105,3 @@ export function resolveTimeoutMs(pluginConfig = {}, fallbackTimeoutMs) {
   }
   return fallbackTimeoutMs;
 }
-

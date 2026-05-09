@@ -81,9 +81,6 @@
   "commandDescription": {
     "message": "快捷键(Mac下 ⌘+M , Windows下 Ctrl+M)"
   },
-  "contactInfo": {
-    "message": "如果你想增加更多站点，可以与我联系 AIShortcuts@outlook.com"
-  },
   "popupTitle": {
     "message": "AI比一比"
   },
@@ -265,8 +262,8 @@
     "description": "功能开发中提示"
   },
   "floatButton": {
-    "message": "悬浮球",
-    "description": "悬浮按钮的名称"
+    "message": "通过悬浮按钮，打开侧边栏",
+    "description": "通过悬浮按钮打开侧边栏的配置项名称"
   },
   "selectionSearch": {
     "message": "划词搜索",
@@ -287,6 +284,22 @@
   "searchEngine": {
     "message": "搜索引擎",
     "description": "搜索引擎的名称"
+  },
+  "sendShortcutTitle": {
+    "message": "发送快捷键",
+    "description": "发送快捷键设置项标题"
+  },
+  "sendShortcutOptionEnter": {
+    "message": "Enter 发送",
+    "description": "Enter 发送选项"
+  },
+  "sendShortcutOptionModifierEnter": {
+    "message": "Ctrl+Enter / ⌘+Enter 发送",
+    "description": "Ctrl+Enter 或 Command+Enter 发送选项"
+  },
+  "sendShortcutHelp": {
+    "message": "Shift+Enter 始终换行。",
+    "description": "发送快捷键设置项说明"
   },
   "deleteConfirm": {
     "message": "确定要删除这个提示词吗？",
@@ -1309,6 +1322,12 @@
   "timelineCopyPreviewLoading": {
     "message": "正在收集各站点回答..."
   },
+  "timelineCopyPreviewRefresh": {
+    "message": "刷新"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "刷新中..."
+  },
   "timelineCopyPreviewSummary": {
     "message": "已汇总 $1/$2 个子页面的回答，请确认后复制。",
     "placeholders": {
@@ -1334,6 +1353,27 @@
   },
   "timelineActionTimeout": {
     "message": "请求超时"
+  },
+  "deepResearchButtonLabel": {
+    "message": "深度研究"
+  },
+  "deepResearchButtonTitle": {
+    "message": "为所有已打开的子页面开启深度研究"
+  },
+  "deepResearchButtonBusy": {
+    "message": "研究中..."
+  },
+  "deepResearchToastRunning": {
+    "message": "正在为所有子页面开启深度研究..."
+  },
+  "deepResearchToastSummary": {
+    "message": "深度研究已就绪：共 $1/$2 个子页面，新开启 $3，已开启 $4，跳过 $5。"
+  },
+  "deepResearchToastPartialFailure": {
+    "message": "深度研究已处理 $1/$2 个子页面：新开启 $3，已开启 $4，跳过 $5，失败 $6。"
+  },
+  "deepResearchToastAllUnsupported": {
+    "message": "当前打开的 $1 个子页面里没有可用的深度研究开关。"
   },
   "openclawModeTitle": {
     "message": "OpenClaw 模式"
@@ -1373,5 +1413,138 @@
   },
   "confirmButton": {
     "message": "确定"
+  },
+  "remoteSearchTitle": {
+    "message": "手机搜索（开发中）"
+  },
+  "remoteSearchDescription": {
+    "message": "把一台手机绑定到当前 Chrome 会话后，手机就能远程发起 AI Compare 搜索并查看流式结果。"
+  },
+  "remoteSearchEnableLabel": {
+    "message": "启用远程搜索"
+  },
+  "remoteSearchRelayUrlLabel": {
+    "message": "Relay 地址"
+  },
+  "remoteSearchRelayUrlHelp": {
+    "message": "填写本地 relay 或部署到 Cloud Run 的 relay 基础地址。"
+  },
+  "remoteSearchDesktopNameLabel": {
+    "message": "电脑名称"
+  },
+  "remoteSearchDesktopNamePlaceholder": {
+    "message": "我的 Chrome 会话"
+  },
+  "remoteSearchGenerateQrButton": {
+    "message": "生成配对二维码"
+  },
+  "remoteSearchPairingLimitNote": {
+    "message": "同一时间只能绑定一台手机，新的手机会替换旧绑定。"
+  },
+  "remoteSearchQrTitle": {
+    "message": "配对二维码"
+  },
+  "remoteSearchQrEmpty": {
+    "message": "先启用远程搜索并保存设置，然后生成配对二维码。"
+  },
+  "remoteSearchExpiresAtLabel": {
+    "message": "有效期至"
+  },
+  "remoteSearchPendingPairTitle": {
+    "message": "待处理配对请求"
+  },
+  "remoteSearchPendingPairDescription": {
+    "message": "手机扫码后，配对请求会出现在这里，等待你批准。"
+  },
+  "remoteSearchPhoneNameLabel": {
+    "message": "手机名称"
+  },
+  "remoteSearchPhonePlatformLabel": {
+    "message": "平台"
+  },
+  "remoteSearchFingerprintLabel": {
+    "message": "指纹"
+  },
+  "remoteSearchApproveButton": {
+    "message": "批准"
+  },
+  "remoteSearchRejectButton": {
+    "message": "拒绝"
+  },
+  "remoteSearchPairedPhoneTitle": {
+    "message": "已绑定手机"
+  },
+  "remoteSearchNotPaired": {
+    "message": "当前还没有绑定手机。"
+  },
+  "remoteSearchUnpairButton": {
+    "message": "解除绑定"
+  },
+  "remoteSearchLastErrorLabel": {
+    "message": "最近错误"
+  },
+  "remoteSearchNoLastError": {
+    "message": "当前没有错误。"
+  },
+  "remoteSearchStatusOnline": {
+    "message": "在线"
+  },
+  "remoteSearchStatusConnecting": {
+    "message": "连接中"
+  },
+  "remoteSearchStatusOffline": {
+    "message": "离线"
+  },
+  "remoteSearchStatusDisabled": {
+    "message": "已关闭"
+  },
+  "remoteSearchStatusError": {
+    "message": "错误"
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "远程 relay 当前离线。"
+  },
+  "remoteSearchNotificationTitle": {
+    "message": "远程搜索"
+  },
+  "remoteSearchPairRequestBody": {
+    "message": "$DEVICE$ 请求配对远程搜索",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
+  },
+  "remoteSearchHomepageTitle": {
+    "message": "远程搜索"
+  },
+  "remoteSearchHomepageDescription": {
+    "message": "把手机绑定到当前 Chrome 会话后，就能远程发起对比搜索。"
+  },
+  "remoteSearchOpenSettingsButton": {
+    "message": "打开设置"
+  },
+  "remoteSearchHomepagePairedPrefix": {
+    "message": "已绑定"
+  },
+  "remoteSearchHomepageDescriptionEnabled": {
+    "message": "远程搜索已就绪，可以前往设置页完成配对。"
+  },
+  "remoteSearchQrLoading": {
+    "message": "正在生成二维码…"
+  },
+  "remoteSearchQrLoadFailed": {
+    "message": "二维码加载失败"
+  },
+  "remoteSearchQrReadyToast": {
+    "message": "配对二维码已生成"
+  },
+  "remoteSearchHomepagePairedDescription": {
+    "message": "已绑定 $DEVICE$。",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
   }
 }

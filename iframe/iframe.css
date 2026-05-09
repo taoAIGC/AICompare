@@ -438,7 +438,9 @@ body.search-bar-bottom .column-dropdown.show {
     border: none;
     box-sizing: border-box;
     resize: none; /* 禁用用户手动调整大小 */
-    overflow: hidden; /* 隐藏滚动条 */
+    overflow-x: hidden;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
     min-height: 36px; /* 最小高度 */
     max-height: 200px; /* 最大高度限制 */
     line-height: 1.6; /* 增大行高，让第二行文字在单行高度时不露出 */
@@ -1405,6 +1407,43 @@ body.search-bar-bottom #iframes-container {
     flex-shrink: 0;
 }
 
+.deep-research-btn {
+    background: #fff8ea;
+    border: 1px solid #f0d39a;
+    border-radius: 999px;
+    color: #8a5a00;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.deep-research-btn:hover {
+    background: #fff2d8;
+    border-color: #e4c17d;
+    color: #754c00;
+}
+
+.deep-research-btn:focus,
+.deep-research-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.deep-research-btn:disabled,
+.deep-research-btn[data-busy="true"] {
+    cursor: wait;
+    opacity: 0.7;
+    background: #f5ead2;
+    border-color: #e4cf9d;
+    color: #8c6b24;
+}
+
 .timeline-toggle-btn img {
     width: 18px;
     height: 18px;
@@ -1672,10 +1711,41 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
 }
 
 .timeline-copy-preview-title {
-    padding: 4px 20px 0;
+    padding: 0;
     font-size: 18px;
     font-weight: 700;
     color: #111;
+}
+
+.timeline-copy-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 20px 0;
+}
+
+.timeline-copy-preview-refresh {
+    border: 1px solid #d8d8d8;
+    background: #fff;
+    color: #222;
+    border-radius: 10px;
+    min-width: 72px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.timeline-copy-preview-refresh:hover {
+    border-color: #111;
+}
+
+.timeline-copy-preview-refresh:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .timeline-copy-preview-meta {

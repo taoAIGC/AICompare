@@ -1,0 +1,24 @@
+name: ai_compare_remote_search
+description: Mobile companion app for AI Compare Remote Search v1.
+publish_to: "none"
+
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cryptography: ^2.7.0
+  flutter_secure_storage: ^9.2.2
+  mobile_scanner: ^5.1.1
+  web_socket_channel: ^3.0.1
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

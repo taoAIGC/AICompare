@@ -1,9 +1,6 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-import { DEFAULT_INSTALL_URL } from "./defaults.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -189,26 +186,25 @@ export function buildFailureMessage(params) {
 
 export function buildMissingRunnerMessage(pluginDir) {
   return [
-    "AI Compare hard route matched this search request, but the GUI runner was not found.",
+    "AI Compare hard route matched this search request, but the bundled GUI runner was not found.",
     "",
-    "Expected one of these paths to exist:",
-    `- sibling repo runner: ${path.resolve(pluginDir, "../openclaw/ai-compare-openclaw-fast.js")}`,
-    `- workspace skill runner: ${path.join(os.homedir(), ".openclaw/workspace/skills/ai-compare-bridge/ai-compare-openclaw-fast.js")}`,
+    `Expected bundled runner: ${path.resolve(pluginDir, "bin/ai-compare-openclaw-fast.cjs")}`,
     "",
-    "You can also set plugins.entries.ai-compare-hard-router.config.runnerPath in ~/.openclaw/openclaw.json."
+    "If you moved files around, restore the packaged bin/ directory or reinstall the plugin archive."
   ].join("\n");
 }
 
 export function buildMissingExtensionMessage(pluginConfig = {}) {
   const installUrl = typeof pluginConfig.installUrl === "string" && pluginConfig.installUrl.trim()
     ? pluginConfig.installUrl.trim()
-    : DEFAULT_INSTALL_URL;
+    : (typeof process !== "undefined" && process.env && typeof process.env.AI_COMPARE_INSTALL_URL === "string" && process.env.AI_COMPARE_INSTALL_URL.trim()
+      ? process.env.AI_COMPARE_INSTALL_URL.trim()
+      : "<set AI_COMPARE_INSTALL_URL or plugins.entries.ai-compare-hard-router.config.installUrl>");
 
   return [
     "这次没有通过 AI Compare 返回站点结果，因为当前 Chrome profile 里还没有可用的 AI Compare 扩展。",
     "",
-    "安装插件：",
-    installUrl,
+    `安装插件：${installUrl}`,
     "",
     "或者加载本地开发版：",
     "- 打开 `chrome://extensions`",
@@ -223,8 +219,6 @@ export function buildMissingExtensionMessage(pluginConfig = {}) {
 export function formatRunnerPayload(payload, options) {
   const {
     query,
-    includeRawJson,
-    maxChars,
     pluginConfig
   } = options;
 
@@ -247,40 +241,9 @@ export function formatRunnerPayload(payload, options) {
   }
 
   const result = payload.result && typeof payload.result === "object" ? payload.result : null;
-  const results = Array.isArray(result?.results) ? result.results : [];
-  const header = [
-    `AI Compare 搜索结果：${query}`
-  ];
-
-  if (results.length === 0) {
-    header.push("", "没有收到任何站点结果。");
+  if (result && typeof result === "object") {
+    return JSON.stringify(payload, null, 2);
   }
 
-  const normalizedResults = results.map((site) => normalizeSiteForDisplay(site));
-  const displayResults = sortSitesForDisplay(normalizedResults);
-  const overview = displayResults.length > 0
-    ? [
-        "站点概览：",
-        ...displayResults.map((site) => formatSiteOverview(site))
-      ].join("\n")
-    : "";
-  const siteBlocks = displayResults.map((site) => formatSiteBlock(site, maxChars));
-  const failures = displayResults
-    .filter((site) => site.status && site.status !== "ok")
-    .map((site) => `${site.siteName}: ${site.status}${site.error ? ` (${site.error})` : ""}`);
-
-  const parts = [header.join("\n")];
-  if (overview) {
-    parts.push(overview);
-  }
-  if (siteBlocks.length > 0) {
-    parts.push(siteBlocks.join("\n\n"));
-  }
-  if (failures.length > 0) {
-    parts.push(["失败或不完整站点：", ...failures.map((line) => `- ${line}`)].join("\n"));
-  }
-  if (includeRawJson) {
-    parts.push(["Raw JSON:", "```json", JSON.stringify(payload, null, 2), "```"].join("\n"));
-  }
-  return parts.join("\n\n");
+  return JSON.stringify(payload, null, 2);
 }

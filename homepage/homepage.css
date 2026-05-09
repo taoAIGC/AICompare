@@ -330,6 +330,102 @@ html, body {
     padding: 0;
 }
 
+.remote-search-home-card {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto 16px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background:
+        radial-gradient(circle at top left, rgba(191, 219, 254, 0.55), transparent 36%),
+        linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, #eef4ff 100%);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+.remote-search-home-copy {
+    min-width: 0;
+}
+
+.remote-search-home-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.remote-search-home-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #475569;
+}
+
+.remote-search-home-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.remote-search-home-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 84px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.remote-search-home-badge[data-status="online"] {
+    background: #ecfdf3;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.remote-search-home-badge[data-status="connecting"] {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+
+.remote-search-home-badge[data-status="error"] {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+
+.remote-search-home-button {
+    border: none;
+    border-radius: 10px;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.remote-search-home-button:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+}
+
+.remote-search-home-button:active {
+    transform: translateY(0);
+}
+
 .search-bar {
     width: 100%;
     max-width: 700px;
@@ -391,7 +487,9 @@ body.search-bar-bottom .query-suggestions {
     border: none;
     box-sizing: border-box;
     resize: none;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
     min-height: 36px;
     max-height: 200px;
     line-height: 1.6;
@@ -1185,4 +1283,32 @@ body.search-bar-bottom .query-suggestions {
 .coffee-modal-close:hover {
     background: #e0e0e0;
     color: #333;
+}
+
+.remote-search-home-card[hidden] {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .remote-search-home-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .remote-search-home-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 600px) {
+    .remote-search-home-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .remote-search-home-button {
+        width: 100%;
+    }
 }

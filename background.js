@@ -1,4 +1,12 @@
-importScripts('./shared/site-launch-utils.js', './config/baseConfig.js');     // 加载共享启动解析器和基础配置
+importScripts(
+  './shared/site-launch-utils.js',
+  './config/baseConfig.js',
+  './remote/common.js',
+  './remote/crypto.js',
+  './remote/state.js',
+  './remote/storage.js',
+  './remote/sw-runtime.js'
+);     // 加载共享启动解析器和基础配置
 
 const SiteLaunchUtils = self.SiteLaunchUtils || {};
 
@@ -562,14 +570,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // 处理来自 iframe 的消息
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.action === 'executeHandler') {
-    const siteHandler = await getHandlerForUrl(message.url);
-    if (siteHandler && siteHandler.searchHandler) {
-      executeSiteHandler(sender.tab.id, message.query, siteHandler).catch(error => {
-        console.error('站点处理失败:', error);
-      });
-    }
+    (async () => {
+      const siteHandler = await getHandlerForUrl(message.url);
+      if (siteHandler && siteHandler.searchHandler) {
+        executeSiteHandler(sender.tab.id, message.query, siteHandler).catch(error => {
+          console.error('站点处理失败:', error);
+        });
+      }
+    })().catch((error) => {
+      console.error('处理 iframe 消息失败:', error);
+    });
   }
 });
 
@@ -722,7 +734,8 @@ async function getHandlerForUrl(url) {
         return {
           name: siteHandler.name,
           searchHandler: siteHandler.searchHandler,
-          supportUrlQuery: siteHandler.supportUrlQuery
+          supportUrlQuery: siteHandler.supportUrlQuery,
+          deepResearchHandler: siteHandler.deepResearchHandler
         };
       }
     }
@@ -763,7 +776,8 @@ async function getHandlerForUrl(url) {
           return {
             name: site.name,
             searchHandler: site.searchHandler,
-            supportUrlQuery: site.supportUrlQuery
+            supportUrlQuery: site.supportUrlQuery,
+            deepResearchHandler: site.deepResearchHandler
           };
         }
         
@@ -773,7 +787,8 @@ async function getHandlerForUrl(url) {
           return {
             name: site.name,
             searchHandler: site.searchHandler,
-            supportUrlQuery: site.supportUrlQuery
+            supportUrlQuery: site.supportUrlQuery,
+            deepResearchHandler: site.deepResearchHandler
           };
         }
       } catch (urlError) {
@@ -975,6 +990,130 @@ self.addEventListener('activate', (event) => {
 // 添加错误处理
 self.addEventListener('error', (error) => {
     console.error('Service Worker 错误:', error);
+});
+
+const REMOTE_RECONNECT_ALARM = 'remote-search-reconnect';
+let remoteSearchRuntime = null;
+let remoteSearchRuntimePromise = null;
+
+async function ensureRemoteSearchRuntime() {
+  if (remoteSearchRuntime) {
+    return remoteSearchRuntime;
+  }
+
+  if (!remoteSearchRuntimePromise) {
+    remoteSearchRuntimePromise = (async () => {
+      if (!self.AIRemoteRuntimeFactory || typeof self.AIRemoteRuntimeFactory.createRemoteRuntime !== 'function') {
+        throw new Error('AIRemoteRuntimeFactory is not available.');
+      }
+
+      const runtime = self.AIRemoteRuntimeFactory.createRemoteRuntime({
+        chromeApi: chrome,
+        storageArea: chrome.storage.local,
+        fetchImpl: fetch.bind(globalThis),
+        WebSocketImpl: WebSocket,
+        logger: console
+      });
+      await runtime.initialize();
+      remoteSearchRuntime = runtime;
+      return runtime;
+    })().catch((error) => {
+      remoteSearchRuntimePromise = null;
+      console.error('初始化远程搜索运行时失败:', error);
+      throw error;
+    });
+  }
+
+  return remoteSearchRuntimePromise;
+}
+
+function createRemoteReconnectAlarm() {
+  if (!chrome.alarms || typeof chrome.alarms.create !== 'function') {
+    return;
+  }
+
+  chrome.alarms.create(REMOTE_RECONNECT_ALARM, {
+    periodInMinutes: 1
+  });
+}
+
+chrome.alarms?.onAlarm.addListener((alarm) => {
+  if (alarm?.name !== REMOTE_RECONNECT_ALARM) {
+    return;
+  }
+
+  ensureRemoteSearchRuntime()
+    .then((runtime) => runtime.ensureConnection())
+    .catch((error) => {
+      console.error('远程搜索重连检查失败:', error);
+    });
+});
+
+chrome.notifications?.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  ensureRemoteSearchRuntime()
+    .then((runtime) => runtime.handleNotificationClick(notificationId, buttonIndex))
+    .catch((error) => {
+      console.error('处理远程配对通知按钮失败:', error);
+    });
+});
+
+chrome.notifications?.onClicked.addListener((notificationId) => {
+  if (notificationId !== (self.AIRemoteCommon?.NOTIFICATION_IDS?.PAIR_REQUEST || 'remote-search-pair-request')) {
+    return;
+  }
+
+  ensureRemoteSearchRuntime()
+    .then((runtime) => runtime.openOptionsRemoteSearch())
+    .catch((error) => {
+      console.error('打开远程搜索设置页失败:', error);
+    });
+});
+
+chrome.tabs?.onRemoved.addListener((tabId) => {
+  ensureRemoteSearchRuntime()
+    .then((runtime) => runtime.handleTabRemoved(tabId))
+    .catch((error) => {
+      console.error('处理远程搜索标签页关闭失败:', error);
+    });
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const remoteActions = new Set([
+    'remoteGetState',
+    'remoteUpdateSettings',
+    'remoteCreatePairingTicket',
+    'remoteApprovePendingPair',
+    'remoteRejectPendingPair',
+    'remoteRevokePairing',
+    'remoteSearchProgress'
+  ]);
+
+  if (!remoteActions.has(message?.action)) {
+    return undefined;
+  }
+
+  ensureRemoteSearchRuntime()
+    .then((runtime) => runtime.handleMessage(message, sender))
+    .then((result) => {
+      sendResponse({
+        success: true,
+        result
+      });
+    })
+    .catch((error) => {
+      console.error('远程搜索消息处理失败:', error);
+      sendResponse({
+        success: false,
+        error: error?.message || String(error)
+      });
+    });
+
+  return true;
+});
+
+createRemoteReconnectAlarm();
+void ensureRemoteSearchRuntime().catch((error) => {
+  console.warn('远程搜索运行时启动失败:', error);
 });
 
 // 捕获未处理的 Promise rejection

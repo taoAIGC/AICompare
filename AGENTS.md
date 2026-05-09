@@ -53,9 +53,11 @@ Sites are configured in `config/siteHandlers.json` with properties:
 - Each site entry currently has required baseline fields:
   `name`, `url`, `enabled`, `supportUrlQuery`, `region`, `hidden`, `supportIframe`, `searchHandler`, `icon`, `type`
 - Each site entry may additionally include optional top-level fields:
-  `note`, `fileUploadHandler`, `contentExtractor`, `historyHandler`, `userPrompt`
-- `searchHandler.steps[]` and `fileUploadHandler.steps[]` are step arrays. Step objects currently use:
+  `note`, `fileUploadHandler`, `contentExtractor`, `historyHandler`, `userPrompt`, `deepResearchHandler`
+- `searchHandler.steps[]`, `fileUploadHandler.steps[]`, and `deepResearchHandler.steps[]` are step arrays. Step objects currently use:
   `action`, `selector`, `description`, `duration`, `events`, `inputType`, `keys`, `maxAttempts`, `retryInterval`, `waitForElement`, `retryOnDisabled`, `customAction`, `customSetValue`, `messageType`, `required`, `specialConfig`
+- `deepResearchHandler` currently uses:
+  `enabledSelectors`, `steps`
 - `userPrompt` currently uses:
   `containerSelector`, `textSelector`, `messageNodeSelector`, `requireMessageNode`, `skipMessageIdPattern`
 - `contentExtractor` currently uses:
@@ -102,6 +104,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 ## Site Testing Rules
 
 - When validating AI site integrations, do not treat selector existence alone as a passing result. A site only passes if the configured flow actually performs the target action successfully.
+- When testing a site, do not open the target website directly first. Open the extension page instead, then pass the site to test through URL parameters such as `sites=` / `customSites=` / `query=` so the real plugin launch path is exercised.
 - When collecting site-adaptation parameters such as runtime URL, iframe support, bootstrap path, editor type, submit path, `searchHandler` steps, `userPrompt`, `contentExtractor`, and `historyHandler`, open the user's Chrome browser and inspect the real page there. Do not use a headless browser as the source of truth for these adaptation decisions.
 - Translation sites must be tested with a deterministic real query in user Chrome, not only with DOM inspection. The default verification query is `你好世界`.
 - A translation site passes only if the configured input steps really inject the source text, the page produces a non-placeholder translation result, and the configured `contentExtractor` selector can read that final translated text.
@@ -121,7 +124,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 
 - Use this workflow whenever a new AI site is added or when an existing placeholder handler is being replaced with a real one.
 - Step 0: open the user's Chrome browser and collect evidence there.
-  Before deciding any non-trivial adaptation field, open the site in the user's real Chrome profile and inspect the live runtime page there. Treat the user Chrome session as the source of truth for runtime URL, iframe viability, bootstrap actions, editor type, submit path, extraction selectors, and history behavior. Do not rely on a headless browser for these parameter decisions; headless checks may be used only as secondary diagnostics after the user-Chrome result is known.
+  Before deciding any non-trivial adaptation field, open the extension page in the user's real Chrome profile and inspect the live runtime page there. For site testing, do not jump straight to the external website; start from the plugin page and pass the target site names through URL parameters such as `sites=` / `customSites=` / `query=`. Treat the user Chrome session as the source of truth for runtime URL, iframe viability, bootstrap actions, editor type, submit path, extraction selectors, and history behavior. Do not rely on a headless browser for these parameter decisions; headless checks may be used only as secondary diagnostics after the user-Chrome result is known.
 - Step 1: identify `name`, `url`, and the real working runtime URL.
   Confirm the canonical user-facing site name and the real landing/runtime URL. A configured entry URL may redirect to another workspace page after login. Prefer the runtime page in `url` if that is where input, history detection, and extraction actually happen.
 - Step 2: identify `region`, `type`, `note`, `enabled`, and `hidden`.
@@ -161,6 +164,8 @@ No build, test, or lint commands are available - this is a standard Chrome exten
   Re-run extraction against the same real session and confirm that the configured `contentExtractor` reads the final answer body rather than page chrome or the user prompt. If the site streams or lazy-renders content, wait until the answer stabilizes before deciding the selector failed.
 - Step 12: identify `historyHandler`.
   If the site creates stable history URLs, determine `historyHandler.urlFeature` from the real post-submit URL pattern, such as `/c/`, `/chat`, or `/app/`. If the site has no reliable history URL pattern, omit the field rather than inventing one.
+- Step 12.5: identify `deepResearchHandler` when the site exposes a deep-research switch.
+  Only include `deepResearchHandler` when the live page has a stable deep-research toggle worth automating. Determine `enabledSelectors` from the actual on-state DOM and validate that they match only after the toggle is enabled. Reuse the existing step schema for `steps[]`, and verify both “already enabled” and “closed -> enabled” paths in the real user Chrome session.
 - Step 13: identify `fileUploadHandler` when the site supports attachment workflows.
   Only include `fileUploadHandler.steps[]` if the page supports file paste/upload through the extension flow. Its steps should be validated independently from text-submit flow.
 - Step 14: identify `icon`.
@@ -179,7 +184,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - The page enters a real post-submit state caused by the prompt.
 - `userPrompt` points to stable user-message nodes.
 - `contentExtractor` points to stable assistant-answer nodes.
-- `historyHandler`, `fileUploadHandler`, `note`, and `icon` have all been explicitly decided.
+- `historyHandler`, `deepResearchHandler`, `fileUploadHandler`, `note`, and `icon` have all been explicitly decided.
 - `excludeSelectors` remove page chrome and repeated noise.
 - A debug verifier exists for non-trivial sites or redirect-heavy flows.
 
@@ -304,6 +309,16 @@ Verification environment:
 - evidence:
 - `urlFeature`:
 
+#### `deepResearchHandler`
+
+- needed:
+  `yes | no`
+- evidence:
+- `enabledSelectors`:
+- `steps[]`:
+  record each step in order with:
+  `action`, `selector`, `description`, and any applicable `duration`, `events`, `inputType`, `keys`, `maxAttempts`, `retryInterval`, `waitForElement`, `retryOnDisabled`, `customAction`, `customSetValue`, `messageType`, `required`, `specialConfig`
+
 #### `fileUploadHandler`
 
 - needed:
@@ -397,5 +412,8 @@ Verification environment:
 
 - The current user-Chrome extension id for this workspace is `hhkhgpadepocnmjfpohcmjdcgkmfnadi`.
 - When a debug script or manual check needs a concrete extension page, prefer `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi/homepage/homepage.html` or the matching path under that id.
+- For site-integration testing, prefer opening the compare page directly with URL parameters, for example:
+  `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi/iframe/iframe.html?sites=Qwen&type=information&query=%E4%BD%A0%E5%A5%BD%E4%B8%96%E7%95%8C`
+- Use `sites=` for built-in iframe-capable sites, `customSites=` for custom iframe-capable sites, and `query=` when the validation flow should exercise real prompt submission from the plugin entry path.
 - If a script supports `EXTENSION_ID`, default to `hhkhgpadepocnmjfpohcmjdcgkmfnadi` unless the user explicitly says to test a different installed build.
 - Do not confuse dynamic resource ids generated by `web_accessible_resources.use_dynamic_url` with the real extension id. Values that look like UUIDs such as `e89cca61-9b65-4b36-a649-322031857d0b` are dynamic resource ids, not the extension id to use for navigation or test assertions.

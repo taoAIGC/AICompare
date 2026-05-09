@@ -4,6 +4,24 @@ let isComposing = false;
 const HOMEPAGE_PERF_PREFIX = 'homepage';
 const HOMEPAGE_PERF_CACHE_KEY = '__homepagePerfMeasures';
 const DEFAULT_SITE_GROUP = 'information';
+const SubmitShortcutUtils = window.SubmitShortcutUtils || {};
+const normalizeSendShortcutMode = typeof SubmitShortcutUtils.normalizeSendShortcutMode === 'function'
+    ? SubmitShortcutUtils.normalizeSendShortcutMode
+    : ((value) => value === 'modifierEnter' ? 'modifierEnter' : 'enter');
+const shouldSubmitOnEnterKey = typeof SubmitShortcutUtils.shouldSubmitOnEnterKey === 'function'
+    ? SubmitShortcutUtils.shouldSubmitOnEnterKey
+    : ((eventLike, options = {}) => {
+        if (eventLike?.key !== 'Enter' || eventLike?.shiftKey) {
+            return false;
+        }
+        return normalizeSendShortcutMode(options.mode) === 'modifierEnter'
+            ? (options.isMac ? Boolean(eventLike?.metaKey) : Boolean(eventLike?.ctrlKey))
+            : true;
+    });
+const HOMEPAGE_DEFAULT_SEND_SHORTCUT = 'enter';
+const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
+    navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
+);
 const SITE_GROUP_LABELS = {
     information: 'homepageTypeInformation',
     agents: 'homepageTypeAgents',
@@ -20,6 +38,37 @@ const homepageSitesState = {
     dragAndDropBound: false
 };
 let ensureHomepagePromptTemplatesPromise = null;
+let homepageSubmitShortcutMode = HOMEPAGE_DEFAULT_SEND_SHORTCUT;
+let remoteSearchHomepageState = null;
+let remoteSearchHomepageListenerBound = false;
+
+async function loadHomepageSubmitShortcutMode() {
+    let nextMode = HOMEPAGE_DEFAULT_SEND_SHORTCUT;
+
+    try {
+        const defaultButtonConfig = await window.AppConfigManager.getButtonConfig();
+        nextMode = normalizeSendShortcutMode(defaultButtonConfig?.sendShortcut);
+        const { buttonConfig } = await chrome.storage.sync.get('buttonConfig');
+        nextMode = normalizeSendShortcutMode(buttonConfig?.sendShortcut ?? nextMode);
+    } catch (error) {
+        console.warn('Failed to load homepage submit shortcut mode:', error);
+    }
+
+    homepageSubmitShortcutMode = nextMode;
+    return nextMode;
+}
+
+function applyHomepageSubmitShortcutMode(buttonConfig = {}) {
+    homepageSubmitShortcutMode = normalizeSendShortcutMode(buttonConfig?.sendShortcut);
+}
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.buttonConfig) {
+        applyHomepageSubmitShortcutMode(changes.buttonConfig.newValue || {});
+    }
+});
+
+void loadHomepageSubmitShortcutMode();
 
 function perfMark(name) {
     if (typeof performance === 'undefined' || typeof performance.mark !== 'function') {
@@ -96,6 +145,102 @@ function t(key, fallback = '') {
 function openCustomSitesSettingsPage() {
     const targetUrl = chrome.runtime.getURL('options/options.html?scrollTarget=custom-sites-settings#launch-settings');
     window.location.href = targetUrl;
+}
+
+function openRemoteSearchSettingsPage() {
+    const targetUrl = chrome.runtime.getURL('options/options.html#remote-search');
+    window.location.href = targetUrl;
+}
+
+function getRemoteSearchHomepageStatusText(status) {
+    switch (String(status || '').trim()) {
+        case 'online':
+            return t('remoteSearchStatusOnline', 'Online');
+        case 'connecting':
+            return t('remoteSearchStatusConnecting', 'Connecting');
+        case 'offline':
+            return t('remoteSearchStatusOffline', 'Offline');
+        case 'error':
+            return t('remoteSearchStatusError', 'Error');
+        case 'disabled':
+        default:
+            return t('remoteSearchStatusDisabled', 'Disabled');
+    }
+}
+
+async function sendRemoteSearchHomepageMessage(action, payload = {}) {
+    const response = await chrome.runtime.sendMessage({
+        action,
+        ...payload
+    });
+
+    if (!response?.success) {
+        throw new Error(response?.error || 'Remote Search request failed');
+    }
+
+    return response.result;
+}
+
+function renderRemoteSearchHomepageCard(state) {
+    remoteSearchHomepageState = state || null;
+    const card = document.getElementById('remoteSearchStatusCard');
+    const badge = document.getElementById('remoteSearchHomeBadge');
+    const description = document.getElementById('remoteSearchHomeDescription');
+    if (card) {
+        card.hidden = false;
+    }
+    if (!badge || !description) {
+        return;
+    }
+
+    const status = String(state?.connectionStatus || 'disabled').trim() || 'disabled';
+    badge.dataset.status = status;
+    badge.textContent = getRemoteSearchHomepageStatusText(status);
+
+    if (state?.pairRecord?.phoneName) {
+        description.textContent = chrome.i18n.getMessage(
+            'remoteSearchHomepagePairedDescription',
+            [state.pairRecord.phoneName]
+        ) || `Paired with ${state.pairRecord.phoneName}.`;
+        return;
+    }
+
+    if (state?.settings?.enabled === true) {
+        description.textContent = t(
+            'remoteSearchHomepageDescriptionEnabled',
+            'Remote search is ready for pairing from the settings page.'
+        );
+        return;
+    }
+
+    description.textContent = t(
+        'remoteSearchHomepageDescription',
+        'Pair one phone to this Chrome session and launch compare searches remotely.'
+    );
+}
+
+async function initializeRemoteSearchHomepageCard() {
+    const openButton = document.getElementById('remoteSearchOpenSettingsBtn');
+    if (openButton && openButton.dataset.bound !== 'true') {
+        openButton.dataset.bound = 'true';
+        openButton.addEventListener('click', () => {
+            trackEvent('homepage_remote_search_open_settings');
+            openRemoteSearchSettingsPage();
+        });
+    }
+
+    if (!remoteSearchHomepageListenerBound) {
+        chrome.runtime.onMessage.addListener((message) => {
+            if (message?.type !== 'remoteStateChanged' || !message.state) {
+                return;
+            }
+            renderRemoteSearchHomepageCard(message.state);
+        });
+        remoteSearchHomepageListenerBound = true;
+    }
+
+    const state = await sendRemoteSearchHomepageMessage('remoteGetState');
+    renderRemoteSearchHomepageCard(state);
 }
 
 function updateCustomSitesEmptyState(isEmpty) {
@@ -411,6 +556,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const searchInput = document.getElementById('searchInput');
     perfMark('search_input_setup_start');
     if (searchInput) {
+        const resizeUtils = globalThis.TextareaResizeUtils;
         const inputWrapper = searchInput.closest('.input-wrapper');
         const mirror = document.createElement('div');
         mirror.setAttribute('aria-hidden', 'true');
@@ -457,23 +603,30 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             mirror.style.width = Math.max(0, availableWidth) + 'px';
             mirror.textContent = searchInput.value + '\n';
+            const compactContentHeight = Math.ceil(mirror.scrollHeight);
 
-            const neededHeight = Math.ceil(mirror.scrollHeight);
-            const needsWrap = neededHeight > minHeight + 1;
+            mirror.style.width = searchInput.clientWidth + 'px';
+            mirror.textContent = searchInput.value + '\n';
+            const expandedContentHeight = Math.ceil(mirror.scrollHeight);
+
+            const layout = resizeUtils.calculateTextareaLayout({
+                hasValue: searchInput.value.length > 0,
+                compactContentHeight,
+                expandedContentHeight,
+                minHeight,
+                defaultHeight: minHeightFallback,
+                maxHeight
+            });
 
             if (inputWrapper) {
-                inputWrapper.classList.toggle('avoid-overlap', needsWrap);
+                inputWrapper.classList.toggle('avoid-overlap', layout.avoidOverlap);
             }
 
-            if (needsWrap) {
-                mirror.style.width = searchInput.clientWidth + 'px';
-                mirror.textContent = searchInput.value + '\n';
+            searchInput.style.height = layout.height + 'px';
+            searchInput.style.overflowY = layout.overflowY;
 
-                const finalHeight = Math.ceil(mirror.scrollHeight);
-                const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
-                searchInput.style.height = clampedHeight + 'px';
-            } else {
-                searchInput.style.height = minHeightFallback + 'px';
+            if (!layout.isScrollable) {
+                searchInput.scrollTop = 0;
             }
         }
         
@@ -488,12 +641,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 监听聚焦事件（仅在需要时扩展高度）
         searchInput.addEventListener('focus', autoResizeTextarea);
 
-        // 监听失焦事件，恢复默认高度
+        // 监听失焦事件，保留有内容时的高度，空输入时恢复默认高度
         searchInput.addEventListener('blur', () => {
-            searchInput.style.height = '36px';
-            searchInput.scrollTop = 0;
-            if (inputWrapper) {
-                inputWrapper.classList.remove('avoid-overlap');
+            autoResizeTextarea();
+            if (!searchInput.value) {
+                searchInput.scrollTop = 0;
             }
         });
         
@@ -578,7 +730,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         measureAsyncStep('pin_guide_init', () => checkAndShowPinGuide()),
         measureAsyncStep('query_suggestions_init', () => initializeQuerySuggestions()),
         measureAsyncStep('sites_list_init', () => initializeSitesList()),
-        measureAsyncStep('custom_sites_init', () => initializeCustomSitesList())
+        measureAsyncStep('custom_sites_init', () => initializeCustomSitesList()),
+        measureAsyncStep('remote_search_card_init', () => initializeRemoteSearchHomepageCard())
     ]).finally(() => {
         perfMark('non_critical_init_end');
         perfMeasure('non_critical_init_duration', 'non_critical_init_start', 'non_critical_init_end');
@@ -1285,16 +1438,25 @@ document.getElementById('searchInput').addEventListener('compositionend', () => 
 
 // 处理回车键
 document.getElementById('searchInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        // 如果正在使用输入法组合输入，不触发查询操作
-        if (isComposing) {
-            return;
-        }
-        
-        e.preventDefault();
-        const query = document.getElementById('searchInput').value.trim();
-        handleQuery(query);
+    if (e.key !== 'Enter') {
+        return;
     }
+
+    // 如果正在使用输入法组合输入，不触发查询操作
+    if (isComposing) {
+        return;
+    }
+
+    if (!shouldSubmitOnEnterKey(e, {
+        mode: homepageSubmitShortcutMode,
+        isMac: HOMEPAGE_IS_MAC_PLATFORM
+    })) {
+        return;
+    }
+
+    e.preventDefault();
+    const query = document.getElementById('searchInput').value.trim();
+    handleQuery(query);
 });
 
 

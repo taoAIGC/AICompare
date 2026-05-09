@@ -235,12 +235,28 @@ function postSiteRuntimeUpdate(payload) {
   }
 }
 
+function postDeepResearchResult(payload) {
+  try {
+    window.parent.postMessage({
+      type: 'DEEP_RESEARCH_RESULT',
+      source: 'inject-script',
+      ...payload
+    }, '*');
+  } catch (_) {
+    // ignore
+  }
+}
+
 function createSearchSessionId(siteName) {
   return `${String(siteName || 'site').replace(/\s+/g, '-').toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function buildSearchContentComparable(text) {
   return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
+}
+
+function waitForMs(duration) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(duration) || 0)));
 }
 
 function stopActiveSearchMonitor(reason = 'replaced') {
@@ -329,12 +345,44 @@ function looksLikeConfiguredPendingContent(content, siteHandler) {
   return matchesRuntimePatterns(normalized, runtimeConfig.pendingContentPatterns);
 }
 
+function isConfiguredShellContent(siteHandler, content) {
+  const normalized = cleanExtractedText(String(content || ''));
+  if (!normalized) return false;
+
+  const runtimeConfig = getSiteRuntimeConfig(siteHandler);
+  const shellPatterns = siteHandler?.contentExtractor?.latestVisibleResponse?.shellPatterns || [];
+  const pendingShellConfig = runtimeConfig.pendingShell || {};
+  const shellSignals = Array.isArray(pendingShellConfig.signals) ? pendingShellConfig.signals : [];
+
+  if (shellPatterns.length > 0) {
+    if (matchesRuntimePatterns(normalized, shellPatterns)) {
+      return true;
+    }
+  }
+
+  if (shellSignals.length === 0) {
+    return false;
+  }
+
+  const matchedSignals = shellSignals.filter((signal) => normalized.includes(signal));
+  const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+  const likelyTitleList = lines.length >= (Number(pendingShellConfig.likelyTitleListMinLines) || 8)
+    && lines.every((line) => line.length <= (Number(pendingShellConfig.likelyTitleListMaxLineLength) || 24));
+
+  return matchedSignals.length >= (Number(pendingShellConfig.minMatches) || 3)
+    || (matchedSignals.length >= (Number(pendingShellConfig.fallbackMinMatches) || 2) && likelyTitleList);
+}
+
+function looksLikePlaceholderAnswerContent(content) {
+  return Boolean(window.AICompareExtraction?.looksLikePlaceholderAnswerContent?.(content));
+}
+
 function shouldTreatAsPendingSiteContent(siteHandler, content, url) {
   if (looksLikeConfiguredPendingContent(content, siteHandler)) {
     return true;
   }
 
-  if (looksLikePendingShellFromConfig(content, siteHandler)) {
+  if (isConfiguredShellContent(siteHandler, content)) {
     return true;
   }
 
@@ -537,7 +585,8 @@ async function runActiveSearchMonitorCheck(monitor) {
     const url = await resolveCurrentPageUrl(monitor.siteName);
     const siteHandler = await getSiteHandler(window.location.hostname, monitor.siteName);
     const requiredUrlFeature = String(siteHandler?.historyHandler?.urlFeature || '').trim();
-    const hasRequiredUrl = urlMatchesHistoryFeature(url, requiredUrlFeature);
+    const requireHistoryUrlFeature = getSiteRuntimeConfig(siteHandler)?.requireHistoryUrlFeature === true;
+    const hasRequiredUrl = !requireHistoryUrlFeature || urlMatchesHistoryFeature(url, requiredUrlFeature);
 
     if (!normalizedContent) {
       await postMonitorRuntimeUpdate(monitor, {
@@ -549,6 +598,15 @@ async function runActiveSearchMonitorCheck(monitor) {
     }
 
     if (shouldTreatAsPendingSiteContent(siteHandler, content, url)) {
+      await postMonitorRuntimeUpdate(monitor, {
+        phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
+        content: '',
+        url
+      });
+      return;
+    }
+
+    if (looksLikePlaceholderAnswerContent(content)) {
       await postMonitorRuntimeUpdate(monitor, {
         phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
         content: '',
@@ -585,7 +643,7 @@ async function runActiveSearchMonitorCheck(monitor) {
     }
 
     monitor.stableRounds = (monitor.stableRounds || 0) + 1;
-    const isReady = monitor.stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS && hasRequiredUrl;
+    const isReady = monitor.stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS && hasRequiredUrl && !looksLikePlaceholderAnswerContent(content);
     await postMonitorRuntimeUpdate(monitor, {
       phase: isReady ? 'ready' : 'streaming',
       content,
@@ -667,16 +725,18 @@ function reportStepRetry(attempts, maxAttempts) {
   if (!__currentInjectStepMeta) return;
   const description = __currentInjectStepMeta.description || __currentInjectStepMeta.action || '';
   const retryInfo = t('injectProgressRetryInfo', '重试 $1/$2', [String(attempts), String(maxAttempts)]);
-  postInjectProgress({
-    siteName: __currentInjectStepMeta.siteName,
-    status: 'step',
-    stepIndex: __currentInjectStepMeta.stepIndex,
-    totalSteps: __currentInjectStepMeta.totalSteps,
-    description,
-    action: __currentInjectStepMeta.action,
-    retryAttempts: attempts,
-    retryMax: maxAttempts
-  });
+  if (__currentInjectStepMeta.emitProgress !== false) {
+    postInjectProgress({
+      siteName: __currentInjectStepMeta.siteName,
+      status: 'step',
+      stepIndex: __currentInjectStepMeta.stepIndex,
+      totalSteps: __currentInjectStepMeta.totalSteps,
+      description,
+      action: __currentInjectStepMeta.action,
+      retryAttempts: attempts,
+      retryMax: maxAttempts
+    });
+  }
   console.log(`🔁 ${__currentInjectStepMeta.siteName || ''} ${description} ${retryInfo}`);
 }
 
@@ -697,14 +757,31 @@ function getStepTimeoutMs(step) {
 }
 
 // 通用的配置化站点处理器 - 基于流程的标准化处理
-async function executeSiteHandler(query, handlerConfig, siteName = null) {
+async function executeSiteHandler(query, handlerConfig, siteName = null, options = {}) {
   console.log('🚀 executeSiteHandler 开始执行');
   console.log('🔍 调试信息 - 查询内容:', query);
   console.log('🔍 调试信息 - 处理器配置:', handlerConfig);
+  const emitProgress = options.emitProgress !== false;
+  const normalizedSiteName = String(siteName || '').trim().toLowerCase();
+  const normalizedQuery = String(query || '').replace(/\s+/g, ' ').trim();
+
+  if (normalizedSiteName === 'kimi' && normalizedQuery) {
+    const now = Date.now();
+    if (
+      window.__kimiLastHandlerQuery === normalizedQuery &&
+      window.__kimiLastHandlerQueryAt &&
+      now - window.__kimiLastHandlerQueryAt < 3000
+    ) {
+      console.log('Kimi: executeSiteHandler 重复触发拦截，跳过本次执行');
+      return;
+    }
+    window.__kimiLastHandlerQuery = normalizedQuery;
+    window.__kimiLastHandlerQueryAt = now;
+  }
   
   if (!handlerConfig || !handlerConfig.steps) {
     console.error('❌ 无效的处理器配置');
-    if (siteName) {
+    if (siteName && emitProgress) {
       postInjectProgress({
         siteName,
         status: 'error',
@@ -715,7 +792,7 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
   }
 
   console.log('✅ 开始执行配置化处理器，步骤数:', handlerConfig.steps.length);
-  if (siteName) {
+  if (siteName && emitProgress) {
     postInjectProgress({
       siteName,
       status: 'start',
@@ -731,11 +808,12 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
       stepIndex: i + 1,
       totalSteps: handlerConfig.steps.length,
       description: step.description || '',
-      action: step.action || ''
+      action: step.action || '',
+      emitProgress
     };
 
     try {
-      if (siteName) {
+      if (siteName && emitProgress) {
         postInjectProgress({
           siteName,
           status: 'step',
@@ -795,7 +873,7 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
       if (step.waitAfter) {
         await new Promise(resolve => setTimeout(resolve, step.waitAfter));
       }
-      if (siteName) {
+      if (siteName && emitProgress) {
         postInjectProgress({
           siteName,
           status: 'step_complete',
@@ -816,7 +894,7 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
         step?.retryOnDisabled === true ||
         step?.waitForElement === true ||
         typeof step?.maxAttempts === 'number';
-      if (siteName) {
+      if (siteName && emitProgress) {
         postInjectProgress({
           siteName,
           status: 'error',
@@ -834,7 +912,7 @@ async function executeSiteHandler(query, handlerConfig, siteName = null) {
   }
 
   console.log('配置化处理器执行完成');
-  if (siteName) {
+  if (siteName && emitProgress) {
     postInjectProgress({
       siteName,
       status: 'complete',
@@ -1067,41 +1145,93 @@ async function executePaste(step) {
 }
 
 // 执行点击操作
+function triggerSyntheticClick(target) {
+  if (!target) return;
+  const eventOptions = { bubbles: true, cancelable: true, composed: true };
+  target.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+  target.dispatchEvent(new MouseEvent('mouseup', eventOptions));
+  if (typeof target.click === 'function') {
+    target.click();
+  } else {
+    target.dispatchEvent(new MouseEvent('click', eventOptions));
+  }
+}
+
 async function executeClick(step) {
   let element = null;
   let foundSelector = null;
   
   // 支持多个选择器
   const selectors = Array.isArray(step.selector) ? step.selector : [step.selector];
-  
-  for (const selector of selectors) {
-    // 如果选择器是特殊格式 "text:内容"，则通过文本内容查找
-    if (selector.startsWith('text:')) {
-      const textToFind = selector.substring(5);
-      // 查找所有按钮，匹配文本内容
-      const buttons = document.querySelectorAll('button');
-      for (const btn of buttons) {
-        const text = btn.textContent || btn.innerText || btn.getAttribute('aria-label') || '';
-        if (text.toLowerCase().includes(textToFind.toLowerCase())) {
-          element = btn;
-          foundSelector = selector;
-          break;
+
+  const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : 1);
+  const retryInterval = step.retryInterval || 200;
+  let attempts = 0;
+
+  const isElementDisabled = (target) => {
+    if (!target) return true;
+    return (
+      target.disabled === true ||
+      target.getAttribute('aria-disabled') === 'true' ||
+      target.matches?.('[disabled], [aria-disabled="true"], .disabled, .is-disabled')
+    );
+  };
+
+  const findElement = () => {
+    let nextElement = null;
+    let nextSelector = null;
+
+    for (const selector of selectors) {
+      if (typeof selector !== 'string' || !selector.trim()) continue;
+
+      // 如果选择器是特殊格式 "text:内容"，则通过文本内容查找
+      if (selector.startsWith('text:')) {
+        const textToFind = selector.substring(5).toLowerCase();
+        const candidates = document.querySelectorAll('button, [role="button"], a');
+        for (const candidate of candidates) {
+          const text = candidate.textContent || candidate.innerText || candidate.getAttribute('aria-label') || '';
+          if (text.toLowerCase().includes(textToFind)) {
+            nextElement = candidate;
+            nextSelector = selector;
+            break;
+          }
+        }
+      } else {
+        nextElement = document.querySelector(selector);
+        if (nextElement) {
+          nextSelector = selector;
         }
       }
-      if (element) break;
-    } else {
-      // 标准 CSS 选择器
-      element = document.querySelector(selector);
-      if (element) {
-        foundSelector = selector;
+
+      if (nextElement) {
         break;
       }
     }
-  }
-  
-  if (!element) {
-    throw new Error(t('injectProgressErrorElementNotFound', '未找到元素'));
-  }
+
+    return { element: nextElement, selector: nextSelector };
+  };
+
+  const waitForElement = async () => {
+    const found = findElement();
+    element = found.element;
+    foundSelector = found.selector;
+
+    if (element) {
+      return element;
+    }
+
+    attempts++;
+    if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
+      reportStepRetry(attempts, maxAttempts);
+      console.log(`元素未找到，${retryInterval}ms后重试 (${attempts}/${maxAttempts}): ${selectors.join(', ')}`);
+      await new Promise(resolve => setTimeout(resolve, retryInterval));
+      return waitForElement();
+    }
+
+    throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
+  };
+
+  await waitForElement();
   
   if (step.condition) {
     // 检查条件
@@ -1114,24 +1244,29 @@ async function executeClick(step) {
 
   // 如果指定了重试机制，则使用重试逻辑
   if (step.retryOnDisabled) {
-    const maxAttempts = step.maxAttempts || DEFAULT_STEP_MAX_ATTEMPTS;
-    const retryInterval = step.retryInterval || 200;
-    let attempts = 0;
+    let disabledAttempts = 0;
     
-    const tryClick = () => {
-      if (!element.disabled) {
-        element.click();
+    const tryClick = async () => {
+      const found = findElement();
+      element = found.element || element;
+      foundSelector = found.selector || foundSelector;
+
+      if (!element) {
+        throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
+      }
+
+      if (!isElementDisabled(element)) {
+        triggerSyntheticClick(element);
         console.log('点击元素:', foundSelector);
         return true;
       }
       
-    attempts++;
-    if (attempts < maxAttempts) {
-      reportStepRetry(attempts, maxAttempts);
-      console.log(`按钮被禁用，${retryInterval}ms后重试 (${attempts}/${maxAttempts})`);
-      return new Promise(resolve => {
-        setTimeout(() => resolve(tryClick()), retryInterval);
-      });
+      disabledAttempts++;
+      if (disabledAttempts < maxAttempts) {
+        reportStepRetry(disabledAttempts, maxAttempts);
+        console.log(`按钮被禁用，${retryInterval}ms后重试 (${disabledAttempts}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        return tryClick();
       } else {
         console.error('达到最大尝试次数，按钮仍然被禁用');
         throw createRetryExhaustedError(t('injectProgressErrorButtonDisabled', '按钮达到最大重试次数仍被禁用'));
@@ -1150,7 +1285,7 @@ async function executeClick(step) {
       }, 100);
     });
   } else {
-    element.click();
+    triggerSyntheticClick(element);
     console.log('点击元素:', foundSelector);
   }
 }
@@ -1274,7 +1409,15 @@ async function executeSetValue(step, query) {
   
   element = await trySetValue();
 
-  if (step.inputType === 'contenteditable') {
+  const shouldTreatAsContenteditable =
+    step.inputType === 'contenteditable' ||
+    (!step.inputType &&
+      element &&
+      element.tagName !== 'TEXTAREA' &&
+      element.tagName !== 'INPUT' &&
+      (element.isContentEditable || element.getAttribute('role') === 'textbox'));
+
+  if (shouldTreatAsContenteditable) {
     // 检查是否是 Slate 编辑器（通义千问等，通过 data-slate-editor 属性）
     const isSlateEditor = element.getAttribute('data-slate-editor') === 'true';
     if (isSlateEditor) {
@@ -1542,6 +1685,124 @@ async function executeSetValue(step, query) {
                            element.getAttribute('data-lexical-editor') === 'true';
     
     if (isLexicalEditor) {
+      const isKimiSite = /(^|\.)kimi\.com$/i.test(window.location.hostname || '');
+
+      if (isKimiSite) {
+        const normalizeText = (text) => String(text || '').replace(/[\s\u200B-\u200D\uFEFF]+/g, '').trim();
+        const countOccurrences = (text, expected) => {
+          if (!text || !expected) return 0;
+          return text.split(expected).length - 1;
+        };
+        const getLexicalText = () => {
+          const textNodes = element.querySelectorAll('[data-lexical-text]');
+          const fromTextNodes = Array.from(textNodes).map(node => node.textContent || '').join('');
+          if (fromTextNodes) return fromTextNodes;
+          return (element.innerText || element.textContent || '').trim();
+        };
+        const waitForKimiUpdate = async (attempts = 8, delay = 50) => {
+          for (let i = 0; i < attempts; i++) {
+            const current = normalizeText(getLexicalText());
+            if (current && countOccurrences(current, normalizeText(query)) > 0) {
+              return current;
+            }
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+          return normalizeText(getLexicalText());
+        };
+        const rebuildKimiLexicalDom = () => {
+          const pElement = element.querySelector('p') || document.createElement('p');
+          if (!pElement.parentNode) {
+            element.innerHTML = '';
+            element.appendChild(pElement);
+          }
+          pElement.innerHTML = '';
+          if (!query.trim()) return;
+          const span = document.createElement('span');
+          span.setAttribute('data-lexical-text', 'true');
+          span.textContent = query;
+          pElement.appendChild(span);
+        };
+        const collapseRepeatedKimiQuery = () => {
+          const current = normalizeText(getLexicalText());
+          const expected = normalizeText(query);
+          if (!current || !expected) return false;
+          if (countOccurrences(current, expected) < 2) return false;
+          rebuildKimiLexicalDom();
+          element.dispatchEvent(new InputEvent('input', {
+            bubbles: true,
+            cancelable: true,
+            inputType: 'insertText',
+            data: query
+          }));
+          console.log('Kimi: 已折叠重复注入内容');
+          return true;
+        };
+
+        if (query) {
+          const normalizedQuery = normalizeText(query);
+          const now = Date.now();
+          if (
+            window.__kimiLastQuery === normalizedQuery &&
+            window.__kimiLastQueryAt &&
+            now - window.__kimiLastQueryAt < 3000
+          ) {
+            console.log('Kimi: 重复写入拦截，跳过');
+            return;
+          }
+          window.__kimiLastQuery = normalizedQuery;
+          window.__kimiLastQueryAt = now;
+
+          if (normalizeText(getLexicalText()) === normalizedQuery) {
+            console.log('Kimi: 输入框已有相同内容，跳过写入');
+            return;
+          }
+        }
+
+        element.focus();
+
+        let kimiHandled = false;
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          if (document.execCommand('insertText', false, query)) {
+            const kimiTextAfterExec = await waitForKimiUpdate();
+            const occurrenceCount = countOccurrences(kimiTextAfterExec, normalizeText(query));
+            if (occurrenceCount >= 2) {
+              collapseRepeatedKimiQuery();
+            }
+            if (occurrenceCount >= 1) {
+              kimiHandled = true;
+            }
+            console.log('Kimi: execCommand insertText 完成', { kimiHandled, occurrenceCount });
+          }
+        } catch (error) {
+          console.log('Kimi: execCommand 失败，准备走 DOM 兜底', error);
+        }
+
+        if (!kimiHandled) {
+          const kimiTextAfterWait = await waitForKimiUpdate();
+          const occurrenceCount = countOccurrences(kimiTextAfterWait, normalizeText(query));
+          if (occurrenceCount >= 2) {
+            collapseRepeatedKimiQuery();
+          } else if (occurrenceCount < 1) {
+            rebuildKimiLexicalDom();
+            element.dispatchEvent(new InputEvent('input', {
+              bubbles: true,
+              cancelable: true,
+              inputType: 'insertText',
+              data: query
+            }));
+            console.log('Kimi: DOM 兜底写入完成');
+          }
+        }
+
+        collapseRepeatedKimiQuery();
+        return;
+      }
+
       // 处理 Lexical 编辑器：尝试多种方法更新内容
       console.log('检测到 Lexical 编辑器，尝试更新内容');
       
@@ -2106,7 +2367,9 @@ async function executeSendKeys(step, query) {
     element.focus();
     const enterOpts = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13, location: 0, repeat: false, isComposing: false };
     element.dispatchEvent(new KeyboardEvent('keydown', enterOpts));
-    element.dispatchEvent(new KeyboardEvent('keypress', enterOpts));
+    if (step.dispatchKeypress !== false) {
+      element.dispatchEvent(new KeyboardEvent('keypress', enterOpts));
+    }
     element.dispatchEvent(new KeyboardEvent('keyup', enterOpts));
     console.log('发送回车键到元素:', foundSelector);
   } else if (step.keys === '⌘ + Enter' || step.keys === 'Command+Enter' || step.keys === 'Meta+Enter') {
@@ -2322,6 +2585,296 @@ async function executeCustom(step, query) {
   console.log('执行自定义操作:', step.customAction);
 }
 
+const DEEP_RESEARCH_TEXT_TOKENS = ['深度研究', 'deep research'];
+const DEEP_RESEARCH_TOGGLE_SELECTOR = 'button, a[href], [role="button"], [role="switch"], [role="checkbox"], label';
+
+function isElementVisibleForDeepResearch(element) {
+  if (!(element instanceof Element)) return false;
+
+  const style = window.getComputedStyle(element);
+  if (!style || style.display === 'none' || style.visibility === 'hidden') {
+    return false;
+  }
+
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function isElementDisabledForDeepResearch(element) {
+  if (!(element instanceof Element)) return true;
+  return (
+    element.disabled === true ||
+    element.getAttribute('aria-disabled') === 'true' ||
+    element.matches?.('[disabled], [aria-disabled="true"], .disabled, .is-disabled')
+  );
+}
+
+function getDeepResearchAssociatedControl(element) {
+  if (!element) return null;
+  if (element instanceof HTMLLabelElement) {
+    return element.control || element.querySelector('input[type="checkbox"], input[type="radio"]');
+  }
+  if (element.matches?.('input[type="checkbox"], input[type="radio"]')) {
+    return element;
+  }
+  return element.querySelector?.('input[type="checkbox"], input[type="radio"]') || null;
+}
+
+function hasDeepResearchActiveClass(element) {
+  let current = element;
+  let depth = 0;
+
+  while (current && depth < 4) {
+    const className = typeof current.className === 'string' ? current.className : '';
+    const classTokens = className.split(/\s+/).filter(Boolean);
+    const hasActiveToken = classTokens.some((token) => {
+      const normalizedToken = String(token || '').toLowerCase();
+      return (
+        normalizedToken === 'active' ||
+        normalizedToken === 'selected' ||
+        normalizedToken === 'is-active' ||
+        normalizedToken === 'is-selected' ||
+        normalizedToken === 'router-link-active' ||
+        normalizedToken === 'router-link-exact-active' ||
+        /(?:^|[-_])(active|selected)(?:[-_]|$)/i.test(normalizedToken)
+      );
+    });
+    if (hasActiveToken) {
+      return true;
+    }
+    current = current.parentElement;
+    depth += 1;
+  }
+
+  return false;
+}
+
+function isDeepResearchToggleEnabled(element) {
+  if (!(element instanceof Element)) return false;
+
+  const candidates = [
+    element,
+    getDeepResearchAssociatedControl(element)
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (candidate.getAttribute?.('aria-pressed') === 'true') return true;
+    if (candidate.getAttribute?.('aria-checked') === 'true') return true;
+    if (candidate.getAttribute?.('aria-current') === 'page') return true;
+    if (candidate.getAttribute?.('data-state') === 'checked') return true;
+    if (candidate instanceof HTMLInputElement && candidate.checked) return true;
+    if (hasDeepResearchActiveClass(candidate)) return true;
+  }
+
+  return false;
+}
+
+function normalizeDeepResearchText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function getDeepResearchCandidateText(element) {
+  const parts = [
+    element?.textContent,
+    element?.innerText,
+    element?.getAttribute?.('aria-label'),
+    element?.getAttribute?.('title')
+  ];
+  return normalizeDeepResearchText(parts.filter(Boolean).join(' '));
+}
+
+function matchesDeepResearchText(element) {
+  const text = getDeepResearchCandidateText(element);
+  if (!text) return false;
+  return DEEP_RESEARCH_TEXT_TOKENS.some((token) => text.includes(token.toLowerCase()));
+}
+
+function collectDeepResearchCandidates() {
+  const seen = new Set();
+  const results = [];
+  const candidates = document.querySelectorAll(DEEP_RESEARCH_TOGGLE_SELECTOR);
+
+  for (const candidate of candidates) {
+    if (!(candidate instanceof Element)) continue;
+    if (!isElementVisibleForDeepResearch(candidate)) continue;
+    if (isElementDisabledForDeepResearch(candidate)) continue;
+    if (!matchesDeepResearchText(candidate)) continue;
+    if (seen.has(candidate)) continue;
+    seen.add(candidate);
+    results.push(candidate);
+  }
+
+  return results;
+}
+
+function isDeepResearchEnabledByConfig(config) {
+  const selectors = Array.isArray(config?.enabledSelectors)
+    ? config.enabledSelectors.map((selector) => String(selector || '').trim()).filter(Boolean)
+    : [];
+
+  if (!selectors.length) {
+    return false;
+  }
+
+  return selectors.some((selector) => {
+    if (selector.startsWith('text:')) {
+      const expectedText = String(selector.slice(5) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (!expectedText) return false;
+
+      const candidates = document.querySelectorAll('body, body *');
+      for (const candidate of candidates) {
+        if (!(candidate instanceof Element)) continue;
+        if (!isElementVisibleForDeepResearch(candidate)) continue;
+
+        const candidateText = String(candidate.innerText || candidate.textContent || '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toLowerCase();
+        if (candidateText === expectedText) {
+          return true;
+        }
+
+        const attributeValues = [
+          candidate.getAttribute('aria-label'),
+          candidate.getAttribute('title'),
+          candidate.getAttribute('placeholder')
+        ]
+          .map((value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase())
+          .filter(Boolean);
+
+        if (attributeValues.some((value) => value.includes(expectedText))) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    try {
+      return Boolean(document.querySelector(selector));
+    } catch (error) {
+      console.warn('deepResearchHandler enabled selector 无效:', selector, error);
+      return false;
+    }
+  });
+}
+
+async function handleGenericDeepResearchToggle(siteName) {
+  const candidates = collectDeepResearchCandidates();
+  if (!candidates.length) {
+    return {
+      siteName,
+      status: 'not_found',
+      detail: 'No deep research toggle found'
+    };
+  }
+
+  const enabledCandidate = candidates.find((candidate) => isDeepResearchToggleEnabled(candidate));
+  if (enabledCandidate) {
+    return {
+      siteName,
+      status: 'already_enabled',
+      detail: 'Deep research already enabled'
+    };
+  }
+
+  const target = candidates[0];
+  if (!target) {
+    return {
+      siteName,
+      status: 'not_found',
+      detail: 'No deep research toggle found'
+    };
+  }
+
+  triggerSyntheticClick(target);
+  await waitForMs(300);
+
+  const refreshedCandidates = collectDeepResearchCandidates();
+  const isEnabled = refreshedCandidates.some((candidate) => isDeepResearchToggleEnabled(candidate))
+    || isDeepResearchToggleEnabled(target);
+
+  return {
+    siteName,
+    status: isEnabled ? 'enabled' : 'error',
+    detail: isEnabled
+      ? 'Deep research enabled'
+      : 'Deep research toggle click did not enable the feature'
+  };
+}
+
+async function handleDeepResearchTrigger(eventData = {}) {
+  const domain = eventData.domain || window.location.hostname;
+  const siteHandler = await getSiteHandler(domain, eventData.siteName || null);
+  const siteName = eventData.siteName || siteHandler?.name || domain;
+  const requestId = eventData.requestId || `deep-research-${Date.now()}`;
+
+  try {
+    if (!siteHandler) {
+      postDeepResearchResult({
+        requestId,
+        siteName,
+        status: 'unsupported',
+        detail: 'No site handler found'
+      });
+      return;
+    }
+
+    const deepResearchHandler = siteHandler.deepResearchHandler || null;
+    if (deepResearchHandler) {
+      const enabledSelectors = Array.isArray(deepResearchHandler.enabledSelectors)
+        ? deepResearchHandler.enabledSelectors.map((selector) => String(selector || '').trim()).filter(Boolean)
+        : [];
+
+      if (!enabledSelectors.length || !Array.isArray(deepResearchHandler.steps) || !deepResearchHandler.steps.length) {
+        postDeepResearchResult({
+          requestId,
+          siteName,
+          status: 'unsupported',
+          detail: 'deepResearchHandler is incomplete'
+        });
+        return;
+      }
+
+      if (isDeepResearchEnabledByConfig(deepResearchHandler)) {
+        postDeepResearchResult({
+          requestId,
+          siteName,
+          status: 'already_enabled',
+          detail: 'Deep research already enabled'
+        });
+        return;
+      }
+
+      await executeSiteHandler(null, deepResearchHandler, siteName, { emitProgress: false });
+      await waitForMs(300);
+      const isEnabledAfterRun = isDeepResearchEnabledByConfig(deepResearchHandler);
+
+      postDeepResearchResult({
+        requestId,
+        siteName,
+        status: isEnabledAfterRun ? 'enabled' : 'error',
+        detail: isEnabledAfterRun
+          ? 'Deep research enabled'
+          : 'Configured deep research toggle did not enter enabled state'
+      });
+      return;
+    }
+
+    const result = await handleGenericDeepResearchToggle(siteName);
+    postDeepResearchResult({
+      requestId,
+      ...result
+    });
+  } catch (error) {
+    postDeepResearchResult({
+      requestId,
+      siteName,
+      status: 'error',
+      detail: error?.message || String(error)
+    });
+  }
+}
+
 function normalizeMatchPath(pathname) {
   if (!pathname || pathname === '/') return '/';
   return pathname.replace(/\/+$/, '') || '/';
@@ -2417,7 +2970,8 @@ async function getSiteHandler(domain, preferredSiteName = null) {
     console.log('站点配置详情:', {
       name: site.name,
       hasSearchHandler: !!site.searchHandler,
-      hasFileUploadHandler: !!site.fileUploadHandler
+      hasFileUploadHandler: !!site.fileUploadHandler,
+      hasDeepResearchHandler: !!site.deepResearchHandler
     });
     
     return {
@@ -2426,7 +2980,8 @@ async function getSiteHandler(domain, preferredSiteName = null) {
       fileUploadHandler: site.fileUploadHandler,
       contentExtractor: site.contentExtractor,
       historyHandler: site.historyHandler,
-      userPrompt: site.userPrompt
+      userPrompt: site.userPrompt,
+      deepResearchHandler: site.deepResearchHandler
     };
   } catch (error) {
     console.error('获取站点处理器失败:', error);
@@ -2480,7 +3035,7 @@ window.addEventListener('message', async function(event) {
     }
     
     // 只处理 AIShortcuts 扩展的特定消息类型
-    const validMultiAITypes = ['TRIGGER_PASTE', 'search', 'EXTRACT_CONTENT', 'SET_HISTORY_CONTEXT', 'GET_CURRENT_URL', 'SCROLL_TO_PROMPT', 'EXTRACT_PROMPT_RESPONSE', 'LIST_USER_PROMPTS', 'SET_ACTIVE_SEARCH_CONTEXT'];
+    const validMultiAITypes = ['TRIGGER_PASTE', 'TRIGGER_DEEP_RESEARCH', 'search', 'EXTRACT_CONTENT', 'SET_HISTORY_CONTEXT', 'GET_CURRENT_URL', 'SCROLL_TO_PROMPT', 'EXTRACT_PROMPT_RESPONSE', 'LIST_USER_PROMPTS', 'SET_ACTIVE_SEARCH_CONTEXT'];
     
     if (!validMultiAITypes.includes(event.data.type)) {
         return;
@@ -2494,6 +3049,11 @@ window.addEventListener('message', async function(event) {
         __aiCompareHistoryContext.siteName = event.data.siteName || __aiCompareHistoryContext.siteName;
         console.log('✅ 已更新历史上下文:', __aiCompareHistoryContext);
         scheduleTimelinePromptSnapshot(80, { force: true });
+        return;
+    }
+
+    if (event.data.type === 'TRIGGER_DEEP_RESEARCH') {
+        await handleDeepResearchTrigger(event.data);
         return;
     }
     
@@ -2970,7 +3530,7 @@ async function extractPageContent(preferredSiteName = null) {
         if (siteHandler && siteHandler.contentExtractor) {
             // 使用配置文件中的提取规则
             console.log('✅ 使用配置文件中的内容提取规则');
-            content = await extractWithConfig(siteHandler.contentExtractor, siteHandler.name);
+            content = await extractWithConfig(siteHandler.contentExtractor, siteHandler.name, siteHandler);
             if (looksLikeConfiguredPageShell(siteHandler, content)) {
                 console.log('⏳ 站点仍处于页面壳或流式加载阶段，继续等待真实回答');
                 return '';
@@ -3193,7 +3753,7 @@ async function extractMessagesWithContainerForInject(contentExtractor, siteName)
 }
 
 // 使用配置文件提取内容（优化版）
-async function extractWithConfig(contentExtractor, siteName) {
+async function extractWithConfig(contentExtractor, siteName, siteHandler = null) {
     console.log(`🔍 使用 ${siteName} 配置提取内容...`);
     console.log('🔍 内容提取配置:', contentExtractor);
     
@@ -3213,29 +3773,36 @@ async function extractWithConfig(contentExtractor, siteName) {
             return sharedResult.content;
         }
 
-        if (contentExtractor?.latestVisibleResponse) {
-            console.log('⏳ latestVisibleResponse 已启用，但当前尚无稳定内容，跳过额外兜底提取');
-            return '';
+        if (sharedResult?.pending) {
+            console.log('⏳ 共享提取仍处于 pending，继续尝试额外兜底提取');
+        } else if (contentExtractor?.latestVisibleResponse) {
+            console.log('⏳ latestVisibleResponse 尚未给出稳定内容，继续尝试额外兜底提取');
         }
         
         // 3. 尝试智能内容检测
         console.log('🔍 尝试智能内容检测...');
         content = await intelligentContentDetection(siteName);
         
-        if (content.trim() && !content.includes('无法自动提取')) {
+        if (content.trim() && !content.includes('无法自动提取') && !looksLikeConfiguredPageShell(siteHandler, content)) {
             extractionMethod = '智能检测';
             console.log('✅ 智能内容检测成功');
             return content;
+        }
+        if (content.trim()) {
+            console.log('⏳ 智能内容检测命中页面壳，继续尝试通用提取');
         }
         
         // 4. 最后尝试通用内容提取
         console.log('🔍 尝试通用内容提取...');
         content = await genericContentExtraction(siteName);
         
-        if (content.trim() && !content.includes('无法自动提取')) {
+        if (content.trim() && !content.includes('无法自动提取') && !looksLikeConfiguredPageShell(siteHandler, content)) {
             extractionMethod = '通用提取';
             console.log('✅ 通用内容提取成功');
             return content;
+        }
+        if (content.trim()) {
+            console.log('⏳ 通用内容提取命中页面壳，放弃该结果');
         }
         
     } catch (error) {

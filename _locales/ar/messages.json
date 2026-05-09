@@ -86,9 +86,6 @@
   "commandDescription": {
     "message": "الاختصار: (⌘+M على Mac و Ctrl+M على Windows)"
   },
-  "contactInfo": {
-    "message": "اذا كنت تريد اضافة المزيد من المواقع، فتواصل معي عبر AIShortcuts@outlook.com"
-  },
   "popupTitle": {
     "message": "AI Compare"
   },
@@ -270,8 +267,8 @@
     "description": "Feature coming soon notice"
   },
   "floatButton": {
-    "message": "الزر العائم",
-    "description": "The name for the float button"
+    "message": "افتح الشريط الجانبي عبر الزر العائم",
+    "description": "The label for opening the sidebar with the floating button"
   },
   "selectionSearch": {
     "message": "بحث التحديد",
@@ -292,6 +289,22 @@
   "searchEngine": {
     "message": "محرك البحث",
     "description": "The name for the search engine"
+  },
+  "sendShortcutTitle": {
+    "message": "اختصار الارسال",
+    "description": "عنوان اعداد اختصار الارسال"
+  },
+  "sendShortcutOptionEnter": {
+    "message": "الارسال عبر Enter",
+    "description": "خيار الارسال باستخدام Enter"
+  },
+  "sendShortcutOptionModifierEnter": {
+    "message": "الارسال عبر Ctrl+Enter / ⌘+Enter",
+    "description": "خيار الارسال باستخدام مفتاح معدل"
+  },
+  "sendShortcutHelp": {
+    "message": "Shift+Enter يضيف سطرا جديدا دائما.",
+    "description": "نص مساعد لاعداد اختصار الارسال"
   },
   "deleteConfirm": {
     "message": "هل انت متاكد من حذف هذا الموجه؟",
@@ -1340,6 +1353,27 @@
   "timelineActionTimeout": {
     "message": "انتهت مهلة الطلب"
   },
+  "deepResearchButtonLabel": {
+    "message": "بحث متعمق"
+  },
+  "deepResearchButtonTitle": {
+    "message": "تفعيل البحث المتعمق في جميع الصفحات الفرعية المفتوحة"
+  },
+  "deepResearchButtonBusy": {
+    "message": "جارٍ التنفيذ..."
+  },
+  "deepResearchToastRunning": {
+    "message": "جارٍ تفعيل البحث المتعمق في جميع الصفحات الفرعية المفتوحة..."
+  },
+  "deepResearchToastSummary": {
+    "message": "أصبح البحث المتعمق جاهزًا في $1/$2 من الصفحات الفرعية: تم التفعيل حديثًا $3، وكان مفعّلًا بالفعل $4، وتم تخطي $5."
+  },
+  "deepResearchToastPartialFailure": {
+    "message": "تمت معالجة البحث المتعمق في $1/$2 من الصفحات الفرعية: تم التفعيل حديثًا $3، وكان مفعّلًا بالفعل $4، وتم تخطي $5، وفشل $6."
+  },
+  "deepResearchToastAllUnsupported": {
+    "message": "لا يحتوي أي من الصفحات الفرعية المفتوحة وعددها $1 على مفتاح بحث متعمق متاح."
+  },
   "openclawModeTitle": {
     "message": "وضع OpenClaw"
   },
@@ -1378,5 +1412,135 @@
   },
   "confirmButton": {
     "message": "تأكيد"
+  },
+  "remoteSearchTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchDescription": {
+    "message": "Pair one phone to this Chrome session so the phone can trigger AI Compare searches and read streamed results."
+  },
+  "remoteSearchEnableLabel": {
+    "message": "Enable Remote Search"
+  },
+  "remoteSearchRelayUrlLabel": {
+    "message": "Relay URL"
+  },
+  "remoteSearchRelayUrlHelp": {
+    "message": "Point this to your local relay or the deployed Cloud Run relay base URL."
+  },
+  "remoteSearchDesktopNameLabel": {
+    "message": "Computer name"
+  },
+  "remoteSearchDesktopNamePlaceholder": {
+    "message": "My Chrome session"
+  },
+  "remoteSearchGenerateQrButton": {
+    "message": "Generate pairing QR"
+  },
+  "remoteSearchPairingLimitNote": {
+    "message": "Only one phone can be paired at a time. A new phone replaces the previous pairing."
+  },
+  "remoteSearchQrTitle": {
+    "message": "Pairing QR code"
+  },
+  "remoteSearchQrEmpty": {
+    "message": "Enable Remote Search, save the settings, then generate a pairing QR code."
+  },
+  "remoteSearchExpiresAtLabel": {
+    "message": "Expires at"
+  },
+  "remoteSearchPendingPairTitle": {
+    "message": "Pending pair request"
+  },
+  "remoteSearchPendingPairDescription": {
+    "message": "When a phone scans the QR code, its request appears here for approval."
+  },
+  "remoteSearchPhoneNameLabel": {
+    "message": "Phone name"
+  },
+  "remoteSearchPhonePlatformLabel": {
+    "message": "Platform"
+  },
+  "remoteSearchFingerprintLabel": {
+    "message": "Fingerprint"
+  },
+  "remoteSearchApproveButton": {
+    "message": "Approve"
+  },
+  "remoteSearchRejectButton": {
+    "message": "Reject"
+  },
+  "remoteSearchPairedPhoneTitle": {
+    "message": "Paired phone"
+  },
+  "remoteSearchNotPaired": {
+    "message": "No phone is paired yet."
+  },
+  "remoteSearchUnpairButton": {
+    "message": "Unpair phone"
+  },
+  "remoteSearchLastErrorLabel": {
+    "message": "Last error"
+  },
+  "remoteSearchNoLastError": {
+    "message": "No recent errors."
+  },
+  "remoteSearchStatusOnline": {
+    "message": "Online"
+  },
+  "remoteSearchStatusConnecting": {
+    "message": "Connecting"
+  },
+  "remoteSearchStatusOffline": {
+    "message": "Offline"
+  },
+  "remoteSearchStatusDisabled": {
+    "message": "Disabled"
+  },
+  "remoteSearchStatusError": {
+    "message": "Error"
+  },
+  "remoteSearchNotificationTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchPairRequestBody": {
+    "message": "Pair request from $DEVICE$",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
+  },
+  "remoteSearchHomepageTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchHomepageDescription": {
+    "message": "Pair one phone to this Chrome session and launch compare searches remotely."
+  },
+  "remoteSearchOpenSettingsButton": {
+    "message": "Open settings"
+  },
+  "remoteSearchHomepagePairedPrefix": {
+    "message": "Paired with"
+  },
+  "remoteSearchHomepageDescriptionEnabled": {
+    "message": "Remote Search is ready for pairing from the settings page."
+  },
+  "remoteSearchQrLoading": {
+    "message": "Generating QR code..."
+  },
+  "remoteSearchQrLoadFailed": {
+    "message": "Failed to load QR code"
+  },
+  "remoteSearchQrReadyToast": {
+    "message": "Pairing QR code is ready"
+  },
+  "remoteSearchHomepagePairedDescription": {
+    "message": "Paired with $DEVICE$.",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
   }
 }

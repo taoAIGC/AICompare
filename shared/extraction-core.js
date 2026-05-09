@@ -39,6 +39,44 @@
     }
   }
 
+  function matchesConfiguredPatterns(text, patternConfigs) {
+    const normalizedText = String(text || '');
+    return toArray(patternConfigs).some((patternConfig) => {
+      try {
+        return new RegExp(patternConfig, 'i').test(normalizedText);
+      } catch (_) {
+        return false;
+      }
+    });
+  }
+
+  function looksLikeConfiguredShellContent(content, siteConfig, contentExtractor) {
+    const normalized = String(content || '').trim();
+    if (!normalized) return false;
+
+    const runtimeConfig = siteConfig?.openclawRuntime || {};
+    const pendingShellConfig = runtimeConfig.pendingShell || {};
+    const shellSignals = toArray(pendingShellConfig.signals);
+    const shellPatterns = toArray(contentExtractor?.latestVisibleResponse?.shellPatterns);
+
+    if (shellSignals.length === 0 && shellPatterns.length === 0) {
+      return false;
+    }
+
+    const matchedSignals = shellSignals.filter((signal) => normalized.includes(signal));
+    const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+    const likelyTitleList = lines.length >= (Number(pendingShellConfig.likelyTitleListMinLines) || 8)
+      && lines.every((line) => line.length <= (Number(pendingShellConfig.likelyTitleListMaxLineLength) || 24));
+
+    const shellBySignals = shellSignals.length > 0 && (
+      matchedSignals.length >= (Number(pendingShellConfig.minMatches) || 3)
+      || (matchedSignals.length >= (Number(pendingShellConfig.fallbackMinMatches) || 2) && likelyTitleList)
+    );
+    const shellByPatterns = shellPatterns.length > 0 && matchesConfiguredPatterns(normalized, shellPatterns);
+
+    return shellBySignals || shellByPatterns;
+  }
+
   function cleanExtractedText(text) {
     if (!text) return '';
 
@@ -88,6 +126,26 @@
     text = text.replace(/\n{3,}/g, '\n\n').trim();
 
     return text.trim();
+  }
+
+  function looksLikePlaceholderAnswerContent(content) {
+    const normalized = cleanExtractedText(String(content || ''));
+    if (!normalized) return true;
+
+    const stripped = normalized
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/```+/g, '')
+      .replace(/`+/g, '')
+      .replace(/^[>\-*•\s]+/gm, '')
+      .replace(/[|_~#()[\]{}:.,，。！？!?;；、-]+/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+
+    if (!stripped) {
+      return true;
+    }
+
+    return !/[A-Za-z0-9\u4e00-\u9fff]/.test(stripped);
   }
 
   function convertHtmlToMarkdown(html, ownerDocument) {
@@ -340,7 +398,10 @@
       }
 
       if (!mainContent) {
-        mainContent = await extractElementContent(container);
+        const fallbackContent = await extractElementContent(container);
+        if (!looksLikeConfiguredShellContent(fallbackContent, siteConfig, contentExtractor)) {
+          mainContent = fallbackContent;
+        }
       }
 
       if (mainContent) {
@@ -716,14 +777,14 @@
     try {
       if (contentExtractor.latestVisibleResponse) {
         const visibleResponseResult = extractLatestVisibleResponse(doc, contentExtractor);
-        if (visibleResponseResult && (visibleResponseResult.content || visibleResponseResult.pending)) {
+        if (visibleResponseResult?.content && !visibleResponseResult.pending && !looksLikeConfiguredShellContent(visibleResponseResult.content, fullConfig, contentExtractor) && !looksLikePlaceholderAnswerContent(visibleResponseResult.content)) {
           return visibleResponseResult;
         }
       }
 
       if (contentExtractor.messageContainer) {
         const result = await extractMessagesWithContainer(doc, fullConfig, siteName, settings);
-        if (result.content) {
+        if (result.content && !looksLikePlaceholderAnswerContent(result.content)) {
           return result;
         }
       }
@@ -735,7 +796,7 @@
           maxMatches: exportLatestOnly,
           waitTimeoutMs: settings.waitTimeoutMs
         });
-        if (result.content) {
+        if (result.content && !looksLikePlaceholderAnswerContent(result.content)) {
           return {
             ...result,
             extractionMethod: 'contentSelectors'
@@ -750,7 +811,7 @@
           maxMatches: exportLatestOnly,
           waitTimeoutMs: settings.waitTimeoutMs
         });
-        if (result.content) {
+        if (result.content && !looksLikePlaceholderAnswerContent(result.content)) {
           return {
             ...result,
             extractionMethod: 'legacy'
@@ -779,7 +840,7 @@
         maxMatches: exportLatestOnly,
         waitTimeoutMs: settings.waitTimeoutMs
       });
-      if (fallbackResult.content) {
+      if (fallbackResult.content && !looksLikePlaceholderAnswerContent(fallbackResult.content)) {
         return {
           ...fallbackResult,
           extractionMethod: 'fallback'
@@ -791,7 +852,7 @@
         if (pageText) {
           const maxLength = Number.isFinite(settings.pageTextMaxLength) ? settings.pageTextMaxLength : 1000;
           const content = cleanExtractedText(pageText.slice(0, maxLength) + (pageText.length > maxLength ? '...' : ''));
-          if (content) {
+          if (content && !looksLikeConfiguredShellContent(content, fullConfig, contentExtractor) && !looksLikePlaceholderAnswerContent(content)) {
             return {
               content,
               messageCount: 1,
@@ -909,6 +970,9 @@
     extractElementContent,
     extractWithSelectors,
     extractMessagesWithContainer,
+    matchesConfiguredPatterns,
+    looksLikeConfiguredShellContent,
+    looksLikePlaceholderAnswerContent,
     normalizeTimelineComparableText,
     normalizeTimelineMatchText,
     collectTimelinePromptRecords,

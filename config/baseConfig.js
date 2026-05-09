@@ -15,7 +15,7 @@ const DEV_CONFIG = {
 
 };
 
-const DEV_EXTENSION_ID = 'hhkhgpadepocnmjfpohcmjdcgkmfnadi';
+const DEV_BRANDING_ENABLED = DEV_CONFIG.IS_PRODUCTION === false;
 const DEFAULT_BRAND_ICON_PATHS = Object.freeze({
   16: 'icons/icon16.png',
   48: 'icons/icon48.png',
@@ -37,7 +37,7 @@ function getCurrentExtensionId() {
 }
 
 function isDevelopmentExtensionId(extensionId = getCurrentExtensionId()) {
-  return extensionId === DEV_EXTENSION_ID;
+  return DEV_BRANDING_ENABLED;
 }
 
 function getBrandIconAssetPath(size = 48) {
@@ -69,7 +69,6 @@ function getActionIconPaths() {
 }
 
 const ExtensionEnvironment = {
-  DEV_EXTENSION_ID,
   getCurrentExtensionId,
   isDevelopmentExtensionId,
   isDevelopmentExtension() {
@@ -242,6 +241,31 @@ function normalizeEntryUrlValue(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeCustomSiteUrlValue(value) {
+  const utils = getSiteLaunchUtils();
+  if (utils && typeof utils.normalizeCustomSiteUrl === 'function') {
+    return utils.normalizeCustomSiteUrl(value);
+  }
+
+  const normalizedUrl = typeof value === 'string' ? value.trim() : '';
+  if (!normalizedUrl) {
+    return '';
+  }
+
+  try {
+    new URL(normalizedUrl);
+    return normalizedUrl;
+  } catch (_) {
+    // Add a default protocol for bare hostnames.
+  }
+
+  if (normalizedUrl.startsWith('//')) {
+    return `https:${normalizedUrl}`;
+  }
+
+  return `https://${normalizedUrl}`;
+}
+
 function normalizeCustomSitesValue(customSites) {
   const utils = getSiteLaunchUtils();
   if (utils && typeof utils.normalizeCustomSites === 'function') {
@@ -262,7 +286,7 @@ function normalizeCustomSitesValue(customSites) {
           return {
             id: typeof site.id === 'string' ? site.id.trim() : `custom-site-${index}-${Date.now()}`,
             name,
-            url,
+            url: normalizeCustomSiteUrlValue(url),
             enabled: site.enabled !== false,
             supportIframe: true,
             icon: typeof site.icon === 'string' ? site.icon.trim() : '',

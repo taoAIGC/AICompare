@@ -18,6 +18,7 @@ const REQUIRED_TOP_LEVEL_FIELDS = [
 
 const SEARCH_STEP_ACTIONS_WITHOUT_SELECTOR = new Set(['wait', 'custom', 'paste']);
 const FILE_STEP_ACTIONS_WITHOUT_SELECTOR = new Set(['wait', 'paste']);
+const DEEP_RESEARCH_STEP_ACTIONS_WITHOUT_SELECTOR = new Set(['wait', 'custom', 'paste']);
 const IFRAME_FALSE_NOTE_PATTERNS = [/不能走 iframe/i, /不可嵌入/i, /sameorigin/i, /frame-ancestors/i];
 
 function readJson(filePath) {
@@ -64,7 +65,9 @@ function validateSteps(siteName, handlerName, steps, issues) {
 
     const allowNoSelector = handlerName === 'searchHandler'
       ? SEARCH_STEP_ACTIONS_WITHOUT_SELECTOR.has(step.action)
-      : FILE_STEP_ACTIONS_WITHOUT_SELECTOR.has(step.action);
+      : handlerName === 'deepResearchHandler'
+        ? DEEP_RESEARCH_STEP_ACTIONS_WITHOUT_SELECTOR.has(step.action)
+        : FILE_STEP_ACTIONS_WITHOUT_SELECTOR.has(step.action);
     if (!allowNoSelector && !step.selector) {
       issues.push(`[${handlerName}] ${siteName}#${index + 1}: missing selector for action ${step.action}`);
     }
@@ -104,6 +107,18 @@ function main() {
 
     if (site.fileUploadHandler) {
       validateSteps(siteName, 'fileUploadHandler', site.fileUploadHandler.steps, issues);
+    }
+
+    if (site.deepResearchHandler) {
+      const enabledSelectors = Array.isArray(site.deepResearchHandler.enabledSelectors)
+        ? site.deepResearchHandler.enabledSelectors.map((selector) => String(selector || '').trim()).filter(Boolean)
+        : [];
+
+      if (!enabledSelectors.length) {
+        issues.push(`[deepResearchHandler] ${siteName}: enabledSelectors missing or empty`);
+      }
+
+      validateSteps(siteName, 'deepResearchHandler', site.deepResearchHandler.steps, issues);
     }
 
     const note = String(site.note || '');

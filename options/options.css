@@ -247,6 +247,24 @@ h1 {
   color: #333;
 }
 
+.site-setting-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-setting-title {
+  display: block;
+  font-weight: bold;
+  color: #333;
+}
+
+.site-config-help {
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .drag-handle {
   cursor: grab;
   color: #999;
@@ -269,6 +287,10 @@ h1 {
 .site-name-display {
   margin-left: 10px;
   font-weight: bold;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .template-item .edit-template-btn {
@@ -357,17 +379,12 @@ input:checked + .slider:before {
   opacity: 1;
 }
 
-.contact-info {
-  margin-top: 20px;
-  padding: 10px;
-  color: #666;
-  font-size: 14px;
-  text-align: center;
-  border-top: 1px solid #eee;
-}
-
 .site-section {
     margin-bottom: 30px;
+}
+
+.quick-entry-subsection {
+  margin-top: 28px;
 }
 
 .site-section h2 {
@@ -769,6 +786,186 @@ input:checked + .slider:before {
 .sync-connection-table.disabled {
   opacity: 0.45;
   pointer-events: none;
+}
+
+/* 远程搜索 */
+.remote-search-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.remote-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.remote-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.remote-card-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.remote-settings-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.remote-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.remote-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.remote-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+}
+
+.remote-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.remote-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.remote-status-badge[data-status="online"] {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.remote-status-badge[data-status="connecting"] {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.remote-status-badge[data-status="offline"],
+.remote-status-badge[data-status="disabled"] {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #4b5563;
+}
+
+.remote-status-badge[data-status="error"] {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.remote-status-text {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.remote-qr-panel {
+  min-height: 240px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+
+.remote-qr-placeholder {
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.remote-qr-image {
+  width: min(100%, 240px);
+  max-width: 240px;
+  height: auto;
+  display: block;
+}
+
+.remote-meta-list {
+  display: grid;
+  gap: 10px;
+}
+
+.remote-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.remote-meta-row:last-child {
+  border-bottom: none;
+}
+
+.remote-meta-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.remote-meta-value {
+  flex: 1;
+  text-align: right;
+  color: #111827;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.remote-empty-state,
+.remote-error-text {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.remote-error-text {
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 /* ─── 会员订阅 ─────────────────────────────────────────── */

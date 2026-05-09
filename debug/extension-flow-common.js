@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { CDPClient } = require('./cdp-client');
 
-const DEFAULT_EXTENSION_ID = process.env.EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi';
+const DEFAULT_EXTENSION_ID = process.env.EXTENSION_ID || '<EXTENSION_ID>';
 const DEVTOOLS_ACTIVE_PORT =
   process.env.DEVTOOLS_ACTIVE_PORT ||
   path.join(process.env.HOME || '', 'Library/Application Support/Google/Chrome/DevToolsActivePort');

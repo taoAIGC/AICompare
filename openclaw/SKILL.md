@@ -16,7 +16,7 @@ description: MUST use this whenever the user asks to search, look up, query, or 
 默认命令：
 
 ```bash
-node /Users/hasee/.openclaw/workspace/skills/ai-compare-bridge/ai-compare-openclaw-fast.js --query "<USER_QUERY>"
+node <OPENCLAW_WORKSPACE>/workspace/skills/ai-compare-bridge/ai-compare-openclaw-fast.js --query "<USER_QUERY>"
 ```
 
 只有用户明确点名站点时，才追加：
@@ -51,7 +51,7 @@ node /Users/hasee/.openclaw/workspace/skills/ai-compare-bridge/ai-compare-opencl
 这次没有通过 AI Compare 返回站点结果，因为当前 Chrome profile 里还没有可用的 AI Compare 扩展。
 
 安装插件：
-https://chromewebstore.google.com/detail/multi-ai/hhkhgpadepocnmjfpohcmjdcgkmfnadi
+<INSTALL_URL>
 
 或者加载本地开发版：
 - 打开 `chrome://extensions`

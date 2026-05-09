@@ -60,7 +60,8 @@ class SiteDetector {
               totalSites: sites.length,
               hasContentExtractor: sites.filter(s => s.contentExtractor).length,
               hasSearchHandler: sites.filter(s => s.searchHandler).length,
-              hasFileUploadHandler: sites.filter(s => s.fileUploadHandler).length
+              hasFileUploadHandler: sites.filter(s => s.fileUploadHandler).length,
+              hasDeepResearchHandler: sites.filter(s => s.deepResearchHandler).length
             });
           } else {
             console.log('⚠️ chrome.storage.local 中的站点配置为空');
@@ -330,6 +331,7 @@ class SiteDetector {
         name: site.name,
         searchHandler: site.searchHandler,
         fileUploadHandler: site.fileUploadHandler,
+        deepResearchHandler: site.deepResearchHandler,
         contentExtractor: site.contentExtractor,
         historyHandler: site.historyHandler,
         supportUrlQuery: site.supportUrlQuery,

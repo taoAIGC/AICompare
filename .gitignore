@@ -25,6 +25,15 @@
 *.zip
 zi*
 
+# Local secrets / env files
+.env
+*.env
+functions/.env
+
+# Package manager dependencies
+node_modules/
+remote-relay/node_modules/
+
 # Firebase
 .firebase/
 firebase-debug.log

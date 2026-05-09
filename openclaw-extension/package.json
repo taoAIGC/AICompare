@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": [
+    "README.md",
+    "bin",
+    "config",
+    "index.js",
+    "lib",
+    "openclaw.plugin.json"
+  ],
   "openclaw": {
     "extensions": [
       "./index.js"

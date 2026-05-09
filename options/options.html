@@ -21,20 +21,20 @@
           <span data-i18n="configButtonTitle">快捷入口设置</span>
         </a>
         <a href="#launch-settings" class="action-link nav-link" data-section="launch-settings">
-          <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+          <img class="action-link-icon" src="../icons/layout-grid.svg" alt="" aria-hidden="true">
           <span data-i18n="launchSettingsTitle">自定义站点</span>
-        </a>
-        <a href="#disabled-sites" class="action-link nav-link" data-section="disabled-sites">
-          <img class="action-link-icon" src="../icons/close.svg" alt="" aria-hidden="true">
-          <span data-i18n="disabledSitesTitle">禁用网站</span>
         </a>
         <a href="#prompt-templates" class="action-link nav-link" data-section="prompt-templates">
           <img class="action-link-icon" src="../icons/edit.svg" alt="" aria-hidden="true">
           <span data-i18n="promptTemplatesTitle">提示词模板</span>
         </a>
         <a href="#data-sync" class="action-link nav-link" data-section="data-sync">
-          <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+          <img class="action-link-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
           <span data-i18n="dataSyncTitle">数据同步</span>
+        </a>
+        <a href="#remote-search" class="action-link nav-link" data-section="remote-search">
+          <img class="action-link-icon" src="../icons/smartphone.svg" alt="" aria-hidden="true">
+          <span data-i18n="remoteSearchTitle">手机搜索（开发中）</span>
         </a>
         <!-- Pro 会员入口暂时隐藏，下版本恢复
         <a href="#membership" class="action-link nav-link" data-section="membership">
@@ -53,6 +53,17 @@
           <h1 data-i18n="configButtonTitle">快捷入口设置</h1>
           <div class="site-section">
             <div id="buttonSiteConfigs" class="site-configs"></div>
+            <div id="sendShortcutConfig" class="site-configs"></div>
+          </div>
+
+          <div class="site-section quick-entry-subsection">
+            <h2 data-i18n="disabledSitesTitle">悬浮球禁用网站</h2>
+            <p class="section-description" data-i18n="disabledSitesDescription">管理悬浮球被禁用的网站，您可以在这里重新启用悬浮球</p>
+            <div class="disabled-sites-section">
+              <div id="disabledSitesList" class="disabled-sites-list">
+                <!-- 禁用网站列表将在这里动态生成 -->
+              </div>
+            </div>
           </div>
         </section>
 
@@ -81,18 +92,6 @@
             </div>
 
             <div id="customSitesAdminList" class="site-configs"></div>
-          </div>
-        </section>
-
-        <!-- 禁用网站管理 -->
-        <section id="disabled-sites" class="settings-section">
-          <h1 data-i18n="disabledSitesTitle">悬浮球禁用网站</h1>
-          <p data-i18n="disabledSitesDescription" style="color: #666; margin-bottom: 20px;">管理悬浮球被禁用的网站，您可以在这里重新启用悬浮球</p>
-          
-          <div class="disabled-sites-section">
-            <div id="disabledSitesList" class="disabled-sites-list">
-              <!-- 禁用网站列表将在这里动态生成 -->
-            </div>
           </div>
         </section>
 
@@ -348,6 +347,115 @@
           <div id="syncStatus" class="sync-status" style="display:none;"></div>
         </section>
 
+        <section id="remote-search" class="settings-section">
+          <h1 data-i18n="remoteSearchTitle">手机搜索（开发中）</h1>
+          <p class="section-description" data-i18n="remoteSearchDescription">让手机连接到当前 Chrome 会话，远程发起搜索并查看流式结果。</p>
+
+          <div class="remote-search-grid">
+            <div class="remote-card">
+              <div class="remote-card-header">
+                <h2 data-i18n="remoteSearchTitle">手机搜索（开发中）</h2>
+                <span id="remoteSearchConnectionBadge" class="remote-status-badge" data-status="disabled" data-i18n="remoteSearchStatusDisabled">已关闭</span>
+              </div>
+              <div class="remote-settings-grid">
+                <label class="remote-checkbox-row" for="remoteSearchEnabled">
+                  <input type="checkbox" id="remoteSearchEnabled">
+                  <span data-i18n="remoteSearchEnableLabel">启用远程搜索</span>
+                </label>
+                <div class="remote-field">
+                  <label for="remoteSearchRelayUrl" data-i18n="remoteSearchRelayUrlLabel">Relay URL</label>
+                  <input type="url" id="remoteSearchRelayUrl" class="sync-field-input" placeholder="http://127.0.0.1:8787">
+                  <div class="site-config-help" data-i18n="remoteSearchRelayUrlHelp">填入本地或 Cloud Run relay 地址。</div>
+                </div>
+                <div class="remote-field">
+                  <label for="remoteSearchDesktopName" data-i18n="remoteSearchDesktopNameLabel">电脑名称</label>
+                  <input type="text" id="remoteSearchDesktopName" class="sync-field-input" data-i18n-placeholder="remoteSearchDesktopNamePlaceholder" placeholder="My Chrome">
+                </div>
+              </div>
+              <div class="remote-actions">
+                <button id="saveRemoteSearchSettings" class="btn-primary" data-i18n="saveButton">保存</button>
+                <button id="generateRemoteSearchQr" class="btn-secondary" data-i18n="remoteSearchGenerateQrButton">生成配对二维码</button>
+              </div>
+              <div class="site-config-help" data-i18n="remoteSearchPairingLimitNote">每次只能绑定一台手机，新的手机会替换旧绑定。</div>
+            </div>
+
+            <div class="remote-card">
+              <div class="remote-card-header">
+                <h2 data-i18n="remoteSearchQrTitle">配对二维码</h2>
+                <span id="remoteSearchStatusText" class="remote-status-text">-</span>
+              </div>
+              <div class="remote-qr-panel">
+                <div id="remoteSearchQrPlaceholder" class="remote-qr-placeholder" data-i18n="remoteSearchQrEmpty">启用远程搜索后生成二维码。</div>
+                <img id="remoteSearchQrImage" class="remote-qr-image" alt="Remote Search QR" hidden>
+              </div>
+              <div class="remote-meta-list">
+                <div class="remote-meta-row">
+                  <span class="remote-meta-label" data-i18n="remoteSearchExpiresAtLabel">有效期至</span>
+                  <span id="remoteSearchTicketExpiresAt" class="remote-meta-value">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="remoteSearchPendingPairCard" class="remote-card" hidden>
+              <div class="remote-card-header">
+                <h2 data-i18n="remoteSearchPendingPairTitle">待处理配对请求</h2>
+              </div>
+              <p class="section-description" data-i18n="remoteSearchPendingPairDescription">收到新手机的连接请求后，会在这里显示设备信息。</p>
+              <div class="remote-meta-list">
+                <div class="remote-meta-row">
+                  <span class="remote-meta-label" data-i18n="remoteSearchPhoneNameLabel">手机名称</span>
+                  <span id="remoteSearchPendingPhoneName" class="remote-meta-value">-</span>
+                </div>
+                <div class="remote-meta-row">
+                  <span class="remote-meta-label" data-i18n="remoteSearchPhonePlatformLabel">平台</span>
+                  <span id="remoteSearchPendingPhonePlatform" class="remote-meta-value">-</span>
+                </div>
+                <div class="remote-meta-row">
+                  <span class="remote-meta-label" data-i18n="remoteSearchFingerprintLabel">指纹</span>
+                  <span id="remoteSearchPendingFingerprint" class="remote-meta-value">-</span>
+                </div>
+              </div>
+              <div class="remote-actions">
+                <button id="remoteSearchApprovePair" class="btn-primary" data-i18n="remoteSearchApproveButton">批准</button>
+                <button id="remoteSearchRejectPair" class="btn-secondary" data-i18n="remoteSearchRejectButton">拒绝</button>
+              </div>
+            </div>
+
+            <div class="remote-card">
+              <div class="remote-card-header">
+                <h2 data-i18n="remoteSearchPairedPhoneTitle">已绑定手机</h2>
+              </div>
+              <div id="remoteSearchPairedEmpty" class="remote-empty-state" data-i18n="remoteSearchNotPaired">当前还没有绑定手机。</div>
+              <div id="remoteSearchPairedDetails" hidden>
+                <div class="remote-meta-list">
+                  <div class="remote-meta-row">
+                    <span class="remote-meta-label" data-i18n="remoteSearchPhoneNameLabel">手机名称</span>
+                    <span id="remoteSearchPairedPhoneName" class="remote-meta-value">-</span>
+                  </div>
+                  <div class="remote-meta-row">
+                    <span class="remote-meta-label" data-i18n="remoteSearchPhonePlatformLabel">平台</span>
+                    <span id="remoteSearchPairedPhonePlatform" class="remote-meta-value">-</span>
+                  </div>
+                  <div class="remote-meta-row">
+                    <span class="remote-meta-label" data-i18n="remoteSearchFingerprintLabel">指纹</span>
+                    <span id="remoteSearchPairedFingerprint" class="remote-meta-value">-</span>
+                  </div>
+                </div>
+                <div class="remote-actions">
+                  <button id="remoteSearchUnpair" class="btn-secondary" data-i18n="remoteSearchUnpairButton">解除绑定</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="remote-card">
+              <div class="remote-card-header">
+                <h2 data-i18n="remoteSearchLastErrorLabel">最近错误</h2>
+              </div>
+              <div id="remoteSearchLastError" class="remote-error-text" data-i18n="remoteSearchNoLastError">当前没有错误。</div>
+            </div>
+          </div>
+        </section>
+
         <!-- Pro 会员配置暂时隐藏，下版本恢复
         <section id="membership" class="settings-section">
           <h1 data-i18n="membershipTitle">Pro 会员</h1>
@@ -414,8 +522,6 @@
           </div>
         </section>
         -->
-
-        <div class="contact-info" data-i18n="contactInfo"></div>
       </div>
     </main>
   </div>

@@ -18,6 +18,27 @@
     return normalizeString(value);
   }
 
+  function normalizeCustomSiteUrl(value) {
+    const normalizedUrl = normalizeEntryUrl(value);
+    if (!normalizedUrl) {
+      return '';
+    }
+
+    try {
+      // Already a valid absolute URL.
+      new URL(normalizedUrl);
+      return normalizedUrl;
+    } catch (_) {
+      // Fall through and add a default protocol for bare hostnames.
+    }
+
+    if (normalizedUrl.startsWith('//')) {
+      return `https:${normalizedUrl}`;
+    }
+
+    return `https://${normalizedUrl}`;
+  }
+
   function normalizeBoolean(value, fallback = false) {
     if (typeof value === 'boolean') {
       return value;
@@ -121,9 +142,9 @@
     return {
       id: normalizeString(site.id) || createCustomSiteId(name, index),
       name,
-      url,
+      url: normalizeCustomSiteUrl(site.url),
       enabled: normalizeBoolean(site.enabled, true),
-      supportIframe: true,
+      supportIframe: normalizeBoolean(site.supportIframe, true),
       icon: normalizeEntryUrl(site.icon),
       note: normalizeEntryUrl(site.note),
       order: normalizeNumber(site.order, index)
@@ -199,13 +220,13 @@
   function resolveCustomLaunchTarget(site, query = '') {
     const normalizedSite = site && typeof site === 'object' ? site : {};
     return {
-      url: normalizeEntryUrl(normalizedSite.url),
+      url: normalizeCustomSiteUrl(normalizedSite.url),
       queryInUrl: false,
       shouldAutoRun: false,
       source: 'customSite',
       name: normalizeString(normalizedSite.name),
       id: normalizeString(normalizedSite.id),
-      supportIframe: true,
+      supportIframe: normalizeBoolean(normalizedSite.supportIframe, true),
       queryIgnored: Boolean(normalizeString(query))
     };
   }
@@ -218,6 +239,7 @@
     normalizeBoolean,
     normalizeCustomSite,
     normalizeCustomSites,
+    normalizeCustomSiteUrl,
     normalizeEntryUrl,
     normalizeNumber,
     resolveCustomLaunchTarget,

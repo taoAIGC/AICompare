@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { CDPClient } = require('./cdp-client');
 
-const EXTENSION_ID = process.env.EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi';
+const EXTENSION_ID = process.env.EXTENSION_ID || '<EXTENSION_ID>';
 const SITE_NAME = 'Nano Banana';
 const TEST_QUERY = process.env.TEST_QUERY || '请生成一张极简风格的黄色香蕉产品海报，白色背景，柔和阴影。';
 const DEVTOOLS_ACTIVE_PORT =

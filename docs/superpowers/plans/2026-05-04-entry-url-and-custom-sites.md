@@ -128,7 +128,7 @@ Add localized copy for labels, placeholders, reset actions, and save/error toast
 
 - [ ] **Step 4: Manual browser check**
 
-Open `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi/options/options.html`, set one official site `entryUrl`, refresh, and confirm the value survives.
+Open `chrome-extension://<EXTENSION_ID>/options/options.html`, set one official site `entryUrl`, refresh, and confirm the value survives.
 
 ### Task 4: Add `customSites` CRUD and wire homepage launch behavior
 

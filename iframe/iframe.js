@@ -3,6 +3,24 @@ import {
 } from '../shared/iframe-query-run-utils.mjs';
 
 const SiteLaunchUtils = window.SiteLaunchUtils || {};
+const SubmitShortcutUtils = window.SubmitShortcutUtils || {};
+const normalizeSendShortcutMode = typeof SubmitShortcutUtils.normalizeSendShortcutMode === 'function'
+  ? SubmitShortcutUtils.normalizeSendShortcutMode
+  : ((value) => value === 'modifierEnter' ? 'modifierEnter' : 'enter');
+const shouldSubmitOnEnterKey = typeof SubmitShortcutUtils.shouldSubmitOnEnterKey === 'function'
+  ? SubmitShortcutUtils.shouldSubmitOnEnterKey
+  : ((eventLike, options = {}) => {
+      if (eventLike?.key !== 'Enter' || eventLike?.shiftKey) {
+        return false;
+      }
+      return normalizeSendShortcutMode(options.mode) === 'modifierEnter'
+        ? (options.isMac ? Boolean(eventLike?.metaKey) : Boolean(eventLike?.ctrlKey))
+        : true;
+    });
+const IFRAME_DEFAULT_SEND_SHORTCUT = 'enter';
+const IFRAME_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
+  navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
+);
 
 // 全局文件粘贴检测和处理
 let filePasteHandlerAdded = false;
@@ -11,6 +29,35 @@ let filePasteHandlerAdded = false;
 let isComposing = false;
 let searchBarAutoCollapseArmed = false;
 let searchBarCollapseTimer = null;
+let iframeSubmitShortcutMode = IFRAME_DEFAULT_SEND_SHORTCUT;
+
+async function loadIframeSubmitShortcutMode() {
+  let nextMode = IFRAME_DEFAULT_SEND_SHORTCUT;
+
+  try {
+    const defaultButtonConfig = await window.AppConfigManager.getButtonConfig();
+    nextMode = normalizeSendShortcutMode(defaultButtonConfig?.sendShortcut);
+    const { buttonConfig } = await chrome.storage.sync.get('buttonConfig');
+    nextMode = normalizeSendShortcutMode(buttonConfig?.sendShortcut ?? nextMode);
+  } catch (error) {
+    console.warn('Failed to load iframe submit shortcut mode:', error);
+  }
+
+  iframeSubmitShortcutMode = nextMode;
+  return nextMode;
+}
+
+function applyIframeSubmitShortcutMode(buttonConfig = {}) {
+  iframeSubmitShortcutMode = normalizeSendShortcutMode(buttonConfig?.sendShortcut);
+}
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.buttonConfig) {
+    applyIframeSubmitShortcutMode(changes.buttonConfig.newValue || {});
+  }
+});
+
+void loadIframeSubmitShortcutMode();
 
 function trackEvent(name, params = {}) {
   const analytics = window.AIShortcutsAnalytics;
@@ -31,6 +78,8 @@ const ratingReminderState = {
 };
 
 const TimelineUtils = window.IframeTimelineUtils || {};
+const DEEP_RESEARCH_TIMEOUT_MS = 8000;
+let deepResearchBatchInProgress = false;
 const timelineBuildEntry = typeof TimelineUtils.buildTimelineEntry === 'function'
   ? TimelineUtils.buildTimelineEntry
   : ((entry) => ({
@@ -253,7 +302,7 @@ initializeAiCompareSiteRuntimeBridge();
 const IFRAME_ALLOW_PERMISSIONS = 'clipboard-read; clipboard-write; autoplay; fullscreen; picture-in-picture';
 
 async function getReviewUrlFromConfig() {
-  const fallbackUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/hhkhgpadepocnmjfpohcmjdcgkmfnadi/reviews';
+  const fallbackUrl = chrome.runtime.getURL('homepage/homepage.html');
   try {
     if (window.AppConfigManager?.loadConfig) {
       const config = await window.AppConfigManager.loadConfig();
@@ -529,6 +578,63 @@ function formatTimelineDateLabel(timestamp) {
   }
 }
 
+async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entryOverride = null) {
+  if (!overlay || !metaEl || !contentEl || !confirmBtn || !refreshBtn) return;
+
+  const currentEntryKey = overlay.dataset.activeEntryKey || '';
+  const entry = entryOverride
+    || overlay.__timelineCopyPreviewEntry
+    || timelineState.entries.find((item) => String(item?.timelineId || buildTimelineFavoriteKey(item)) === currentEntryKey);
+  if (!entry) {
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = t('timelineCopyPreviewRefresh', '刷新');
+    overlay.dataset.loading = 'false';
+    metaEl.textContent = t('timelineCopyPreviewLoadFailed', '加载回答失败，请稍后重试。');
+    contentEl.textContent = '';
+    showToast(t('timelineCopyPreviewLoadFailed', '加载回答失败，请稍后重试。'));
+    return;
+  }
+
+  overlay.dataset.loading = 'true';
+  refreshBtn.disabled = true;
+  refreshBtn.textContent = t('timelineCopyPreviewRefreshing', '刷新中...');
+  metaEl.textContent = t('timelineCopyPreviewLoading', '正在收集各站点回答...');
+  contentEl.textContent = '';
+  confirmBtn.disabled = true;
+  confirmBtn.dataset.copyText = '';
+  confirmBtn.dataset.successCount = '0';
+  confirmBtn.dataset.totalCount = '0';
+
+  try {
+    const { copyText, successCount, totalCount } = await collectTimelineEntryResponses(entry);
+    if (overlay.dataset.activeEntryKey !== currentEntryKey) return;
+
+    const previewText = String(copyText || '').trim() || t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。');
+    metaEl.textContent = t(
+      'timelineCopyPreviewSummary',
+      '已汇总 $1/$2 个子页面的回答，请确认后复制。',
+      [String(successCount), String(totalCount)]
+    );
+    contentEl.textContent = previewText;
+    confirmBtn.disabled = !String(copyText || '').trim();
+    confirmBtn.dataset.copyText = copyText || '';
+    confirmBtn.dataset.successCount = String(successCount);
+    confirmBtn.dataset.totalCount = String(totalCount);
+  } catch (error) {
+    if (overlay.dataset.activeEntryKey !== currentEntryKey) return;
+    console.error('刷新时间线回答预览失败:', error);
+    metaEl.textContent = t('timelineCopyPreviewLoadFailed', '加载回答失败，请稍后重试。');
+    contentEl.textContent = error?.message || String(error);
+    confirmBtn.disabled = true;
+  } finally {
+    if (overlay.dataset.activeEntryKey === currentEntryKey) {
+      overlay.dataset.loading = 'false';
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = t('timelineCopyPreviewRefresh', '刷新');
+    }
+  }
+}
+
 function ensureTimelineCopyPreviewModal() {
   let overlay = document.getElementById('timelineCopyPreviewOverlay');
   if (overlay) {
@@ -548,7 +654,10 @@ function ensureTimelineCopyPreviewModal() {
         type="button"
         aria-label="${escapeHtml(t('closeButton', '关闭'))}"
       >×</button>
-      <div class="timeline-copy-preview-title" id="timelineCopyPreviewTitle">${escapeHtml(t('timelineCopyPreviewTitle', '复制回答汇总'))}</div>
+      <div class="timeline-copy-preview-header">
+        <div class="timeline-copy-preview-title" id="timelineCopyPreviewTitle">${escapeHtml(t('timelineCopyPreviewTitle', '复制回答汇总'))}</div>
+        <button class="timeline-copy-preview-refresh" type="button">${escapeHtml(t('timelineCopyPreviewRefresh', '刷新'))}</button>
+      </div>
       <div class="timeline-copy-preview-meta"></div>
       <pre class="timeline-copy-preview-content" aria-live="polite"></pre>
       <div class="timeline-copy-preview-actions">
@@ -584,6 +693,16 @@ function ensureTimelineCopyPreviewModal() {
     }
   });
 
+  overlay.querySelector('.timeline-copy-preview-refresh')?.addEventListener('click', async () => {
+    const metaEl = overlay.querySelector('.timeline-copy-preview-meta');
+    const contentEl = overlay.querySelector('.timeline-copy-preview-content');
+    const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+    const refreshBtn = overlay.querySelector('.timeline-copy-preview-refresh');
+    if (!(metaEl instanceof HTMLElement) || !(contentEl instanceof HTMLElement)) return;
+    if (!(confirmBtn instanceof HTMLButtonElement) || !(refreshBtn instanceof HTMLButtonElement)) return;
+    await refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, overlay.__timelineCopyPreviewEntry || null);
+  });
+
   overlay.querySelector('.timeline-copy-preview-close')?.addEventListener('click', closeModal);
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) {
@@ -606,8 +725,9 @@ async function showTimelineCopyPreviewModal(entry) {
   const metaEl = overlay.querySelector('.timeline-copy-preview-meta');
   const contentEl = overlay.querySelector('.timeline-copy-preview-content');
   const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+  const refreshBtn = overlay.querySelector('.timeline-copy-preview-refresh');
   const closeBtn = overlay.querySelector('.timeline-copy-preview-close');
-  if (!metaEl || !contentEl || !confirmBtn || !closeBtn) return;
+  if (!metaEl || !contentEl || !confirmBtn || !refreshBtn || !closeBtn) return;
 
   const activeEntryKey = String(entry?.timelineId || buildTimelineFavoriteKey(entry));
   const isSameVisibleEntry = overlay.classList.contains('is-visible')
@@ -620,6 +740,7 @@ async function showTimelineCopyPreviewModal(entry) {
   overlay.dataset.requestToken = requestToken;
   overlay.dataset.activeEntryKey = activeEntryKey;
   overlay.dataset.loading = 'true';
+  overlay.__timelineCopyPreviewEntry = entry;
   overlay.classList.add('is-visible');
   closeBtn.focus();
 
@@ -629,33 +750,9 @@ async function showTimelineCopyPreviewModal(entry) {
   confirmBtn.dataset.copyText = '';
   confirmBtn.dataset.successCount = '0';
   confirmBtn.dataset.totalCount = '0';
-
-  try {
-    const { copyText, successCount, totalCount } = await collectTimelineEntryResponses(entry);
-    if (overlay.dataset.requestToken !== requestToken) {
-      return;
-    }
-
-    const previewText = String(copyText || '').trim() || t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。');
-    metaEl.textContent = t(
-      'timelineCopyPreviewSummary',
-      '已汇总 $1/$2 个子页面的回答，请确认后复制。',
-      [String(successCount), String(totalCount)]
-    );
-    contentEl.textContent = previewText;
-    confirmBtn.disabled = !String(copyText || '').trim();
-    confirmBtn.dataset.copyText = copyText || '';
-    confirmBtn.dataset.successCount = String(successCount);
-    confirmBtn.dataset.totalCount = String(totalCount);
-    overlay.dataset.loading = 'false';
-  } catch (error) {
-    if (overlay.dataset.requestToken !== requestToken) {
-      return;
-    }
-    console.error('收集时间线回答预览失败:', error);
-    metaEl.textContent = t('timelineCopyPreviewLoadFailed', '加载回答失败，请稍后重试。');
-    contentEl.textContent = error?.message || String(error);
-    confirmBtn.disabled = true;
+  refreshBtn.disabled = true;
+  await refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entry);
+  if (overlay.dataset.requestToken === requestToken) {
     overlay.dataset.loading = 'false';
   }
 }
@@ -1400,6 +1497,165 @@ function requestIframeTimelineAction(iframe, requestType, responseType, payload 
       });
     }
   });
+}
+
+function getDeepResearchButton() {
+  return document.getElementById('deepResearchButton');
+}
+
+function setDeepResearchButtonBusy(isBusy) {
+  const button = getDeepResearchButton();
+  if (!button) return;
+
+  button.disabled = isBusy;
+  button.dataset.busy = isBusy ? 'true' : 'false';
+  button.textContent = isBusy
+    ? t('deepResearchButtonBusy', '研究中...')
+    : t('deepResearchButtonLabel', '深度研究');
+}
+
+function requestIframeDeepResearchToggle(iframe, timeoutMs = DEEP_RESEARCH_TIMEOUT_MS) {
+  const siteName = iframe?.getAttribute('data-site') || '';
+  const requestId = `deep-research-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return new Promise((resolve) => {
+    if (!iframe?.contentWindow) {
+      resolve({
+        siteName,
+        status: 'timeout',
+        detail: t('timelineSiteNotReady', '页面尚未就绪')
+      });
+      return;
+    }
+
+    const cleanup = (handler, timer) => {
+      window.removeEventListener('message', handler);
+      clearTimeout(timer);
+    };
+
+    const handler = (event) => {
+      if (event.source !== iframe.contentWindow) return;
+      if (event.data?.type !== 'DEEP_RESEARCH_RESULT') return;
+      if (event.data?.requestId !== requestId) return;
+
+      cleanup(handler, timer);
+      resolve({
+        siteName: event.data?.siteName || siteName,
+        status: String(event.data?.status || 'error').trim() || 'error',
+        detail: typeof event.data?.detail === 'string' ? event.data.detail : ''
+      });
+    };
+
+    const timer = setTimeout(() => {
+      cleanup(handler, timer);
+      resolve({
+        siteName,
+        status: 'timeout',
+        detail: t('timelineActionTimeout', '请求超时')
+      });
+    }, timeoutMs);
+
+    window.addEventListener('message', handler);
+
+    try {
+      iframe.contentWindow.postMessage({
+        type: 'TRIGGER_DEEP_RESEARCH',
+        requestId,
+        siteName
+      }, '*');
+    } catch (error) {
+      cleanup(handler, timer);
+      resolve({
+        siteName,
+        status: 'error',
+        detail: error?.message || String(error)
+      });
+    }
+  });
+}
+
+async function runDeepResearchAcrossOpenIframes() {
+  if (deepResearchBatchInProgress) {
+    showToast(t('deepResearchToastRunning', '正在为所有子页面开启深度研究...'));
+    return;
+  }
+
+  const iframes = Array.from(document.querySelectorAll('.ai-iframe[data-site]'));
+  if (!iframes.length) {
+    showToast(t('timelineNoIframes', '当前没有可用的子页面'));
+    return;
+  }
+
+  deepResearchBatchInProgress = true;
+  setDeepResearchButtonBusy(true);
+  showToast(t('deepResearchToastRunning', '正在为所有子页面开启深度研究...'), 1400);
+
+  try {
+    const results = await Promise.all(iframes.map((iframe) => requestIframeDeepResearchToggle(iframe)));
+    const counts = {
+      enabled: 0,
+      already_enabled: 0,
+      unsupported: 0,
+      not_found: 0,
+      error: 0,
+      timeout: 0
+    };
+
+    results.forEach((result) => {
+      const status = Object.prototype.hasOwnProperty.call(counts, result?.status) ? result.status : 'error';
+      counts[status] += 1;
+    });
+
+    const total = results.length;
+    const successCount = counts.enabled + counts.already_enabled;
+    const unsupportedCount = counts.unsupported + counts.not_found;
+    const failureCount = counts.error + counts.timeout;
+
+    if (successCount === 0 && failureCount === 0) {
+      showToast(
+        t('deepResearchToastAllUnsupported', '当前打开的 $1 个子页面里没有可用的深度研究开关。', [String(total)]),
+        3200
+      );
+      return;
+    }
+
+    if (failureCount > 0) {
+      showToast(
+        t(
+          'deepResearchToastPartialFailure',
+          '深度研究已处理 $1/$2 个子页面：新开启 $3，已开启 $4，跳过 $5，失败 $6。',
+          [
+            String(successCount),
+            String(total),
+            String(counts.enabled),
+            String(counts.already_enabled),
+            String(unsupportedCount),
+            String(failureCount)
+          ]
+        ),
+        3600
+      );
+      return;
+    }
+
+    showToast(
+      t(
+        'deepResearchToastSummary',
+        '深度研究已就绪：共 $1/$2 个子页面，新开启 $3，已开启 $4，跳过 $5。',
+        [
+          String(successCount),
+          String(total),
+          String(counts.enabled),
+          String(counts.already_enabled),
+          String(unsupportedCount)
+        ]
+      ),
+      3200
+    );
+  } finally {
+    deepResearchBatchInProgress = false;
+    setDeepResearchButtonBusy(false);
+  }
 }
 
 async function scrollToTimelineEntry(entry, options = {}) {
@@ -2348,6 +2604,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 初始化自动调整高度的输入框
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        const resizeUtils = globalThis.TextareaResizeUtils;
         const inputWrapper = searchInput.closest('.input-wrapper');
         const mirror = document.createElement('div');
         mirror.setAttribute('aria-hidden', 'true');
@@ -2407,24 +2664,31 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             mirror.style.width = Math.max(0, availableWidth) + 'px';
             mirror.textContent = searchInput.value + '\n';
+            const compactContentHeight = Math.ceil(mirror.scrollHeight);
 
-            const neededHeight = Math.ceil(mirror.scrollHeight);
-            const needsWrap = neededHeight > minHeight + 1;
+            mirror.style.width = searchInput.clientWidth + 'px';
+            mirror.textContent = searchInput.value + '\n';
+            const expandedContentHeight = Math.ceil(mirror.scrollHeight);
+
+            const layout = resizeUtils.calculateTextareaLayout({
+                hasValue: searchInput.value.length > 0,
+                compactContentHeight,
+                expandedContentHeight,
+                minHeight,
+                defaultHeight: minHeightFallback,
+                maxHeight
+            });
 
             if (inputWrapper) {
-                inputWrapper.classList.toggle('avoid-overlap', needsWrap);
-                inputWrapper.classList.toggle('compact', !needsWrap);
+                inputWrapper.classList.toggle('avoid-overlap', layout.avoidOverlap);
+                inputWrapper.classList.toggle('compact', layout.compact);
             }
 
-            if (needsWrap) {
-                mirror.style.width = searchInput.clientWidth + 'px';
-                mirror.textContent = searchInput.value + '\n';
+            searchInput.style.height = layout.height + 'px';
+            searchInput.style.overflowY = layout.overflowY;
 
-                const finalHeight = Math.ceil(mirror.scrollHeight);
-                const clampedHeight = Math.min(Math.max(finalHeight, minHeight), maxHeight);
-                searchInput.style.height = clampedHeight + 'px';
-            } else {
-                searchInput.style.height = minHeightFallback + 'px';
+            if (!layout.isScrollable) {
+                searchInput.scrollTop = 0;
             }
         }
         
@@ -2442,15 +2706,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             autoResizeTextarea();
         });
         
-        // 监听失焦事件，自动收回高度并隐藏建议
+        // 监听失焦事件，保留有内容时的高度并隐藏建议
         searchInput.addEventListener('blur', (e) => {
-            // 失焦后恢复默认单行样式（允许按钮遮盖文字）
-            if (inputWrapper) {
-                inputWrapper.classList.add('compact');
-                inputWrapper.classList.remove('avoid-overlap');
+            autoResizeTextarea();
+            if (!searchInput.value) {
+                searchInput.scrollTop = 0;
             }
-            searchInput.style.height = '36px';
-            searchInput.scrollTop = 0;
             
             // 延迟隐藏查询建议，以便用户能够点击建议项
             setTimeout(() => {
@@ -2567,37 +2828,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // 获取站点配置并创建 iframes
                 getDefaultSites().then((sites) => {
                     if (sites && sites.length > 0) {
-                        // 如果指定了站点列表，优先使用选中的站点（忽略 enabled 状态）
-                        if (selectedSiteNames && selectedSiteNames.length > 0) {
-                            let availableSites = sites.filter(site => 
-                                selectedSiteNames.includes(site.name) &&
-                                !site.hidden &&
-                                siteMatchesRequestedType(site)
-                            );
-                            availableSites = sortSitesFavoriteFirst(availableSites);
-                            console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
-                            
-                            if (availableSites.length > 0) {
-                                console.log('使用查询内容创建 iframes:', query, availableSites);
-                                createIframes(query, availableSites, selectedCustomSites);
-                            } else {
-                                console.log('没有可用的站点');
-                            }
-                        } else {
-                            // 如果没有指定站点列表，使用默认过滤（需要 enabled）
-                            let availableSites = sites.filter(site => 
-                                site.enabled && 
-                                !site.hidden &&
-                                siteMatchesRequestedType(site)
-                            );
-                            availableSites = sortSitesFavoriteFirst(availableSites);
+                        const availableSites = getInitialIframeSites(sites, selectedSiteNames);
 
-                            if (availableSites.length > 0) {
-                                console.log('使用查询内容创建 iframes:', query, availableSites);
-                                createIframes(query, availableSites, selectedCustomSites);
-                            } else {
-                                console.log('没有可用的站点');
-                            }
+                        if (selectedSiteNames && selectedSiteNames.length > 0) {
+                            console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                        } else {
+                            console.log('如果没有指定站点列表，默认只打开已启用的站点:', availableSites);
+                        }
+
+                        if (availableSites.length > 0) {
+                            console.log('使用查询内容创建 iframes:', query, availableSites);
+                            createIframes(query, availableSites, selectedCustomSites);
+                        } else {
+                            console.log('没有可用的站点');
                         }
                     }
                 });
@@ -2607,37 +2850,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('URL 参数 query=true，按直接打开处理');
             getDefaultSites().then((sites) => {
                 if (sites && sites.length > 0) {
-                    // 如果指定了站点列表，优先使用选中的站点（忽略 enabled 状态）
-                    if (selectedSiteNames && selectedSiteNames.length > 0) {
-                        let availableSites = sites.filter(site => 
-                            selectedSiteNames.includes(site.name) &&
-                            !site.hidden &&
-                            siteMatchesRequestedType(site)
-                        );
-                        availableSites = sortSitesFavoriteFirst(availableSites);
-                        console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
-                        
-                        if (availableSites.length > 0) {
-                            console.log('初始化可用站点:', availableSites);
-                            createIframes('', availableSites, selectedCustomSites);
-                        } else {
-                            console.log('没有可用的站点');
-                        }
-                    } else {
-                        // 如果没有指定站点列表，使用默认过滤（需要 enabled）
-                        let availableSites = sites.filter(site => 
-                            site.enabled && 
-                            !site.hidden &&
-                            siteMatchesRequestedType(site)
-                        );
-                        availableSites = sortSitesFavoriteFirst(availableSites);
+                    const availableSites = getInitialIframeSites(sites, selectedSiteNames);
 
-                        if (availableSites.length > 0) {
-                            console.log('初始化可用站点:', availableSites);
-                            createIframes('', availableSites, selectedCustomSites);
-                        } else {
-                            console.log('没有可用的站点');
-                        }
+                    if (selectedSiteNames && selectedSiteNames.length > 0) {
+                        console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                    } else {
+                        console.log('如果没有指定站点列表，默认只打开已启用的站点:', availableSites);
+                    }
+
+                    if (availableSites.length > 0) {
+                        console.log('初始化可用站点:', availableSites);
+                        createIframes('', availableSites, selectedCustomSites);
+                    } else {
+                        console.log('没有可用的站点');
                     }
                 }
             });
@@ -2646,37 +2871,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 直接打开（方式1）
         getDefaultSites().then((sites) => {
             if (sites && sites.length > 0) {
-                // 如果指定了站点列表，优先使用选中的站点（忽略 enabled 状态）
-                if (selectedSiteNames && selectedSiteNames.length > 0) {
-                    let availableSites = sites.filter(site => 
-                        selectedSiteNames.includes(site.name) &&
-                        !site.hidden &&
-                        siteMatchesRequestedType(site)
-                    );
-                    availableSites = sortSitesFavoriteFirst(availableSites);
-                    console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
-                    
-                    if (availableSites.length > 0) {
-                        console.log('初始化可用站点:', availableSites);
-                        createIframes('', availableSites, selectedCustomSites);
-                    } else {
-                        console.log('没有可用的站点');
-                    }
-                } else {
-                    // 如果没有指定站点列表，使用默认过滤（需要 enabled）
-                    let availableSites = sites.filter(site => 
-                        site.enabled && 
-                        !site.hidden &&
-                        siteMatchesRequestedType(site)
-                    );
-                    availableSites = sortSitesFavoriteFirst(availableSites);
+                const availableSites = getInitialIframeSites(sites, selectedSiteNames);
 
-                    if (availableSites.length > 0) {
-                        console.log('初始化可用站点:', availableSites);
-                        createIframes('', availableSites, selectedCustomSites);
-                    } else {
-                        console.log('没有可用的站点');
-                    }
+                if (selectedSiteNames && selectedSiteNames.length > 0) {
+                    console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                } else {
+                    console.log('如果没有指定站点列表，默认只打开已启用的站点:', availableSites);
+                }
+
+                if (availableSites.length > 0) {
+                    console.log('初始化可用站点:', availableSites);
+                    createIframes('', availableSites, selectedCustomSites);
+                } else {
+                    console.log('没有可用的站点');
                 }
             }
         });
@@ -3232,6 +3439,29 @@ function siteMatchesRequestedType(site) {
 
 function getFilteredNavSites(sites = []) {
   return (sites || []).filter(siteMatchesRequestedType);
+}
+
+function getDefaultOpenIframeSites(sites = []) {
+  return sortSitesFavoriteFirst(
+    (sites || [])
+      .filter(site => site && site.enabled === true)
+      .filter(site => !site.hidden)
+      .filter(siteMatchesRequestedType)
+  );
+}
+
+function getInitialIframeSites(sites = [], selectedSiteNames = null) {
+  if (Array.isArray(selectedSiteNames) && selectedSiteNames.length > 0) {
+    return sortSitesFavoriteFirst(
+      (sites || []).filter(site =>
+        selectedSiteNames.includes(site.name) &&
+        !site.hidden &&
+        siteMatchesRequestedType(site)
+      )
+    );
+  }
+
+  return getDefaultOpenIframeSites(sites);
 }
 
 function getColumnSvgTemplate(columns) {
@@ -4304,15 +4534,6 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
       document.getElementById('searchInput').focus();
     }
   }, true);
-  // 如果参数为空,只使用 url 的 host 部分
-  if (!query) {
-    try {
-      const urlObj = new URL(url);
-      url = 'https://' + urlObj.hostname;
-    } catch (e) {
-      console.error('URL解析失败:', url);
-    }
-  }
   iframe.src = url;
 
   // 在 iframe 加载完成后，将页面滚动回顶部
@@ -4521,16 +4742,25 @@ document.getElementById('searchInput').addEventListener('compositionend', () => 
 
 // 处理回车键
 document.getElementById('searchInput').addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        // 如果正在使用输入法组合输入，不触发查询操作
-        if (isComposing) {
-            console.log('🎯 输入法组合输入中，不触发查询');
-            return; // 让输入法处理回车键
-        }
-        
-        e.preventDefault();
-        await submitIframeSearch('enter');
+    if (e.key !== 'Enter') {
+        return;
     }
+
+    // 如果正在使用输入法组合输入，不触发查询操作
+    if (isComposing) {
+        console.log('🎯 输入法组合输入中，不触发查询');
+        return; // 让输入法处理回车键
+    }
+
+    if (!shouldSubmitOnEnterKey(e, {
+        mode: iframeSubmitShortcutMode,
+        isMac: IFRAME_IS_MAC_PLATFORM
+    })) {
+        return;
+    }
+
+    e.preventDefault();
+    await submitIframeSearch('enter');
 });   
 
 // 添加输入监听器，当searchInput有内容时显示建议
@@ -6013,7 +6243,14 @@ function initQuickTooltips() {
 // 在页面加载时调用
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
+  setDeepResearchButtonBusy(false);
   initializeTimelinePanel();
+  const deepResearchButton = getDeepResearchButton();
+  if (deepResearchButton) {
+    deepResearchButton.addEventListener('click', () => {
+      void runDeepResearchAcrossOpenIframes();
+    });
+  }
   const resetIframePageButton = document.getElementById('resetIframePageButton');
   if (resetIframePageButton) {
     resetIframePageButton.addEventListener('click', () => {

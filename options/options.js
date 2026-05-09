@@ -126,12 +126,14 @@ function initializeI18n() {
 }
 
 // 等待 DOM 加载完成后初始化
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM 加载完成');
-  initializeI18n();
-  initializeRuleInfo();
-  initializePromptTemplates();
-});
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM 加载完成');
+    initializeI18n();
+    initializeRuleInfo();
+    initializePromptTemplates();
+  });
+}
 
 // 显示消息
 function showMessage(message, isError = false) {
@@ -148,6 +150,31 @@ function showMessage(message, isError = false) {
 
 function getLaunchSettingsUtils() {
   return window.SiteLaunchUtils || null;
+}
+
+function normalizeCustomSiteUrlValue(value) {
+  const utils = getLaunchSettingsUtils();
+  if (utils && typeof utils.normalizeCustomSiteUrl === 'function') {
+    return utils.normalizeCustomSiteUrl(value);
+  }
+
+  const normalizedUrl = typeof value === 'string' ? value.trim() : '';
+  if (!normalizedUrl) {
+    return '';
+  }
+
+  try {
+    new URL(normalizedUrl);
+    return normalizedUrl;
+  } catch (_) {
+    // Add a default protocol for bare hostnames.
+  }
+
+  if (normalizedUrl.startsWith('//')) {
+    return `https:${normalizedUrl}`;
+  }
+
+  return `https://${normalizedUrl}`;
 }
 
 function getLaunchMessage(key, fallback = '') {
@@ -477,6 +504,7 @@ function readCustomSiteDialogValue() {
   return {
     ...rawSite,
     id: rawSite.id || `custom-site-${Date.now()}`,
+    url: normalizeCustomSiteUrlValue(rawSite.url),
     supportIframe: true,
     order: rawSite.order || 0
   };
@@ -637,19 +665,63 @@ async function initializeButtonConfigs() {
       });
     });
 
+    const sendShortcutContainer = document.getElementById('sendShortcutConfig');
+    if (sendShortcutContainer) {
+      const enterLabel = chrome.i18n.getMessage('sendShortcutOptionEnter') || 'Send with Enter';
+      const modifierLabel = chrome.i18n.getMessage('sendShortcutOptionModifierEnter') || 'Send with Ctrl+Enter / ⌘+Enter';
+
+      sendShortcutContainer.innerHTML = `
+        <div class="site-config">
+          <div class="site-header site-setting-row">
+            <div class="site-setting-meta">
+              <span class="site-setting-title">${chrome.i18n.getMessage('sendShortcutTitle') || 'Submit Shortcut'}</span>
+              <div class="site-config-help">${chrome.i18n.getMessage('sendShortcutHelp') || 'Shift+Enter always inserts a newline.'}</div>
+            </div>
+            <select id="sendShortcutSelect" class="site-setting-select">
+              <option value="enter">${enterLabel}</option>
+              <option value="modifierEnter">${modifierLabel}</option>
+            </select>
+          </div>
+        </div>
+      `;
+
+      const sendShortcutSelect = sendShortcutContainer.querySelector('#sendShortcutSelect');
+      if (sendShortcutSelect) {
+        sendShortcutSelect.value = currentConfig.sendShortcut || 'enter';
+        sendShortcutSelect.addEventListener('change', async (e) => {
+          const { buttonConfig: latestConfig } = await chrome.storage.sync.get(['buttonConfig']);
+          const updatedConfig = {
+            ...defaultButtonConfig,
+            ...(latestConfig || currentConfig),
+            sendShortcut: e.target.value
+          };
+
+          await chrome.storage.sync.set({ buttonConfig: updatedConfig });
+          currentConfig = updatedConfig;
+          if (chrome.runtime.lastError) {
+            showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
+            return;
+          }
+          showToast(chrome.i18n.getMessage("saveSuccess"));
+        });
+      }
+    }
+
   } catch (error) {
     console.error('初始化按钮配置失败:', error);
   }
 }
 
 // 在页面加载时初始化
-document.addEventListener('DOMContentLoaded', function() {
-  initializeI18n();
-  loadConfig();
-  initializeLaunchSettings();
-  initializeNavigation();
-  initializeDisabledSites();
-});
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeI18n();
+    loadConfig();
+    initializeLaunchSettings();
+    initializeNavigation();
+    initializeDisabledSites();
+  });
+}
 
 const DEFAULT_SETTINGS_SECTION = 'quick-entry';
 const SETTINGS_SCROLL_TARGET_PARAM = 'scrollTarget';
@@ -1551,6 +1623,390 @@ function initializeDataSync() {
   });
 }
 
+let remoteSearchUiInitialized = false;
+let remoteSearchMessageListenerBound = false;
+let remoteSearchState = null;
+let remoteSearchStateUpdatedAt = 0;
+let remoteSearchQrLoadToken = 0;
+
+function getRemoteSearchStatusMessage(status) {
+  const normalizedStatus = String(status || '').trim();
+  switch (normalizedStatus) {
+    case 'online':
+      return getMessage('remoteSearchStatusOnline') || 'Online';
+    case 'connecting':
+      return getMessage('remoteSearchStatusConnecting') || 'Connecting';
+    case 'offline':
+      return getMessage('remoteSearchStatusOffline') || 'Offline';
+    case 'error':
+      return getMessage('remoteSearchStatusError') || 'Error';
+    case 'disabled':
+    default:
+      return getMessage('remoteSearchStatusDisabled') || 'Disabled';
+  }
+}
+
+function formatRemoteSearchTime(value) {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) {
+    return '-';
+  }
+
+  const parsed = new Date(rawValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return rawValue;
+  }
+
+  try {
+    return parsed.toLocaleString();
+  } catch (_) {
+    return rawValue;
+  }
+}
+
+function getRemoteSearchStateUpdatedAt(state) {
+  const rawValue = String(state?.updatedAt || '').trim();
+  if (!rawValue) {
+    return 0;
+  }
+
+  const parsedValue = Date.parse(rawValue);
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
+}
+
+function shouldIgnoreRemoteSearchStateUpdate(nextState) {
+  if (!remoteSearchState || !remoteSearchStateUpdatedAt) {
+    return false;
+  }
+
+  const nextUpdatedAt = getRemoteSearchStateUpdatedAt(nextState);
+  if (!nextUpdatedAt) {
+    return true;
+  }
+
+  return nextUpdatedAt < remoteSearchStateUpdatedAt;
+}
+
+function clearRemoteSearchQrImage(qrImage) {
+  if (!qrImage) {
+    return;
+  }
+
+  qrImage.hidden = true;
+  qrImage.removeAttribute('src');
+}
+
+function buildRemoteSearchQrImageSource(svgText) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(String(svgText || ''))}`;
+}
+
+function shouldEnableRemoteSearchGenerateButton(state, draftSettings = null) {
+  return state?.settings?.enabled === true || draftSettings?.enabled === true;
+}
+
+function getRemoteSearchDraftSettings() {
+  return {
+    enabled: document.getElementById('remoteSearchEnabled')?.checked === true,
+    relayBaseUrl: document.getElementById('remoteSearchRelayUrl')?.value?.trim() || '',
+    desktopName: document.getElementById('remoteSearchDesktopName')?.value?.trim() || ''
+  };
+}
+
+function updateRemoteSearchGenerateButtonState(state = remoteSearchState) {
+  const generateQrButton = document.getElementById('generateRemoteSearchQr');
+  if (!generateQrButton) {
+    return;
+  }
+
+  generateQrButton.disabled = !shouldEnableRemoteSearchGenerateButton(
+    state,
+    getRemoteSearchDraftSettings()
+  );
+}
+
+async function sendRemoteSearchRuntimeMessage(action, payload = {}) {
+  const response = await chrome.runtime.sendMessage({
+    action,
+    ...payload
+  });
+
+  if (!response?.success) {
+    throw new Error(response?.error || 'Remote Search request failed');
+  }
+
+  return response.result;
+}
+
+function readRemoteSearchSettingsFromForm() {
+  return getRemoteSearchDraftSettings();
+}
+
+function setRemoteSearchQrPlaceholderText(message) {
+  const placeholder = document.getElementById('remoteSearchQrPlaceholder');
+  if (placeholder) {
+    placeholder.textContent = message || (getMessage('remoteSearchQrEmpty') || 'Enable remote search to generate a pairing QR code.');
+  }
+}
+
+async function renderRemoteSearchQr(ticket, relayBaseUrl) {
+  const qrImage = document.getElementById('remoteSearchQrImage');
+  const placeholder = document.getElementById('remoteSearchQrPlaceholder');
+  const expiresAt = document.getElementById('remoteSearchTicketExpiresAt');
+  const loadToken = ++remoteSearchQrLoadToken;
+
+  if (expiresAt) {
+    expiresAt.textContent = formatRemoteSearchTime(ticket?.expiresAt);
+  }
+
+  if (!qrImage) {
+    return;
+  }
+
+  if (!ticket?.qrPayload) {
+    clearRemoteSearchQrImage(qrImage);
+    if (placeholder) {
+      placeholder.hidden = false;
+    }
+    return;
+  }
+
+  const effectiveRelayUrl = String(ticket.relayBaseUrl || relayBaseUrl || '').trim();
+  if (!effectiveRelayUrl) {
+    clearRemoteSearchQrImage(qrImage);
+    if (placeholder) {
+      placeholder.hidden = false;
+    }
+    setRemoteSearchQrPlaceholderText(getMessage('remoteSearchQrEmpty') || 'Enable remote search to generate a pairing QR code.');
+    return;
+  }
+
+  setRemoteSearchQrPlaceholderText(getMessage('remoteSearchQrLoading') || 'Generating QR code...');
+  if (placeholder) {
+    placeholder.hidden = false;
+  }
+  clearRemoteSearchQrImage(qrImage);
+
+  try {
+    const qrResponse = await fetch(`${effectiveRelayUrl.replace(/\/+$/, '')}/qr?data=${encodeURIComponent(JSON.stringify(ticket.qrPayload))}`);
+    if (!qrResponse.ok) {
+      throw new Error(`HTTP ${qrResponse.status}`);
+    }
+
+    const svgText = await qrResponse.text();
+    if (loadToken !== remoteSearchQrLoadToken) {
+      return;
+    }
+
+    qrImage.src = buildRemoteSearchQrImageSource(svgText);
+    qrImage.hidden = false;
+    if (placeholder) {
+      placeholder.hidden = true;
+    }
+  } catch (error) {
+    console.error('加载远程搜索二维码失败:', error);
+    clearRemoteSearchQrImage(qrImage);
+    if (placeholder) {
+      placeholder.hidden = false;
+    }
+    setRemoteSearchQrPlaceholderText(
+      `${getMessage('remoteSearchQrLoadFailed') || 'Failed to load QR code'}: ${error.message || error}`
+    );
+  }
+}
+
+function renderRemoteSearchState(state) {
+  if (state && shouldIgnoreRemoteSearchStateUpdate(state)) {
+    return remoteSearchState;
+  }
+
+  remoteSearchState = state || null;
+  remoteSearchStateUpdatedAt = getRemoteSearchStateUpdatedAt(remoteSearchState);
+
+  const status = String(state?.connectionStatus || 'disabled').trim() || 'disabled';
+  const statusText = getRemoteSearchStatusMessage(status);
+  const enabledInput = document.getElementById('remoteSearchEnabled');
+  const relayInput = document.getElementById('remoteSearchRelayUrl');
+  const desktopNameInput = document.getElementById('remoteSearchDesktopName');
+  const connectionBadge = document.getElementById('remoteSearchConnectionBadge');
+  const statusLabel = document.getElementById('remoteSearchStatusText');
+  const pendingCard = document.getElementById('remoteSearchPendingPairCard');
+  const pairedEmpty = document.getElementById('remoteSearchPairedEmpty');
+  const pairedDetails = document.getElementById('remoteSearchPairedDetails');
+  const lastError = document.getElementById('remoteSearchLastError');
+  const generateQrButton = document.getElementById('generateRemoteSearchQr');
+
+  if (enabledInput) {
+    enabledInput.checked = state?.settings?.enabled === true;
+  }
+  if (relayInput) {
+    relayInput.value = state?.settings?.relayBaseUrl || relayInput.value || '';
+  }
+  if (desktopNameInput) {
+    desktopNameInput.value = state?.settings?.desktopName || state?.deviceIdentity?.deviceName || desktopNameInput.value || '';
+  }
+
+  if (connectionBadge) {
+    connectionBadge.textContent = statusText;
+    connectionBadge.dataset.status = status;
+  }
+  if (statusLabel) {
+    statusLabel.textContent = statusText;
+  }
+  if (generateQrButton) {
+    updateRemoteSearchGenerateButtonState(state);
+  }
+
+  const pendingPair = state?.pendingPairRequest || null;
+  if (pendingCard) {
+    pendingCard.hidden = !pendingPair;
+  }
+  const pendingPhoneName = document.getElementById('remoteSearchPendingPhoneName');
+  const pendingPhonePlatform = document.getElementById('remoteSearchPendingPhonePlatform');
+  const pendingFingerprint = document.getElementById('remoteSearchPendingFingerprint');
+  if (pendingPhoneName) {
+    pendingPhoneName.textContent = pendingPair?.phoneName || pendingPair?.phoneDeviceId || '-';
+  }
+  if (pendingPhonePlatform) {
+    pendingPhonePlatform.textContent = pendingPair?.phonePlatform || '-';
+  }
+  if (pendingFingerprint) {
+    pendingFingerprint.textContent = pendingPair?.phoneFingerprint || '-';
+  }
+
+  const pairRecord = state?.pairRecord || null;
+  if (pairedEmpty) {
+    pairedEmpty.hidden = Boolean(pairRecord);
+  }
+  if (pairedDetails) {
+    pairedDetails.hidden = !pairRecord;
+  }
+  const pairedPhoneName = document.getElementById('remoteSearchPairedPhoneName');
+  const pairedPhonePlatform = document.getElementById('remoteSearchPairedPhonePlatform');
+  const pairedFingerprint = document.getElementById('remoteSearchPairedFingerprint');
+  if (pairedPhoneName) {
+    pairedPhoneName.textContent = pairRecord?.phoneName || pairRecord?.phoneDeviceId || '-';
+  }
+  if (pairedPhonePlatform) {
+    pairedPhonePlatform.textContent = pairRecord?.phonePlatform || '-';
+  }
+  if (pairedFingerprint) {
+    pairedFingerprint.textContent = pairRecord?.phoneFingerprint || '-';
+  }
+
+  if (lastError) {
+    lastError.textContent = state?.lastError || getMessage('remoteSearchNoLastError') || 'No recent errors.';
+  }
+
+  void renderRemoteSearchQr(state?.pairingTicket || null, state?.settings?.relayBaseUrl || '');
+}
+
+async function refreshRemoteSearchState() {
+  const state = await sendRemoteSearchRuntimeMessage('remoteGetState');
+  renderRemoteSearchState(state);
+  return state;
+}
+
+async function saveRemoteSearchSettings(options = {}) {
+  const nextState = await sendRemoteSearchRuntimeMessage('remoteUpdateSettings', {
+    settings: readRemoteSearchSettingsFromForm()
+  });
+  renderRemoteSearchState(nextState);
+  if (options.silent !== true) {
+    showToast(getMessage('saveSuccess') || 'Configuration saved');
+  }
+  return nextState;
+}
+
+async function createRemoteSearchPairingTicket() {
+  await saveRemoteSearchSettings({ silent: true });
+  await sendRemoteSearchRuntimeMessage('remoteCreatePairingTicket');
+  await refreshRemoteSearchState();
+  showToast(getMessage('remoteSearchQrReadyToast') || 'Pairing QR code is ready');
+}
+
+function handleRemoteSearchRuntimeUpdateMessage(message) {
+  if (message?.type !== 'remoteStateChanged' || !message.state) {
+    return;
+  }
+
+  renderRemoteSearchState(message.state);
+}
+
+function initializeRemoteSearchSettings() {
+  if (remoteSearchUiInitialized) {
+    return;
+  }
+
+  remoteSearchUiInitialized = true;
+
+  const syncGenerateButtonState = () => {
+    updateRemoteSearchGenerateButtonState(remoteSearchState);
+  };
+
+  document.getElementById('saveRemoteSearchSettings')?.addEventListener('click', async () => {
+    try {
+      await saveRemoteSearchSettings();
+    } catch (error) {
+      console.error('保存远程搜索设置失败:', error);
+      showToast(`${getMessage('saveFailed', [error.message || String(error)]) || `Save failed: ${error.message || error}`}`);
+    }
+  });
+
+  document.getElementById('generateRemoteSearchQr')?.addEventListener('click', async () => {
+    try {
+      await createRemoteSearchPairingTicket();
+    } catch (error) {
+      console.error('生成远程搜索二维码失败:', error);
+      showToast(`${getMessage('saveFailed', [error.message || String(error)]) || `Save failed: ${error.message || error}`}`);
+    }
+  });
+
+  document.getElementById('remoteSearchEnabled')?.addEventListener('change', syncGenerateButtonState);
+  document.getElementById('remoteSearchRelayUrl')?.addEventListener('input', syncGenerateButtonState);
+  document.getElementById('remoteSearchDesktopName')?.addEventListener('input', syncGenerateButtonState);
+
+  document.getElementById('remoteSearchApprovePair')?.addEventListener('click', async () => {
+    try {
+      await sendRemoteSearchRuntimeMessage('remoteApprovePendingPair');
+      await refreshRemoteSearchState();
+      showToast(getMessage('saveSuccess') || 'Configuration saved');
+    } catch (error) {
+      console.error('批准远程搜索配对失败:', error);
+      showToast(`${getMessage('saveFailed', [error.message || String(error)]) || `Save failed: ${error.message || error}`}`);
+    }
+  });
+
+  document.getElementById('remoteSearchRejectPair')?.addEventListener('click', async () => {
+    try {
+      await sendRemoteSearchRuntimeMessage('remoteRejectPendingPair');
+      await refreshRemoteSearchState();
+    } catch (error) {
+      console.error('拒绝远程搜索配对失败:', error);
+      showToast(`${getMessage('saveFailed', [error.message || String(error)]) || `Save failed: ${error.message || error}`}`);
+    }
+  });
+
+  document.getElementById('remoteSearchUnpair')?.addEventListener('click', async () => {
+    try {
+      await sendRemoteSearchRuntimeMessage('remoteRevokePairing');
+      await refreshRemoteSearchState();
+    } catch (error) {
+      console.error('解除远程搜索绑定失败:', error);
+      showToast(`${getMessage('saveFailed', [error.message || String(error)]) || `Save failed: ${error.message || error}`}`);
+    }
+  });
+
+  if (!remoteSearchMessageListenerBound) {
+    chrome.runtime.onMessage.addListener(handleRemoteSearchRuntimeUpdateMessage);
+    remoteSearchMessageListenerBound = true;
+  }
+
+  refreshRemoteSearchState().catch((error) => {
+    console.error('加载远程搜索状态失败:', error);
+    showToast(`${getMessage('saveFailed', [error.message || String(error)]) || `Save failed: ${error.message || error}`}`);
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Pro 会员 UI
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1681,27 +2137,40 @@ async function initializeMembership() {
 }
 
 // 页面初始化
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('Options page loaded');
-  
-  // 初始化国际化
-  initializeI18n();
-  
-  // 加载配置
-  loadConfig();
-  
-  // 初始化导航
-  initializeNavigation();
-  
-  // 处理锚点跳转
-  handleHashNavigation();
-  
-  // 监听 hash 变化
-  window.addEventListener('hashchange', handleHashNavigation);
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('Options page loaded');
+    
+    // 初始化国际化
+    initializeI18n();
+    
+    // 加载配置
+    loadConfig();
+    
+    // 初始化导航
+    initializeNavigation();
+    
+    // 处理锚点跳转
+    handleHashNavigation();
+    
+    // 监听 hash 变化
+    window.addEventListener('hashchange', handleHashNavigation);
 
-  // 初始化数据同步
-  initializeDataSync();
+    // 初始化数据同步
+    initializeDataSync();
 
-  // Pro 会员功能暂时隐藏，下版本恢复后再启用
-  // initializeMembership();
-});
+    // 初始化远程搜索
+    initializeRemoteSearchSettings();
+
+    // Pro 会员功能暂时隐藏，下版本恢复后再启用
+    // initializeMembership();
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    buildRemoteSearchQrImageSource,
+    shouldEnableRemoteSearchGenerateButton,
+    getRemoteSearchDraftSettings
+  };
+}

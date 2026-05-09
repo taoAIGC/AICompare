@@ -86,9 +86,6 @@
   "commandDescription": {
     "message": "快捷鍵(Mac下 ⌘+M , Windows下 Ctrl+M)"
   },
-  "contactInfo": {
-    "message": "如果你想增加更多站點，可以与我聯絡 AIShortcuts@outlook.com"
-  },
   "popupTitle": {
     "message": "AI 比一比"
   },
@@ -270,8 +267,8 @@
     "description": "Feature coming soon notice"
   },
   "floatButton": {
-    "message": "懸浮球",
-    "description": "The name for the float button"
+    "message": "透過懸浮按鈕，開啟側邊欄",
+    "description": "透過懸浮按鈕開啟側邊欄的設定項名稱"
   },
   "selectionSearch": {
     "message": "劃詞搜尋",
@@ -292,6 +289,22 @@
   "searchEngine": {
     "message": "搜尋引擎",
     "description": "The name for the search engine"
+  },
+  "sendShortcutTitle": {
+    "message": "發送快捷鍵",
+    "description": "發送快捷鍵設定項標題"
+  },
+  "sendShortcutOptionEnter": {
+    "message": "Enter 發送",
+    "description": "Enter 發送選項"
+  },
+  "sendShortcutOptionModifierEnter": {
+    "message": "Ctrl+Enter / ⌘+Enter 發送",
+    "description": "Ctrl+Enter 或 Command+Enter 發送選項"
+  },
+  "sendShortcutHelp": {
+    "message": "Shift+Enter 一律換行。",
+    "description": "發送快捷鍵設定項說明"
   },
   "deleteConfirm": {
     "message": "確定要刪除这个提示詞吗？",
@@ -1340,6 +1353,27 @@
   "timelineActionTimeout": {
     "message": "請求逾時"
   },
+  "deepResearchButtonLabel": {
+    "message": "深度研究"
+  },
+  "deepResearchButtonTitle": {
+    "message": "為所有已開啟子頁啟用深度研究"
+  },
+  "deepResearchButtonBusy": {
+    "message": "研究中..."
+  },
+  "deepResearchToastRunning": {
+    "message": "正在為所有子頁啟用深度研究..."
+  },
+  "deepResearchToastSummary": {
+    "message": "深度研究已就緒：共 $1/$2 個子頁，新開啟 $3，已開啟 $4，跳過 $5。"
+  },
+  "deepResearchToastPartialFailure": {
+    "message": "深度研究已處理 $1/$2 個子頁：新開啟 $3，已開啟 $4，跳過 $5，失敗 $6。"
+  },
+  "deepResearchToastAllUnsupported": {
+    "message": "目前開啟的 $1 個子頁裡沒有可用的深度研究開關。"
+  },
   "openclawModeTitle": {
     "message": "OpenClaw 模式"
   },
@@ -1378,5 +1412,135 @@
   },
   "confirmButton": {
     "message": "確認"
+  },
+  "remoteSearchTitle": {
+    "message": "手機搜尋（開發中）"
+  },
+  "remoteSearchDescription": {
+    "message": "Pair one phone to this Chrome session so the phone can trigger AI Compare searches and read streamed results."
+  },
+  "remoteSearchEnableLabel": {
+    "message": "Enable Remote Search"
+  },
+  "remoteSearchRelayUrlLabel": {
+    "message": "Relay URL"
+  },
+  "remoteSearchRelayUrlHelp": {
+    "message": "Point this to your local relay or the deployed Cloud Run relay base URL."
+  },
+  "remoteSearchDesktopNameLabel": {
+    "message": "Computer name"
+  },
+  "remoteSearchDesktopNamePlaceholder": {
+    "message": "My Chrome session"
+  },
+  "remoteSearchGenerateQrButton": {
+    "message": "Generate pairing QR"
+  },
+  "remoteSearchPairingLimitNote": {
+    "message": "Only one phone can be paired at a time. A new phone replaces the previous pairing."
+  },
+  "remoteSearchQrTitle": {
+    "message": "Pairing QR code"
+  },
+  "remoteSearchQrEmpty": {
+    "message": "Enable Remote Search, save the settings, then generate a pairing QR code."
+  },
+  "remoteSearchExpiresAtLabel": {
+    "message": "Expires at"
+  },
+  "remoteSearchPendingPairTitle": {
+    "message": "Pending pair request"
+  },
+  "remoteSearchPendingPairDescription": {
+    "message": "When a phone scans the QR code, its request appears here for approval."
+  },
+  "remoteSearchPhoneNameLabel": {
+    "message": "Phone name"
+  },
+  "remoteSearchPhonePlatformLabel": {
+    "message": "Platform"
+  },
+  "remoteSearchFingerprintLabel": {
+    "message": "Fingerprint"
+  },
+  "remoteSearchApproveButton": {
+    "message": "Approve"
+  },
+  "remoteSearchRejectButton": {
+    "message": "Reject"
+  },
+  "remoteSearchPairedPhoneTitle": {
+    "message": "Paired phone"
+  },
+  "remoteSearchNotPaired": {
+    "message": "No phone is paired yet."
+  },
+  "remoteSearchUnpairButton": {
+    "message": "Unpair phone"
+  },
+  "remoteSearchLastErrorLabel": {
+    "message": "Last error"
+  },
+  "remoteSearchNoLastError": {
+    "message": "No recent errors."
+  },
+  "remoteSearchStatusOnline": {
+    "message": "Online"
+  },
+  "remoteSearchStatusConnecting": {
+    "message": "Connecting"
+  },
+  "remoteSearchStatusOffline": {
+    "message": "Offline"
+  },
+  "remoteSearchStatusDisabled": {
+    "message": "Disabled"
+  },
+  "remoteSearchStatusError": {
+    "message": "Error"
+  },
+  "remoteSearchNotificationTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchPairRequestBody": {
+    "message": "Pair request from $DEVICE$",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
+  },
+  "remoteSearchHomepageTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchHomepageDescription": {
+    "message": "Pair one phone to this Chrome session and launch compare searches remotely."
+  },
+  "remoteSearchOpenSettingsButton": {
+    "message": "Open settings"
+  },
+  "remoteSearchHomepagePairedPrefix": {
+    "message": "Paired with"
+  },
+  "remoteSearchHomepageDescriptionEnabled": {
+    "message": "Remote Search is ready for pairing from the settings page."
+  },
+  "remoteSearchQrLoading": {
+    "message": "Generating QR code..."
+  },
+  "remoteSearchQrLoadFailed": {
+    "message": "Failed to load QR code"
+  },
+  "remoteSearchQrReadyToast": {
+    "message": "Pairing QR code is ready"
+  },
+  "remoteSearchHomepagePairedDescription": {
+    "message": "Paired with $DEVICE$.",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
   }
 }

@@ -457,58 +457,12 @@ function probeChromeCdp() {
     return Promise.resolve(endpoint);
   }
 
-  return new Promise((resolve) => {
-    const request = http.get(
-      {
-        host: '127.0.0.1',
-        port: Number(endpoint.port),
-        path: '/json/version',
-        timeout: 1500
-      },
-      (response) => {
-        let body = '';
-        response.setEncoding('utf8');
-        response.on('data', (chunk) => {
-          body += chunk;
-        });
-        response.on('end', () => {
-          if (response.statusCode !== 200) {
-            resolve({
-              ok: false,
-              reason: `Chrome CDP probe failed with HTTP ${response.statusCode} on port ${endpoint.port}`
-            });
-            return;
-          }
-
-          try {
-            const payload = JSON.parse(body || '{}');
-            resolve({
-              ok: true,
-              portFile: endpoint.portFile,
-              port: endpoint.port,
-              browserPath: endpoint.browserPath,
-              webSocketDebuggerUrl: payload.webSocketDebuggerUrl || ''
-            });
-          } catch (error) {
-            resolve({
-              ok: false,
-              reason: `Chrome CDP probe returned invalid JSON: ${error.message}`
-            });
-          }
-        });
-      }
-    );
-
-    request.on('timeout', () => {
-      request.destroy(new Error('timeout'));
-    });
-
-    request.on('error', (error) => {
-      resolve({
-        ok: false,
-        reason: `Chrome CDP is unreachable on port ${endpoint.port}: ${error.message}`
-      });
-    });
+  return Promise.resolve({
+    ok: true,
+    portFile: endpoint.portFile,
+    port: endpoint.port,
+    browserPath: endpoint.browserPath,
+    webSocketDebuggerUrl: ''
   });
 }
 

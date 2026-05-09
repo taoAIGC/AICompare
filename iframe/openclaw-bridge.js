@@ -72,7 +72,7 @@
       .filter(Boolean);
   }
 
-  async function getDefaultEnabledSites() {
+  async function getDefaultSites() {
     if (typeof window.getDefaultSites !== 'function') {
       return [];
     }
@@ -84,11 +84,11 @@
       }
 
       return sites
-        .filter((site) => site && site.enabled && !site.hidden && site.supportIframe !== false)
+        .filter((site) => site && !site.hidden && site.supportIframe !== false)
         .map((site) => String(site.name || '').trim())
         .filter(Boolean);
     } catch (error) {
-      console.warn('Failed to resolve default enabled sites for OpenClaw bridge:', error);
+      console.warn('Failed to resolve default sites for OpenClaw bridge:', error);
       return [];
     }
   }
@@ -137,6 +137,13 @@
 
   function isExtractionFallbackContent(content) {
     return content.includes('无法自动提取') || content.includes('内容提取失败');
+  }
+
+  function isPlaceholderAnswerContent(content) {
+    if (!window.AICompareExtraction?.looksLikePlaceholderAnswerContent) {
+      return false;
+    }
+    return Boolean(window.AICompareExtraction.looksLikePlaceholderAnswerContent(content));
   }
 
   function matchesAny(text, patterns) {
@@ -363,6 +370,7 @@
   function isAcceptableReadyContent(siteConfig, content, url) {
     const normalized = String(content || '').trim();
     if (!normalized) return false;
+    if (window.AICompareExtraction?.looksLikePlaceholderAnswerContent?.(normalized)) return false;
     if (matchesPendingContentPatterns(normalized, siteConfig)) return false;
     if (looksLikePendingShellContent(normalized, siteConfig)) return false;
     if (isLandingPageContent(siteConfig, url, normalized)) return false;
@@ -410,6 +418,10 @@
 
     if (isExtractionFallbackContent(content)) {
       return { status: 'extraction_error', error: 'extraction_error' };
+    }
+
+    if (isPlaceholderAnswerContent(content)) {
+      return { status: 'pending', error: '' };
     }
 
     if (matchesPendingContentPatterns(content, siteConfig)) {
@@ -775,6 +787,64 @@
     });
   }
 
+  async function requestIframePromptResponseResult(siteName, query, occurrenceIndex = 0, timeoutMs = 3000) {
+    const iframe = findIframeBySiteName(siteName);
+    if (!iframe?.contentWindow) {
+      return null;
+    }
+
+    const normalizedQuery = String(query || '').trim();
+    if (!normalizedQuery) {
+      return null;
+    }
+
+    const requestId = buildIframeRequestId('prompt', siteName);
+    return new Promise((resolve) => {
+      let finished = false;
+
+      const cleanup = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        window.removeEventListener('message', onMessage);
+      };
+
+      const onMessage = (event) => {
+        if (event.source !== iframe.contentWindow) return;
+        if (event.data?.type !== 'EXTRACT_PROMPT_RESPONSE_RESULT') return;
+        if (event.data?.requestId && event.data.requestId !== requestId) return;
+        if (!event.data?.requestId && event.data?.siteName !== siteName) return;
+        cleanup();
+        resolve({
+          content: String(event.data?.content || '').trim(),
+          answers: Array.isArray(event.data?.answers) ? event.data.answers : [],
+          found: event.data?.found !== false,
+          error: String(event.data?.error || '').trim()
+        });
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(null);
+      }, Math.max(300, Number(timeoutMs) || 0));
+
+      window.addEventListener('message', onMessage);
+
+      try {
+        iframe.contentWindow.postMessage({
+          type: 'EXTRACT_PROMPT_RESPONSE',
+          siteName,
+          query: normalizedQuery,
+          occurrenceIndex: Math.max(0, Number(occurrenceIndex) || 0),
+          requestId
+        }, '*');
+      } catch (_) {
+        cleanup();
+        resolve(null);
+      }
+    });
+  }
+
   function getResultQualityScore(item) {
     if (!item) return -1;
 
@@ -798,7 +868,14 @@
     const status = String(item.status || 'pending').trim();
     const contentLength = String(item.content || '').trim().length;
     const urlBonus = item.url ? 5 : 0;
-    return (baseScores[status] || 0) + Math.min(contentLength, 4000) / 20 + urlBonus;
+    const extractionMethodBonusMap = {
+      'prompt-response': 240,
+      'extract-content': 80,
+      'same-origin-direct': 40,
+      'active-report': 0
+    };
+    const extractionBonus = extractionMethodBonusMap[String(item.extractionMethod || '').trim()] || 0;
+    return (baseScores[status] || 0) + Math.min(contentLength, 4000) / 20 + urlBonus + extractionBonus;
   }
 
   function pickBetterResolvedResult(current, candidate) {
@@ -849,6 +926,27 @@
   async function resolveSiteResultWithPriority(siteName, snapshotEntry, minChars) {
     const siteConfig = await getSiteConfigByName(siteName);
     let bestResult = normalizeResolvedEntry(snapshotEntry, minChars, siteName, siteConfig, 'active-report');
+
+    const query = String(snapshotEntry?.query || '').trim();
+    if (query) {
+      const promptResponse = await requestIframePromptResponseResult(siteName, query, 0);
+      const promptContent = String(promptResponse?.content || '').trim()
+        || (Array.isArray(promptResponse?.answers)
+          ? promptResponse.answers.map((item) => String(item || '').trim()).filter(Boolean).join('\n\n')
+          : '');
+      if (promptContent) {
+        const promptEntry = normalizeResolvedEntry({
+          ...snapshotEntry,
+          siteName,
+          content: promptContent,
+          url: bestResult.url || snapshotEntry?.url || '',
+          phase: snapshotEntry?.phase || 'ready',
+          error: ''
+        }, minChars, siteName, siteConfig, 'prompt-response');
+        bestResult = pickBetterResolvedResult(bestResult, promptEntry);
+      }
+    }
+
     if (!shouldResolveWithFallbackSources(bestResult, siteConfig)) {
       return bestResult;
     }
@@ -974,6 +1072,7 @@
       const readyStatus = !content
         ? 'pending'
         : ((classified.status === 'pending' || classified.status === 'short')
+          && !window.AICompareExtraction?.looksLikePlaceholderAnswerContent?.(content)
           ? (isAcceptableReadyContent(siteConfig, content, url) ? 'ok' : classified.status)
           : classified.status);
       return {
@@ -1005,13 +1104,9 @@
     }
 
     const snapshot = bridge.getSnapshot(siteNames);
-    const results = [];
-
-    for (const siteName of siteNames) {
-      results.push(await resolveSiteResultWithPriority(siteName, snapshot?.bySite?.[siteName], minChars));
-    }
-
-    return results;
+    return Promise.all(siteNames.map((siteName) => {
+      return resolveSiteResultWithPriority(siteName, snapshot?.bySite?.[siteName], minChars);
+    }));
   }
 
   function waitForRuntimeUpdate(timeoutMs) {
@@ -1047,6 +1142,9 @@
     return {
       urlQuery: (params.get('query') || '').trim(),
       urlSites: parseSites(params.get('sites') || ''),
+      urlRemoteMode: params.get('remote_mode') === '1',
+      urlRemotePairId: (params.get('remote_pair_id') || '').trim(),
+      urlRemoteRequestId: (params.get('remote_request_id') || '').trim(),
       urlCallback: (params.get('openclaw_callback') || '').trim(),
       urlTimeoutMs: parseNumber(params.get('openclaw_timeout_ms'), DEFAULT_TIMEOUT_MS),
       urlSiteTimeoutMs: parseNumber(params.get('openclaw_site_timeout_ms'), DEFAULT_SITE_TIMEOUT_MS),
@@ -1262,6 +1360,31 @@
     });
   }
 
+  async function postRemoteRuntimeProgress(context, result, state, forceFinal) {
+    if (!context || context.enabled !== true || !context.requestId || !result) {
+      return;
+    }
+
+    const snapshot = debugSnapshotHash(result);
+    if (!forceFinal && snapshot === state.lastPostedRemoteSnapshot) {
+      return;
+    }
+
+    state.lastPostedRemoteSnapshot = snapshot;
+
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'remoteSearchProgress',
+        requestId: context.requestId,
+        pairId: context.pairId,
+        result,
+        completed: forceFinal === true
+      });
+    } catch (error) {
+      console.warn('[openclaw-bridge] remote runtime progress post failed:', error);
+    }
+  }
+
   async function maybePostProgress(callbackUrl, result, state, forceFinal) {
     if (!callbackUrl || !result) {
       return;
@@ -1308,11 +1431,17 @@
     const stableRounds = Math.max(0, parseNumber(opts.stableRounds, defaults.urlStableRounds));
     const waitForIframesMs = Math.max(0, parseNumber(opts.waitForIframesMs, defaults.urlWaitForIframesMs));
     const forceRun = Boolean(opts.forceRun);
+    const remoteContext = {
+      enabled: opts.remoteMode === true || defaults.urlRemoteMode === true,
+      pairId: (typeof opts.remotePairId === 'string' ? opts.remotePairId : defaults.urlRemotePairId || '').trim(),
+      requestId: (typeof opts.remoteRequestId === 'string' ? opts.remoteRequestId : defaults.urlRemoteRequestId || '').trim()
+    };
 
     const startAt = Date.now();
     const runId = `${startAt}-${Math.random().toString(36).slice(2, 8)}`;
     const callbackState = {
-      lastPostedSnapshot: ''
+      lastPostedSnapshot: '',
+      lastPostedRemoteSnapshot: ''
     };
 
     updateDebugState({
@@ -1327,7 +1456,7 @@
       results: []
     });
 
-    const resolvedDefaultSites = requestedSites.length > 0 ? [] : await getDefaultEnabledSites();
+    const resolvedDefaultSites = requestedSites.length > 0 ? [] : await getDefaultSites();
     const immediateResults = requestedSiteResolution.immediateResults.slice();
     const reportedRequestedSites = requestedSiteResolution.reportedSites.slice();
     let frozenTargetSites = requestedSites.length > 0 ? requestedSiteResolution.supportedSites.slice() : [];
@@ -1439,6 +1568,7 @@
         results: runningResult.results
       });
       await maybePostProgress(callbackUrl, runningResult, callbackState, false);
+      await postRemoteRuntimeProgress(remoteContext, runningResult, callbackState, false);
 
       const allResolved = normalizedResults.length > 0
         && combinedResults.every((item) => TERMINAL_STATUSES.has(item.status));
@@ -1511,6 +1641,7 @@
 
     window.dispatchEvent(new CustomEvent('aicompare:openclaw-result', { detail: result }));
     await maybePostProgress(callbackUrl, result, callbackState, true);
+    await postRemoteRuntimeProgress(remoteContext, result, callbackState, true);
     return result;
   }
 
@@ -1568,8 +1699,42 @@
           query: (params.get('query') || '').trim(),
           sites: parseSites(params.get('sites') || ''),
           callbackUrl: (params.get('openclaw_callback') || '').trim(),
+          remoteMode: params.get('remote_mode') === '1',
+          remotePairId: (params.get('remote_pair_id') || '').trim(),
+          remoteRequestId: (params.get('remote_request_id') || '').trim(),
           forceRun: false
         }).catch((error) => {
+          const remoteRequestId = (params.get('remote_request_id') || '').trim();
+          const remotePairId = (params.get('remote_pair_id') || '').trim();
+          if (params.get('remote_mode') === '1' && remoteRequestId) {
+            chrome.runtime.sendMessage({
+              action: 'remoteSearchProgress',
+              requestId: remoteRequestId,
+              pairId: remotePairId,
+              completed: true,
+              result: {
+                runId: '',
+                phase: 'error',
+                query: (params.get('query') || '').trim(),
+                timedOut: false,
+                completed: false,
+                finished: true,
+                targetSites: [],
+                totalSites: 0,
+                resolvedSites: 0,
+                results: [
+                  {
+                    siteName: 'AI Compare',
+                    status: 'error',
+                    content: '',
+                    error: error && error.message ? error.message : String(error)
+                  }
+                ]
+              }
+            }).catch((remoteError) => {
+              console.warn('[openclaw-bridge] remote callback error after auto run failure:', remoteError);
+            });
+          }
           postCallback((params.get('openclaw_callback') || '').trim(), {
             ok: false,
             source: 'ai-compare-openclaw',

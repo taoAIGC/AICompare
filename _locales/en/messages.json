@@ -86,9 +86,6 @@
   "commandDescription": {
     "message": "Hotkey: (⌘+M on Mac, Ctrl+M on Windows)"
   },
-  "contactInfo": {
-    "message": "If you want to add more sites, please contact me at AIShortcuts@outlook.com"
-  },
   "popupTitle": {
     "message": "AI Compare"
   },
@@ -270,8 +267,8 @@
     "description": "Feature coming soon notice"
   },
   "floatButton": {
-    "message": "Float Button",
-    "description": "The name for the float button"
+    "message": "Open the sidebar with the floating button",
+    "description": "The label for opening the sidebar with the floating button"
   },
   "selectionSearch": {
     "message": "Selection Search",
@@ -292,6 +289,22 @@
   "searchEngine": {
     "message": "Search Engine",
     "description": "The name for the search engine"
+  },
+  "sendShortcutTitle": {
+    "message": "Submit Shortcut",
+    "description": "Title for the submit shortcut setting"
+  },
+  "sendShortcutOptionEnter": {
+    "message": "Send with Enter",
+    "description": "Option label for Enter-to-send mode"
+  },
+  "sendShortcutOptionModifierEnter": {
+    "message": "Send with Ctrl+Enter / ⌘+Enter",
+    "description": "Option label for modifier-plus-Enter send mode"
+  },
+  "sendShortcutHelp": {
+    "message": "Shift+Enter always inserts a newline.",
+    "description": "Helper text for the submit shortcut setting"
   },
   "deleteConfirm": {
     "message": "Are you sure you want to delete this prompt?",
@@ -1314,6 +1327,12 @@
   "timelineCopyPreviewLoading": {
     "message": "Collecting responses from all sub-pages..."
   },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
   "timelineCopyPreviewSummary": {
     "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
     "placeholders": {
@@ -1339,6 +1358,27 @@
   },
   "timelineActionTimeout": {
     "message": "Request timed out"
+  },
+  "deepResearchButtonLabel": {
+    "message": "Deep Research"
+  },
+  "deepResearchButtonTitle": {
+    "message": "Enable deep research in all open sub-pages"
+  },
+  "deepResearchButtonBusy": {
+    "message": "Researching..."
+  },
+  "deepResearchToastRunning": {
+    "message": "Enabling deep research in all open sub-pages..."
+  },
+  "deepResearchToastSummary": {
+    "message": "Deep research is ready on $1/$2 sub-pages: newly enabled $3, already on $4, skipped $5."
+  },
+  "deepResearchToastPartialFailure": {
+    "message": "Deep research was processed for $1/$2 sub-pages: newly enabled $3, already on $4, skipped $5, failed $6."
+  },
+  "deepResearchToastAllUnsupported": {
+    "message": "None of the $1 open sub-pages has an available deep research toggle."
   },
   "openclawModeTitle": {
     "message": "OpenClaw mode"
@@ -1378,5 +1418,138 @@
   },
   "confirmButton": {
     "message": "Confirm"
+  },
+  "remoteSearchTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchDescription": {
+    "message": "Pair one phone to this Chrome session so the phone can trigger AI Compare searches and read streamed results."
+  },
+  "remoteSearchEnableLabel": {
+    "message": "Enable Remote Search"
+  },
+  "remoteSearchRelayUrlLabel": {
+    "message": "Relay URL"
+  },
+  "remoteSearchRelayUrlHelp": {
+    "message": "Point this to your local relay or the deployed Cloud Run relay base URL."
+  },
+  "remoteSearchDesktopNameLabel": {
+    "message": "Computer name"
+  },
+  "remoteSearchDesktopNamePlaceholder": {
+    "message": "My Chrome session"
+  },
+  "remoteSearchGenerateQrButton": {
+    "message": "Generate pairing QR"
+  },
+  "remoteSearchPairingLimitNote": {
+    "message": "Only one phone can be paired at a time. A new phone replaces the previous pairing."
+  },
+  "remoteSearchQrTitle": {
+    "message": "Pairing QR code"
+  },
+  "remoteSearchQrEmpty": {
+    "message": "Enable Remote Search, save the settings, then generate a pairing QR code."
+  },
+  "remoteSearchExpiresAtLabel": {
+    "message": "Expires at"
+  },
+  "remoteSearchPendingPairTitle": {
+    "message": "Pending pair request"
+  },
+  "remoteSearchPendingPairDescription": {
+    "message": "When a phone scans the QR code, its request appears here for approval."
+  },
+  "remoteSearchPhoneNameLabel": {
+    "message": "Phone name"
+  },
+  "remoteSearchPhonePlatformLabel": {
+    "message": "Platform"
+  },
+  "remoteSearchFingerprintLabel": {
+    "message": "Fingerprint"
+  },
+  "remoteSearchApproveButton": {
+    "message": "Approve"
+  },
+  "remoteSearchRejectButton": {
+    "message": "Reject"
+  },
+  "remoteSearchPairedPhoneTitle": {
+    "message": "Paired phone"
+  },
+  "remoteSearchNotPaired": {
+    "message": "No phone is paired yet."
+  },
+  "remoteSearchUnpairButton": {
+    "message": "Unpair phone"
+  },
+  "remoteSearchLastErrorLabel": {
+    "message": "Last error"
+  },
+  "remoteSearchNoLastError": {
+    "message": "No recent errors."
+  },
+  "remoteSearchStatusOnline": {
+    "message": "Online"
+  },
+  "remoteSearchStatusConnecting": {
+    "message": "Connecting"
+  },
+  "remoteSearchStatusOffline": {
+    "message": "Offline"
+  },
+  "remoteSearchStatusDisabled": {
+    "message": "Disabled"
+  },
+  "remoteSearchStatusError": {
+    "message": "Error"
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "remoteSearchNotificationTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchPairRequestBody": {
+    "message": "Pair request from $DEVICE$",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
+  },
+  "remoteSearchHomepageTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchHomepageDescription": {
+    "message": "Pair one phone to this Chrome session and launch compare searches remotely."
+  },
+  "remoteSearchOpenSettingsButton": {
+    "message": "Open settings"
+  },
+  "remoteSearchHomepagePairedPrefix": {
+    "message": "Paired with"
+  },
+  "remoteSearchHomepageDescriptionEnabled": {
+    "message": "Remote Search is ready for pairing from the settings page."
+  },
+  "remoteSearchQrLoading": {
+    "message": "Generating QR code..."
+  },
+  "remoteSearchQrLoadFailed": {
+    "message": "Failed to load QR code"
+  },
+  "remoteSearchQrReadyToast": {
+    "message": "Pairing QR code is ready"
+  },
+  "remoteSearchHomepagePairedDescription": {
+    "message": "Paired with $DEVICE$.",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
   }
 }

@@ -363,7 +363,19 @@
         "textSelector": "p.query-text-line"
       },
       "icon": "gemini.google.com.png",
-      "type": "information"
+      "type": "information",
+      "deepResearchHandler": {
+        "enabledSelectors": [
+          "ul.suggestions-container.suggestions-container-zero-state.starters"
+        ],
+        "steps": [
+          {
+            "action": "click",
+            "selector": "button[aria-label*=\"Research\"]",
+            "description": "点击 Gemini 零状态 Research 入口"
+          }
+        ]
+      }
     },
     {
       "name": "Grok",
@@ -966,7 +978,7 @@
     },
     {
       "name": "点点",
-      "url": "https://dots.ai/chat/home/new",
+      "url": "https://dots.ai/",
       "enabled": false,
       "supportUrlQuery": false,
       "region": "Global",
@@ -1073,14 +1085,17 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
+      "note": "普通对话使用 textarea[placeholder=\"发消息...\"]；切到“深入研究”后会切换为 role=textbox 的富文本研究编辑器，仍需兼容回车提交。",
       "searchHandler": {
         "steps": [
           {
             "action": "focus",
             "selector": [
               "textarea[placeholder=\"发消息...\"]",
-              "textarea[data-testid=\"chat_input_input\"]"
+              "textarea[data-testid=\"chat_input_input\"]",
+              "[role=\"textbox\"]",
+              "textarea[placeholder=\"输入主题和报告要求\"]",
+              ".message-input-textarea-separation"
             ],
             "description": "聚焦豆包输入框",
             "waitForElement": true,
@@ -1091,7 +1106,10 @@
             "action": "setValue",
             "selector": [
               "textarea[placeholder=\"发消息...\"]",
-              "textarea[data-testid=\"chat_input_input\"]"
+              "textarea[data-testid=\"chat_input_input\"]",
+              "[role=\"textbox\"]",
+              "textarea[placeholder=\"输入主题和报告要求\"]",
+              ".message-input-textarea-separation"
             ],
             "description": "设置豆包输入框的值",
             "waitForElement": true,
@@ -1102,13 +1120,42 @@
             "action": "sendKeys",
             "selector": [
               "textarea[placeholder=\"发消息...\"]",
-              "textarea[data-testid=\"chat_input_input\"]"
+              "textarea[data-testid=\"chat_input_input\"]",
+              "[role=\"textbox\"]",
+              "textarea[placeholder=\"输入主题和报告要求\"]",
+              ".message-input-textarea-separation"
             ],
             "keys": "Enter",
             "description": "发送回车键",
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 200
+          },
+          {
+            "action": "wait",
+            "duration": 200,
+            "description": "等待研究态按钮就绪",
+            "maxAttempts": 10,
+            "retryInterval": 200
+          },
+          {
+            "action": "click",
+            "selector": [
+              ".message-input-right-button-send button",
+              ".message-input-right-button-send [role=\"button\"]",
+              ".message-input-right-button-send .omni-button-content-btn",
+              "button[aria-label*=\"发送\"]",
+              "button[aria-label*=\"Submit\"]",
+              "button[title*=\"发送\"]"
+            ],
+            "condition": {
+              "selector": "textarea[placeholder=\"输入主题和报告要求\"], .message-input-textarea-separation, [role=\"textbox\"]"
+            },
+            "retryOnDisabled": true,
+            "waitForElement": true,
+            "maxAttempts": 10,
+            "retryInterval": 200,
+            "description": "点击豆包发送按钮"
           }
         ]
       },
@@ -1135,6 +1182,21 @@
           {
             "action": "paste",
             "description": "执行文件粘贴操作"
+          }
+        ]
+      },
+      "deepResearchHandler": {
+        "enabledSelectors": [
+          "div[data-slate-editor=\"true\"][role=\"textbox\"]"
+        ],
+        "steps": [
+          {
+            "action": "click",
+            "selector": [
+              "text:深入研究",
+              "text:Deep Research"
+            ],
+            "description": "点击豆包深入研究按钮"
           }
         ]
       },
@@ -1687,7 +1749,7 @@
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,
-      "supportIframe": true,
+      "supportIframe": false,
       "note": "",
       "searchHandler": {
         "steps": [
@@ -1969,18 +2031,6 @@
             "description": "设置 Lexical 编辑器内容（自动创建 span[data-lexical-text] 结构）"
           },
           {
-            "action": "triggerEvents",
-            "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
-            "events": [
-              "input",
-              "change"
-            ],
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
-            "description": "触发输入事件（支持重试）"
-          },
-          {
             "action": "wait",
             "duration": 100,
             "description": "等待100ms",
@@ -1991,6 +2041,7 @@
             "action": "sendKeys",
             "selector": "div.chat-input-editor[contenteditable=\"true\"], [data-lexical-editor=\"true\"][contenteditable=\"true\"]",
             "keys": "Enter",
+            "dispatchKeypress": false,
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 200,
@@ -2078,7 +2129,19 @@
         "urlFeature": "/chat/"
       },
       "icon": "kimi.com.png",
-      "type": "information"
+      "type": "information",
+      "deepResearchHandler": {
+        "enabledSelectors": [
+          "a.agent-item[aria-current=\"page\"][href=\"/deep-research\"]"
+        ],
+        "steps": [
+          {
+            "action": "click",
+            "selector": "a.agent-item[href=\"/deep-research\"]",
+            "description": "点击 Kimi Deep Research 入口"
+          }
+        ]
+      }
     },
     {
       "name": "千问",
@@ -2237,7 +2300,19 @@
         "textSelector": ".question-text-card, [class*=\"message-select-content\"]"
       },
       "icon": "www.qianwen.com.svg",
-      "type": "information"
+      "type": "information",
+      "deepResearchHandler": {
+        "enabledSelectors": [
+          "button[aria-label=\"研究\"][aria-pressed=\"true\"]"
+        ],
+        "steps": [
+          {
+            "action": "click",
+            "selector": "button[aria-label=\"研究\"]",
+            "description": "点击千问研究模式入口"
+          }
+        ]
+      }
     },
     {
       "name": "Qwen",
@@ -2247,12 +2322,15 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "需要先写入 textarea.message-input-textarea，再点击发送消息按钮；不要只依赖 Enter。",
+      "note": "普通对话和 Deep Research 都使用 textarea.message-input-textarea，但 Deep Research 会切换发送容器；不要只依赖旧的 send-button selector。",
       "searchHandler": {
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea.message-input-textarea",
+            "selector": [
+              "textarea.message-input-textarea",
+              "textarea[placeholder=\"Describe the themes you want to research.\"]"
+            ],
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
@@ -2260,7 +2338,10 @@
           },
           {
             "action": "setValue",
-            "selector": "textarea.message-input-textarea",
+            "selector": [
+              "textarea.message-input-textarea",
+              "textarea[placeholder=\"Describe the themes you want to research.\"]"
+            ],
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
@@ -2268,7 +2349,10 @@
           },
           {
             "action": "triggerEvents",
-            "selector": "textarea.message-input-textarea",
+            "selector": [
+              "textarea.message-input-textarea",
+              "textarea[placeholder=\"Describe the themes you want to research.\"]"
+            ],
             "events": [
               "input",
               "change",
@@ -2291,7 +2375,10 @@
             "action": "click",
             "selector": [
               "div.message-input-right-button-send button.send-button",
-              "button.send-button"
+              "button.send-button",
+              ".message-input-right-button-send button",
+              ".message-input-right-button-send [role=\"button\"]",
+              ".message-input-right-button-send .omni-button-content-btn"
             ],
             "retryOnDisabled": true,
             "waitForElement": true,

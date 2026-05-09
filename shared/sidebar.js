@@ -124,7 +124,7 @@ async function initializeSidebarActionLinks() {
             reviewLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 const reviewUrl = externalLinks.reviewLink ||
-                    'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/hhkhgpadepocnmjfpohcmjdcgkmfnadi/reviews';
+                    '<REVIEW_URL>';
                 safeTrackEvent('sidebar_review_click', {
                     has_review_link: Boolean(externalLinks.reviewLink)
                 });
@@ -178,7 +178,7 @@ async function initializeSidebarActionLinks() {
             reviewLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 chrome.tabs.create({
-                    url: 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/hhkhgpadepocnmjfpohcmjdcgkmfnadi/reviews'
+                    url: '<REVIEW_URL>'
                 });
             });
         }

@@ -4,14 +4,16 @@ import { fileURLToPath } from "node:url";
 import {
   buildFailureMessage,
   buildMissingRunnerMessage,
-  formatRunnerPayload,
-  truncateContent
+  buildMissingExtensionMessage,
+  formatRunnerPayload
 } from "./lib/formatters.js";
 import { extractSearchIntentFromEvent, detectSites } from "./lib/intent.js";
 import { createDebugLogger } from "./lib/logging.js";
 import {
   DEFAULT_EXTENSION_ID,
-  DEFAULT_SITE_LIMIT,
+  DEFAULT_EXTENSION_ID_ENV,
+  DEFAULT_INSTALL_URL,
+  DEFAULT_INSTALL_URL_ENV,
   DEFAULT_TIMEOUT_MS,
   PLUGIN_DESCRIPTION,
   PLUGIN_ID,
@@ -32,24 +34,32 @@ function getPluginConfig(rawPluginConfig) {
   return rawPluginConfig && typeof rawPluginConfig === "object" ? rawPluginConfig : {};
 }
 
+function readEnvValue(name) {
+  try {
+    return typeof process !== "undefined" && process.env && typeof process.env[name] === "string"
+      ? process.env[name].trim()
+      : "";
+  } catch (_) {
+    return "";
+  }
+}
+
 function getPluginRuntimeOptions(pluginConfig) {
   const extensionId = typeof pluginConfig.extensionId === "string" && pluginConfig.extensionId.trim()
     ? pluginConfig.extensionId.trim()
-    : DEFAULT_EXTENSION_ID;
+    : readEnvValue(DEFAULT_EXTENSION_ID_ENV) || DEFAULT_EXTENSION_ID;
   const browserApp = typeof pluginConfig.browserApp === "string" && pluginConfig.browserApp.trim()
     ? pluginConfig.browserApp.trim()
     : "";
-  const includeRawJson = pluginConfig.includeRawJson === true;
-  const maxChars = Number.isFinite(pluginConfig.maxOutputCharsPerSite)
-    ? Math.max(200, Number(pluginConfig.maxOutputCharsPerSite))
-    : DEFAULT_SITE_LIMIT;
+  const installUrl = typeof pluginConfig.installUrl === "string" && pluginConfig.installUrl.trim()
+    ? pluginConfig.installUrl.trim()
+    : readEnvValue(DEFAULT_INSTALL_URL_ENV) || DEFAULT_INSTALL_URL;
   const timeoutMs = resolveTimeoutMs(pluginConfig, DEFAULT_TIMEOUT_MS);
 
   return {
     extensionId,
     browserApp,
-    includeRawJson,
-    maxChars,
+    installUrl,
     timeoutMs
   };
 }
@@ -98,6 +108,21 @@ export default {
       const runtimeOptions = getPluginRuntimeOptions(pluginConfig);
       const sites = detectSites(intent.original);
 
+      if (!runtimeOptions.extensionId) {
+        appendDebugLog("before_dispatch.missing_extension_id", {
+          query: intent.query,
+          installUrl: runtimeOptions.installUrl
+        });
+        return {
+          handled: true,
+          text: buildMissingExtensionMessage({
+            ...pluginConfig,
+            extensionId: runtimeOptions.extensionId,
+            installUrl: runtimeOptions.installUrl
+          })
+        };
+      }
+
       api.logger?.info?.(
         `ai-compare-hard-router: matched query="${intent.query}" sites=${sites.join(",") || "default"} runner=${runnerPath}`
       );
@@ -111,6 +136,7 @@ export default {
         runnerPath,
         extensionId: runtimeOptions.extensionId,
         browserApp: runtimeOptions.browserApp,
+        installUrl: runtimeOptions.installUrl,
         timeoutMs: runtimeOptions.timeoutMs
       });
 
@@ -172,9 +198,11 @@ export default {
         handled: true,
         text: formatRunnerPayload(payload, {
           query: intent.query,
-          includeRawJson: runtimeOptions.includeRawJson,
-          maxChars: runtimeOptions.maxChars,
-          pluginConfig
+          pluginConfig: {
+            ...pluginConfig,
+            extensionId: runtimeOptions.extensionId,
+            installUrl: runtimeOptions.installUrl
+          }
         })
       };
     });

@@ -50,6 +50,16 @@
             <div class="extension-icon-container">
                 <h1 id="extensionName" class="extension-name" data-i18n="shortName">AI Compare</h1>
             </div>
+            <div id="remoteSearchStatusCard" class="remote-search-home-card" hidden>
+                <div class="remote-search-home-copy">
+                    <div class="remote-search-home-title" data-i18n="remoteSearchHomepageTitle">Remote Search</div>
+                    <div id="remoteSearchHomeDescription" class="remote-search-home-description" data-i18n="remoteSearchHomepageDescription">Pair one phone to this Chrome session and launch compare searches remotely.</div>
+                </div>
+                <div class="remote-search-home-actions">
+                    <span id="remoteSearchHomeBadge" class="remote-search-home-badge" data-status="disabled" data-i18n="remoteSearchStatusDisabled">Disabled</span>
+                    <button id="remoteSearchOpenSettingsBtn" type="button" class="remote-search-home-button" data-i18n="remoteSearchOpenSettingsButton">Open settings</button>
+                </div>
+            </div>
             <div class="search-bar">
                 <div class="search-input-container">
                     <div class="input-wrapper">
@@ -149,6 +159,8 @@
     <script src="../firebase/firebase-auth.js"></script>
     <script src="../firebase/firebase-sync.js"></script>
     <script src="../shared/prompt-template-utils.js"></script>
+    <script src="../shared/submit-shortcut-utils.js"></script>
+    <script src="../shared/textarea-resize-utils.js"></script>
     <script src="../shared/sidebar.js"></script>
     <script src="site-indicator-utils.js"></script>
     <script src="homepage.js"></script>

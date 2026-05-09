@@ -86,9 +86,6 @@
   "commandDescription": {
     "message": "Raccourci : (⌘+M sur Mac, Ctrl+M sur Windows)"
   },
-  "contactInfo": {
-    "message": "Si vous souhaitez ajouter plus de sites, contactez-moi a AIShortcuts@outlook.com"
-  },
   "popupTitle": {
     "message": "AI Compare"
   },
@@ -270,8 +267,8 @@
     "description": "Feature coming soon notice"
   },
   "floatButton": {
-    "message": "Bouton flottant",
-    "description": "The name for the float button"
+    "message": "Ouvrir la barre latérale avec le bouton flottant",
+    "description": "The label for opening the sidebar with the floating button"
   },
   "selectionSearch": {
     "message": "Recherche de selection",
@@ -292,6 +289,22 @@
   "searchEngine": {
     "message": "Moteur de recherche",
     "description": "The name for the search engine"
+  },
+  "sendShortcutTitle": {
+    "message": "Raccourci d'envoi",
+    "description": "Titre du parametre de raccourci d'envoi"
+  },
+  "sendShortcutOptionEnter": {
+    "message": "Envoyer avec Entree",
+    "description": "Option pour l'envoi avec Entree"
+  },
+  "sendShortcutOptionModifierEnter": {
+    "message": "Envoyer avec Ctrl+Entree / ⌘+Entree",
+    "description": "Option pour l'envoi avec une touche modificatrice"
+  },
+  "sendShortcutHelp": {
+    "message": "Shift+Entree insere toujours un retour a la ligne.",
+    "description": "Texte d'aide pour le parametre de raccourci d'envoi"
   },
   "deleteConfirm": {
     "message": "Voulez-vous vraiment supprimer ce prompt ?",
@@ -1340,6 +1353,27 @@
   "timelineActionTimeout": {
     "message": "Délai de la requête dépassé"
   },
+  "deepResearchButtonLabel": {
+    "message": "Recherche approfondie"
+  },
+  "deepResearchButtonTitle": {
+    "message": "Activer la recherche approfondie dans toutes les sous-pages ouvertes"
+  },
+  "deepResearchButtonBusy": {
+    "message": "Analyse..."
+  },
+  "deepResearchToastRunning": {
+    "message": "Activation de la recherche approfondie dans toutes les sous-pages ouvertes..."
+  },
+  "deepResearchToastSummary": {
+    "message": "La recherche approfondie est prête sur $1/$2 sous-pages : nouvellement activée $3, déjà activée $4, ignorée $5."
+  },
+  "deepResearchToastPartialFailure": {
+    "message": "La recherche approfondie a été traitée sur $1/$2 sous-pages : nouvellement activée $3, déjà activée $4, ignorée $5, échec $6."
+  },
+  "deepResearchToastAllUnsupported": {
+    "message": "Aucune des $1 sous-pages ouvertes ne propose de bascule de recherche approfondie."
+  },
   "openclawModeTitle": {
     "message": "Mode OpenClaw"
   },
@@ -1378,5 +1412,135 @@
   },
   "confirmButton": {
     "message": "Confirmer"
+  },
+  "remoteSearchTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchDescription": {
+    "message": "Pair one phone to this Chrome session so the phone can trigger AI Compare searches and read streamed results."
+  },
+  "remoteSearchEnableLabel": {
+    "message": "Enable Remote Search"
+  },
+  "remoteSearchRelayUrlLabel": {
+    "message": "Relay URL"
+  },
+  "remoteSearchRelayUrlHelp": {
+    "message": "Point this to your local relay or the deployed Cloud Run relay base URL."
+  },
+  "remoteSearchDesktopNameLabel": {
+    "message": "Computer name"
+  },
+  "remoteSearchDesktopNamePlaceholder": {
+    "message": "My Chrome session"
+  },
+  "remoteSearchGenerateQrButton": {
+    "message": "Generate pairing QR"
+  },
+  "remoteSearchPairingLimitNote": {
+    "message": "Only one phone can be paired at a time. A new phone replaces the previous pairing."
+  },
+  "remoteSearchQrTitle": {
+    "message": "Pairing QR code"
+  },
+  "remoteSearchQrEmpty": {
+    "message": "Enable Remote Search, save the settings, then generate a pairing QR code."
+  },
+  "remoteSearchExpiresAtLabel": {
+    "message": "Expires at"
+  },
+  "remoteSearchPendingPairTitle": {
+    "message": "Pending pair request"
+  },
+  "remoteSearchPendingPairDescription": {
+    "message": "When a phone scans the QR code, its request appears here for approval."
+  },
+  "remoteSearchPhoneNameLabel": {
+    "message": "Phone name"
+  },
+  "remoteSearchPhonePlatformLabel": {
+    "message": "Platform"
+  },
+  "remoteSearchFingerprintLabel": {
+    "message": "Fingerprint"
+  },
+  "remoteSearchApproveButton": {
+    "message": "Approve"
+  },
+  "remoteSearchRejectButton": {
+    "message": "Reject"
+  },
+  "remoteSearchPairedPhoneTitle": {
+    "message": "Paired phone"
+  },
+  "remoteSearchNotPaired": {
+    "message": "No phone is paired yet."
+  },
+  "remoteSearchUnpairButton": {
+    "message": "Unpair phone"
+  },
+  "remoteSearchLastErrorLabel": {
+    "message": "Last error"
+  },
+  "remoteSearchNoLastError": {
+    "message": "No recent errors."
+  },
+  "remoteSearchStatusOnline": {
+    "message": "Online"
+  },
+  "remoteSearchStatusConnecting": {
+    "message": "Connecting"
+  },
+  "remoteSearchStatusOffline": {
+    "message": "Offline"
+  },
+  "remoteSearchStatusDisabled": {
+    "message": "Disabled"
+  },
+  "remoteSearchStatusError": {
+    "message": "Error"
+  },
+  "remoteSearchNotificationTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchPairRequestBody": {
+    "message": "Pair request from $DEVICE$",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
+  },
+  "remoteSearchHomepageTitle": {
+    "message": "Remote Search"
+  },
+  "remoteSearchHomepageDescription": {
+    "message": "Pair one phone to this Chrome session and launch compare searches remotely."
+  },
+  "remoteSearchOpenSettingsButton": {
+    "message": "Open settings"
+  },
+  "remoteSearchHomepagePairedPrefix": {
+    "message": "Paired with"
+  },
+  "remoteSearchHomepageDescriptionEnabled": {
+    "message": "Remote Search is ready for pairing from the settings page."
+  },
+  "remoteSearchQrLoading": {
+    "message": "Generating QR code..."
+  },
+  "remoteSearchQrLoadFailed": {
+    "message": "Failed to load QR code"
+  },
+  "remoteSearchQrReadyToast": {
+    "message": "Pairing QR code is ready"
+  },
+  "remoteSearchHomepagePairedDescription": {
+    "message": "Paired with $DEVICE$.",
+    "placeholders": {
+      "device": {
+        "content": "$1"
+      }
+    }
   }
 }
