@@ -905,13 +905,19 @@
     "message": "No se pudo abrir el enlace de reseña"
   },
   "dataSyncTitle": {
-    "message": "Sincronizacion de datos"
+    "message": "Sincronización y copia"
+  },
+  "cloudSyncTitle": {
+    "message": "Sincronización en la nube"
+  },
+  "cloudSyncDescription": {
+    "message": "Sincroniza tus ajustes mediante WebDAV para que te sigan en todos los dispositivos."
   },
   "dataSyncDescription": {
-    "message": "Sincroniza todos tus ajustes entre dispositivos (beta, puede contener errores)"
+    "message": "Elige sincronización en la nube o una copia local. Son dos flujos distintos."
   },
   "syncEnabledLabel": {
-    "message": "Activar sincronizacion en"
+    "message": "Activar sincronización en la nube"
   },
   "syncOnChange": {
     "message": "Sincronizacion automatica"
@@ -947,7 +953,7 @@
     "message": "Sincronizar ahora"
   },
   "syncImportButton": {
-    "message": "Restaurar desde la nube"
+    "message": "Restaurar desde WebDAV"
   },
   "syncTesting": {
     "message": "Probando conexion..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "La restauracion fallo"
+  },
+  "localSyncTitle": {
+    "message": "Copia local"
+  },
+  "localSyncDescription": {
+    "message": "Exporta los datos sincronizados actuales a un JSON local o restáuralos desde un archivo. El historial exportado se limita a los primeros 500 elementos. No se incluyen las credenciales de WebDAV."
+  },
+  "localSyncBadge": {
+    "message": "Archivo JSON"
+  },
+  "localSyncExportButton": {
+    "message": "Exportar copia"
+  },
+  "localSyncImportButton": {
+    "message": "Importar copia"
+  },
+  "localSyncImportConfirm": {
+    "message": "¿Importar esta copia y sobrescribir los datos sincronizados actuales?"
+  },
+  "localSyncImporting": {
+    "message": "Restaurando copia local..."
+  },
+  "localSyncExportSuccess": {
+    "message": "Copia descargada"
+  },
+  "localSyncExportFailed": {
+    "message": "Error al exportar la copia"
+  },
+  "localSyncImportSuccess": {
+    "message": "Copia local restaurada. Recarga la página para que los cambios surtan efecto."
+  },
+  "localSyncImportFailed": {
+    "message": "Error al restaurar"
+  },
+  "localSyncInvalidFile": {
+    "message": "Este archivo no es una copia válida de AI Compare"
   },
   "syncTokenPlaceholder": {
     "message": "Introduce el token"

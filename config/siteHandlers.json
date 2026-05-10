@@ -12,7 +12,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -189,7 +188,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -385,7 +383,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -553,7 +550,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在真实 Chrome 中验证：Claude 当前使用 data-testid=chat-input 的 Tiptap/ProseMirror 输入框，回答正文落在 main .font-claude-response，点击 Send message 可创建真实 /chat/<id> 会话；优先使用精确 selector 降低页面改版带来的波动",
       "searchHandler": {
         "steps": [
           {
@@ -737,7 +733,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "Google Gemini AI Studio - Prompt and output handling config",
       "searchHandler": {
         "steps": [
           {
@@ -841,7 +836,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -984,7 +978,6 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在用户 Chrome 中验证：根页会落到 /chat/home/<id> 工作区，输入框为 textarea[placeholder=\"给点点发消息\"]，输入事件后需点击带 lucide-arrow-up 图标的发送按钮。",
       "searchHandler": {
         "steps": [
           {
@@ -1085,7 +1078,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "普通对话使用 textarea[placeholder=\"发消息...\"]；切到“深入研究”后会切换为 role=textbox 的富文本研究编辑器，仍需兼容回车提交。",
       "searchHandler": {
         "steps": [
           {
@@ -1270,7 +1262,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "会触发风控机制，如果无法搜索，请尝试更换其他站点",
       "searchHandler": {
         "steps": [
           {
@@ -1395,7 +1386,6 @@
       "region": "China",
       "hidden": true,
       "supportIframe": true,
-      "note": "希望有可以给出合理的 steps",
       "searchHandler": {
         "steps": [
           {
@@ -1541,7 +1531,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "需要先聚焦 ql-editor，再点击 #yuanbao-send-btn；Enter 不是稳定的提交方式。",
       "searchHandler": {
         "steps": [
           {
@@ -1729,7 +1718,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -1750,7 +1738,6 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": false,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -1821,7 +1808,6 @@
       "region": "China",
       "hidden": true,
       "supportIframe": true,
-      "note": "待后续支持，网站目前无法访问",
       "searchHandler": {
         "steps": [
           {
@@ -1846,7 +1832,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在真实页面验证：textarea + Enter 会创建带 cid 的会话；文件型 paste 到同一 textarea 后会出现上传中文件条目。",
       "searchHandler": {
         "steps": [
           {
@@ -2010,7 +1995,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "已在真实页面验证：Lexical 输入框写入后通过 Enter 可创建 /chat/<id> 会话；用户消息为 segment-user，助手回答位于 segment-assistant 的 markdown 区。",
       "searchHandler": {
         "steps": [
           {
@@ -2151,7 +2135,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "根页就是工作区，写入 Slate 编辑器后点击发送消息按钮。",
       "searchHandler": {
         "steps": [
           {
@@ -2322,7 +2305,7 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "普通对话和 Deep Research 都使用 textarea.message-input-textarea，但 Deep Research 会切换发送容器；不要只依赖旧的 send-button selector。",
+      "note": "普通对话和 Deep Research 都使用 textarea.message-input-textarea；回答主体在 .qwen-markdown-loose，别用 [class*=\"qwen-markdown\"] 这种宽松选择器。",
       "searchHandler": {
         "steps": [
           {
@@ -2413,12 +2396,16 @@
       },
       "contentExtractor": {
         "latestVisibleResponse": {
-          "messageSelector": ".custom-qwen-markdown, .response-message-content.t2t.phase-answer, .qwen-chat-message-assistant .response-message-content, .qwen-chat-message-assistant [class*=\"qwen-markdown\"], .qwen-chat-message-assistant",
+          "messageSelector": ".qwen-chat-message-assistant .qwen-markdown-loose, .response-message-content.t2t.phase-answer, .custom-qwen-markdown",
           "ignoredAncestorSelectors": [
             ".qwen-chat-thinking-status-card-content",
             ".qwen-chat-search-card-source",
             ".qwen-chat-search-card-footer",
-            ".chat-container-statement"
+            ".chat-container-statement",
+            ".qwen-chat-markdown-tokens",
+            ".qwen-markdown-citation",
+            ".qwen-markdown-space",
+            ".qwen-markdown-table-header-action-item"
           ],
           "ignoredTextPatterns": [
             "^Thinking completed$",
@@ -2428,15 +2415,19 @@
             "^AI-generated content may not be accurate\\.$"
           ]
         },
-        "selectors": [
-          ".custom-qwen-markdown",
+        "messageContainer": ".qwen-chat-message-assistant",
+        "contentSelectors": [
+          ".qwen-markdown-loose",
           ".response-message-content.t2t.phase-answer",
-          ".qwen-chat-message-assistant .response-message-content",
-          ".qwen-chat-message-assistant [class*=\"qwen-markdown\"]",
-          ".qwen-chat-message-assistant"
+          ".custom-qwen-markdown"
+        ],
+        "selectors": [
+          ".qwen-markdown-loose",
+          ".response-message-content.t2t.phase-answer",
+          ".custom-qwen-markdown"
         ],
         "fallbackSelectors": [
-          "#chat-message-container .custom-qwen-markdown",
+          "#chat-message-container .qwen-chat-message-assistant .qwen-markdown-loose",
           "#chat-message-container .qwen-chat-message-assistant .response-message-content",
           "#chat-messages-scroll-container .qwen-chat-message-assistant",
           "#chat-message-container"
@@ -2462,6 +2453,10 @@
           ".attachment",
           "[class*=\"attachment\"]",
           ".qwen-chat-thinking-status-card-content",
+          ".qwen-chat-markdown-tokens",
+          ".qwen-markdown-citation",
+          ".qwen-markdown-space",
+          ".qwen-markdown-table-header-action-item",
           ".user-message-content",
           ".chat-container-statement",
           "[class*=\"source\"]"
@@ -2492,7 +2487,6 @@
       "region": "China",
       "hidden": true,
       "supportIframe": true,
-      "note": "待后续支持",
       "searchHandler": {
         "steps": [
           {
@@ -2558,7 +2552,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": false,
-      "note": "小红书搜索，使用URL查询方式，无需输入框操作",
       "searchHandler": {
         "steps": [
           {
@@ -2579,7 +2572,6 @@
       "region": "China",
       "hidden": true,
       "supportIframe": true,
-      "note": "百度搜索，使用URL查询方式，无需输入框操作",
       "searchHandler": {
         "steps": [
           {
@@ -2600,7 +2592,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -2712,7 +2703,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": false,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -2795,7 +2785,6 @@
       "region": "US",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -2912,7 +2901,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": true,
-      "note": "GLM-5 & GLM-4.7",
       "searchHandler": {
         "steps": [
           {
@@ -3019,7 +3007,6 @@
       "region": "EU",
       "hidden": false,
       "supportIframe": true,
-      "note": "Le Chat",
       "searchHandler": {
         "steps": [
           {
@@ -3127,7 +3114,6 @@
       "region": "China",
       "hidden": false,
       "supportIframe": false,
-      "note": "已在真实页面验证：agent.minimax.io 返回 X-Frame-Options: SAMEORIGIN，不能走 iframe；输入框为 Tiptap/ProseMirror，点击 #input-send-icon 可创建 /chat?id=... 会话。",
       "searchHandler": {
         "steps": [
           {
@@ -3231,7 +3217,6 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -3300,7 +3285,6 @@
       "region": "US",
       "hidden": true,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {
@@ -3321,7 +3305,6 @@
       "region": "Global",
       "hidden": true,
       "supportIframe": true,
-      "note": "Google Labs Flow 图像创作入口。已在用户 Chrome 中验证：需先进入新建项目，再向 Slate 提示词编辑器注入文本并点击 arrow_forward 创建按钮。",
       "searchHandler": {
         "steps": [
           {
@@ -3460,7 +3443,6 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": true,
-      "note": "固定目标语言为英语，便于稳定自动化验证翻译结果",
       "searchHandler": {
         "steps": [
           {
@@ -3514,7 +3496,6 @@
       "region": "Global",
       "hidden": false,
       "supportIframe": true,
-      "note": "",
       "searchHandler": {
         "steps": [
           {

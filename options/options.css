@@ -592,9 +592,13 @@ input:checked + .slider:before {
 
 /* ── 数据同步 ── */
 .sync-card {
-  padding: 0;
-  margin-bottom: 0;
+  padding: 18px;
+  margin-bottom: 18px;
   max-width: 680px;
+  border: 1px solid #dde3ea;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 
 .sync-enable-row {
@@ -602,6 +606,60 @@ input:checked + .slider:before {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.sync-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sync-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sync-card-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sync-card h2 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.sync-card-description {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sync-badge-muted {
+  background: #eef2f7;
+  color: #4b5563;
 }
 
 .sync-checkbox-label {
@@ -617,7 +675,7 @@ input:checked + .slider:before {
 .sync-checkbox-label input[type="checkbox"] {
   width: 15px;
   height: 15px;
-  accent-color: #2196F3;
+  accent-color: #4CAF50;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -714,7 +772,8 @@ input:checked + .slider:before {
 }
 
 .sync-field-input:focus {
-  border-color: #2196F3;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
 }
 
 .sync-cell-url {
@@ -771,9 +830,9 @@ input:checked + .slider:before {
 }
 
 .sync-status.info {
-  background: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
 }
 
 .sync-status.loading {

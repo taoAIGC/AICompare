@@ -905,13 +905,19 @@
     "message": "Bewertungslink konnte nicht geöffnet werden"
   },
   "dataSyncTitle": {
-    "message": "Datensynchronisierung"
+    "message": "Synchronisierung und Backup"
+  },
+  "cloudSyncTitle": {
+    "message": "Cloud-Synchronisierung"
+  },
+  "cloudSyncDescription": {
+    "message": "Synchronisiere deine Einstellungen über WebDAV, damit sie auf allen Geräten verfügbar sind."
   },
   "dataSyncDescription": {
-    "message": "Synchronisiere alle deine Einstellungen gerateubergreifend (Beta, kann Fehler enthalten)"
+    "message": "Wähle zwischen Cloud-Synchronisierung und lokalem Backup. Die beiden Wege sind getrennt."
   },
   "syncEnabledLabel": {
-    "message": "Synchronisierung aktivieren zu"
+    "message": "Cloud-Synchronisierung aktivieren"
   },
   "syncOnChange": {
     "message": "Automatisch synchronisieren"
@@ -947,7 +953,7 @@
     "message": "Jetzt synchronisieren"
   },
   "syncImportButton": {
-    "message": "Aus der Cloud wiederherstellen"
+    "message": "Aus WebDAV wiederherstellen"
   },
   "syncTesting": {
     "message": "Verbindung wird getestet..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "Wiederherstellung fehlgeschlagen"
+  },
+  "localSyncTitle": {
+    "message": "Lokales Backup"
+  },
+  "localSyncDescription": {
+    "message": "Exportieren Sie die aktuellen Sync-Daten in eine lokale JSON-Datei oder stellen Sie sie daraus wieder her. Der exportierte Verlauf ist auf die ersten 500 Einträge begrenzt. WebDAV-Zugangsdaten sind nicht enthalten."
+  },
+  "localSyncBadge": {
+    "message": "JSON-Datei"
+  },
+  "localSyncExportButton": {
+    "message": "Backup exportieren"
+  },
+  "localSyncImportButton": {
+    "message": "Backup importieren"
+  },
+  "localSyncImportConfirm": {
+    "message": "Dieses Backup importieren und die aktuellen Sync-Daten überschreiben?"
+  },
+  "localSyncImporting": {
+    "message": "Lokales Backup wird wiederhergestellt..."
+  },
+  "localSyncExportSuccess": {
+    "message": "Backup heruntergeladen"
+  },
+  "localSyncExportFailed": {
+    "message": "Backup-Export fehlgeschlagen"
+  },
+  "localSyncImportSuccess": {
+    "message": "Lokales Backup wiederhergestellt. Laden Sie die Seite neu, damit die Änderungen wirksam werden."
+  },
+  "localSyncImportFailed": {
+    "message": "Wiederherstellung fehlgeschlagen"
+  },
+  "localSyncInvalidFile": {
+    "message": "Diese Datei ist kein gültiges AI Compare-Backup"
   },
   "syncTokenPlaceholder": {
     "message": "Token eingeben"

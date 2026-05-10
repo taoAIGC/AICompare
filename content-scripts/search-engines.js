@@ -26,6 +26,16 @@ function getBrandIconUrl(size = 48) {
   return chrome.runtime.getURL(`icons/icon${size}.png`);
 }
 
+let searchEngineToolbarActive = false;
+let searchEngineObserver = null;
+
+function removeSearchEngineToolbar() {
+  searchEngineToolbarActive = false;
+  searchEngineObserver?.disconnect();
+  searchEngineObserver = null;
+  document.querySelector('.multi-ai-toolbar-float')?.remove();
+}
+
 // 从 URL 获取搜索词
 function getQueryFromUrl() {
   const url = new URL(window.location.href);
@@ -49,7 +59,14 @@ function getQueryFromUrl() {
 
 // 创建工具栏
 async function createSearchToolbar(container, position) {
+  if (!searchEngineToolbarActive) {
+    return null;
+  }
+
   const sites = await window.getDefaultSites();
+  if (!searchEngineToolbarActive) {
+    return null;
+  }
     if (!sites || !sites.length) return;
   
     // 只显示非隐藏的站点
@@ -214,6 +231,10 @@ async function createSearchToolbar(container, position) {
   
   // 设置工具栏位置
   const updatePosition = () => {
+    if (!searchEngineToolbarActive) {
+      return;
+    }
+
     const containerRect = container.getBoundingClientRect();
     
     // 添加调试日志
@@ -264,18 +285,26 @@ function initSearchEngineToolbar() {
   const config = SEARCH_ENGINE_CONFIGS[hostname];
   if (!config) return;
 
+  searchEngineToolbarActive = true;
+
   // 等待搜索框容器加载
-  const observer = new MutationObserver((mutations, obs) => {
+  searchEngineObserver = new MutationObserver((mutations, obs) => {
+    if (!searchEngineToolbarActive) {
+      obs.disconnect();
+      return;
+    }
+
     const container = document.querySelector(config.containerSelector);
     console.log("找到搜索引擎的输入框container", container);
     if (container) {
       // 创建工具栏
       createSearchToolbar(container, config.position);
       obs.disconnect();
+      searchEngineObserver = null;
     }
   });
 
-  observer.observe(document.body, {
+  searchEngineObserver.observe(document.body, {
     childList: true,
     subtree: true
   });
@@ -289,6 +318,20 @@ chrome.storage.sync.get(['buttonConfig'], function(result) {
     initSearchEngineToolbar();;
   } else {
     console.log('浮动按钮已禁用');
+    removeSearchEngineToolbar();
   }
 });
 
+if (chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'sync' || !changes.buttonConfig) return;
+
+    chrome.storage.sync.get(['buttonConfig'], async (result) => {
+      const defaultButtonConfig = await window.AppConfigManager.getButtonConfig();
+      const buttonConfig = result.buttonConfig || defaultButtonConfig;
+      if (!buttonConfig.searchEngine) {
+        removeSearchEngineToolbar();
+      }
+    });
+  });
+}

@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 比一比 · 产品价值 PPT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-primary: #090909;
+        --bg-secondary: #131313;
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel-strong: rgba(255, 255, 255, 0.1);
+        --panel-soft: rgba(255, 255, 255, 0.035);
+        --text-primary: #f7f2eb;
+        --text-secondary: rgba(247, 242, 235, 0.72);
+        --text-muted: rgba(247, 242, 235, 0.55);
+        --accent: #ff6a2b;
+        --accent-2: #ffd07a;
+        --accent-soft: rgba(255, 106, 43, 0.16);
+        --line: rgba(255, 255, 255, 0.12);
+        --shadow: 0 clamp(1rem, 2.5vw, 2rem) clamp(2rem, 5vw, 5rem)
+          rgba(0, 0, 0, 0.4);
+        --font-display: "Archivo Black", "Noto Sans SC", sans-serif;
+        --font-body: "Space Grotesk", "Noto Sans SC", sans-serif;
+        --hero-size: clamp(2.6rem, 7vw, 6.5rem);
+        --title-size: clamp(1.6rem, 4.2vw, 3.8rem);
+        --body-size: clamp(0.85rem, 1.25vw, 1.08rem);
+        --small-size: clamp(0.68rem, 0.92vw, 0.9rem);
+        --slide-padding: clamp(1rem, 4vw, 4.2rem);
+        --content-gap: clamp(0.9rem, 2vw, 1.8rem);
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --duration-normal: 0.6s;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ===========================================
+         VIEWPORT FITTING: MANDATORY BASE STYLES
+         =========================================== */
+      html,
+      body {
+        height: 100%;
+        overflow-x: hidden;
+      }
+
+      html {
+        scroll-snap-type: y mandatory;
+        scroll-behavior: smooth;
+      }
+
+      .slide {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .slide-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-height: 100%;
+        overflow: hidden;
+        padding: var(--slide-padding);
+      }
+
+      :root {
+        --title-size: clamp(1.5rem, 5vw, 4rem);
+        --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+        --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+        --body-size: clamp(0.75rem, 1.5vw, 1.125rem);
+        --small-size: clamp(0.65rem, 1vw, 0.875rem);
+        --slide-padding: clamp(1rem, 4vw, 4rem);
+        --content-gap: clamp(0.5rem, 2vw, 2rem);
+        --element-gap: clamp(0.25rem, 1vw, 1rem);
+      }
+
+      .card,
+      .container,
+      .content-box {
+        max-width: min(90vw, 1000px);
+        max-height: min(80vh, 700px);
+      }
+
+      .feature-list,
+      .bullet-list {
+        gap: clamp(0.4rem, 1vh, 1rem);
+      }
+
+      .feature-list li,
+      .bullet-list li {
+        font-size: var(--body-size);
+        line-height: 1.4;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+        gap: clamp(0.5rem, 1.5vw, 1rem);
+      }
+
+      img,
+      .image-container {
+        max-width: 100%;
+        max-height: min(50vh, 400px);
+        object-fit: contain;
+      }
+
+      @media (max-height: 700px) {
+        :root {
+          --slide-padding: clamp(0.75rem, 3vw, 2rem);
+          --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+          --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+          --h2-size: clamp(1rem, 3vw, 1.75rem);
+        }
+      }
+
+      @media (max-height: 600px) {
+        :root {
+          --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+          --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+          --title-size: clamp(1.1rem, 4vw, 2rem);
+          --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+        }
+
+        .nav-dots,
+        .keyboard-hint,
+        .decorative {
+          display: none;
+        }
+      }
+
+      @media (max-height: 500px) {
+        :root {
+          --slide-padding: clamp(0.4rem, 2vw, 1rem);
+          --title-size: clamp(1rem, 3.5vw, 1.5rem);
+          --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+          --body-size: clamp(0.65rem, 1vw, 0.85rem);
+        }
+      }
+
+      @media (max-width: 600px) {
+        :root {
+          --title-size: clamp(1.25rem, 7vw, 2.5rem);
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.2s !important;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      /* ===========================================
+         BASE LAYOUT
+         =========================================== */
+      body {
+        font-family: var(--font-body);
+        color: var(--text-primary);
+        background:
+          radial-gradient(
+            circle at 12% 12%,
+            rgba(255, 106, 43, 0.28),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 88% 82%,
+            rgba(255, 208, 122, 0.14),
+            transparent 30%
+          ),
+          linear-gradient(135deg, #080808 0%, #141414 50%, #080808 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: clamp(2.5rem, 5vw, 4rem) clamp(2.5rem, 5vw, 4rem);
+        mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
+        opacity: 0.35;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(
+            circle at 72% 28%,
+            rgba(255, 106, 43, 0.16),
+            transparent 18%
+          ),
+          radial-gradient(
+            circle at 20% 72%,
+            rgba(255, 208, 122, 0.08),
+            transparent 22%
+          );
+        filter: blur(clamp(1rem, 1.8vw, 2rem));
+        opacity: 0.8;
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: clamp(0.22rem, 0.35vw, 0.35rem);
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .progress-bar > span {
+        display: block;
+        width: 100%;
+        height: 100%;
+        transform-origin: left center;
+        transform: scaleX(0.125);
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        box-shadow: 0 0 clamp(0.5rem, 1vw, 1rem) rgba(255, 106, 43, 0.6);
+      }
+
+      .nav-dots {
+        position: fixed;
+        top: 50%;
+        right: clamp(0.8rem, 2vw, 1.6rem);
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: clamp(0.45rem, 1vh, 0.8rem);
+        z-index: 40;
+      }
+
+      .nav-dots button {
+        width: clamp(0.55rem, 0.8vw, 0.7rem);
+        height: clamp(0.55rem, 0.8vw, 0.7rem);
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.24);
+        transition:
+          transform var(--duration-normal) var(--ease-out-expo),
+          background var(--duration-normal) var(--ease-out-expo),
+          box-shadow var(--duration-normal) var(--ease-out-expo);
+        cursor: pointer;
+      }
+
+      .nav-dots button.is-active {
+        background: var(--accent);
+        box-shadow: 0 0 0 clamp(0.2rem, 0.4vw, 0.28rem) rgba(255, 106, 43, 0.18);
+        transform: scale(1.2);
+      }
+
+      .keyboard-hint {
+        position: fixed;
+        left: clamp(1rem, 2vw, 1.8rem);
+        bottom: clamp(1rem, 2vw, 1.8rem);
+        z-index: 35;
+        padding: clamp(0.55rem, 1vw, 0.8rem) clamp(0.8rem, 1.4vw, 1.1rem);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--text-secondary);
+        font-size: var(--small-size);
+        backdrop-filter: blur(clamp(0.7rem, 1.5vw, 1.3rem));
+      }
+
+      .deck-label {
+        position: fixed;
+        top: clamp(1rem, 2vw, 1.4rem);
+        left: clamp(1rem, 2vw, 1.4rem);
+        z-index: 35;
+        display: inline-flex;
+        align-items: center;
+        gap: clamp(0.45rem, 1vw, 0.75rem);
+        padding: clamp(0.55rem, 1vw, 0.8rem) clamp(0.85rem, 1.4vw, 1.1rem);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid var(--line);
+        color: var(--text-secondary);
+        font-size: var(--small-size);
+        backdrop-filter: blur(clamp(0.7rem, 1.5vw, 1.3rem));
+      }
+
+      .deck-label strong {
+        color: var(--text-primary);
+        font-weight: 700;
+      }
+
+      /* ===========================================
+         TYPOGRAPHY
+         =========================================== */
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: clamp(0.35rem, 0.8vw, 0.6rem);
+        padding: clamp(0.4rem, 0.8vw, 0.55rem) clamp(0.65rem, 1.1vw, 0.9rem);
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+        font-size: var(--small-size);
+        letter-spacing: clamp(0.03em, 0.1vw, 0.08em);
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-display);
+        line-height: 0.94;
+        letter-spacing: clamp(0em, 0.08vw, 0.02em);
+      }
+
+      h1 {
+        font-size: var(--hero-size);
+        max-width: 11ch;
+      }
+
+      h2 {
+        font-size: var(--title-size);
+        max-width: 12ch;
+      }
+
+      h3 {
+        font-size: clamp(1.05rem, 2vw, 1.55rem);
+      }
+
+      p {
+        font-size: var(--body-size);
+        line-height: 1.55;
+        color: var(--text-secondary);
+      }
+
+      .lede {
+        max-width: 42rem;
+        font-size: clamp(0.95rem, 1.55vw, 1.2rem);
+        color: rgba(247, 242, 235, 0.84);
+      }
+
+      .section-head {
+        display: grid;
+        gap: clamp(0.8rem, 1.3vw, 1.1rem);
+        max-width: 50rem;
+      }
+
+      .section-head .lede {
+        max-width: 46rem;
+      }
+
+      .section-note {
+        color: var(--text-muted);
+        font-size: var(--small-size);
+      }
+
+      /* ===========================================
+         DECORATIVE / COMPONENTS
+         =========================================== */
+      .panel {
+        position: relative;
+        border-radius: clamp(1rem, 2vw, 1.8rem);
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(clamp(0.8rem, 1.4vw, 1.5rem));
+        overflow: hidden;
+      }
+
+      .panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 35%);
+        pointer-events: none;
+      }
+
+      .chip-row,
+      .stack-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: clamp(0.45rem, 1vw, 0.8rem);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: clamp(0.25rem, 0.5vw, 0.4rem);
+        padding: clamp(0.38rem, 0.8vw, 0.58rem) clamp(0.7rem, 1.2vw, 0.95rem);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        font-size: var(--small-size);
+      }
+
+      .chip--accent {
+        background: rgba(255, 106, 43, 0.12);
+        border-color: rgba(255, 106, 43, 0.24);
+      }
+
+      .card {
+        position: relative;
+        padding: clamp(0.95rem, 1.5vw, 1.25rem);
+        border-radius: clamp(0.9rem, 1.8vw, 1.4rem);
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035));
+        overflow: hidden;
+      }
+
+      .card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: clamp(0.22rem, 0.35vw, 0.35rem);
+        background: linear-gradient(90deg, var(--accent), rgba(255, 208, 122, 0.92));
+      }
+
+      .card small,
+      .card .kicker {
+        color: var(--text-muted);
+        font-size: var(--small-size);
+      }
+
+      .card p {
+        color: var(--text-secondary);
+      }
+
+      .card strong,
+      .metric strong {
+        color: var(--text-primary);
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(clamp(0.7rem, 1.4vw, 1.2rem));
+        transition:
+          opacity var(--duration-normal) var(--ease-out-expo),
+          transform var(--duration-normal) var(--ease-out-expo);
+        transition-delay: var(--delay, 0ms);
+      }
+
+      .slide.visible .reveal {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ===========================================
+         SLIDE-SPECIFIC LAYOUTS
+         =========================================== */
+      .slide-content {
+        width: min(1200px, 100%);
+        margin: 0 auto;
+      }
+
+      .slide-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: clamp(0.75rem, 1.6vw, 1.2rem);
+        margin-bottom: clamp(1rem, 2vw, 1.6rem);
+      }
+
+      .slide-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: clamp(0.35rem, 0.8vw, 0.55rem);
+        color: var(--text-secondary);
+        font-size: var(--small-size);
+        letter-spacing: clamp(0.03em, 0.09vw, 0.08em);
+      }
+
+      .slide-num {
+        color: rgba(255, 255, 255, 0.36);
+        font-family: var(--font-display);
+        font-size: clamp(0.95rem, 1.8vw, 1.5rem);
+      }
+
+      .hero-layout,
+      .adv-layout,
+      .fit-layout {
+        display: grid;
+        gap: clamp(1rem, 2vw, 2rem);
+      }
+
+      .hero-layout {
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.92fr);
+        align-items: stretch;
+      }
+
+      .hero-copy {
+        display: grid;
+        align-content: center;
+        gap: clamp(0.9rem, 1.8vw, 1.4rem);
+        padding-right: clamp(0rem, 1vw, 1rem);
+      }
+
+      .hero-copy .lede {
+        max-width: 40rem;
+      }
+
+      .hero-panel {
+        display: grid;
+        gap: clamp(0.8rem, 1.4vw, 1rem);
+        padding: clamp(1rem, 2vw, 1.5rem);
+        grid-template-rows: auto 1fr;
+      }
+
+      .signal-card {
+        display: grid;
+        gap: clamp(0.65rem, 1vw, 0.9rem);
+        padding: clamp(1rem, 2vw, 1.4rem);
+        border-radius: clamp(1rem, 2vw, 1.5rem);
+        background:
+          linear-gradient(160deg, rgba(255, 106, 43, 0.24), rgba(255, 106, 43, 0.05)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+        border: 1px solid rgba(255, 106, 43, 0.26);
+        box-shadow: 0 0 clamp(2rem, 4vw, 4rem) rgba(255, 106, 43, 0.12);
+      }
+
+      .signal-card .huge {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 7vw, 5rem);
+        line-height: 0.88;
+      }
+
+      .signal-card p {
+        max-width: 24ch;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(0.65rem, 1vw, 0.9rem);
+      }
+
+      .metric {
+        display: grid;
+        gap: clamp(0.3rem, 0.6vw, 0.45rem);
+        padding: clamp(0.8rem, 1.4vw, 1rem);
+        border-radius: clamp(0.85rem, 1.6vw, 1.2rem);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .metric strong {
+        font-size: clamp(1rem, 2vw, 1.35rem);
+      }
+
+      .metric span {
+        color: var(--text-secondary);
+        font-size: var(--small-size);
+      }
+
+      .card-grid-2,
+      .card-grid-3,
+      .card-grid-4,
+      .feature-grid,
+      .value-grid,
+      .flow-grid,
+      .architecture-grid {
+        display: grid;
+        gap: clamp(0.8rem, 1.4vw, 1rem);
+      }
+
+      .card-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .card-grid-3,
+      .flow-grid,
+      .architecture-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card-grid-4,
+      .value-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .pain-card,
+      .feature-card,
+      .value-card,
+      .arch-card,
+      .step-card,
+      .compare-box {
+        min-height: 100%;
+      }
+
+      .feature-card h3,
+      .pain-card h3,
+      .value-card h3,
+      .arch-card h3,
+      .step-card h3 {
+        margin-bottom: clamp(0.45rem, 0.8vw, 0.6rem);
+      }
+
+      .pain-card p,
+      .feature-card p,
+      .value-card p,
+      .arch-card p,
+      .step-card p {
+        font-size: var(--small-size);
+      }
+
+      .pain-card .badge,
+      .feature-card .badge,
+      .value-card .badge,
+      .arch-card .badge,
+      .step-card .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: clamp(1.8rem, 3vw, 2.2rem);
+        height: clamp(1.8rem, 3vw, 2.2rem);
+        margin-bottom: clamp(0.75rem, 1.2vw, 1rem);
+        border-radius: 999px;
+        background: rgba(255, 106, 43, 0.15);
+        border: 1px solid rgba(255, 106, 43, 0.22);
+        color: var(--accent-2);
+        font-family: var(--font-display);
+        font-size: clamp(0.85rem, 1.2vw, 1rem);
+      }
+
+      .flow-layout,
+      .adv-layout,
+      .fit-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: stretch;
+      }
+
+      .flow-side,
+      .adv-side,
+      .fit-side {
+        display: grid;
+        align-content: start;
+        gap: clamp(0.8rem, 1.4vw, 1rem);
+      }
+
+      .flow-summary,
+      .quote-box,
+      .compare-box {
+        padding: clamp(1rem, 2vw, 1.4rem);
+      }
+
+      .quote-box {
+        display: grid;
+        gap: clamp(0.75rem, 1.2vw, 1rem);
+        align-content: center;
+      }
+
+      .quote-mark {
+        color: var(--accent);
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1;
+      }
+
+      .compare-table {
+        display: grid;
+        gap: clamp(0.45rem, 0.8vw, 0.65rem);
+      }
+
+      .compare-row {
+        display: grid;
+        grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: clamp(0.45rem, 1vw, 0.7rem);
+        padding: clamp(0.6rem, 1vw, 0.9rem) 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: var(--small-size);
+      }
+
+      .compare-row strong {
+        color: var(--text-primary);
+      }
+
+      .compare-row.head {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: clamp(0.03em, 0.09vw, 0.08em);
+        border-bottom-color: rgba(255, 255, 255, 0.12);
+      }
+
+      .compare-row:last-child {
+        border-bottom: 0;
+      }
+
+      .bullet-list {
+        display: grid;
+        gap: clamp(0.55rem, 1vw, 0.8rem);
+        list-style: none;
+      }
+
+      .bullet-list li {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: clamp(0.55rem, 1vw, 0.85rem);
+        align-items: start;
+        padding: clamp(0.55rem, 1vw, 0.8rem);
+        border-radius: clamp(0.9rem, 1.8vw, 1.2rem);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .bullet-list li::before {
+        content: "";
+        width: clamp(0.5rem, 0.9vw, 0.7rem);
+        height: clamp(0.5rem, 0.9vw, 0.7rem);
+        margin-top: clamp(0.35rem, 0.6vw, 0.4rem);
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 0 clamp(0.4rem, 0.8vw, 0.8rem) rgba(255, 106, 43, 0.42);
+      }
+
+      .value-card {
+        display: grid;
+        align-content: start;
+        gap: clamp(0.45rem, 0.9vw, 0.65rem);
+      }
+
+      .value-card .who {
+        color: var(--accent-2);
+        font-size: var(--small-size);
+        letter-spacing: clamp(0.02em, 0.06vw, 0.06em);
+        text-transform: uppercase;
+      }
+
+      .architecture-grid .arch-card {
+        display: grid;
+        gap: clamp(0.55rem, 1vw, 0.8rem);
+      }
+
+      .architecture-grid .arch-card .line {
+        height: clamp(0.2rem, 0.28vw, 0.28rem);
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent), rgba(255, 208, 122, 0.9));
+      }
+
+      .closing-panel {
+        display: grid;
+        gap: clamp(1rem, 1.8vw, 1.4rem);
+        align-content: center;
+      }
+
+      .closing-panel h2 {
+        max-width: 13ch;
+      }
+
+      .closing-panel .lede {
+        max-width: 36rem;
+      }
+
+      .slide--compact .section-head {
+        gap: clamp(0.65rem, 1.1vw, 0.9rem);
+      }
+
+      .slide--compact .section-head h2 {
+        font-size: clamp(1.35rem, 3.5vw, 3rem);
+      }
+
+      .slide--compact .lede {
+        font-size: clamp(0.82rem, 1.05vw, 0.96rem);
+        line-height: 1.45;
+      }
+
+      .slide--compact .chip {
+        padding: clamp(0.32rem, 0.65vw, 0.48rem) clamp(0.55rem, 0.95vw, 0.8rem);
+      }
+
+      .slide--compact .card {
+        padding: clamp(0.75rem, 1.15vw, 0.98rem);
+      }
+
+      .slide--compact .card h3 {
+        font-size: clamp(0.92rem, 1.6vw, 1.32rem);
+      }
+
+      .slide--compact .card p {
+        font-size: clamp(0.68rem, 0.9vw, 0.86rem);
+        line-height: 1.42;
+      }
+
+      .slide--compact .bullet-list li {
+        padding: clamp(0.4rem, 0.7vw, 0.58rem);
+      }
+
+      .slide--compact .compare-row {
+        padding: clamp(0.18rem, 0.32vw, 0.28rem) 0;
+      }
+
+      .slide--compact .compare-box {
+        padding: clamp(0.62rem, 1.1vw, 0.88rem);
+      }
+
+      .slide--compact .bullet-list {
+        gap: clamp(0.4rem, 0.8vw, 0.6rem);
+      }
+
+      .slide--compact .feature-grid,
+      .slide--compact .architecture-grid,
+      .slide--compact .flow-grid {
+        gap: clamp(0.6rem, 1vw, 0.8rem);
+      }
+
+      .closing-grid {
+        display: grid;
+        gap: clamp(0.8rem, 1.4vw, 1rem);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .closing-card {
+        padding: clamp(1rem, 1.8vw, 1.25rem);
+        border-radius: clamp(1rem, 1.8vw, 1.3rem);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .closing-card strong {
+        display: block;
+        margin-bottom: clamp(0.35rem, 0.7vw, 0.55rem);
+        font-family: var(--font-display);
+        font-size: clamp(1rem, 1.8vw, 1.35rem);
+      }
+
+      .footer-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: clamp(0.75rem, 1.2vw, 1rem);
+        padding-top: clamp(0.6rem, 1vw, 0.8rem);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-muted);
+        font-size: var(--small-size);
+      }
+
+      /* ===========================================
+         RESPONSIVE OVERRIDES
+         =========================================== */
+      @media (max-width: 960px) {
+        .hero-layout,
+        .flow-layout,
+        .adv-layout,
+        .fit-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .card-grid-4,
+        .value-grid,
+        .feature-grid,
+        .architecture-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .card-grid-2,
+        .card-grid-3,
+        .card-grid-4,
+        .feature-grid,
+        .value-grid,
+        .architecture-grid,
+        .closing-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .slide-topline {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .compare-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ===========================================
+         PRESENTATION COPY
+         =========================================== */
+    </style>
+  </head>
+  <body>
+    <div class="progress-bar" aria-hidden="true"><span></span></div>
+    <div class="deck-label">
+      <strong>AI 比一比</strong>
+      <span>frontend-slides · 产品价值 PPT</span>
+    </div>
+    <nav class="nav-dots" aria-label="Slide navigation"></nav>
+    <div class="keyboard-hint">← → / Space / 滚轮 / 触控滑动</div>
+
+    <section class="slide slide--hero" data-title="封面">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">01 / 封面</div>
+          <div class="slide-num">AI Compare</div>
+        </div>
+        <div class="hero-layout">
+          <div class="hero-copy">
+            <div class="eyebrow reveal" style="--delay: 120ms">浏览器扩展 · 多 AI 比较工作台</div>
+            <h1 class="reveal" style="--delay: 190ms">一次输入，多站并行对比</h1>
+            <p class="lede reveal" style="--delay: 260ms">
+              把 ChatGPT、Gemini、Claude、DeepSeek 等多个 AI 放进同一个工作流，先比较，再决策。
+            </p>
+            <div class="chip-row reveal" style="--delay: 330ms">
+              <span class="chip chip--accent">保留原账号</span>
+              <span class="chip">一页并排输出</span>
+              <span class="chip">适合高频对比</span>
+              <span class="chip">入口可扩展</span>
+            </div>
+            <p class="section-note reveal" style="--delay: 410ms">
+              这不是一个“再开一个 AI 页”的工具，而是把比较动作变成默认动作。
+            </p>
+          </div>
+
+          <div class="hero-panel panel reveal" style="--delay: 250ms">
+            <div class="signal-card">
+              <div class="huge">01</div>
+              <h3>把分散的 AI，收束成一张桌子</h3>
+              <p>
+                用户只需要输入一次问题，系统就能把相同任务同时送到多个站点。
+              </p>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <strong>1 次</strong>
+                <span>输入问题</span>
+              </div>
+              <div class="metric">
+                <strong>N 个</strong>
+                <span>AI 同步响应</span>
+              </div>
+              <div class="metric">
+                <strong>1 张</strong>
+                <span>可比较的结果面板</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="痛点">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">02 / 痛点</div>
+          <div class="slide-num">Why now</div>
+        </div>
+        <div class="section-head">
+          <h2 class="reveal" style="--delay: 120ms">问题不是没有 AI，而是太难比较</h2>
+          <p class="lede reveal" style="--delay: 180ms">
+            真正消耗时间的，往往不是“问 AI”，而是复制、切换、等待、再对比的整套动作。
+          </p>
+        </div>
+
+        <div class="card-grid-2" style="margin-top: clamp(1rem, 2vw, 1.6rem)">
+          <article class="card pain-card reveal" style="--delay: 120ms">
+            <div class="badge">01</div>
+            <h3>切页成本高</h3>
+            <p>多开网页来回跳转，注意力不断被打断。</p>
+          </article>
+          <article class="card pain-card reveal" style="--delay: 190ms">
+            <div class="badge">02</div>
+            <h3>重复输入浪费</h3>
+            <p>同一个问题要复制到不同站点，动作太碎。</p>
+          </article>
+          <article class="card pain-card reveal" style="--delay: 260ms">
+            <div class="badge">03</div>
+            <h3>答案难横评</h3>
+            <p>风格、深度、准确度不同，肉眼很难一眼判断谁更好。</p>
+          </article>
+          <article class="card pain-card reveal" style="--delay: 330ms">
+            <div class="badge">04</div>
+            <h3>结果难沉淀</h3>
+            <p>好问题、好答案、好结论，没有统一的保存和回看方式。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide slide--compact slide--flow" data-title="流程">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">03 / 流程</div>
+          <div class="slide-num">How it works</div>
+        </div>
+        <div class="section-head">
+          <h2 class="reveal" style="--delay: 120ms">它把复杂流程压缩成三步</h2>
+          <p class="lede reveal" style="--delay: 180ms">
+            用户感知到的，是“更少操作”；产品真正做的，是“统一调度、多站执行、集中呈现”。
+          </p>
+        </div>
+
+        <div class="flow-layout" style="margin-top: clamp(1rem, 2vw, 1.6rem)">
+          <div class="flow-grid">
+            <article class="card step-card reveal" style="--delay: 120ms">
+              <div class="badge">01</div>
+              <h3>输入一次</h3>
+              <p>在首页、划词、浮窗或搜索入口里，输入同一个问题。</p>
+            </article>
+            <article class="card step-card reveal" style="--delay: 200ms">
+              <div class="badge">02</div>
+              <h3>自动分发</h3>
+              <p>扩展把 query 送到多个 AI 站点，保持各自的原生交互路径。</p>
+            </article>
+            <article class="card step-card reveal" style="--delay: 280ms">
+              <div class="badge">03</div>
+              <h3>并排对比</h3>
+              <p>在同一屏里读结果、收藏、导出，再继续追问下一轮。</p>
+            </article>
+          </div>
+
+          <div class="quote-box panel reveal" style="--delay: 220ms">
+            <div class="quote-mark">“</div>
+            <h3>把操作成本换成判断成本</h3>
+            <p>
+              AI 比一比的价值，不是让你多问几个模型，而是让你更快看出哪些答案值得信赖、哪些表达更适合当前场景。
+            </p>
+            <div class="chip-row">
+              <span class="chip chip--accent">减少重复动作</span>
+              <span class="chip">提高比较密度</span>
+              <span class="chip">保留上下文</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide slide--compact slide--features" data-title="功能">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">04 / 功能</div>
+          <div class="slide-num">Core features</div>
+        </div>
+        <div class="section-head">
+          <h2 class="reveal" style="--delay: 120ms">功能不是堆砌，而是统一入口</h2>
+          <p class="lede reveal" style="--delay: 180ms">
+            从输入、触发、执行到沉淀，常见的 AI 使用动作都能收拢到一个界面。
+          </p>
+          <div class="chip-row reveal" style="--delay: 240ms">
+            <span class="chip">ChatGPT</span>
+            <span class="chip">Gemini</span>
+            <span class="chip">Claude</span>
+            <span class="chip">DeepSeek</span>
+            <span class="chip">Kimi</span>
+            <span class="chip">豆包</span>
+            <span class="chip">元宝</span>
+            <span class="chip chip--accent">更多可配置站点</span>
+          </div>
+        </div>
+
+        <div class="feature-grid" style="margin-top: clamp(1rem, 2vw, 1.6rem)">
+          <article class="card feature-card reveal" style="--delay: 120ms">
+            <div class="badge">01</div>
+            <h3>多 AI 对比页</h3>
+            <p>一个页面并排加载多个站点。</p>
+          </article>
+          <article class="card feature-card reveal" style="--delay: 170ms">
+            <div class="badge">02</div>
+            <h3>划词工具栏</h3>
+            <p>选中文本，直接发起比较。</p>
+          </article>
+          <article class="card feature-card reveal" style="--delay: 220ms">
+            <div class="badge">03</div>
+            <h3>浮动按钮</h3>
+            <p>在普通网页上快速打开入口。</p>
+          </article>
+          <article class="card feature-card reveal" style="--delay: 270ms">
+            <div class="badge">04</div>
+            <h3>搜索引擎工具栏</h3>
+            <p>在搜索框旁直接触发多 AI 搜索。</p>
+          </article>
+          <article class="card feature-card reveal" style="--delay: 320ms">
+            <div class="badge">05</div>
+            <h3>历史 / 收藏 / 导出</h3>
+            <p>把好问题、好回答、好结论保存下来。</p>
+          </article>
+          <article class="card feature-card reveal" style="--delay: 370ms">
+            <div class="badge">06</div>
+            <h3>深度研究 / 文件上传</h3>
+            <p>图片和文档也能一起比。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide slide--compact slide--advantages" data-title="优势">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">05 / 优势</div>
+          <div class="slide-num">Why it wins</div>
+        </div>
+        <div class="section-head">
+          <h2 class="reveal" style="--delay: 120ms">它的优势，不只是“更多入口”</h2>
+          <p class="lede reveal" style="--delay: 180ms">
+            真正的差异，是把扩展、站点、自动化和工作流整合成统一的 AI 基础设施。
+          </p>
+        </div>
+
+        <div class="adv-layout" style="margin-top: clamp(1rem, 2vw, 1.6rem)">
+          <div class="adv-side">
+            <div class="card-grid-2">
+              <article class="card value-card reveal" style="--delay: 120ms">
+                <div class="who">保留账号</div>
+                <h3>完整入口</h3>
+                <p>继续用已有账号，首页、划词、浮窗、搜索框都能触发。</p>
+              </article>
+              <article class="card value-card reveal" style="--delay: 200ms">
+                <div class="who">覆盖更广</div>
+                <h3>可持续扩展</h3>
+                <p>不只是一两个模型，而是一组可配置、可维护的站点集合。</p>
+              </article>
+            </div>
+            <p class="section-note reveal" style="--delay: 280ms">
+              入口统一后，更容易形成默认使用习惯。
+            </p>
+          </div>
+
+          <div class="compare-box panel reveal" style="--delay: 200ms">
+            <h3 style="margin-bottom: clamp(0.75rem, 1.2vw, 1rem)">和手动对比相比</h3>
+            <div class="compare-table">
+              <div class="compare-row head">
+                <span>维度</span>
+                <span>手动切换</span>
+                <span>AI 比一比</span>
+              </div>
+              <div class="compare-row">
+                <strong>切换成本</strong>
+                <span>重复打开多个页面</span>
+                <span>一次触发，多站同步</span>
+              </div>
+              <div class="compare-row">
+                <strong>结果管理</strong>
+                <span>零散留在各站点</span>
+                <span>历史、收藏、导出统一沉淀</span>
+              </div>
+              <div class="compare-row">
+                <strong>扩展性</strong>
+                <span>只能靠人工复制流程</span>
+                <span>站点配置化，后续扩展更容易</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="价值">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">06 / 价值</div>
+          <div class="slide-num">Who benefits</div>
+        </div>
+        <div class="section-head">
+          <h2 class="reveal" style="--delay: 120ms">对不同角色，价值不一样</h2>
+          <p class="lede reveal" style="--delay: 180ms">
+            同一个工具，对不同人解决的是不同问题：有人要速度，有人要判断，有人要留痕。
+          </p>
+        </div>
+
+        <div class="value-grid" style="margin-top: clamp(1rem, 2vw, 1.6rem)">
+          <article class="card value-card reveal" style="--delay: 120ms">
+            <div class="who">内容创作者</div>
+            <h3>标题、结构、语气一次比完</h3>
+            <p>适合做选题、文案、脚本和表达风格的快速横向比较。</p>
+          </article>
+          <article class="card value-card reveal" style="--delay: 180ms">
+            <div class="who">产品 / 运营</div>
+            <h3>方案、文档、需求解释快速对照</h3>
+            <p>更容易在多个模型的思路里，找到可落地、可执行的那一个。</p>
+          </article>
+          <article class="card value-card reveal" style="--delay: 240ms">
+            <div class="who">外贸 / 咨询</div>
+            <h3>多语言、多风格、多观点核验</h3>
+            <p>在对外沟通、客户回复、解释文本上减少错漏和风格偏差。</p>
+          </article>
+          <article class="card value-card reveal" style="--delay: 300ms">
+            <div class="who">研究 / 学习</div>
+            <h3>事实、解释、结论三层交叉验证</h3>
+            <p>把“问一个答案”升级为“看多种解法”，更适合严谨判断。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide slide--compact slide--structure" data-title="结构">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">07 / 结构</div>
+          <div class="slide-num">Product system</div>
+        </div>
+        <div class="section-head">
+          <h2 class="reveal" style="--delay: 120ms">它不是替代 AI，而是放大 AI 的使用密度</h2>
+          <p class="lede reveal" style="--delay: 180ms">
+            这层能力的关键，不是单个模型，而是把入口、调度、执行、沉淀做成统一链路。
+          </p>
+        </div>
+
+        <div class="architecture-grid" style="margin-top: clamp(1rem, 2vw, 1.6rem)">
+          <article class="card arch-card reveal" style="--delay: 120ms">
+            <div class="badge">A1</div>
+            <h3>入口层</h3>
+            <div class="line"></div>
+            <p>首页、划词、浮窗、搜索引擎统一触发。</p>
+          </article>
+          <article class="card arch-card reveal" style="--delay: 180ms">
+            <div class="badge">A2</div>
+            <h3>调度层</h3>
+            <div class="line"></div>
+            <p>同一个 query 分发给多个站点。</p>
+          </article>
+          <article class="card arch-card reveal" style="--delay: 240ms">
+            <div class="badge">A3</div>
+            <h3>执行层</h3>
+            <div class="line"></div>
+            <p>站点配置化，自动化保持一致。</p>
+          </article>
+          <article class="card arch-card reveal" style="--delay: 300ms">
+            <div class="badge">A4</div>
+            <h3>结果层</h3>
+            <div class="line"></div>
+            <p>历史、收藏、导出，结果可复用。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="结论">
+      <div class="slide-content">
+        <div class="slide-topline reveal" style="--delay: 40ms">
+          <div class="slide-kicker">08 / 结论</div>
+          <div class="slide-num">Closing</div>
+        </div>
+        <div class="fit-layout">
+          <div class="closing-panel">
+            <div class="eyebrow reveal" style="--delay: 110ms">一句话总结</div>
+            <h2 class="reveal" style="--delay: 180ms">AI 比一比，把“问 AI”升级成“比 AI”</h2>
+            <p class="lede reveal" style="--delay: 250ms">
+              它让 AI 使用从单点问答，变成可比较、可沉淀、可持续优化的工作流。
+            </p>
+            <div class="closing-grid">
+              <div class="closing-card reveal" style="--delay: 320ms">
+                <strong>更快</strong>
+                <p>减少切页、复制和重复输入。</p>
+              </div>
+              <div class="closing-card reveal" style="--delay: 380ms">
+                <strong>更准</strong>
+                <p>让多个答案站在同一维度上比较。</p>
+              </div>
+              <div class="closing-card reveal" style="--delay: 440ms">
+                <strong>更稳</strong>
+                <p>把高频 AI 行为沉淀成习惯。</p>
+              </div>
+            </div>
+            <div class="footer-line reveal" style="--delay: 500ms">
+              <span>适合需要比较答案、筛选信息、提升决策效率的场景。</span>
+              <span>AI Compare · Browser Extension</span>
+            </div>
+          </div>
+          <div class="panel quote-box reveal" style="--delay: 220ms">
+            <div class="quote-mark">★</div>
+            <h3>如果你每天都在问多个 AI，</h3>
+            <p>
+              那么最值得升级的，不是回答本身，而是“比较回答”的方式。
+            </p>
+            <div class="chip-row">
+              <span class="chip chip--accent">工作台</span>
+              <span class="chip">比较层</span>
+              <span class="chip">效率入口</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      class SlideDeck {
+        constructor() {
+          this.slides = [...document.querySelectorAll(".slide")];
+          this.nav = document.querySelector(".nav-dots");
+          this.progress = document.querySelector(".progress-bar > span");
+          this.currentIndex = 0;
+          this.reduceMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+          ).matches;
+          this.wheelLock = false;
+          this.touchStart = null;
+
+          this.slides.forEach((slide, index) => {
+            slide.dataset.index = String(index);
+          });
+
+          this.buildNav();
+          this.observeSlides();
+          this.bindKeyboard();
+          this.bindWheel();
+          this.bindTouch();
+          this.goTo(0, true);
+        }
+
+        buildNav() {
+          this.nav.innerHTML = "";
+          this.dots = this.slides.map((slide, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.setAttribute(
+              "aria-label",
+              `Go to slide ${index + 1}: ${slide.dataset.title || slide.querySelector("h1, h2")?.textContent || ""}`
+            );
+            button.addEventListener("click", () => this.goTo(index));
+            this.nav.appendChild(button);
+            return button;
+          });
+          this.updateUI(0);
+        }
+
+        observeSlides() {
+          const options = {
+            root: null,
+            threshold: [0.2, 0.4, 0.6, 0.8]
+          };
+          this.observer = new IntersectionObserver((entries) => {
+            let best = null;
+            for (const entry of entries) {
+              entry.target.classList.toggle("visible", entry.isIntersecting);
+              if (
+                entry.isIntersecting &&
+                (!best || entry.intersectionRatio > best.intersectionRatio)
+              ) {
+                best = entry;
+              }
+            }
+            if (best) {
+              const index = Number(best.target.dataset.index || 0);
+              if (index !== this.currentIndex) {
+                this.updateUI(index);
+              }
+            }
+          }, options);
+
+          this.slides.forEach((slide) => this.observer.observe(slide));
+        }
+
+        updateUI(index) {
+          this.currentIndex = Math.max(0, Math.min(this.slides.length - 1, index));
+          const ratio = (this.currentIndex + 1) / this.slides.length;
+          this.progress.style.transform = `scaleX(${ratio})`;
+          this.dots.forEach((dot, i) => {
+            dot.classList.toggle("is-active", i === this.currentIndex);
+          });
+        }
+
+        goTo(index, instant = false) {
+          const targetIndex = Math.max(0, Math.min(this.slides.length - 1, index));
+          const targetSlide = this.slides[targetIndex];
+          if (!targetSlide) return;
+          this.updateUI(targetIndex);
+          targetSlide.scrollIntoView({
+            behavior: this.reduceMotion || instant ? "auto" : "smooth",
+            block: "start"
+          });
+        }
+
+        next() {
+          this.goTo(this.currentIndex + 1);
+        }
+
+        prev() {
+          this.goTo(this.currentIndex - 1);
+        }
+
+        bindKeyboard() {
+          window.addEventListener("keydown", (event) => {
+            if (
+              event.target &&
+              event.target.closest &&
+              event.target.closest("input, textarea, [contenteditable='true']")
+            ) {
+              return;
+            }
+
+            const key = event.key;
+            if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(key)) {
+              event.preventDefault();
+              this.next();
+            } else if (
+              ["ArrowUp", "ArrowLeft", "PageUp"].includes(key)
+            ) {
+              event.preventDefault();
+              this.prev();
+            } else if (key === "Home") {
+              event.preventDefault();
+              this.goTo(0);
+            } else if (key === "End") {
+              event.preventDefault();
+              this.goTo(this.slides.length - 1);
+            }
+          });
+        }
+
+        bindWheel() {
+          window.addEventListener(
+            "wheel",
+            (event) => {
+              if (Math.abs(event.deltaY) < 15 && Math.abs(event.deltaX) < 15) {
+                return;
+              }
+              if (this.wheelLock) {
+                event.preventDefault();
+                return;
+              }
+
+              event.preventDefault();
+              this.wheelLock = true;
+              if (event.deltaY > 0) {
+                this.next();
+              } else {
+                this.prev();
+              }
+              window.setTimeout(() => {
+                this.wheelLock = false;
+              }, 650);
+            },
+            { passive: false }
+          );
+        }
+
+        bindTouch() {
+          window.addEventListener(
+            "touchstart",
+            (event) => {
+              const touch = event.changedTouches[0];
+              if (!touch) return;
+              this.touchStart = {
+                x: touch.clientX,
+                y: touch.clientY
+              };
+            },
+            { passive: true }
+          );
+
+          window.addEventListener(
+            "touchend",
+            (event) => {
+              if (!this.touchStart) return;
+              const touch = event.changedTouches[0];
+              if (!touch) return;
+
+              const deltaX = touch.clientX - this.touchStart.x;
+              const deltaY = touch.clientY - this.touchStart.y;
+              if (Math.abs(deltaY) > 40 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                if (deltaY < 0) {
+                  this.next();
+                } else {
+                  this.prev();
+                }
+              }
+              this.touchStart = null;
+            },
+            { passive: true }
+          );
+        }
+      }
+
+      new SlideDeck();
+    </script>
+  </body>
+</html>

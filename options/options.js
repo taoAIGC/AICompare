@@ -1369,6 +1369,8 @@ function generateTemplateId() {
 
 const SYNC_STORAGE_KEY = 'webdavSyncConfig';
 const SYNC_DATA_FILENAME = 'multiAI-settings.json';
+const LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders'];
+const LOCAL_SYNC_FILE_PREFIX = 'multiAI-settings-backup';
 
 // 需要同步的 chrome.storage.sync 数据键
 const SYNC_KEYS = [
@@ -1381,6 +1383,84 @@ const SYNC_KEYS = [
   'favoritePrompts',
   'favoriteSites',
 ];
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function pickSyncPayload(source = {}, keys = []) {
+  const payload = {};
+
+  keys.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(source, key) && typeof source[key] !== 'undefined') {
+      payload[key] = source[key];
+    }
+  });
+
+  return payload;
+}
+
+function createLocalSyncFileName() {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return `${LOCAL_SYNC_FILE_PREFIX}-${stamp}.json`;
+}
+
+function downloadJsonFile(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function getLocalSyncImportSource(rawPayload) {
+  if (!isPlainObject(rawPayload)) {
+    return null;
+  }
+
+  const hasTopLevelSyncKeys = [...SYNC_KEYS, ...LOCAL_SYNC_KEYS].some((key) =>
+    Object.prototype.hasOwnProperty.call(rawPayload, key)
+  );
+
+  if (hasTopLevelSyncKeys) {
+    return rawPayload;
+  }
+
+  const nestedSync = isPlainObject(rawPayload.sync) ? rawPayload.sync : null;
+  const nestedLocal = isPlainObject(rawPayload.local) ? rawPayload.local : null;
+
+  if (nestedSync || nestedLocal) {
+    return {
+      ...(nestedSync || {}),
+      ...(nestedLocal || {})
+    };
+  }
+
+  return null;
+}
+
+function getLocalSyncImportPayload(rawPayload) {
+  const source = getLocalSyncImportSource(rawPayload);
+  if (!source) {
+    throw new Error(chrome.i18n.getMessage('localSyncInvalidFile') || 'Invalid backup file');
+  }
+
+  const syncPatch = pickSyncPayload(source, SYNC_KEYS);
+  const localPatch = pickSyncPayload(source, LOCAL_SYNC_KEYS);
+
+  if (!Object.keys(syncPatch).length && !Object.keys(localPatch).length) {
+    throw new Error(chrome.i18n.getMessage('localSyncInvalidFile') || 'Invalid backup file');
+  }
+
+  return { syncPatch, localPatch };
+}
 
 function showSyncStatus(message, type = 'info') {
   const el = document.getElementById('syncStatus');
@@ -1529,7 +1609,7 @@ async function getSyncConfig() {
 
 async function exportAllSettings() {
   const syncData  = await chrome.storage.sync.get(SYNC_KEYS);
-  const localData = await chrome.storage.local.get(['pkHistory', 'favoriteFolders']);
+  const localData = await chrome.storage.local.get(LOCAL_SYNC_KEYS);
   return {
     ...syncData,
     pkHistory: (localData.pkHistory || []).slice(0, 500),
@@ -1537,6 +1617,84 @@ async function exportAllSettings() {
     _syncVersion: 1,
     _exportedAt: new Date().toISOString(),
   };
+}
+
+async function exportLocalSyncBackup() {
+  try {
+    const payload = await exportAllSettings();
+    downloadJsonFile(createLocalSyncFileName(), payload);
+    showSyncStatus(chrome.i18n.getMessage('localSyncExportSuccess') || '备份已下载', 'success');
+  } catch (error) {
+    console.error('导出本地备份失败:', error);
+    showSyncStatus(
+      `${chrome.i18n.getMessage('localSyncExportFailed') || '导出失败'}: ${error.message}`,
+      'error'
+    );
+  }
+}
+
+async function importLocalSyncBackupFromFile(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const rawPayload = JSON.parse(text.replace(/^\uFEFF/, '').trim());
+    const confirmMessage = chrome.i18n.getMessage('localSyncImportConfirm')
+      || 'Import this backup and overwrite the current sync data?';
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    const { syncPatch, localPatch } = getLocalSyncImportPayload(rawPayload);
+
+    showSyncStatus(chrome.i18n.getMessage('localSyncImporting') || '正在恢复本地备份…', 'loading');
+
+    const writeTasks = [];
+    if (Object.keys(syncPatch).length > 0) {
+      writeTasks.push(chrome.storage.sync.set(syncPatch));
+    }
+    if (Object.keys(localPatch).length > 0) {
+      writeTasks.push(chrome.storage.local.set(localPatch));
+    }
+
+    await Promise.all(writeTasks);
+
+    showSyncStatus(
+      chrome.i18n.getMessage('localSyncImportSuccess') || '本地备份已恢复，请刷新页面生效',
+      'success'
+    );
+  } catch (error) {
+    console.error('导入本地备份失败:', error);
+    const invalidMessage = chrome.i18n.getMessage('localSyncInvalidFile') || 'This file is not a valid AI Compare backup';
+    const detail = error instanceof SyntaxError ? invalidMessage : (error.message || invalidMessage);
+    showSyncStatus(
+      `${chrome.i18n.getMessage('localSyncImportFailed') || '恢复失败'}: ${detail}`,
+      'error'
+    );
+  } finally {
+    const input = document.getElementById('localSyncFileInput');
+    if (input) {
+      input.value = '';
+    }
+  }
+}
+
+function handleLocalSyncImportClick() {
+  const input = document.getElementById('localSyncFileInput');
+  if (input) {
+    input.click();
+  }
+}
+
+async function handleLocalSyncFileSelection(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) {
+    return;
+  }
+  await importLocalSyncBackupFromFile(file);
 }
 
 async function syncNow() {
@@ -1615,6 +1773,9 @@ function initializeDataSync() {
 
   document.getElementById('saveSyncConfig')?.addEventListener('click', saveSyncConfig);
   document.getElementById('importFromSync')?.addEventListener('click', importFromSync);
+  document.getElementById('exportLocalSync')?.addEventListener('click', exportLocalSyncBackup);
+  document.getElementById('importLocalSync')?.addEventListener('click', handleLocalSyncImportClick);
+  document.getElementById('localSyncFileInput')?.addEventListener('change', handleLocalSyncFileSelection);
 
   document.getElementById('togglePassword')?.addEventListener('click', () => {
     const input = document.getElementById('syncPassword');

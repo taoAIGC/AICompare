@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "minimum_chrome_version": "116",
   "description": "__MSG_extDescription__",
   "permissions": [
@@ -13,9 +13,7 @@
     "sidePanel",
     "clipboardRead",
     "omnibox",
-    "identity",
-    "alarms",
-    "notifications"
+    "identity"
   ],
   "host_permissions": [
     "<all_urls>"

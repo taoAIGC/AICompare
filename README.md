@@ -78,11 +78,13 @@
 
 #### 9. Options page
 
-- **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`).
+- **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`). Changes apply to already open tabs immediately.
 - **Launch settings**: Customize official site entry URLs and manage standalone custom sites.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
+- **Cloud sync**: Use WebDAV to sync settings across devices.
 - **Prompt templates**: Add / edit / delete templates (name, query text with `{query}`, type, display order). Template type uses the same candidate set as site config types.
+- **Local backup**: Export the current sync data to a JSON file and restore it later without including WebDAV credentials. History records in backups are capped at the first 500 items.
 - **Links**: Open History page, Favorites page.
 
 #### 10. History & Favorites pages
@@ -143,7 +145,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Root extension unit tests: `node --test tests/*.test.js`
   - Relay tests: `cd remote-relay && npm test`
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
-- The local Remote Search verifier expects a real Chrome profile with the extension installed and a reachable DevTools endpoint from `DevToolsActivePort`. If the port points to a stale or non-debuggable browser session, the verifier will fail before the extension flow starts.
+  - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
+- The DevTools-based verifier expects a real Chrome profile with the extension installed and a reachable endpoint from `DevToolsActivePort`. If that port points to a stale or non-debuggable browser session, it will fail before the extension flow starts. The Playwright verifier launches its own persistent Chromium profile and does not need `DevToolsActivePort`.
 - The packaged MV3 extension no longer includes any Firebase JS SDK CDN imports; sync/auth use local extension code plus Firebase REST endpoints so store builds avoid Blue Argon remote-hosted-code violations.
 - Site handler synchronization now reads the bundled `config/siteHandlers.json` only; it no longer fetches handler logic from GitHub raw at runtime.
 - Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
@@ -256,11 +259,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 #### 9. 选项页
 
-- **快捷入口设置**：开关 悬浮球、划词搜索、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。
+- **快捷入口设置**：开关 悬浮球、划词搜索、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。已打开的页面会立即同步开关状态，无需刷新。
 - **启动网址设置**：可配置官方站点入口 URL，并管理独立的自定义网站。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
+- **云同步**：使用 WebDAV 在不同设备之间同步设置。
 - **提示词模板**：增删改模板（名称、带 `{query}` 的查询模板、类型、排序）。模板类型与站点配置里的 `type` 候选项保持一致。
+- **本地备份**：可将当前同步数据导出为 JSON 文件并随后恢复，且不会包含 WebDAV 凭据。备份中的历史记录最多保留前 500 条。
 - **入口**：历史记录页、收藏记录页。
 
 #### 10. 历史记录与收藏记录页
@@ -322,7 +327,8 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
   - 扩展根目录单测：`node --test tests/*.test.js`
   - relay 测试：`cd remote-relay && npm test`
   - 本地远程搜索 verifier：`node debug/verify-remote-search-local.js`
-- 本地远程搜索 verifier 依赖真实 Chrome 用户态、已安装扩展，以及 `DevToolsActivePort` 指向一个可连接的调试端口；如果该端口指向的是过期或不可调试的会话，脚本会在进入扩展链路前失败。
+  - Playwright 远程搜索 verifier：`node debug/verify-remote-search-playwright.js`
+- 基于 DevTools 的本地 verifier 依赖真实 Chrome 用户态、已安装扩展，以及 `DevToolsActivePort` 指向一个可连接的调试端口；如果该端口指向的是过期或不可调试的会话，脚本会在进入扩展链路前失败。Playwright 版本会自己拉起持久化 Chromium 用户态，不需要 `DevToolsActivePort`。
 - 打包后的 MV3 扩展不再包含 Firebase JS SDK 的 CDN `import`；同步/登录走扩展内本地代码配合 Firebase REST 接口，以避免 Blue Argon 的远程托管代码拦截。
 - 站点处理器同步现在只读取扩展包内的 `config/siteHandlers.json`，不再在运行时从 GitHub raw 拉取处理器逻辑。
 - 目前 core 端到端验证已覆盖 ChatGPT、Gemini、DeepSeek、Grok、Claude、MiniMax、Manus、点点、Nano Banana、Google Translate、Bing Translate。
@@ -367,14 +373,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-09 22:09:51 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-11 00:01:26 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
 - `M` `.gitignore`
-- `M` `AGENTS.md`
-- `M` `AI Compare PrivacyPolicy.md`
-- `M` `STRIPE_SETUP.md`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -385,181 +387,37 @@ Last auto-update / 最近自动更新：2026-05-09 22:09:51 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
 - `M` `config/appConfig.json`
-- `M` `config/baseConfig.js`
-- `M` `config/siteDetector.js`
 - `M` `config/siteHandlers.json`
-- `M` `debug/extension-flow-common.js`
-- `M` `debug/run-live-site-checks.js`
-- `M` `debug/validate-site-configs.js`
-- `M` `debug/verify-nano-banana-live.js`
-- `M` `docs/superpowers/plans/2026-05-04-entry-url-and-custom-sites.md`
-- `M` `homepage/homepage.css`
+- `M` `content-scripts/float-button.js`
+- `M` `content-scripts/search-engines.js`
+- `M` `content-scripts/selection.css`
+- `M` `content-scripts/selection.js`
+- `M` `content-scripts/site-button.css`
+- `M` `content-scripts/site-button.js`
+- `A` `debug/verify-remote-search-playwright.js`
 - `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `A` `icons/cloud-sync.svg`
-- `A` `icons/smartphone.svg`
-- `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
-- `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
-- `M` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
-- `A` `mobile-app/.gitignore`
-- `A` `mobile-app/.metadata`
-- `A` `mobile-app/README.md`
-- `A` `mobile-app/analysis_options.yaml`
-- `A` `mobile-app/android/.gitignore`
-- `A` `mobile-app/android/app/build.gradle.kts`
-- `A` `mobile-app/android/app/src/debug/AndroidManifest.xml`
-- `A` `mobile-app/android/app/src/main/AndroidManifest.xml`
-- `A` `mobile-app/android/app/src/main/kotlin/com/example/ai_compare_remote_search/MainActivity.kt`
-- `A` `mobile-app/android/app/src/main/res/drawable-v21/launch_background.xml`
-- `A` `mobile-app/android/app/src/main/res/drawable/launch_background.xml`
-- `A` `mobile-app/android/app/src/main/res/mipmap-hdpi/ic_launcher.png`
-- `A` `mobile-app/android/app/src/main/res/mipmap-mdpi/ic_launcher.png`
-- `A` `mobile-app/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png`
-- `A` `mobile-app/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png`
-- `A` `mobile-app/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`
-- `A` `mobile-app/android/app/src/main/res/values-night/styles.xml`
-- `A` `mobile-app/android/app/src/main/res/values/styles.xml`
-- `A` `mobile-app/android/app/src/profile/AndroidManifest.xml`
-- `A` `mobile-app/android/build.gradle.kts`
-- `A` `mobile-app/android/gradle.properties`
-- `A` `mobile-app/android/gradle/wrapper/gradle-wrapper.properties`
-- `A` `mobile-app/android/settings.gradle.kts`
-- `A` `mobile-app/ios/.gitignore`
-- `A` `mobile-app/ios/Flutter/AppFrameworkInfo.plist`
-- `A` `mobile-app/ios/Flutter/Debug.xcconfig`
-- `A` `mobile-app/ios/Flutter/Release.xcconfig`
-- `A` `mobile-app/ios/Podfile`
-- `A` `mobile-app/ios/Runner.xcodeproj/project.pbxproj`
-- `A` `mobile-app/ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata`
-- `A` `mobile-app/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist`
-- `A` `mobile-app/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings`
-- `A` `mobile-app/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`
-- `A` `mobile-app/ios/Runner.xcworkspace/contents.xcworkspacedata`
-- `A` `mobile-app/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist`
-- `A` `mobile-app/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings`
-- `A` `mobile-app/ios/Runner/AppDelegate.swift`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png`
-- `A` `mobile-app/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md`
-- `A` `mobile-app/ios/Runner/Base.lproj/LaunchScreen.storyboard`
-- `A` `mobile-app/ios/Runner/Base.lproj/Main.storyboard`
-- `A` `mobile-app/ios/Runner/Info.plist`
-- `A` `mobile-app/ios/Runner/Runner-Bridging-Header.h`
-- `A` `mobile-app/ios/Runner/SceneDelegate.swift`
-- `A` `mobile-app/ios/RunnerTests/RunnerTests.swift`
-- `A` `mobile-app/lib/main.dart`
-- `A` `mobile-app/lib/src/app.dart`
-- `A` `mobile-app/lib/src/models/remote_qr_payload.dart`
-- `A` `mobile-app/lib/src/models/search_models.dart`
-- `A` `mobile-app/lib/src/services/relay_client.dart`
-- `A` `mobile-app/lib/src/services/secure_session_store.dart`
-- `A` `mobile-app/lib/src/state/remote_search_controller.dart`
-- `A` `mobile-app/macos/.gitignore`
-- `A` `mobile-app/macos/Flutter/Flutter-Debug.xcconfig`
-- `A` `mobile-app/macos/Flutter/Flutter-Release.xcconfig`
-- `A` `mobile-app/macos/Flutter/GeneratedPluginRegistrant.swift`
-- `A` `mobile-app/macos/Podfile`
-- `A` `mobile-app/macos/Podfile.lock`
-- `A` `mobile-app/macos/Runner.xcodeproj/project.pbxproj`
-- `A` `mobile-app/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist`
-- `A` `mobile-app/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`
-- `A` `mobile-app/macos/Runner.xcworkspace/contents.xcworkspacedata`
-- `A` `mobile-app/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist`
-- `A` `mobile-app/macos/Runner/AppDelegate.swift`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png`
-- `A` `mobile-app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png`
-- `A` `mobile-app/macos/Runner/Base.lproj/MainMenu.xib`
-- `A` `mobile-app/macos/Runner/Configs/AppInfo.xcconfig`
-- `A` `mobile-app/macos/Runner/Configs/Debug.xcconfig`
-- `A` `mobile-app/macos/Runner/Configs/Release.xcconfig`
-- `A` `mobile-app/macos/Runner/Configs/Warnings.xcconfig`
-- `A` `mobile-app/macos/Runner/DebugProfile.entitlements`
-- `A` `mobile-app/macos/Runner/Info.plist`
-- `A` `mobile-app/macos/Runner/MainFlutterWindow.swift`
-- `A` `mobile-app/macos/Runner/Release.entitlements`
-- `A` `mobile-app/macos/RunnerTests/RunnerTests.swift`
-- `A` `mobile-app/pubspec.lock`
-- `A` `mobile-app/pubspec.yaml`
-- `A` `mobile-app/test/error_handling_test.dart`
-- `A` `mobile-app/test/qr_payload_test.dart`
-- `A` `mobile-app/test/reconnect_state_test.dart`
-- `A` `mobile-app/test/result_state_reducer_test.dart`
-- `M` `openclaw-extension/README.md`
-- `A` `openclaw-extension/bin/ai-compare-openclaw-fast.cjs`
-- `A` `openclaw-extension/bin/ai-compare-openclaw-runner.cjs`
-- `M` `openclaw-extension/index.js`
-- `M` `openclaw-extension/lib/defaults.js`
-- `M` `openclaw-extension/lib/formatters.js`
-- `M` `openclaw-extension/lib/runner.js`
-- `M` `openclaw-extension/openclaw.plugin.json`
-- `M` `openclaw-extension/package.json`
-- `M` `openclaw/README.md`
-- `M` `openclaw/SKILL.md`
-- `M` `openclaw/ai-compare-openclaw-runner.js`
-- `M` `openclaw/references/install-browser-extension.md`
 - `M` `options/options.css`
 - `M` `options/options.html`
 - `M` `options/options.js`
-- `A` `remote-relay/package-lock.json`
-- `A` `remote-relay/package.json`
-- `A` `remote-relay/src/index.js`
-- `A` `remote-relay/src/server.js`
-- `A` `remote-relay/src/store.js`
-- `A` `remote-relay/tests/server.test.js`
-- `A` `remote/common.js`
-- `A` `remote/crypto.js`
-- `A` `remote/state.js`
-- `A` `remote/storage.js`
-- `A` `remote/sw-runtime.js`
-- `M` `shared/extraction-core.js`
+- `A` `presentations/ai-compare-advantages-final.png`
+- `A` `presentations/ai-compare-advantages.png`
+- `A` `presentations/ai-compare-close-final.png`
+- `A` `presentations/ai-compare-close.png`
+- `A` `presentations/ai-compare-close2.png`
+- `A` `presentations/ai-compare-features.png`
+- `A` `presentations/ai-compare-hero.png`
+- `A` `presentations/ai-compare-product-story.html`
 - `M` `shared/sidebar.js`
-- `M` `shared/site-launch-utils.js`
-- `A` `shared/submit-shortcut-utils.js`
-- `A` `shared/textarea-resize-utils.js`
-- `A` `tests/extraction-core.test.js`
-- `A` `tests/remote-crypto.test.js`
-- `A` `tests/remote-search-options.test.js`
-- `A` `tests/remote-state.test.js`
-- `A` `tests/remote-storage.test.js`
-- `A` `tests/remote-sw-runtime.test.js`
-- `A` `tests/submit-shortcut-utils.test.js`
-- `A` `tests/textarea-resize-utils.test.js`
 
 ### Recent commits / 最近提交
+- `c00b358` 2026-05-09 V3.2.2 修复部分站点的抽取效果
 - `8dce00a` 2026-05-06 V3.2.0 支持自定义站点、移除 firebase 的 远程js
 - `054839e` 2026-05-04 V3.1.0 支持时间线、复制回答
 - `9bf7958` 2026-05-02 V3.0.1 支持龙虾插件模式
 - `ed56762` 2026-05-01 V2.21.9 收起输入框
-- `c0a228a` 2026-04-30 V2.17.8 龙虾支持、发送消息后清空输入框
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

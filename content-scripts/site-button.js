@@ -19,6 +19,117 @@
     return chrome.runtime.getURL(`icons/icon${size}.png`);
   }
 
+  function isAiStudioSite(site) {
+    return site?.name === 'AI Studio' || /aistudio\.google\.com/i.test(String(site?.url || ''));
+  }
+
+  function parseCssColor(color) {
+    const normalized = normalizeText(color).toLowerCase();
+    if (!normalized || normalized === 'transparent' || normalized === 'inherit' || normalized === 'initial') {
+      return null;
+    }
+
+    const match = normalized.match(/^rgba?\(([^)]+)\)$/);
+    if (!match) {
+      return null;
+    }
+
+    const parts = match[1].split(',').map((part) => part.trim());
+    if (parts.length < 3) {
+      return null;
+    }
+
+    const red = Number.parseFloat(parts[0]);
+    const green = Number.parseFloat(parts[1]);
+    const blue = Number.parseFloat(parts[2]);
+    const alpha = Number.parseFloat(parts[3] ?? '1');
+
+    if (![red, green, blue, alpha].every(Number.isFinite)) {
+      return null;
+    }
+
+    return { red, green, blue, alpha };
+  }
+
+  function isDarkColor(color) {
+    const rgba = parseCssColor(color);
+    if (!rgba || rgba.alpha === 0) {
+      return false;
+    }
+
+    const brightness = (rgba.red * 299 + rgba.green * 587 + rgba.blue * 114) / 1000;
+    return brightness < 130;
+  }
+
+  function isDarkPage() {
+    const roots = [document.body, document.documentElement].filter(Boolean);
+    for (const root of roots) {
+      const bg = getComputedStyle(root).backgroundColor;
+      if (isDarkColor(bg)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function getButtonTheme(site) {
+    if (isAiStudioSite(site) || isDarkPage()) {
+      return 'dark-surface';
+    }
+
+    return 'default';
+  }
+
+  function normalizeText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function isVisibleElement(element) {
+    if (!element) return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function findButtonByLabel(root, matcher) {
+    if (!root || typeof root.querySelectorAll !== 'function') return null;
+
+    return Array.from(root.querySelectorAll('button')).find((button) => {
+      if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true') {
+        return false;
+      }
+
+      if (!isVisibleElement(button)) {
+        return false;
+      }
+
+      const label = normalizeText(button.innerText || button.textContent);
+      const aria = normalizeText(button.getAttribute('aria-label'));
+      return matcher(label) || matcher(aria);
+    }) || null;
+  }
+
+  function findAiStudioRunButton(inputElement) {
+    if (!inputElement) return null;
+
+    const matchers = [
+      (text) => /^Run$/i.test(text),
+      (text) => /\bRun\b/i.test(text),
+      (text) => /^运行$/i.test(text),
+      (text) => /\b运行\b/i.test(text)
+    ];
+
+    let current = inputElement;
+    for (let depth = 0; current && depth < 6; depth++, current = current.parentElement) {
+      const button = findButtonByLabel(current, (text) => matchers.some((matcher) => matcher(text)));
+      if (button) {
+        return button;
+      }
+    }
+
+    return null;
+  }
+
   // 只在主窗口中运行，不在 iframe 中运行
   if (window.self !== window.top) {
     return;
@@ -188,6 +299,7 @@
     // 获取发送按钮和输入框的 selector
     const sendButtonSelector = getSendButtonSelector(site);
     const inputSelector = getInputSelector(site);
+    const isAiStudio = isAiStudioSite(site);
 
     if (!inputSelector) {
       console.log('无法找到输入框的 selector');
@@ -201,13 +313,18 @@
 
       // 如果有发送按钮 selector，使用它；否则尝试在输入框附近查找
       let sendButton = null;
-      if (sendButtonSelector) {
+      if (isAiStudio) {
+        sendButton = findAiStudioRunButton(inputElement);
+        if (!sendButton) {
+          return;
+        }
+      } else if (sendButtonSelector) {
         sendButton = findElement(sendButtonSelector);
       } else {
         // 对于使用 sendKeys 的站点，尝试查找输入框附近的发送按钮
         sendButton = findSendButtonNearInput(inputElement);
         // 如果找不到发送按钮，使用输入框本身作为参考点
-        if (!sendButton) {
+        if (!sendButton && !isAiStudio) {
           sendButton = inputElement;
         }
       }
@@ -239,7 +356,13 @@
 
     // 如果有发送按钮 selector，使用它；否则尝试在输入框附近查找
     let sendButton = null;
-    if (sendButtonSelector) {
+    if (isAiStudio) {
+      sendButton = findAiStudioRunButton(inputElement);
+      if (!sendButton) {
+        console.log('AI Studio 未找到稳定的 Run 按钮锚点，跳过站点按钮注入');
+        return;
+      }
+    } else if (sendButtonSelector) {
       sendButton = findElement(sendButtonSelector);
     } else {
       // 对于使用 sendKeys 的站点，尝试查找输入框附近的发送按钮
@@ -361,10 +484,13 @@
     // 创建按钮容器
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'multi-ai-site-button-container';
+    buttonContainer.dataset.siteName = site?.name || '';
+    buttonContainer.dataset.siteTheme = getButtonTheme(site);
 
     // 创建按钮
     const button = document.createElement('button');
     button.className = 'multi-ai-site-button';
+    button.type = 'button';
     const compareTitle = t('searchWithMultiAI', 'Search with AI Compare');
     button.title = compareTitle;
     button.setAttribute('aria-label', compareTitle);
@@ -521,38 +647,18 @@
       // 创建按钮容器
       const buttonContainer = document.createElement('div');
       buttonContainer.className = 'multi-ai-userprompt-button-container';
-      buttonContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 23px; vertical-align: middle;';
+      buttonContainer.dataset.siteName = site?.name || '';
+      buttonContainer.dataset.siteTheme = getButtonTheme(site);
 
       // 创建按钮
       const button = document.createElement('button');
       button.className = 'multi-ai-userprompt-button';
+      button.type = 'button';
       const compareLabel = t('compareButtonLabel', 'AICompare');
       const compareTitle = t('searchWithMultiAI', 'Search with AI Compare');
       button.textContent = compareLabel;
       button.title = compareTitle;
       button.setAttribute('aria-label', compareTitle);
-      button.style.cssText = `
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 8px;
-        font-size: 12px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        background: #fff;
-        cursor: pointer;
-        color: #333;
-        transition: all 0.2s;
-      `;
-
-      // 添加悬停效果
-      button.addEventListener('mouseenter', () => {
-        button.style.background = '#f0f0f0';
-        button.style.borderColor = '#999';
-      });
-      button.addEventListener('mouseleave', () => {
-        button.style.background = '#fff';
-        button.style.borderColor = '#ccc';
-      });
 
       // 添加点击事件
       button.addEventListener('click', (e) => {

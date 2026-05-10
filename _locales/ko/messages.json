@@ -905,13 +905,19 @@
     "message": "리뷰 링크를 열 수 없습니다"
   },
   "dataSyncTitle": {
-    "message": "데이터 동기화"
+    "message": "동기화 및 백업"
+  },
+  "cloudSyncTitle": {
+    "message": "클라우드 동기화"
+  },
+  "cloudSyncDescription": {
+    "message": "WebDAV를 통해 설정을 동기화하면 여러 기기에서 같은 상태를 유지할 수 있습니다."
   },
   "dataSyncDescription": {
-    "message": "모든 설정을 기기 간에 동기화합니다(베타 버전으로 버그가 있을 수 있습니다)"
+    "message": "클라우드 동기화와 로컬 백업 중에서 선택하세요. 두 방식은 서로 분리되어 있습니다."
   },
   "syncEnabledLabel": {
-    "message": "다음 위치로 동기화 활성화"
+    "message": "클라우드 동기화 사용"
   },
   "syncOnChange": {
     "message": "자동 동기화"
@@ -947,7 +953,7 @@
     "message": "지금 동기화"
   },
   "syncImportButton": {
-    "message": "클라우드에서 복원"
+    "message": "WebDAV에서 복원"
   },
   "syncTesting": {
     "message": "연결 테스트 중..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "복원 실패"
+  },
+  "localSyncTitle": {
+    "message": "로컬 백업"
+  },
+  "localSyncDescription": {
+    "message": "현재 동기화 데이터를 로컬 JSON 파일로 내보내거나 파일에서 복원할 수 있습니다. 기록 내보내기는 처음 500개까지만 포함됩니다. WebDAV 자격 증명은 포함되지 않습니다."
+  },
+  "localSyncBadge": {
+    "message": "JSON 파일"
+  },
+  "localSyncExportButton": {
+    "message": "백업 내보내기"
+  },
+  "localSyncImportButton": {
+    "message": "백업 가져오기"
+  },
+  "localSyncImportConfirm": {
+    "message": "이 백업을 가져와 현재 동기화 데이터를 덮어쓰시겠습니까?"
+  },
+  "localSyncImporting": {
+    "message": "로컬 백업 복원 중..."
+  },
+  "localSyncExportSuccess": {
+    "message": "백업을 다운로드했습니다"
+  },
+  "localSyncExportFailed": {
+    "message": "백업 내보내기 실패"
+  },
+  "localSyncImportSuccess": {
+    "message": "로컬 백업이 복원되었습니다. 변경 사항을 적용하려면 페이지를 새로고침하세요."
+  },
+  "localSyncImportFailed": {
+    "message": "복원 실패"
+  },
+  "localSyncInvalidFile": {
+    "message": "이 파일은 유효한 AI 比一比 백업이 아닙니다"
   },
   "syncTokenPlaceholder": {
     "message": "토큰 입력"

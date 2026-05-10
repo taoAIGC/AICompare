@@ -905,13 +905,19 @@
     "message": "Impossible d'ouvrir le lien d'avis"
   },
   "dataSyncTitle": {
-    "message": "Synchronisation des donnees"
+    "message": "Synchronisation et sauvegarde"
+  },
+  "cloudSyncTitle": {
+    "message": "Synchronisation cloud"
+  },
+  "cloudSyncDescription": {
+    "message": "Synchronisez vos paramètres via WebDAV pour les retrouver sur tous vos appareils."
   },
   "dataSyncDescription": {
-    "message": "Synchronisez tous vos parametres entre appareils (beta, peut contenir des erreurs)"
+    "message": "Choisissez la synchronisation cloud ou une sauvegarde locale. Les deux flux sont distincts."
   },
   "syncEnabledLabel": {
-    "message": "Activer la synchronisation vers"
+    "message": "Activer la synchronisation cloud"
   },
   "syncOnChange": {
     "message": "Synchronisation automatique"
@@ -947,7 +953,7 @@
     "message": "Synchroniser maintenant"
   },
   "syncImportButton": {
-    "message": "Restaurer depuis le cloud"
+    "message": "Restaurer depuis WebDAV"
   },
   "syncTesting": {
     "message": "Test de la connexion..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "Echec de la restauration"
+  },
+  "localSyncTitle": {
+    "message": "Sauvegarde locale"
+  },
+  "localSyncDescription": {
+    "message": "Exportez les données synchronisées actuelles dans un fichier JSON local ou restaurez-les depuis un fichier. L'historique exporté est limité aux 500 premiers éléments. Les identifiants WebDAV ne sont pas inclus."
+  },
+  "localSyncBadge": {
+    "message": "Fichier JSON"
+  },
+  "localSyncExportButton": {
+    "message": "Exporter la sauvegarde"
+  },
+  "localSyncImportButton": {
+    "message": "Importer la sauvegarde"
+  },
+  "localSyncImportConfirm": {
+    "message": "Importer cette sauvegarde et écraser les données synchronisées actuelles ?"
+  },
+  "localSyncImporting": {
+    "message": "Restauration de la sauvegarde locale..."
+  },
+  "localSyncExportSuccess": {
+    "message": "Sauvegarde téléchargée"
+  },
+  "localSyncExportFailed": {
+    "message": "Échec de l’export de la sauvegarde"
+  },
+  "localSyncImportSuccess": {
+    "message": "Sauvegarde locale restaurée. Rechargez la page pour appliquer les changements."
+  },
+  "localSyncImportFailed": {
+    "message": "Échec de la restauration"
+  },
+  "localSyncInvalidFile": {
+    "message": "Ce fichier n’est pas une sauvegarde valide d’AI Compare"
   },
   "syncTokenPlaceholder": {
     "message": "Saisissez le token"

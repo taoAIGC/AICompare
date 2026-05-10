@@ -2,11 +2,32 @@
  * 站点按钮样式
  */
 
-.multi-ai-site-button-container {
+.multi-ai-site-button-container,
+.multi-ai-userprompt-button-container {
   display: inline-flex;
   align-items: center;
-  margin-left: 8px;
   vertical-align: middle;
+}
+
+.multi-ai-site-button-container {
+  margin-left: 8px;
+  --multi-ai-site-button-bg: transparent;
+  --multi-ai-site-button-bg-hover: rgba(0, 0, 0, 0.05);
+  --multi-ai-site-button-bg-active: rgba(0, 0, 0, 0.1);
+  --multi-ai-site-button-border: transparent;
+  --multi-ai-site-button-color: inherit;
+  --multi-ai-site-button-shadow: none;
+}
+
+.multi-ai-site-button-container[data-site-theme="ai-studio-dark"],
+.multi-ai-site-button-container[data-site-theme="dark-surface"] {
+  margin-left: 4px;
+  --multi-ai-site-button-bg: rgba(255, 255, 255, 0.07);
+  --multi-ai-site-button-bg-hover: rgba(255, 255, 255, 0.12);
+  --multi-ai-site-button-bg-active: rgba(255, 255, 255, 0.16);
+  --multi-ai-site-button-border: rgba(255, 255, 255, 0.12);
+  --multi-ai-site-button-color: #eef1f5;
+  --multi-ai-site-button-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 .multi-ai-site-button {
@@ -16,20 +37,24 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  border: none;
-  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--multi-ai-site-button-border);
+  background: var(--multi-ai-site-button-bg);
+  color: var(--multi-ai-site-button-color);
   cursor: pointer;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
   position: relative;
+  box-shadow: var(--multi-ai-site-button-shadow);
 }
 
 .multi-ai-site-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--multi-ai-site-button-bg-hover);
 }
 
 .multi-ai-site-button:active {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--multi-ai-site-button-bg-active);
   transform: scale(0.95);
 }
 
@@ -38,6 +63,81 @@
   height: 24px;
   object-fit: contain;
   pointer-events: none;
+}
+
+.multi-ai-site-button-container[data-site-theme="ai-studio-dark"] .multi-ai-site-button,
+.multi-ai-site-button-container[data-site-theme="dark-surface"] .multi-ai-site-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: var(--multi-ai-site-button-bg) !important;
+  border-color: var(--multi-ai-site-button-border) !important;
+  color: var(--multi-ai-site-button-color) !important;
+  box-shadow: var(--multi-ai-site-button-shadow) !important;
+  background-image: none !important;
+}
+
+.multi-ai-site-button-container[data-site-theme="ai-studio-dark"] .multi-ai-site-button-icon,
+.multi-ai-site-button-container[data-site-theme="dark-surface"] .multi-ai-site-button-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.multi-ai-userprompt-button-container {
+  margin-left: 23px;
+  --multi-ai-userprompt-bg: rgba(255, 255, 255, 0.9);
+  --multi-ai-userprompt-bg-hover: rgba(255, 255, 255, 0.96);
+  --multi-ai-userprompt-bg-active: rgba(255, 255, 255, 0.84);
+  --multi-ai-userprompt-border: rgba(33, 41, 36, 0.14);
+  --multi-ai-userprompt-color: #1f2521;
+}
+
+.multi-ai-userprompt-button-container[data-site-theme="ai-studio-dark"],
+.multi-ai-userprompt-button-container[data-site-theme="dark-surface"] {
+  margin-left: 12px;
+  --multi-ai-userprompt-bg: rgba(255, 255, 255, 0.08);
+  --multi-ai-userprompt-bg-hover: rgba(255, 255, 255, 0.12);
+  --multi-ai-userprompt-bg-active: rgba(255, 255, 255, 0.16);
+  --multi-ai-userprompt-border: rgba(255, 255, 255, 0.14);
+  --multi-ai-userprompt-color: #eef1f5;
+}
+
+.multi-ai-userprompt-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--multi-ai-userprompt-border);
+  border-radius: 999px;
+  background: var(--multi-ai-userprompt-bg);
+  color: var(--multi-ai-userprompt-color);
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.multi-ai-userprompt-button:hover {
+  background-color: var(--multi-ai-userprompt-bg-hover);
+}
+
+.multi-ai-userprompt-button:active {
+  background-color: var(--multi-ai-userprompt-bg-active);
+  transform: scale(0.98);
+}
+
+.multi-ai-userprompt-button-container[data-site-theme="ai-studio-dark"] .multi-ai-userprompt-button,
+.multi-ai-userprompt-button-container[data-site-theme="dark-surface"] .multi-ai-userprompt-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: var(--multi-ai-userprompt-bg) !important;
+  border-color: var(--multi-ai-userprompt-border) !important;
+  color: var(--multi-ai-userprompt-color) !important;
+  background-image: none !important;
 }
 
 /* 针对不同站点的样式调整 */
@@ -68,5 +168,10 @@ button[aria-label="Send"] ~ .multi-ai-site-button-container {
   .multi-ai-site-button-icon {
     width: 20px;
     height: 20px;
+  }
+
+  .multi-ai-userprompt-button {
+    padding: 4px 8px;
+    font-size: 11px;
   }
 }

@@ -14,6 +14,99 @@ function hasStorageSync() {
   return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
 }
 
+function normalizeText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function parseCssColor(color) {
+  const normalized = normalizeText(color).toLowerCase();
+  if (!normalized || normalized === 'transparent' || normalized === 'inherit' || normalized === 'initial') {
+    return null;
+  }
+
+  const match = normalized.match(/^rgba?\(([^)]+)\)$/);
+  if (!match) {
+    return null;
+  }
+
+  const parts = match[1].split(',').map((part) => part.trim());
+  if (parts.length < 3) {
+    return null;
+  }
+
+  const red = Number.parseFloat(parts[0]);
+  const green = Number.parseFloat(parts[1]);
+  const blue = Number.parseFloat(parts[2]);
+  const alpha = Number.parseFloat(parts[3] ?? '1');
+
+  if (![red, green, blue, alpha].every(Number.isFinite)) {
+    return null;
+  }
+
+  return { red, green, blue, alpha };
+}
+
+function isDarkColor(color) {
+  const rgba = parseCssColor(color);
+  if (!rgba || rgba.alpha === 0) {
+    return false;
+  }
+
+  const brightness = (rgba.red * 299 + rgba.green * 587 + rgba.blue * 114) / 1000;
+  return brightness < 130;
+}
+
+function isDarkPage() {
+  const roots = [document.body, document.documentElement].filter(Boolean);
+  for (const root of roots) {
+    const bg = getComputedStyle(root).backgroundColor;
+    if (isDarkColor(bg)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isAiStudioSite(site) {
+  return site?.name === 'AI Studio' || /aistudio\.google\.com/i.test(String(site?.url || ''));
+}
+
+function detectCurrentSite(sites) {
+  const currentUrl = window.location.href;
+  const currentHostname = window.location.hostname;
+
+  for (const site of sites) {
+    try {
+      const siteUrl = new URL(site.url);
+      const siteHostname = siteUrl.hostname;
+
+      if (currentHostname === siteHostname ||
+          currentHostname.includes(siteHostname) ||
+          siteHostname.includes(currentHostname)) {
+        const sitePath = siteUrl.pathname;
+        if (sitePath && sitePath !== '/') {
+          if (currentUrl.includes(sitePath)) {
+            return site;
+          }
+        } else {
+          return site;
+        }
+      }
+    } catch (error) {
+      if (currentUrl.includes(site.url) || site.url.includes(currentHostname)) {
+        return site;
+      }
+    }
+  }
+
+  return null;
+}
+
+function shouldUseDarkToolbar(site) {
+  return !!(site?.userPrompt && (isAiStudioSite(site) || isDarkPage()));
+}
+
 function isSelectionQuickSearchEnabled(buttonConfig) {
   if (!buttonConfig || typeof buttonConfig !== 'object') return true;
   return buttonConfig.selectionQuickSearch !== false;
@@ -143,6 +236,12 @@ async function createToolbar() {
   
   toolbar = document.createElement('div');
   toolbar.className = 'multi-ai-toolbar';
+  toolbar.dataset.toolbarTheme = 'default';
+
+  const currentSite = detectCurrentSite(sites);
+  if (shouldUseDarkToolbar(currentSite)) {
+    toolbar.dataset.toolbarTheme = 'dark-surface';
+  }
   
   // 创建收藏站点按钮
   favoriteButton = document.createElement('button');

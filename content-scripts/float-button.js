@@ -10,9 +10,19 @@ function getBrandIconUrl(size = 48) {
   return chrome.runtime.getURL(`icons/icon${size}.png`);
 }
 
+let floatButtonActive = false;
+
+function removeFloatButton() {
+  floatButtonActive = false;
+  document.querySelector('.multi-ai-container')?.remove();
+  document.querySelector('.multi-ai-dialog')?.remove();
+  document.querySelector('.close-options-overlay')?.remove();
+}
+
 // 创建浮动按钮和对话框
 async function createFloatButton() {
   console.log('脚本开始加载');
+  floatButtonActive = true;
   
   // 获取当前语言的翻译
   const i18n = {
@@ -74,6 +84,9 @@ async function createFloatButton() {
 
   // 按钮的点击事件 - 直接打开侧边栏
   button.addEventListener('click', (e) => {
+    if (!floatButtonActive) {
+      return;
+    }
     e.stopPropagation(); // 阻止事件冒泡，避免触发页面的选择事件
     e.preventDefault();  // 阻止默认行为
     
@@ -179,6 +192,9 @@ async function createFloatButton() {
 
   // 鼠标按下
   button.addEventListener('mousedown', (e) => {
+    if (!floatButtonActive) {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation(); // 阻止事件冒泡，避免触发页面的选择事件
     isDragging = true;
@@ -191,6 +207,9 @@ async function createFloatButton() {
 
   // 鼠标移动
   document.addEventListener('mousemove', (e) => {
+    if (!floatButtonActive) {
+      return;
+    }
     if (!isDragging) return;
     
     const deltaY = e.clientY - startY;
@@ -213,6 +232,9 @@ async function createFloatButton() {
 
   // 鼠标松开
   document.addEventListener('mouseup', () => {
+    if (!floatButtonActive) {
+      return;
+    }
     if (isDragging) {
       isDragging = false;
       container.classList.remove('dragging');
@@ -224,6 +246,9 @@ async function createFloatButton() {
 
   // 添加快捷键监听 - 直接打开侧边栏
   document.addEventListener('keydown', (e) => {
+    if (!floatButtonActive) {
+      return;
+    }
     // 检查是否按下 Ctrl+M (Windows) 或 Command+M (Mac)
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
       e.preventDefault(); // 阻止默认行为
@@ -240,6 +265,9 @@ async function createFloatButton() {
   
   // 点击外部关闭对话框
   document.addEventListener('click', (e) => {
+    if (!floatButtonActive) {
+      return;
+    }
     if (!dialog.contains(e.target) && !button.contains(e.target)) {
       dialog.classList.remove('show');
     }
@@ -431,7 +459,7 @@ function handleCloseOption(option, container) {
   switch (option) {
     case 'temporary':
       // 临时关闭 - 直接移除容器
-      container.remove();
+      removeFloatButton();
       console.log('悬浮球已临时关闭');
       break;
       
@@ -443,10 +471,10 @@ function handleCloseOption(option, container) {
           disabledSites.push(currentDomain);
           chrome.storage.sync.set({ disabledSites }, () => {
             console.log(`已禁用 ${currentDomain} 的悬浮球`);
-            container.remove();
+            removeFloatButton();
           });
         } else {
-          container.remove();
+          removeFloatButton();
         }
       });
       break;
@@ -464,7 +492,7 @@ function handleCloseOption(option, container) {
           buttonConfig: updatedButtonConfig 
         }, () => {
           console.log('悬浮球已永久禁用，其他快捷入口不受影响');
-          container.remove();
+          removeFloatButton();
         });
       });
       break;
@@ -483,14 +511,34 @@ chrome.storage.sync.get(['buttonConfig', 'disabledSites'], async function(result
   // 检查是否全局禁用或当前网站被禁用
   if (!buttonConfig.floatButton) {
     console.log('浮动按钮已全局禁用');
+    removeFloatButton();
     return;
   }
   
   if (disabledSites.includes(currentDomain)) {
     console.log(`当前网站 ${currentDomain} 的悬浮球已被禁用`);
+    removeFloatButton();
     return;
   }
   
   // 创建浮动按钮
   createFloatButton();
 });
+
+if (chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'sync') return;
+    if (!changes.buttonConfig && !changes.disabledSites) return;
+
+    chrome.storage.sync.get(['buttonConfig', 'disabledSites'], async (result) => {
+      const defaultButtonConfig = await window.AppConfigManager.getButtonConfig();
+      const buttonConfig = result.buttonConfig || defaultButtonConfig;
+      const disabledSites = result.disabledSites || [];
+      const currentDomain = window.location.hostname;
+
+      if (!buttonConfig.floatButton || disabledSites.includes(currentDomain)) {
+        removeFloatButton();
+      }
+    });
+  });
+}

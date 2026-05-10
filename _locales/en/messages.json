@@ -905,13 +905,19 @@
     "message": "Unable to open review link"
   },
   "dataSyncTitle": {
-    "message": "Data Sync"
+    "message": "Sync & backup"
+  },
+  "cloudSyncTitle": {
+    "message": "Cloud sync"
+  },
+  "cloudSyncDescription": {
+    "message": "Sync your settings through WebDAV so they follow you across devices."
   },
   "dataSyncDescription": {
-    "message": "Sync all your settings across devices (Beta - may contain bugs)"
+    "message": "Choose cloud sync or a local backup. The two flows are separate."
   },
   "syncEnabledLabel": {
-    "message": "Enable sync to"
+    "message": "Enable cloud sync"
   },
   "syncOnChange": {
     "message": "Auto sync"
@@ -947,7 +953,7 @@
     "message": "Sync now"
   },
   "syncImportButton": {
-    "message": "Restore from cloud"
+    "message": "Restore from WebDAV"
   },
   "syncTesting": {
     "message": "Testing connection…"
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "Restore failed"
+  },
+  "localSyncTitle": {
+    "message": "Local backup"
+  },
+  "localSyncDescription": {
+    "message": "Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. WebDAV credentials are not included."
+  },
+  "localSyncBadge": {
+    "message": "JSON file"
+  },
+  "localSyncExportButton": {
+    "message": "Export backup"
+  },
+  "localSyncImportButton": {
+    "message": "Import backup"
+  },
+  "localSyncImportConfirm": {
+    "message": "Import this backup and overwrite the current sync data?"
+  },
+  "localSyncImporting": {
+    "message": "Restoring local backup..."
+  },
+  "localSyncExportSuccess": {
+    "message": "Backup downloaded"
+  },
+  "localSyncExportFailed": {
+    "message": "Backup export failed"
+  },
+  "localSyncImportSuccess": {
+    "message": "Local backup restored. Reload the page for changes to take effect."
+  },
+  "localSyncImportFailed": {
+    "message": "Restore failed"
+  },
+  "localSyncInvalidFile": {
+    "message": "This file is not a valid AI Compare backup"
   },
   "syncTokenPlaceholder": {
     "message": "Enter Token"

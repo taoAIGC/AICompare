@@ -72,6 +72,14 @@ function applySidebarBranding(root) {
     }
 }
 
+function getSidebarReviewUrl(externalLinks = {}) {
+    const configuredUrl = String(externalLinks.reviewLink || '').trim();
+    if (configuredUrl) {
+        return configuredUrl;
+    }
+    return `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
+}
+
 async function initializeSidebarActionLinks() {
     try {
         const config = await AppConfigManager.loadConfig();
@@ -123,8 +131,7 @@ async function initializeSidebarActionLinks() {
         if (reviewLink) {
             reviewLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                const reviewUrl = externalLinks.reviewLink ||
-                    '<REVIEW_URL>';
+                const reviewUrl = getSidebarReviewUrl(externalLinks);
                 safeTrackEvent('sidebar_review_click', {
                     has_review_link: Boolean(externalLinks.reviewLink)
                 });
@@ -178,7 +185,7 @@ async function initializeSidebarActionLinks() {
             reviewLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 chrome.tabs.create({
-                    url: '<REVIEW_URL>'
+                    url: getSidebarReviewUrl()
                 });
             });
         }

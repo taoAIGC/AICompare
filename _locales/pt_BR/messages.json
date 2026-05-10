@@ -905,13 +905,19 @@
     "message": "Não foi possível abrir o link de avaliação"
   },
   "dataSyncTitle": {
-    "message": "Sincronizacao de dados"
+    "message": "Sincronização e backup"
+  },
+  "cloudSyncTitle": {
+    "message": "Sincronização na nuvem"
+  },
+  "cloudSyncDescription": {
+    "message": "Sincronize suas configurações via WebDAV para mantê-las iguais em vários dispositivos."
   },
   "dataSyncDescription": {
-    "message": "Sincronize todas as suas configuracoes entre dispositivos (beta, pode conter erros)"
+    "message": "Escolha entre sincronização na nuvem ou backup local. Os dois fluxos são separados."
   },
   "syncEnabledLabel": {
-    "message": "Ativar sincronizacao para"
+    "message": "Ativar sincronização na nuvem"
   },
   "syncOnChange": {
     "message": "Sincronizacao automatica"
@@ -947,7 +953,7 @@
     "message": "Sincronizar agora"
   },
   "syncImportButton": {
-    "message": "Restaurar da nuvem"
+    "message": "Restaurar do WebDAV"
   },
   "syncTesting": {
     "message": "Testando conexao..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "Falha na restauracao"
+  },
+  "localSyncTitle": {
+    "message": "Backup local"
+  },
+  "localSyncDescription": {
+    "message": "Exporte os dados sincronizados atuais para um arquivo JSON local ou restaure-os a partir de um arquivo. O histórico exportado fica limitado aos 500 primeiros itens. As credenciais do WebDAV não são incluídas."
+  },
+  "localSyncBadge": {
+    "message": "Arquivo JSON"
+  },
+  "localSyncExportButton": {
+    "message": "Exportar backup"
+  },
+  "localSyncImportButton": {
+    "message": "Importar backup"
+  },
+  "localSyncImportConfirm": {
+    "message": "Importar este backup e sobrescrever os dados sincronizados atuais?"
+  },
+  "localSyncImporting": {
+    "message": "Restaurando backup local..."
+  },
+  "localSyncExportSuccess": {
+    "message": "Backup baixado"
+  },
+  "localSyncExportFailed": {
+    "message": "Falha ao exportar o backup"
+  },
+  "localSyncImportSuccess": {
+    "message": "Backup local restaurado. Recarregue a página para aplicar as alterações."
+  },
+  "localSyncImportFailed": {
+    "message": "Falha na restauração"
+  },
+  "localSyncInvalidFile": {
+    "message": "Este arquivo não é um backup válido do AI Compare"
   },
   "syncTokenPlaceholder": {
     "message": "Digite o token"

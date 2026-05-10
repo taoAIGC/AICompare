@@ -4529,6 +4529,39 @@ async function initDirectUserPromptButtons() {
   const wrapToMessageNode = new WeakMap();
   const messageNodeToWrap = new WeakMap();
   const messageKeyToWrap = new Map();
+  const safeGetRuntimeUrl = (path) => {
+    try {
+      return chrome?.runtime?.getURL ? chrome.runtime.getURL(path) : '';
+    } catch (error) {
+      console.warn('DirectUserPrompt: runtime URL unavailable', { path, error });
+      return '';
+    }
+  };
+  const detectUiSurface = () => {
+    const parseRgb = (value) => {
+      const match = typeof value === 'string' && value.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s\/]+([\d.]+))?\s*\)/i);
+      if (!match) return null;
+      const alpha = match[4] === undefined ? 1 : Number(match[4]);
+      if (!Number.isFinite(alpha) || alpha <= 0) return null;
+      const r = Number(match[1]);
+      const g = Number(match[2]);
+      const b = Number(match[3]);
+      if (![r, g, b].every(Number.isFinite)) return null;
+      return (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+    };
+    try {
+      for (const el of [document.body, document.documentElement]) {
+        if (!el) continue;
+        const luminance = parseRgb(window.getComputedStyle(el).backgroundColor);
+        if (luminance === null) continue;
+        return luminance < 128 ? 'dark' : 'light';
+      }
+    } catch (_) {}
+    try {
+      return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';
+    } catch (_) {}
+    return 'light';
+  };
   const ensureUserPromptButtonStyles = (() => {
     let injected = false;
     return () => {
@@ -4544,12 +4577,28 @@ async function initDirectUserPromptButtons() {
           pointer-events: auto;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
         }
         .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {
           opacity: 0;
           pointer-events: none;
           transition: opacity 0.15s ease;
+        }
+        .ai-compare-userprompt-btn-wrap {
+          --ai-compare-userprompt-surface: rgba(255, 255, 255, 0.74);
+          --ai-compare-userprompt-surface-hover: rgba(255, 255, 255, 0.92);
+          --ai-compare-userprompt-border: rgba(15, 23, 42, 0.10);
+          --ai-compare-userprompt-border-hover: rgba(15, 23, 42, 0.20);
+          --ai-compare-userprompt-focus-ring: rgba(59, 130, 246, 0.18);
+          --ai-compare-userprompt-fg: #111827;
+        }
+        .ai-compare-userprompt-btn-wrap[data-ai-compare-ui-surface="dark"] {
+          --ai-compare-userprompt-surface: rgba(17, 24, 39, 0.58);
+          --ai-compare-userprompt-surface-hover: rgba(17, 24, 39, 0.78);
+          --ai-compare-userprompt-border: rgba(255, 255, 255, 0.12);
+          --ai-compare-userprompt-border-hover: rgba(255, 255, 255, 0.22);
+          --ai-compare-userprompt-focus-ring: rgba(96, 165, 250, 0.28);
+          --ai-compare-userprompt-fg: #f9fafb;
         }
         html:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension,
         body:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {
@@ -4557,33 +4606,41 @@ async function initDirectUserPromptButtons() {
           pointer-events: auto;
         }
         .ai-compare-userprompt-action-btn {
-          border: 1px solid #dfdfdf;
-          background: #fff;
-          color: #333;
-          border-radius: 8px;
-          width: 34px;
-          height: 34px;
+          appearance: none;
+          -webkit-appearance: none;
+          border: 1px solid var(--ai-compare-userprompt-border);
+          background: var(--ai-compare-userprompt-surface);
+          color: var(--ai-compare-userprompt-fg);
+          border-radius: 999px;
+          width: 30px;
+          height: 30px;
           padding: 0;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: none;
-          transition: border-color 0.15s ease, background 0.15s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
         }
         .ai-compare-userprompt-action-btn:hover {
-          border-color: #111;
+          border-color: var(--ai-compare-userprompt-border-hover);
+          background: var(--ai-compare-userprompt-surface-hover);
+          transform: translateY(-1px);
         }
         .ai-compare-userprompt-action-btn:focus,
         .ai-compare-userprompt-action-btn:focus-visible {
           outline: none;
-          border-color: #111;
+          border-color: var(--ai-compare-userprompt-border-hover);
+          box-shadow: 0 0 0 2px var(--ai-compare-userprompt-focus-ring), 0 4px 12px rgba(0, 0, 0, 0.12);
         }
         .ai-compare-userprompt-action-icon {
-          width: 16px;
-          height: 16px;
+          width: 14px;
+          height: 14px;
           display: block;
+          opacity: 0.9;
         }
       `;
       (document.head || document.documentElement).appendChild(style);
@@ -4724,6 +4781,7 @@ async function initDirectUserPromptButtons() {
     ensureUserPromptButtonStyles();
     const btnWrap = document.createElement('span');
     btnWrap.className = 'ai-compare-userprompt-btn-wrap';
+    btnWrap.dataset.aiCompareUiSurface = detectUiSurface();
     if (inExtensionIframe) {
       btnWrap.classList.add('ai-compare-userprompt-btn-wrap-extension');
     }
@@ -4741,9 +4799,12 @@ async function initDirectUserPromptButtons() {
       btn.setAttribute('aria-label', userPromptLabel);
       const icon = document.createElement('img');
       icon.className = 'ai-compare-userprompt-action-icon';
-      icon.src = chrome.runtime.getURL('icons/columns-2.svg');
       icon.alt = '';
-      btn.appendChild(icon);
+      const iconUrl = safeGetRuntimeUrl('icons/columns-2.svg');
+      if (iconUrl) {
+        icon.src = iconUrl;
+        btn.appendChild(icon);
+      }
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -4763,7 +4824,13 @@ async function initDirectUserPromptButtons() {
     favIcon.alt = '';
 
     const updateFavBtnState = (isFavd) => {
-      favIcon.src = chrome.runtime.getURL(isFavd ? 'icons/star_saved.svg' : 'icons/star_unsaved.svg');
+      const favIconUrl = safeGetRuntimeUrl(isFavd ? 'icons/star_saved.svg' : 'icons/star_unsaved.svg');
+      if (favIconUrl) {
+        favIcon.src = favIconUrl;
+        if (!favIcon.isConnected) {
+          favBtn.appendChild(favIcon);
+        }
+      }
       const title = isFavd ? t('removeFromFavorites', '取消收藏') : t('addToFavorites', '收藏');
       favBtn.title = title;
       favBtn.setAttribute('aria-label', title);
@@ -4771,7 +4838,6 @@ async function initDirectUserPromptButtons() {
     };
 
     updateFavBtnState(false);
-    favBtn.appendChild(favIcon);
     checkPromptIsFavorited(text, siteName).then(state => updateFavBtnState(state));
 
     favBtn.addEventListener('click', async (e) => {

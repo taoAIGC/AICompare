@@ -900,13 +900,19 @@
     "message": "无法获取评分链接"
   },
   "dataSyncTitle": {
-    "message": "数据同步"
+    "message": "同步与备份"
+  },
+  "cloudSyncTitle": {
+    "message": "云同步"
+  },
+  "cloudSyncDescription": {
+    "message": "通过 WebDAV 同步你的设置，这样在不同设备上都能保持一致。"
   },
   "dataSyncDescription": {
-    "message": "跨设备同步您的所有设置与数据（Beta - 功能开发中，可能存在 bug）"
+    "message": "请在云同步与本地备份之间选择；两种方式彼此独立。"
   },
   "syncEnabledLabel": {
-    "message": "启用数据同步至"
+    "message": "启用云同步"
   },
   "syncOnChange": {
     "message": "自动同步"
@@ -942,7 +948,7 @@
     "message": "立即同步"
   },
   "syncImportButton": {
-    "message": "从云端恢复"
+    "message": "从 WebDAV 恢复"
   },
   "syncTesting": {
     "message": "正在测试连接…"
@@ -970,6 +976,42 @@
   },
   "syncImportFailed": {
     "message": "恢复失败"
+  },
+  "localSyncTitle": {
+    "message": "本地备份"
+  },
+  "localSyncDescription": {
+    "message": "导出当前同步数据到本地 JSON 文件，或从文件恢复；历史记录导出时会截到前 500 条；不包含 WebDAV 连接信息。"
+  },
+  "localSyncBadge": {
+    "message": "JSON 文件"
+  },
+  "localSyncExportButton": {
+    "message": "导出备份"
+  },
+  "localSyncImportButton": {
+    "message": "导入备份"
+  },
+  "localSyncImportConfirm": {
+    "message": "导入此备份并覆盖当前同步数据吗？"
+  },
+  "localSyncImporting": {
+    "message": "正在恢复本地备份..."
+  },
+  "localSyncExportSuccess": {
+    "message": "备份已下载"
+  },
+  "localSyncExportFailed": {
+    "message": "导出失败"
+  },
+  "localSyncImportSuccess": {
+    "message": "本地备份已恢复，请刷新页面生效"
+  },
+  "localSyncImportFailed": {
+    "message": "恢复失败"
+  },
+  "localSyncInvalidFile": {
+    "message": "该文件不是有效的 AI 比一比 备份文件"
   },
   "syncTokenPlaceholder": {
     "message": "输入 Token"

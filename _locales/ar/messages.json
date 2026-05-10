@@ -905,13 +905,19 @@
     "message": "تعذّر فتح رابط التقييم"
   },
   "dataSyncTitle": {
-    "message": "مزامنة البيانات"
+    "message": "المزامنة والنسخ الاحتياطي"
+  },
+  "cloudSyncTitle": {
+    "message": "المزامنة السحابية"
+  },
+  "cloudSyncDescription": {
+    "message": "زامن إعداداتك عبر WebDAV لتبقى متطابقة على جميع أجهزتك."
   },
   "dataSyncDescription": {
-    "message": "زامن جميع اعداداتك بين الاجهزة (اصدار تجريبي وقد يحتوي على اخطاء)"
+    "message": "اختر المزامنة السحابية أو النسخ الاحتياطي المحلي. المساران منفصلان."
   },
   "syncEnabledLabel": {
-    "message": "تفعيل المزامنة الى"
+    "message": "تفعيل المزامنة السحابية"
   },
   "syncOnChange": {
     "message": "مزامنة تلقائية"
@@ -947,7 +953,7 @@
     "message": "زامن الان"
   },
   "syncImportButton": {
-    "message": "استعادة من السحابة"
+    "message": "استعادة من WebDAV"
   },
   "syncTesting": {
     "message": "جار اختبار الاتصال..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "فشلت الاستعادة"
+  },
+  "localSyncTitle": {
+    "message": "نسخة احتياطية محلية"
+  },
+  "localSyncDescription": {
+    "message": "صدّر بيانات المزامنة الحالية إلى ملف JSON محلي أو استعدها من ملف. يقتصر تصدير السجل على أول 500 عنصر. لا تتضمن بيانات اعتماد WebDAV."
+  },
+  "localSyncBadge": {
+    "message": "ملف JSON"
+  },
+  "localSyncExportButton": {
+    "message": "تصدير النسخة الاحتياطية"
+  },
+  "localSyncImportButton": {
+    "message": "استيراد النسخة الاحتياطية"
+  },
+  "localSyncImportConfirm": {
+    "message": "هل تريد استيراد هذه النسخة الاحتياطية واستبدال بيانات المزامنة الحالية؟"
+  },
+  "localSyncImporting": {
+    "message": "جارٍ استعادة النسخة الاحتياطية المحلية..."
+  },
+  "localSyncExportSuccess": {
+    "message": "تم تنزيل النسخة الاحتياطية"
+  },
+  "localSyncExportFailed": {
+    "message": "فشل تصدير النسخة الاحتياطية"
+  },
+  "localSyncImportSuccess": {
+    "message": "تمت استعادة النسخة الاحتياطية المحلية. أعد تحميل الصفحة لتطبيق التغييرات."
+  },
+  "localSyncImportFailed": {
+    "message": "فشل الاستعادة"
+  },
+  "localSyncInvalidFile": {
+    "message": "هذا الملف ليس نسخة احتياطية صالحة لـ AI Compare"
   },
   "syncTokenPlaceholder": {
     "message": "ادخل الرمز"

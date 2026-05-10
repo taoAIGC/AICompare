@@ -10,6 +10,7 @@
 !/debug/verify-chatgpt-live.js
 !/debug/verify-gemini-live.js
 !/debug/verify-deepseek-live.js
+!/debug/verify-remote-search-playwright.js
 !/debug/verify-nano-banana-live.js
 !/debug/verify-dots-ai-config.js
 !/debug/verify-dots-ai-live.js

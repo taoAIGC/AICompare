@@ -905,13 +905,19 @@
     "message": "無法获取评分链接"
   },
   "dataSyncTitle": {
-    "message": "資料同步"
+    "message": "同步與備份"
+  },
+  "cloudSyncTitle": {
+    "message": "雲端同步"
+  },
+  "cloudSyncDescription": {
+    "message": "透過 WebDAV 同步你的設定，讓不同裝置保持一致。"
   },
   "dataSyncDescription": {
-    "message": "跨裝置同步您的所有設定与資料（Beta - 功能开发中，可能存在 bug）"
+    "message": "請在雲端同步與本機備份之間選擇；兩種方式彼此獨立。"
   },
   "syncEnabledLabel": {
-    "message": "啟用資料同步至"
+    "message": "啟用雲端同步"
   },
   "syncOnChange": {
     "message": "自動同步"
@@ -947,7 +953,7 @@
     "message": "立即同步"
   },
   "syncImportButton": {
-    "message": "从雲端恢復"
+    "message": "從 WebDAV 還原"
   },
   "syncTesting": {
     "message": "正在測試連線…"
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "恢復失敗"
+  },
+  "localSyncTitle": {
+    "message": "本機備份"
+  },
+  "localSyncDescription": {
+    "message": "將目前同步資料匯出為本機 JSON 檔，或從檔案還原；歷史記錄匯出時會截到前 500 筆；不包含 WebDAV 連線資訊。"
+  },
+  "localSyncBadge": {
+    "message": "JSON 檔"
+  },
+  "localSyncExportButton": {
+    "message": "匯出備份"
+  },
+  "localSyncImportButton": {
+    "message": "匯入備份"
+  },
+  "localSyncImportConfirm": {
+    "message": "匯入此備份並覆蓋目前的同步資料嗎？"
+  },
+  "localSyncImporting": {
+    "message": "正在還原本機備份..."
+  },
+  "localSyncExportSuccess": {
+    "message": "備份已下載"
+  },
+  "localSyncExportFailed": {
+    "message": "匯出失敗"
+  },
+  "localSyncImportSuccess": {
+    "message": "本機備份已還原，請重新整理頁面以套用變更。"
+  },
+  "localSyncImportFailed": {
+    "message": "還原失敗"
+  },
+  "localSyncInvalidFile": {
+    "message": "此檔案不是有效的 AI 比一比 備份檔"
   },
   "syncTokenPlaceholder": {
     "message": "輸入 Token"

@@ -905,13 +905,19 @@
     "message": "レビューリンクを開けません"
   },
   "dataSyncTitle": {
-    "message": "データ同期"
+    "message": "同期とバックアップ"
+  },
+  "cloudSyncTitle": {
+    "message": "クラウド同期"
+  },
+  "cloudSyncDescription": {
+    "message": "WebDAV を使って設定を同期し、複数デバイスで同じ状態に保ちます。"
   },
   "dataSyncDescription": {
-    "message": "すべての設定をデバイス間で同期します（ベータ版のため不具合が含まれる場合があります）"
+    "message": "クラウド同期とローカルバックアップを分けて使えます。"
   },
   "syncEnabledLabel": {
-    "message": "同期先を有効化"
+    "message": "クラウド同期を有効化"
   },
   "syncOnChange": {
     "message": "自動同期"
@@ -947,7 +953,7 @@
     "message": "今すぐ同期"
   },
   "syncImportButton": {
-    "message": "クラウドから復元"
+    "message": "WebDAV から復元"
   },
   "syncTesting": {
     "message": "接続をテスト中..."
@@ -975,6 +981,42 @@
   },
   "syncImportFailed": {
     "message": "復元に失敗しました"
+  },
+  "localSyncTitle": {
+    "message": "ローカルバックアップ"
+  },
+  "localSyncDescription": {
+    "message": "現在の同期データをローカル JSON ファイルに書き出すか、ファイルから復元できます。履歴の書き出しは先頭 500 件までです。WebDAV の認証情報は含まれません。"
+  },
+  "localSyncBadge": {
+    "message": "JSON ファイル"
+  },
+  "localSyncExportButton": {
+    "message": "バックアップを書き出す"
+  },
+  "localSyncImportButton": {
+    "message": "バックアップを読み込む"
+  },
+  "localSyncImportConfirm": {
+    "message": "このバックアップを読み込み、現在の同期データを上書きしますか？"
+  },
+  "localSyncImporting": {
+    "message": "ローカルバックアップを復元中..."
+  },
+  "localSyncExportSuccess": {
+    "message": "バックアップをダウンロードしました"
+  },
+  "localSyncExportFailed": {
+    "message": "バックアップの書き出しに失敗しました"
+  },
+  "localSyncImportSuccess": {
+    "message": "ローカルバックアップを復元しました。変更を反映するにはページを再読み込みしてください。"
+  },
+  "localSyncImportFailed": {
+    "message": "復元に失敗しました"
+  },
+  "localSyncInvalidFile": {
+    "message": "このファイルは有効な AI 比一比 のバックアップではありません"
   },
   "syncTokenPlaceholder": {
     "message": "トークンを入力"
