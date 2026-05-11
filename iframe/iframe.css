@@ -1748,6 +1748,36 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     cursor: not-allowed;
 }
 
+.timeline-copy-preview-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.timeline-copy-preview-analyze {
+    border: 1px solid #d7e6ff;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+    color: #174ea6;
+    border-radius: 10px;
+    min-width: 72px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.timeline-copy-preview-analyze:hover {
+    border-color: #9dbdf6;
+}
+
+.timeline-copy-preview-analyze:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .timeline-copy-preview-meta {
     padding: 10px 20px 0;
     font-size: 12px;
@@ -1773,6 +1803,7 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
 .timeline-copy-preview-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
     padding: 16px 20px 20px;
 }
 

@@ -48,6 +48,9 @@ let __directHistoryLastQuery = '';
 let __directHistoryLastAt = 0;
 let __directHistoryIsComposing = false;
 let __userPromptButtonsInit = false;
+let __directUserPromptButtonsEnabled = true;
+let __directUserPromptButtonsRefresh = null;
+let __directUserPromptButtonsSettingListenerInstalled = false;
 let __currentInjectStepMeta = null;
 let __timelinePromptPushInitialized = false;
 let __timelinePromptPushTimer = null;
@@ -113,6 +116,55 @@ async function safeStorageSet(data) {
     console.warn('DirectHistory: storage.set failed', error);
     return false;
   }
+}
+
+async function getDirectUserPromptButtonsEnabled() {
+  if (!isExtensionContextValid()) return false;
+  try {
+    const { buttonConfig = {} } = await chrome.storage.sync.get(['buttonConfig']);
+    return buttonConfig.aiSiteUserPromptButtons === true;
+  } catch (error) {
+    console.warn('DirectUserPrompt: read buttonConfig failed', error);
+    return false;
+  }
+}
+
+function applyDirectUserPromptButtonsState(enabled) {
+  __directUserPromptButtonsEnabled = enabled !== false;
+  if (!__directUserPromptButtonsEnabled) {
+    document.querySelectorAll('.ai-compare-userprompt-btn-wrap').forEach((btnWrap) => {
+      try {
+        btnWrap.remove();
+      } catch (_) {}
+    });
+    return;
+  }
+
+  if (typeof __directUserPromptButtonsRefresh === 'function') {
+    __directUserPromptButtonsRefresh();
+  }
+}
+
+function ensureDirectUserPromptButtonsSettingListener() {
+  if (__directUserPromptButtonsSettingListenerInstalled) return;
+  __directUserPromptButtonsSettingListenerInstalled = true;
+  if (!chrome?.storage?.onChanged) return;
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync' || !changes.buttonConfig) return;
+    const nextEnabled = changes.buttonConfig.newValue?.aiSiteUserPromptButtons === true;
+    if (nextEnabled === __directUserPromptButtonsEnabled) {
+      if (nextEnabled && typeof __directUserPromptButtonsRefresh === 'function') {
+        __directUserPromptButtonsRefresh();
+      }
+      return;
+    }
+
+    applyDirectUserPromptButtonsState(nextEnabled);
+    if (nextEnabled && !__userPromptButtonsInit) {
+      void initDirectUserPromptButtons();
+    }
+  });
 }
 
 // 动态检查是否在 AI 站点中运行
@@ -4459,7 +4511,7 @@ function showAiFavModal(currentFolderId, onDone) {
 
 async function initDirectUserPromptButtons() {
   if (__userPromptButtonsInit) return;
-  __userPromptButtonsInit = true;
+  ensureDirectUserPromptButtonsSettingListener();
 
   const isAI = await checkAISite();
   if (!isAI) {
@@ -4467,10 +4519,18 @@ async function initDirectUserPromptButtons() {
     return;
   }
 
+  const directButtonsEnabled = await getDirectUserPromptButtonsEnabled();
+  __directUserPromptButtonsEnabled = directButtonsEnabled;
+  if (!directButtonsEnabled || !__directUserPromptButtonsEnabled) {
+    console.log('DirectUserPrompt: disabled by buttonConfig, skip');
+    return;
+  }
+
   if (window.__aiCompareUserPromptButtonsInitialized) {
     console.log('DirectUserPrompt: already initialized on this page, skip');
     return;
   }
+  __userPromptButtonsInit = true;
   window.__aiCompareUserPromptButtonsInitialized = true;
 
   const domain = window.location.hostname;
@@ -4577,7 +4637,7 @@ async function initDirectUserPromptButtons() {
           pointer-events: auto;
           display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
         }
         .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {
           opacity: 0;
@@ -4585,20 +4645,12 @@ async function initDirectUserPromptButtons() {
           transition: opacity 0.15s ease;
         }
         .ai-compare-userprompt-btn-wrap {
-          --ai-compare-userprompt-surface: rgba(255, 255, 255, 0.74);
-          --ai-compare-userprompt-surface-hover: rgba(255, 255, 255, 0.92);
-          --ai-compare-userprompt-border: rgba(15, 23, 42, 0.10);
-          --ai-compare-userprompt-border-hover: rgba(15, 23, 42, 0.20);
-          --ai-compare-userprompt-focus-ring: rgba(59, 130, 246, 0.18);
           --ai-compare-userprompt-fg: #111827;
+          --ai-compare-userprompt-focus-ring: rgba(59, 130, 246, 0.18);
         }
         .ai-compare-userprompt-btn-wrap[data-ai-compare-ui-surface="dark"] {
-          --ai-compare-userprompt-surface: rgba(17, 24, 39, 0.58);
-          --ai-compare-userprompt-surface-hover: rgba(17, 24, 39, 0.78);
-          --ai-compare-userprompt-border: rgba(255, 255, 255, 0.12);
-          --ai-compare-userprompt-border-hover: rgba(255, 255, 255, 0.22);
-          --ai-compare-userprompt-focus-ring: rgba(96, 165, 250, 0.28);
           --ai-compare-userprompt-fg: #f9fafb;
+          --ai-compare-userprompt-focus-ring: rgba(96, 165, 250, 0.28);
         }
         html:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension,
         body:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {
@@ -4608,33 +4660,35 @@ async function initDirectUserPromptButtons() {
         .ai-compare-userprompt-action-btn {
           appearance: none;
           -webkit-appearance: none;
-          border: 1px solid var(--ai-compare-userprompt-border);
-          background: var(--ai-compare-userprompt-surface);
+          border: none;
+          background: transparent;
           color: var(--ai-compare-userprompt-fg);
           border-radius: 999px;
-          width: 30px;
-          height: 30px;
+          width: 28px;
+          height: 28px;
           padding: 0;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+          box-shadow: none;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+          transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease;
+          opacity: 0.78;
         }
         .ai-compare-userprompt-action-btn:hover {
-          border-color: var(--ai-compare-userprompt-border-hover);
-          background: var(--ai-compare-userprompt-surface-hover);
+          background: transparent;
           transform: translateY(-1px);
+          opacity: 1;
         }
         .ai-compare-userprompt-action-btn:focus,
         .ai-compare-userprompt-action-btn:focus-visible {
           outline: none;
-          border-color: var(--ai-compare-userprompt-border-hover);
-          box-shadow: 0 0 0 2px var(--ai-compare-userprompt-focus-ring), 0 4px 12px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 0 0 2px var(--ai-compare-userprompt-focus-ring);
+          background: transparent;
+          opacity: 1;
         }
         .ai-compare-userprompt-action-icon {
           width: 14px;
@@ -4749,6 +4803,7 @@ async function initDirectUserPromptButtons() {
 
   const addButtonToContainer = (node) => {
     if (!node) return;
+    if (!__directUserPromptButtonsEnabled) return;
     const container = config.containerSelector ? node : (node.parentElement || node);
     if (!container) return;
     if (container.closest('.ai-compare-userprompt-btn-wrap, .ai-fav-modal-overlay, dialog, [role="dialog"], [aria-modal="true"]')) return;
@@ -4866,12 +4921,17 @@ async function initDirectUserPromptButtons() {
   window.addEventListener('resize', onScrollResize);
 
   const scan = () => {
+    if (!__directUserPromptButtonsEnabled) return;
     const rawContainers = Array.from(document.querySelectorAll(config.containerSelector || config.textSelector));
     // 去掉嵌套重复命中的节点，避免同一条消息出现多组按钮
     const containers = rawContainers.filter(node => !rawContainers.some(other => other !== node && other.contains(node)));
     console.log('DirectUserPrompt: scan containers', containers.length);
     containers.forEach(node => addButtonToContainer(node));
     updateFloatingPositions();
+  };
+  __directUserPromptButtonsRefresh = () => {
+    if (!__directUserPromptButtonsEnabled) return;
+    scan();
   };
 
   const waitForBody = () => new Promise(resolve => {

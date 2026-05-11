@@ -3,7 +3,7 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - 원클릭으로 ChatGPT, Gemini, Grok 등을 비교하세요."
+    "message": "AI Compare - 여러 AI 원클릭 비교 및 결과 복사"
   },
   "extDescription": {
     "message": "AI Compare는 여러 AI의 답변 중 최상의 답을 빠르게 찾도록 도와줍니다."
@@ -281,6 +281,10 @@
   "selectionCompareButton": {
     "message": "텍스트 선택 비교 버튼",
     "description": "The name for the selection compare button toggle"
+  },
+  "aiSiteUserPromptButtons": {
+    "message": "AI 사이트 버튼(비교/즐겨찾기)",
+    "description": "AI 사이트 메시지 옆의 비교 버튼과 즐겨찾기 버튼을 전환합니다"
   },
   "contextMenu": {
     "message": "컨텍스트 메뉴",
@@ -1388,6 +1392,66 @@
   },
   "timelineCopyPreviewConfirm": {
     "message": "Confirm copy"
+  },
+  "timelineCopyPreviewAnalyze": {
+    "message": "Analyze"
+  },
+  "timelineCopyPreviewAnalyzeLoading": {
+    "message": "Opening..."
+  },
+  "timelineCopyPreviewAnalyzeFailed": {
+    "message": "Failed to open the analysis page. Please try again."
+  },
+  "analysisPageTitle": {
+    "message": "New Tab Analysis"
+  },
+  "analysisPageEyebrow": {
+    "message": "New Tab Analysis"
+  },
+  "analysisPageReload": {
+    "message": "Re-analyze"
+  },
+  "analysisPageQuestionLabel": {
+    "message": "Question"
+  },
+  "analysisPageSummaryLabel": {
+    "message": "Summary"
+  },
+  "analysisPageRawAnswersLabel": {
+    "message": "Raw Answers"
+  },
+  "analysisPageOutputLabel": {
+    "message": "Analysis Output"
+  },
+  "analysisPageLoading": {
+    "message": "Loading analysis page..."
+  },
+  "analysisPageLoaded": {
+    "message": "Analysis page loaded, running comparison..."
+  },
+  "analysisPagePayloadMissing": {
+    "message": "Unable to read analysis data. Please close and reopen the page."
+  },
+  "analysisPageNoResponses": {
+    "message": "There are no site answers to display."
+  },
+  "analysisPageNoQuestion": {
+    "message": "No question provided."
+  },
+  "analysisPageNoSummary": {
+    "message": "No summary result is available."
+  },
+  "analysisPageTitleFallback": {
+    "message": "New Tab Analysis"
+  },
+  "analysisPageSubtitle": {
+    "message": "The question, summary, and raw answers stay here while the analysis page below continues the multi-model comparison."
+  },
+  "analysisPageReloading": {
+    "message": "Re-running analysis..."
+  },
+  "analysisPageFrameMissing": {
+    "message": "Unable to open the analysis page."
   },
   "timelineSiteNotReady": {
     "message": "페이지가 아직 준비되지 않았습니다"

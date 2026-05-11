@@ -78,6 +78,7 @@ const ratingReminderState = {
 };
 
 const TimelineUtils = window.IframeTimelineUtils || {};
+const AnalysisUtils = window.IframeAnalysisUtils || {};
 const DEEP_RESEARCH_TIMEOUT_MS = 8000;
 let deepResearchBatchInProgress = false;
 const timelineBuildEntry = typeof TimelineUtils.buildTimelineEntry === 'function'
@@ -95,6 +96,34 @@ const timelineBuildCopyText = typeof TimelineUtils.buildTimelineCopyText === 'fu
 const timelineMergeSnapshots = typeof TimelineUtils.mergeTimelinePromptSnapshots === 'function'
   ? TimelineUtils.mergeTimelinePromptSnapshots
   : ((snapshots) => snapshots || []);
+const analysisBuildPayload = typeof AnalysisUtils.buildTimelineAnalysisPayload === 'function'
+  ? AnalysisUtils.buildTimelineAnalysisPayload
+  : ((options = {}) => ({
+      version: 1,
+      token: '',
+      createdAt: new Date().toISOString(),
+      entry: options?.entry || null,
+      question: String(options?.question || options?.entry?.query || '').trim(),
+      summaryText: String(options?.summaryText || options?.copyText || '').trim(),
+      responses: Array.isArray(options?.responses) ? options.responses : [],
+      compareSites: [],
+      successCount: Math.max(0, Number(options?.successCount) || 0),
+      totalCount: Math.max(0, Number(options?.totalCount) || 0),
+      analysisPrompt: '',
+      displayText: ''
+    }));
+const analysisSavePayload = typeof AnalysisUtils.saveTimelineAnalysisPayload === 'function'
+  ? AnalysisUtils.saveTimelineAnalysisPayload
+  : async (payload) => ({
+      token: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      payload
+    });
+const analysisBuildCompareUrl = typeof AnalysisUtils.buildTimelineAnalysisCompareUrl === 'function'
+  ? AnalysisUtils.buildTimelineAnalysisCompareUrl
+  : ((token) => {
+      if (!token || !chrome?.runtime?.getURL) return '';
+      return chrome.runtime.getURL(`iframe/iframe.html?analysisToken=${encodeURIComponent(token)}&analysisMode=1`);
+    });
 const timelineState = {
   entries: [],
   isOpen: false,
@@ -580,6 +609,7 @@ function formatTimelineDateLabel(timestamp) {
 
 async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entryOverride = null) {
   if (!overlay || !metaEl || !contentEl || !confirmBtn || !refreshBtn) return;
+  const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
 
   const currentEntryKey = overlay.dataset.activeEntryKey || '';
   const entry = entryOverride
@@ -606,7 +636,7 @@ async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confi
   confirmBtn.dataset.totalCount = '0';
 
   try {
-    const { copyText, successCount, totalCount } = await collectTimelineEntryResponses(entry);
+    const { copyText, successCount, totalCount, responses } = await collectTimelineEntryResponses(entry);
     if (overlay.dataset.activeEntryKey !== currentEntryKey) return;
 
     const previewText = String(copyText || '').trim() || t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。');
@@ -620,12 +650,24 @@ async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confi
     confirmBtn.dataset.copyText = copyText || '';
     confirmBtn.dataset.successCount = String(successCount);
     confirmBtn.dataset.totalCount = String(totalCount);
+    overlay.__timelineCopyPreviewResponses = Array.isArray(responses) ? responses : [];
+    overlay.__timelineCopyPreviewCopyText = copyText || '';
+    if (analyzeBtn instanceof HTMLButtonElement) {
+      analyzeBtn.disabled = !String(copyText || '').trim();
+      analyzeBtn.textContent = t('timelineCopyPreviewAnalyze', '分析');
+    }
   } catch (error) {
     if (overlay.dataset.activeEntryKey !== currentEntryKey) return;
     console.error('刷新时间线回答预览失败:', error);
     metaEl.textContent = t('timelineCopyPreviewLoadFailed', '加载回答失败，请稍后重试。');
     contentEl.textContent = error?.message || String(error);
     confirmBtn.disabled = true;
+    overlay.__timelineCopyPreviewResponses = [];
+    overlay.__timelineCopyPreviewCopyText = '';
+    if (analyzeBtn instanceof HTMLButtonElement) {
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = t('timelineCopyPreviewAnalyze', '分析');
+    }
   } finally {
     if (overlay.dataset.activeEntryKey === currentEntryKey) {
       overlay.dataset.loading = 'false';
@@ -656,11 +698,14 @@ function ensureTimelineCopyPreviewModal() {
       >×</button>
       <div class="timeline-copy-preview-header">
         <div class="timeline-copy-preview-title" id="timelineCopyPreviewTitle">${escapeHtml(t('timelineCopyPreviewTitle', '复制回答汇总'))}</div>
-        <button class="timeline-copy-preview-refresh" type="button">${escapeHtml(t('timelineCopyPreviewRefresh', '刷新'))}</button>
+        <div class="timeline-copy-preview-header-actions">
+          <button class="timeline-copy-preview-refresh" type="button">${escapeHtml(t('timelineCopyPreviewRefresh', '刷新'))}</button>
+        </div>
       </div>
       <div class="timeline-copy-preview-meta"></div>
       <pre class="timeline-copy-preview-content" aria-live="polite"></pre>
       <div class="timeline-copy-preview-actions">
+        <button class="timeline-copy-preview-analyze" type="button">${escapeHtml(t('timelineCopyPreviewAnalyze', '分析'))}</button>
         <button class="timeline-copy-preview-confirm" type="button">${escapeHtml(t('timelineCopyPreviewConfirm', '确认复制'))}</button>
       </div>
     </div>
@@ -690,6 +735,43 @@ function ensureTimelineCopyPreviewModal() {
     } catch (error) {
       console.error('复制时间线回答失败:', error);
       showToast(t('timelineCopyFailed', '复制失败，请重试'));
+    }
+  });
+
+  overlay.querySelector('.timeline-copy-preview-analyze')?.addEventListener('click', async () => {
+    const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
+    const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+    if (!(analyzeBtn instanceof HTMLButtonElement) || !(confirmBtn instanceof HTMLButtonElement)) return;
+
+    const copyText = overlay.__timelineCopyPreviewCopyText || confirmBtn.dataset.copyText || '';
+    if (!String(copyText || '').trim()) return;
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = t('timelineCopyPreviewAnalyzeLoading', '打开中...');
+
+    try {
+      const payload = analysisBuildPayload({
+        entry: overlay.__timelineCopyPreviewEntry || null,
+        summaryText: copyText,
+        responses: Array.isArray(overlay.__timelineCopyPreviewResponses) ? overlay.__timelineCopyPreviewResponses : [],
+        question: overlay.__timelineCopyPreviewEntry?.query || '',
+        successCount: Number(confirmBtn.dataset.successCount || '0') || 0,
+        totalCount: Number(confirmBtn.dataset.totalCount || '0') || 0
+      });
+      const saved = await analysisSavePayload(payload);
+      const analysisUrl = analysisBuildCompareUrl(saved?.token || '');
+      if (!analysisUrl) {
+        throw new Error('Failed to build analysis url');
+      }
+
+      chrome.tabs.create({ url: analysisUrl });
+      closeModal();
+    } catch (error) {
+      console.error('打开新标签页分析失败:', error);
+      showToast(t('timelineCopyPreviewAnalyzeFailed', '打开分析页失败，请重试'));
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = t('timelineCopyPreviewAnalyze', '分析');
     }
   });
 
@@ -726,8 +808,9 @@ async function showTimelineCopyPreviewModal(entry) {
   const contentEl = overlay.querySelector('.timeline-copy-preview-content');
   const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
   const refreshBtn = overlay.querySelector('.timeline-copy-preview-refresh');
+  const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
   const closeBtn = overlay.querySelector('.timeline-copy-preview-close');
-  if (!metaEl || !contentEl || !confirmBtn || !refreshBtn || !closeBtn) return;
+  if (!metaEl || !contentEl || !confirmBtn || !refreshBtn || !analyzeBtn || !closeBtn) return;
 
   const activeEntryKey = String(entry?.timelineId || buildTimelineFavoriteKey(entry));
   const isSameVisibleEntry = overlay.classList.contains('is-visible')
@@ -750,10 +833,16 @@ async function showTimelineCopyPreviewModal(entry) {
   confirmBtn.dataset.copyText = '';
   confirmBtn.dataset.successCount = '0';
   confirmBtn.dataset.totalCount = '0';
+  overlay.__timelineCopyPreviewResponses = [];
+  overlay.__timelineCopyPreviewCopyText = '';
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = t('timelineCopyPreviewAnalyzeLoading', '打开中...');
   refreshBtn.disabled = true;
   await refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entry);
   if (overlay.dataset.requestToken === requestToken) {
     overlay.dataset.loading = 'false';
+    analyzeBtn.disabled = !String(confirmBtn.dataset.copyText || '').trim();
+    analyzeBtn.textContent = t('timelineCopyPreviewAnalyze', '分析');
   }
 }
 
@@ -2751,7 +2840,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 检查 URL 参数，判断打开方式
     const urlParams = new URLSearchParams(window.location.search);
-    const hasQueryParam = urlParams.has('query');
+    const analysisToken = urlParams.get('analysisToken');
+    const analysisContext = analysisToken && typeof AnalysisUtils.loadTimelineAnalysisPayload === 'function'
+      ? await AnalysisUtils.loadTimelineAnalysisPayload(analysisToken)
+      : null;
+    const analysisQuery = analysisContext && typeof AnalysisUtils.buildAnalysisPrompt === 'function'
+      ? AnalysisUtils.buildAnalysisPrompt(analysisContext)
+      : '';
+    const hasQueryParam = urlParams.has('query') || Boolean(analysisContext);
     const hasSitesParam = urlParams.has('sites');
     const hasCustomSitesParam = urlParams.has('customSites');
 
@@ -2774,6 +2870,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             selectedSiteNames = sitesParam.split(',').map(name => name.trim()).filter(name => name);
             console.log('从 URL 参数获取指定的站点列表:', selectedSiteNames);
         }
+    }
+    if (!selectedSiteNames && Array.isArray(analysisContext?.compareSites) && analysisContext.compareSites.length > 0) {
+        selectedSiteNames = analysisContext.compareSites.map((name) => String(name || '').trim()).filter(Boolean);
+        console.log('从分析载荷获取指定的站点列表:', selectedSiteNames);
     }
 
     let selectedCustomSiteIds = null;
@@ -2811,7 +2911,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     if (!restoredHistoryIframesOnInit && hasQueryParam) {
         // 从 URL 参数中获取查询内容
-        const query = historyRestoreContext?.query || urlParams.get('query');
+        const query = historyRestoreContext?.query || analysisQuery || urlParams.get('query');
         console.log('从 URL 参数获取查询内容:', query);
         
         if (query && query !== 'true') {

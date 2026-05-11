@@ -3,7 +3,7 @@
     "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI 比一比 - 一鍵對比 ChatGPT、Gemini、Grok 等多個 AI"
+    "message": "AI Compare-多 AI 一鍵對比、複製結果"
   },
   "extDescription": {
     "message": "幫你從十多個 AI 中快速找到最佳答案。"
@@ -281,6 +281,10 @@
   "selectionCompareButton": {
     "message": "劃詞對比按鈕",
     "description": "The name for the selection compare button toggle"
+  },
+  "aiSiteUserPromptButtons": {
+    "message": "AI 站內按鈕（對比/收藏）",
+    "description": "切換 AI 站點訊息旁的對比和收藏按鈕"
   },
   "contextMenu": {
     "message": "右键選單",
@@ -1388,6 +1392,66 @@
   },
   "timelineCopyPreviewConfirm": {
     "message": "確認複製"
+  },
+  "timelineCopyPreviewAnalyze": {
+    "message": "分析"
+  },
+  "timelineCopyPreviewAnalyzeLoading": {
+    "message": "開啟中..."
+  },
+  "timelineCopyPreviewAnalyzeFailed": {
+    "message": "開啟分析頁失敗，請重試"
+  },
+  "analysisPageTitle": {
+    "message": "新分頁分析"
+  },
+  "analysisPageEyebrow": {
+    "message": "新分頁分析"
+  },
+  "analysisPageReload": {
+    "message": "重新分析"
+  },
+  "analysisPageQuestionLabel": {
+    "message": "問題"
+  },
+  "analysisPageSummaryLabel": {
+    "message": "彙總結果"
+  },
+  "analysisPageRawAnswersLabel": {
+    "message": "各站原始答案"
+  },
+  "analysisPageOutputLabel": {
+    "message": "分析輸出"
+  },
+  "analysisPageLoading": {
+    "message": "正在載入分析頁..."
+  },
+  "analysisPageLoaded": {
+    "message": "分析頁已載入，正在執行對比..."
+  },
+  "analysisPagePayloadMissing": {
+    "message": "無法讀取分析資料，請關閉後重新開啟。"
+  },
+  "analysisPageNoResponses": {
+    "message": "沒有可顯示的站點回答。"
+  },
+  "analysisPageNoQuestion": {
+    "message": "未提供問題。"
+  },
+  "analysisPageNoSummary": {
+    "message": "沒有可顯示的彙總結果。"
+  },
+  "analysisPageTitleFallback": {
+    "message": "新分頁分析"
+  },
+  "analysisPageSubtitle": {
+    "message": "問題、彙總結果和各站原始答案會保留在這裡，下面的分析頁會繼續跑多模型對比。"
+  },
+  "analysisPageReloading": {
+    "message": "正在重新分析..."
+  },
+  "analysisPageFrameMissing": {
+    "message": "無法開啟分析頁。"
   },
   "timelineSiteNotReady": {
     "message": "頁面尚未準備好"

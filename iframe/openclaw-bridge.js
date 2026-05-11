@@ -405,6 +405,9 @@
     }
 
     if (isRateLimitedContent(content, siteConfig)) {
+      if (isAcceptableReadyContent(siteConfig, content, url)) {
+        return { status: 'ok', error: '' };
+      }
       return { status: 'rate_limited', error: 'rate_limited' };
     }
 
@@ -489,10 +492,10 @@
   function shouldKeepTimeoutContent(item, minChars) {
     const content = String(item?.content || '').trim();
     if (!content) return false;
-    if (content.length < Math.max(1, Number(minChars) || 0)) return false;
     if (content === '?') return false;
     if (isExtractionFallbackContent(content)) return false;
-    return item?.status === 'streaming' || item?.status === 'short';
+    if (window.AICompareExtraction?.looksLikePlaceholderAnswerContent?.(content)) return false;
+    return true;
   }
 
   function finalizeTimedOutResults(results, timeoutMs) {
@@ -503,14 +506,15 @@
       }
 
       const timeoutMessage = buildSiteTimeoutMessage(item.siteName, timeoutMs, item.status);
+      const keepContent = shouldKeepTimeoutContent(item);
       return {
         ...item,
         url: item.url || item.iframeSrc || '',
-        status: 'timeout',
-        content: item.content || timeoutMessage,
-        error: timeoutMessage,
+        status: keepContent ? 'ok' : 'timeout',
+        content: keepContent ? item.content : timeoutMessage,
+        error: keepContent ? '' : timeoutMessage,
         timeoutHint: item.timeoutHint || buildTimeoutHint(item),
-        contentPreview: buildContentPreview(item.content || timeoutMessage)
+        contentPreview: buildContentPreview(keepContent ? item.content : timeoutMessage)
       };
     });
   }
@@ -536,18 +540,17 @@
       }
 
       const timeoutMessage = buildSiteTimeoutMessage(item.siteName, siteTimeoutMs, item.status);
+      const keepContent = shouldKeepTimeoutContent(item);
       return {
         ...item,
         url: item.url || item.iframeSrc || '',
-        status: 'timeout',
-        content: shouldKeepTimeoutContent(item, minChars) ? item.content : timeoutMessage,
-        error: timeoutMessage,
+        status: keepContent ? 'ok' : 'timeout',
+        content: keepContent ? item.content : timeoutMessage,
+        error: keepContent ? '' : timeoutMessage,
         runtimePhase: 'timeout',
         final: true,
         timeoutHint: item.timeoutHint || buildTimeoutHint(item),
-        contentPreview: buildContentPreview(
-          shouldKeepTimeoutContent(item, minChars) ? item.content : timeoutMessage
-        )
+        contentPreview: buildContentPreview(keepContent ? item.content : timeoutMessage)
       };
     });
   }

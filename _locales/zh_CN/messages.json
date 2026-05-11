@@ -3,7 +3,7 @@
     "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI比一比 - 一键对比 ChatGPT, Gemini, Grok 等多个AI"
+    "message": "AI Compare-多 AI 一键对比、复制结果"
   },
   "extDescription": {
     "message": "帮你从十多个AI中快速找到最佳答案。"
@@ -276,6 +276,10 @@
   "selectionCompareButton": {
     "message": "划词对比按钮",
     "description": "划词对比按钮开关的名称"
+  },
+  "aiSiteUserPromptButtons": {
+    "message": "AI 站内按钮（对比/收藏）",
+    "description": "切换 AI 站点消息旁的对比和收藏按钮"
   },
   "contextMenu": {
     "message": "右键菜单",
@@ -1389,6 +1393,66 @@
   },
   "timelineCopyPreviewConfirm": {
     "message": "确认复制"
+  },
+  "timelineCopyPreviewAnalyze": {
+    "message": "分析"
+  },
+  "timelineCopyPreviewAnalyzeLoading": {
+    "message": "打开中..."
+  },
+  "timelineCopyPreviewAnalyzeFailed": {
+    "message": "打开分析页失败，请重试"
+  },
+  "analysisPageTitle": {
+    "message": "新标签页分析"
+  },
+  "analysisPageEyebrow": {
+    "message": "新标签页分析"
+  },
+  "analysisPageReload": {
+    "message": "重新分析"
+  },
+  "analysisPageQuestionLabel": {
+    "message": "问题"
+  },
+  "analysisPageSummaryLabel": {
+    "message": "汇总结果"
+  },
+  "analysisPageRawAnswersLabel": {
+    "message": "各站原始答案"
+  },
+  "analysisPageOutputLabel": {
+    "message": "分析输出"
+  },
+  "analysisPageLoading": {
+    "message": "正在加载分析页..."
+  },
+  "analysisPageLoaded": {
+    "message": "分析页已加载，正在执行对比..."
+  },
+  "analysisPagePayloadMissing": {
+    "message": "无法读取分析数据，请关闭后重新打开。"
+  },
+  "analysisPageNoResponses": {
+    "message": "没有可展示的站点回答。"
+  },
+  "analysisPageNoQuestion": {
+    "message": "未提供问题。"
+  },
+  "analysisPageNoSummary": {
+    "message": "没有可展示的汇总结果。"
+  },
+  "analysisPageTitleFallback": {
+    "message": "新标签页分析"
+  },
+  "analysisPageSubtitle": {
+    "message": "问题、汇总结果和各站原始答案会保留在这里，下面的分析页会继续跑多模型对比。"
+  },
+  "analysisPageReloading": {
+    "message": "正在重新分析..."
+  },
+  "analysisPageFrameMissing": {
+    "message": "无法打开分析页。"
   },
   "timelineSiteNotReady": {
     "message": "页面尚未就绪"

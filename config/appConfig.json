@@ -11,6 +11,7 @@
     "floatButton": false,
     "selectionQuickSearch": true,
     "selectionCompareButton": true,
+    "aiSiteUserPromptButtons": false,
     "contextMenu": true,
     "searchEngine": true,
     "sendShortcut": "enter"

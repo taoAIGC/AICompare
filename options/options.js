@@ -618,6 +618,7 @@ async function initializeButtonConfigs() {
       { id: 'floatButtonSwitch', configKey: 'floatButton', name: chrome.i18n.getMessage("floatButton") },
       { id: 'selectionQuickSearchSwitch', configKey: 'selectionQuickSearch', name: chrome.i18n.getMessage("selectionQuickSearch") },
       { id: 'selectionCompareButtonSwitch', configKey: 'selectionCompareButton', name: chrome.i18n.getMessage("selectionCompareButton") },
+      { id: 'aiSiteUserPromptButtonsSwitch', configKey: 'aiSiteUserPromptButtons', name: chrome.i18n.getMessage("aiSiteUserPromptButtons") || 'AI site buttons (compare/favorite)' },
       { id: 'contextMenuSwitch', configKey: 'contextMenu', name: chrome.i18n.getMessage("contextMenu") },
       { id: 'searchEngineSwitch', configKey: 'searchEngine', name: chrome.i18n.getMessage("searchEngine") }
     ];

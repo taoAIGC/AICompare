@@ -419,7 +419,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         info.menuItemId === CONTEXT_MENU_DIRECT_COMPARE_ID) &&
       info.selectionText
     ) {
-      await openSearchTabs(info.selectionText);
+      await openSearchTabs(info.selectionText, null, {
+        openExternalSites: false
+      });
       return;
     }
 
@@ -431,7 +433,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         ? applyPromptTemplate(template.query, info.selectionText)
         : info.selectionText;
 
-      await openSearchTabs(formattedQuery);
+      await openSearchTabs(formattedQuery, null, {
+        openExternalSites: false
+      });
       return;
     }
 
@@ -468,7 +472,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.action === 'createComparisonPage') {
     console.log('createComparisonPage-opensearchtab:', message.query);
-    openSearchTabs(message.query).then((result) => {
+    openSearchTabs(message.query, null, {
+      openExternalSites: false
+    }).then((result) => {
       sendResponse({ success: true, result });
     }).catch(error => {
       console.error('创建对比页面失败:', error);
@@ -481,7 +487,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('processQuery:', message.query, message.sites, message.customSiteIds);
     openSearchTabs(message.query, message.sites, {
       openIframePage: message.openIframePage !== false,
-      customSiteIds: message.customSiteIds
+      customSiteIds: message.customSiteIds,
+      openExternalSites: true
     }).then((result) => {
       sendResponse({ success: true, result });
     }).catch(error => {
@@ -838,6 +845,7 @@ async function getHandlerForUrl(url) {
 async function openSearchTabs(query, checkedSites = null, options = {}) {
   console.log('开始执行多AI查询 查询词:', query);
   const shouldOpenIframePage = options.openIframePage !== false;
+  const shouldOpenExternalSites = options.openExternalSites === true;
   const requestedCustomSiteIds = Array.isArray(options.customSiteIds)
     ? options.customSiteIds.map((id) => String(id || '').trim()).filter(Boolean)
     : [];
@@ -874,11 +882,13 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
   const customIframeSites = shouldOpenIframePage
     ? selectedCustomSites.filter(site => site.supportIframe === true)
     : [];
-  const customExternalSites = shouldOpenIframePage
-    ? selectedCustomSites.filter(site => site.supportIframe !== true)
-    : selectedCustomSites;
+  const customExternalSites = shouldOpenExternalSites
+    ? (shouldOpenIframePage
+      ? selectedCustomSites.filter(site => site.supportIframe !== true)
+      : selectedCustomSites)
+    : [];
 
-  if (externalSites.length > 0) {
+  if (shouldOpenExternalSites && externalSites.length > 0) {
     console.log('找到不支持 iframe 的官方站点，将使用新标签页打开:', externalSites);
     openSitesSequentially(externalSites, (site) => openOfficialSiteTab(site, query)).catch(error => {
       console.error('逐个打开非 iframe 官方站点失败:', error);

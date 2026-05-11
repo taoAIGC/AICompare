@@ -525,9 +525,6 @@
             "^ask anything"
           ]
         },
-        "rateLimitedPatterns": [
-          "SuperGrok"
-        ],
         "pendingContentPatterns": [
           "^(?:思考了\\s*)?\\d+(?:\\.\\d+)?\\s*(?:ms|毫秒|s|秒)$"
         ]
@@ -3113,7 +3110,7 @@
       "supportUrlQuery": false,
       "region": "China",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "searchHandler": {
         "steps": [
           {

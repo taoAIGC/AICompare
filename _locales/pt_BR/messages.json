@@ -3,7 +3,7 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - Um clique para comparar ChatGPT, Gemini, Grok e mais."
+    "message": "AI Compare – Comparar várias IAs em um clique e copiar resultados"
   },
   "extDescription": {
     "message": "O AI Compare ajuda você a encontrar rapidamente a melhor resposta entre vários AIs."
@@ -281,6 +281,10 @@
   "selectionCompareButton": {
     "message": "Botao de comparacao na selecao",
     "description": "The name for the selection compare button toggle"
+  },
+  "aiSiteUserPromptButtons": {
+    "message": "Botões dos sites de IA (comparar/favoritos)",
+    "description": "Ativa os botões de comparar e favoritos ao lado das mensagens dos sites de IA"
   },
   "contextMenu": {
     "message": "Menu de contexto",
@@ -1388,6 +1392,66 @@
   },
   "timelineCopyPreviewConfirm": {
     "message": "Confirm copy"
+  },
+  "timelineCopyPreviewAnalyze": {
+    "message": "Analyze"
+  },
+  "timelineCopyPreviewAnalyzeLoading": {
+    "message": "Opening..."
+  },
+  "timelineCopyPreviewAnalyzeFailed": {
+    "message": "Failed to open the analysis page. Please try again."
+  },
+  "analysisPageTitle": {
+    "message": "New Tab Analysis"
+  },
+  "analysisPageEyebrow": {
+    "message": "New Tab Analysis"
+  },
+  "analysisPageReload": {
+    "message": "Re-analyze"
+  },
+  "analysisPageQuestionLabel": {
+    "message": "Question"
+  },
+  "analysisPageSummaryLabel": {
+    "message": "Summary"
+  },
+  "analysisPageRawAnswersLabel": {
+    "message": "Raw Answers"
+  },
+  "analysisPageOutputLabel": {
+    "message": "Analysis Output"
+  },
+  "analysisPageLoading": {
+    "message": "Loading analysis page..."
+  },
+  "analysisPageLoaded": {
+    "message": "Analysis page loaded, running comparison..."
+  },
+  "analysisPagePayloadMissing": {
+    "message": "Unable to read analysis data. Please close and reopen the page."
+  },
+  "analysisPageNoResponses": {
+    "message": "There are no site answers to display."
+  },
+  "analysisPageNoQuestion": {
+    "message": "No question provided."
+  },
+  "analysisPageNoSummary": {
+    "message": "No summary result is available."
+  },
+  "analysisPageTitleFallback": {
+    "message": "New Tab Analysis"
+  },
+  "analysisPageSubtitle": {
+    "message": "The question, summary, and raw answers stay here while the analysis page below continues the multi-model comparison."
+  },
+  "analysisPageReloading": {
+    "message": "Re-running analysis..."
+  },
+  "analysisPageFrameMissing": {
+    "message": "Unable to open the analysis page."
   },
   "timelineSiteNotReady": {
     "message": "A página não está pronta"

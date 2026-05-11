@@ -30,7 +30,7 @@
 #### 2. Side panel / Homepage
 
 - **Open**: Click the extension icon or press **⌘+M** (Mac) / **Ctrl+M** (Windows).
-- **Search & compare**: Type a query, select AI sites, click PK to open the multi-AI comparison page (or open in new tab).
+- **Search & compare**: Type a query, select AI sites, click PK to open the multi-AI comparison page (iframe-capable sites only).
 - **Save favorite sites**: Select sites and save as “favorite sites” for quick access.
 - **Pin guide**: Optional reminder to pin the extension to the toolbar for faster access.
 - **Shortcuts**: Links to Settings, History, Favorites, Feedback. Optional file upload button.
@@ -47,7 +47,7 @@
 - **Trigger**: Select text on any page; a toolbar appears near the selection.
 - **Favorite site**: One click sends the selected text to your saved “favorite” AI site (single site).
 - **Site list**: Dropdown to pick another AI site for this query.
-- **PK**: Send selected text to the multi-AI comparison page.  
+- **PK**: Send selected text to the multi-AI comparison page (iframe-capable sites only).  
   Can be turned off in Options.
 
 #### 5. Search engine toolbar (optional)
@@ -56,20 +56,20 @@
 - **What**: A small toolbar next to the search box with:
   - **Favorite site**: Run current search query on your favorite AI site (single site).
   - **Site list**: Choose another AI site.
-  - **PK**: Open multi-AI comparison with the current search query.  
+  - **PK**: Open multi-AI comparison with the current search query (iframe-capable sites only).  
   Can be turned off in Options.
 
 #### 6. Site button on AI pages (optional)
 
 - **Where**: On supported AI chat pages (e.g. ChatGPT, Claude, Gemini, Kimi) — from `siteHandlers.json` with iframe support.
 - **What**: A small extension icon next to the send button.
-- **Action**: Click to read the current input, open the multi-AI comparison page with that text as the query.  
+- **Action**: Click to read the current input, open the multi-AI comparison page with that text as the query (iframe-capable sites only).  
   Can be turned off in config.
 
 #### 7. Context menu
 
 - **On extension icon (right‑click)**: Options, History, Favorites.
-- **On selected text (right‑click)**: “Search with AI Compare” to query multiple AIs (if “Context Menu” is enabled in Options).
+- **On selected text (right‑click)**: “Search with AI Compare” to query multiple AIs (iframe-capable sites only, if “Context Menu” is enabled in Options).
 
 #### 8. Omnibox (address bar)
 
@@ -152,6 +152,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow. `node debug/inspect-claude-response.js` prints the outer shell versus the `main .font-claude-response` answer body.
 - Timeline copy now keeps each site response as one block, so multi-paragraph answers stay together instead of being split into numbered sub-answers.
+- The timeline copy preview now has a new-tab analysis path: the preview modal can open the default extension compare page, pass the question/summary/raw answers through `chrome.storage.session`, and reuse the existing compare flow without going through OpenClaw.
 - ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, `debug/verify-metaso-live.js`, `debug/verify-ai-studio-live.js`, `debug/verify-yuanbao-live.js`, `debug/verify-qianwen-live.js`, and `debug/verify-qwen-live.js`.
 - Yuanbao / Qwen / 千问 verifiers now follow the explicit send-button or new-chat bootstrap paths exposed by the live pages, instead of relying on Enter alone.
@@ -214,7 +215,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 #### 2. 侧边栏 / 主页
 
 - **打开方式**：点击扩展图标，或快捷键 **⌘+M**（Mac）/ **Ctrl+M**（Windows）。
-- **搜索与对比**：输入问题、勾选 AI 站点，点击 PK 打开多 AI 对比页（或在新标签页打开）。
+- **搜索与对比**：输入问题、勾选 AI 站点，点击 PK 打开多 AI 对比页（仅加载支持 iframe 的站点）。
 - **保存常用站点**：勾选站点后可保存为「常用站点」，下次一键使用。
 - **固定引导**：可选提示用户将扩展固定到工具栏，方便打开。
 - **入口**：设置、历史记录、收藏记录、用户反馈；可选文件上传按钮。
@@ -231,26 +232,26 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **触发**：在任意网页选中文字后，选区旁出现工具栏。
 - **常用站点**：一键将选中内容发送到已保存的「常用」AI 站点（单站点）。
 - **站点列表**：下拉选择其他 AI 站点发送。
-- **PK**：将选中内容带到多 AI 对比页，多站点同时查询。  
+- **PK**：将选中内容带到多 AI 对比页（仅加载支持 iframe 的站点），多站点同时查询。  
   可在选项中关闭。
 
 #### 5. 搜索引擎工具栏（可选）
 
 - **出现位置**：Google、百度、Bing（及 cn.bing.com）搜索框旁。
-- **内容**：常用站点按钮、站点下拉、PK 按钮（用当前搜索词做多 AI 对比）。  
+- **内容**：常用站点按钮、站点下拉、PK 按钮（用当前搜索词做多 AI 对比，仅加载支持 iframe 的站点）。  
   可在选项中关闭。
 
 #### 6. AI 站点内按钮（可选）
 
 - **出现位置**：在已配置的 AI 对话页（如 ChatGPT、Claude、Gemini、Kimi 等，见 `siteHandlers.json` 且支持 iframe 的站点）。
 - **形式**：发送按钮旁的扩展小图标。
-- **作用**：点击后读取当前输入框内容，用该内容打开多 AI 对比页进行查询。  
+- **作用**：点击后读取当前输入框内容，用该内容打开多 AI 对比页进行查询（仅加载支持 iframe 的站点）。  
   可在配置中关闭。
 
 #### 7. 右键菜单
 
 - **扩展图标右键**：选项、历史记录、收藏记录。
-- **选中文字右键**：出现「使用 AI 比一比搜索」，可多站点查询（需在选项中开启「右键菜单」）。
+- **选中文字右键**：出现「使用 AI 比一比搜索」，可多站点查询（仅加载支持 iframe 的站点，需在选项中开启「右键菜单」）。
 
 #### 8. 地址栏 Omnibox
 
@@ -259,7 +260,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 #### 9. 选项页
 
-- **快捷入口设置**：开关 悬浮球、划词搜索、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。已打开的页面会立即同步开关状态，无需刷新。
+- **快捷入口设置**：开关 悬浮球、划词搜索、AI 站内按钮、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。已打开的页面会立即同步开关状态，无需刷新。
 - **启动网址设置**：可配置官方站点入口 URL，并管理独立的自定义网站。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
@@ -343,6 +344,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 配置步骤的默认重试上限现在是 10 次。
 - 配置驱动的 `sendKeys` 步骤现在也会遵循 `waitForElement`、`maxAttempts` 和 `retryInterval`，因此回车提交可以像 `focus` / `setValue` / `triggerEvents` 一样重试。
 - 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
+- 时间线复制预览现在支持新标签页分析：可以把问题、汇总结果和各站原始答案通过 `chrome.storage.session` 传到默认的扩展 compare 页，再复用现有对比流程继续跑多模型分析，不走 OpenClaw。
 - 面向真实 Chrome 的定期巡检可通过 `node debug/run-live-site-checks.js --group core --write-report` 执行。
 - `--group core` 适合每天跑核心站点烟雾检查；`--group full` 会额外跑更广的 verifier 以及逻辑 / 配置探针。
 - 汇总报告会同时给出通过 / 失败状态、登录失效 / 限额等软失败分类，以及“当前哪些已配置站点还没有专用 live verifier 覆盖”的缺口清单。
@@ -373,10 +375,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-11 00:01:26 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-11 17:40:24 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.gitignore`
+- `M` `.DS_Store`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -387,37 +389,24 @@ Last auto-update / 最近自动更新：2026-05-11 00:01:26 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `M` `background.js`
 - `M` `config/appConfig.json`
 - `M` `config/siteHandlers.json`
-- `M` `content-scripts/float-button.js`
-- `M` `content-scripts/search-engines.js`
-- `M` `content-scripts/selection.css`
-- `M` `content-scripts/selection.js`
-- `M` `content-scripts/site-button.css`
-- `M` `content-scripts/site-button.js`
-- `A` `debug/verify-remote-search-playwright.js`
-- `M` `homepage/homepage.html`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
+- `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
+- `M` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
-- `M` `options/options.css`
-- `M` `options/options.html`
 - `M` `options/options.js`
-- `A` `presentations/ai-compare-advantages-final.png`
-- `A` `presentations/ai-compare-advantages.png`
-- `A` `presentations/ai-compare-close-final.png`
-- `A` `presentations/ai-compare-close.png`
-- `A` `presentations/ai-compare-close2.png`
-- `A` `presentations/ai-compare-features.png`
-- `A` `presentations/ai-compare-hero.png`
-- `A` `presentations/ai-compare-product-story.html`
-- `M` `shared/sidebar.js`
+- `A` `shared/analysis-session-utils.js`
 
 ### Recent commits / 最近提交
+- `fd3e99b` 2026-05-11 V3.2.3 支持导出文件
 - `c00b358` 2026-05-09 V3.2.2 修复部分站点的抽取效果
 - `8dce00a` 2026-05-06 V3.2.0 支持自定义站点、移除 firebase 的 远程js
 - `054839e` 2026-05-04 V3.1.0 支持时间线、复制回答
 - `9bf7958` 2026-05-02 V3.0.1 支持龙虾插件模式
-- `ed56762` 2026-05-01 V2.21.9 收起输入框
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->
