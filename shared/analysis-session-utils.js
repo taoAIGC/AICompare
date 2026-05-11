@@ -77,6 +77,11 @@
   }
 
   function buildAnalysisPrompt(payload = {}) {
+    const templatePrompt = renderAnalysisPromptTemplate(payload.analysisTemplateQuery, payload);
+    if (templatePrompt) {
+      return templatePrompt;
+    }
+
     const question = normalizeString(payload.question || payload.entry?.query);
     const summaryText = normalizeString(payload.summaryText || payload.copyText);
     const responses = normalizeResponses(payload.responses);
@@ -151,6 +156,27 @@
     return lines.join('\n\n').trim();
   }
 
+  function renderAnalysisPromptTemplate(templateQuery, payload = {}) {
+    const template = normalizeString(templateQuery);
+    const responses = normalizeResponses(payload.responses);
+    const analysisInput = buildAnalysisDisplayText({
+      question: normalizeString(payload.question || payload.entry?.query),
+      summaryText: normalizeString(payload.summaryText || payload.copyText),
+      responses
+    });
+
+    if (!template) {
+      return '';
+    }
+
+    const hasAnyPlaceholder = /\{[^{}]+\}/.test(template);
+    if (hasAnyPlaceholder) {
+      return template.replace(/\{[^{}]+\}/g, analysisInput).trim();
+    }
+
+    return `${template}\n\n${analysisInput}`.trim();
+  }
+
   function deriveCompareSites(payload = {}) {
     const responseSites = normalizeResponses(payload.responses)
       .map((response) => response.siteName)
@@ -166,6 +192,9 @@
     summaryText = '',
     responses = [],
     question = '',
+    analysisTemplateId = '',
+    analysisTemplateName = '',
+    analysisTemplateQuery = '',
     successCount = 0,
     totalCount = 0
   } = {}) {
@@ -181,7 +210,10 @@
       responses: normalizedResponses,
       compareSites: deriveCompareSites({ responses: normalizedResponses }),
       successCount: Math.max(0, Number(successCount) || 0),
-      totalCount: Math.max(0, Number(totalCount) || 0)
+      totalCount: Math.max(0, Number(totalCount) || 0),
+      analysisTemplateId: normalizeString(analysisTemplateId),
+      analysisTemplateName: normalizeString(analysisTemplateName),
+      analysisTemplateQuery: normalizeString(analysisTemplateQuery)
     };
     return payload;
   }
@@ -246,6 +278,7 @@
     getAnalysisStorageKey,
     loadTimelineAnalysisPayload,
     normalizeResponses,
+    renderAnalysisPromptTemplate,
     saveTimelineAnalysisPayload
   };
 });

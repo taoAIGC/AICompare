@@ -21,15 +21,6 @@
     ...READY_STATUSES,
     'timeout'
   ]);
-  const STABLE_REQUIRED_STATUSES = new Set([
-    'ok',
-    'rate_limited',
-    'login_required',
-    'blocked',
-    'landing_page',
-    'not_submitted'
-  ]);
-
   let lastResult = null;
   let activeRunPromise = null;
   let debugState = null;
@@ -553,11 +544,6 @@
         contentPreview: buildContentPreview(keepContent ? item.content : timeoutMessage)
       };
     });
-  }
-
-  function stableHash(item) {
-    const content = (item.content || '').trim();
-    return `${item.status}::${item.url || ''}::${content.slice(0, 2000)}`;
   }
 
   function debugSnapshotHash(result) {
@@ -1483,7 +1469,6 @@
       throw new Error('aiCompareSiteRuntime is not available on window');
     }
 
-    const stableState = new Map();
     const unresolvedSinceMap = new Map();
     let normalizedResults = [];
     let finalTargetSites = frozenTargetSites.slice();
@@ -1573,30 +1558,9 @@
       await maybePostProgress(callbackUrl, runningResult, callbackState, false);
       await postRemoteRuntimeProgress(remoteContext, runningResult, callbackState, false);
 
-      const allResolved = normalizedResults.length > 0
-        && combinedResults.every((item) => TERMINAL_STATUSES.has(item.status));
-
-      let stableEnough = stableRounds === 0;
-      if (!stableEnough) {
-        stableEnough = normalizedResults.every((item) => {
-          if (item?.final === true) return true;
-          if (!STABLE_REQUIRED_STATUSES.has(item.status)) return true;
-          const hash = stableHash(item);
-          const prev = stableState.get(item.siteName);
-          if (!prev || prev.hash !== hash) {
-            stableState.set(item.siteName, { hash, rounds: 0 });
-            return false;
-          }
-          const rounds = prev.rounds + 1;
-          stableState.set(item.siteName, { hash, rounds });
-          return rounds >= stableRounds;
-        });
-      }
-
-      if (allResolved && stableEnough) {
-        break;
-      }
-
+      // Always keep polling until the overall timeout so the final payload can
+      // return the latest answer snapshot instead of ending as soon as every
+      // site looks settled.
       await waitForRuntimeUpdate(pollIntervalMs);
     }
 

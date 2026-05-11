@@ -430,7 +430,7 @@
     "message": "Compare respostas de varias plataformas de IA com AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Modelos de prompt"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "Modelo:"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "As sugestões da página inicial e do iframe são filtradas pelo tipo de site atual."
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "Suporta qualquer marcador {xxx}; se nenhum for fornecido, o conteúdo da análise é acrescentado automaticamente"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "Veredito primeiro"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "Dê primeiro um veredito claro e depois sustente-o com as evidências mais importantes. Termine com seu nível de confiança e possíveis ressalvas.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "Desdobramento comparativo"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "Compare as respostas ponto a ponto e cubra pelo menos quatro ângulos: pontos em comum, diferenças, contradições e qual resposta é mais confiável. Use tabela ou seções agrupadas, se possível.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "Memorando de decisão"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "Transforme este material em um memorando de decisão de uma página: comece com a recomendação, depois explique por que é a melhor escolha, quais são os riscos e o que fazer em seguida. Mantenha o tom direto e orientado à decisão.\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Traduzir para chinês"

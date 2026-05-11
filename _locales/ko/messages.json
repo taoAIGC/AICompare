@@ -430,7 +430,7 @@
     "message": "AI Compare로 여러 AI 플랫폼의 응답을 비교하세요"
   },
   "promptTemplatesTitle": {
-    "message": "프롬프트 템플릿"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "템플릿:"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "홈페이지와 iframe 추천은 현재 사이트 유형에 따라 필터링됩니다."
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "임의의 {xxx} 자리표시자를 지원하며, 없으면 분석 내용을 자동으로 뒤에 추가합니다"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "결론 선행"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "먼저 명확한 판단을 제시하고, 그 다음 가장 중요한 근거로 뒷받침해 주세요. 마지막에는 확신도와 예외 가능성도 덧붙여 주세요.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "비교 정리"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "각 사이트의 답변을 항목별로 비교하되, 최소한 “공통점 / 차이점 / 충돌점 / 어느 답변이 가장 신뢰할 만한가”의 네 가지 관점으로 정리해 주세요. 가능하면 표나 묶음 형식도 활용해 주세요.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "의사결정 메모"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "이 자료를 1페이지 의사결정 메모로 정리해 주세요. 먼저 추천안을 제시하고, 그다음 왜 그 선택이 최선인지, 어떤 리스크가 있는지, 다음에 무엇을 해야 하는지 설명해 주세요. 직접적이고 의사결정 중심의 톤을 유지해 주세요.\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "중국어로 번역"

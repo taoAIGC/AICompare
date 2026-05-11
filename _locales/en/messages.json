@@ -430,7 +430,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Prompt Templates"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "Homepage and iframe suggestions are filtered by the current site type."
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "Supports any {xxx} placeholder; if none is provided, the analysis content is appended automatically"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "Verdict First"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "Please give a clear verdict first, then support it with the most important evidence. End with your confidence level and any caveats.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "Comparison Breakdown"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "Compare the answers item by item, covering at least four angles: shared points, differences, contradictions, and which answer is most reliable. Use a table or grouped sections if possible.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "Decision Memo"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "Turn this material into a one-page decision memo: start with the recommendation, then explain why it is the best choice, what the risks are, and what to do next. Keep the tone direct and decision-oriented.\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Translate to Chinese"

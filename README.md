@@ -153,6 +153,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow. `node debug/inspect-claude-response.js` prints the outer shell versus the `main .font-claude-response` answer body.
 - Timeline copy now keeps each site response as one block, so multi-paragraph answers stay together instead of being split into numbered sub-answers.
 - The timeline copy preview now has a new-tab analysis path: the preview modal can open the default extension compare page, pass the question/summary/raw answers through `chrome.storage.session`, and reuse the existing compare flow without going through OpenClaw.
+- The timeline copy preview also supports selectable analysis prompt templates, and the Settings page includes a matching analysis prompt template manager with default presets.
 - ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, `debug/verify-metaso-live.js`, `debug/verify-ai-studio-live.js`, `debug/verify-yuanbao-live.js`, `debug/verify-qianwen-live.js`, and `debug/verify-qwen-live.js`.
 - Yuanbao / Qwen / 千问 verifiers now follow the explicit send-button or new-chat bootstrap paths exposed by the live pages, instead of relying on Enter alone.
@@ -345,6 +346,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 配置驱动的 `sendKeys` 步骤现在也会遵循 `waitForElement`、`maxAttempts` 和 `retryInterval`，因此回车提交可以像 `focus` / `setValue` / `triggerEvents` 一样重试。
 - 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
 - 时间线复制预览现在支持新标签页分析：可以把问题、汇总结果和各站原始答案通过 `chrome.storage.session` 传到默认的扩展 compare 页，再复用现有对比流程继续跑多模型分析，不走 OpenClaw。
+- 时间线复制预览现在还能选择分析提示词模板；设置页里也新增了对应的“分析提示词”管理入口和默认预置项。
 - 面向真实 Chrome 的定期巡检可通过 `node debug/run-live-site-checks.js --group core --write-report` 执行。
 - `--group core` 适合每天跑核心站点烟雾检查；`--group full` 会额外跑更广的 verifier 以及逻辑 / 配置探针。
 - 汇总报告会同时给出通过 / 失败状态、登录失效 / 限额等软失败分类，以及“当前哪些已配置站点还没有专用 live verifier 覆盖”的缺口清单。
@@ -375,10 +377,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-11 17:40:24 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-11 20:17:47 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -390,23 +391,26 @@ Last auto-update / 最近自动更新：2026-05-11 17:40:24 UTC+08:00
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
-- `M` `config/appConfig.json`
-- `M` `config/siteHandlers.json`
+- `M` `favorites/favorites.html`
+- `M` `favorites/favorites.js`
+- `M` `history/history.html`
+- `M` `history/history.js`
 - `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
 - `M` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
+- `M` `options/options.html`
 - `M` `options/options.js`
-- `A` `shared/analysis-session-utils.js`
+- `M` `shared/analysis-session-utils.js`
+- `A` `shared/url-tooltip.js`
+- `A` `tests/openclaw-bridge.test.js`
 
 ### Recent commits / 最近提交
+- `c210df9` 2026-05-11 V3.2.4 快速汇总答案
 - `fd3e99b` 2026-05-11 V3.2.3 支持导出文件
 - `c00b358` 2026-05-09 V3.2.2 修复部分站点的抽取效果
 - `8dce00a` 2026-05-06 V3.2.0 支持自定义站点、移除 firebase 的 远程js
 - `054839e` 2026-05-04 V3.1.0 支持时间线、复制回答
-- `9bf7958` 2026-05-02 V3.0.1 支持龙虾插件模式
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

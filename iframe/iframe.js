@@ -610,6 +610,7 @@ function formatTimelineDateLabel(timestamp) {
 async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entryOverride = null) {
   if (!overlay || !metaEl || !contentEl || !confirmBtn || !refreshBtn) return;
   const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
+  const templateSelect = overlay.querySelector('.timeline-copy-preview-analysis-select');
 
   const currentEntryKey = overlay.dataset.activeEntryKey || '';
   const entry = entryOverride
@@ -653,7 +654,7 @@ async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confi
     overlay.__timelineCopyPreviewResponses = Array.isArray(responses) ? responses : [];
     overlay.__timelineCopyPreviewCopyText = copyText || '';
     if (analyzeBtn instanceof HTMLButtonElement) {
-      analyzeBtn.disabled = !String(copyText || '').trim();
+      analyzeBtn.disabled = !String(copyText || '').trim() || Boolean(templateSelect?.disabled);
       analyzeBtn.textContent = t('timelineCopyPreviewAnalyze', '分析');
     }
   } catch (error) {
@@ -705,6 +706,7 @@ function ensureTimelineCopyPreviewModal() {
       <div class="timeline-copy-preview-meta"></div>
       <pre class="timeline-copy-preview-content" aria-live="polite"></pre>
       <div class="timeline-copy-preview-actions">
+        <select class="timeline-copy-preview-analysis-select" aria-label="${escapeHtml(t('analysisPromptTemplateSelectLabel', '分析提示词选择'))}"></select>
         <button class="timeline-copy-preview-analyze" type="button">${escapeHtml(t('timelineCopyPreviewAnalyze', '分析'))}</button>
         <button class="timeline-copy-preview-confirm" type="button">${escapeHtml(t('timelineCopyPreviewConfirm', '确认复制'))}</button>
       </div>
@@ -741,10 +743,15 @@ function ensureTimelineCopyPreviewModal() {
   overlay.querySelector('.timeline-copy-preview-analyze')?.addEventListener('click', async () => {
     const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
     const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+    const templateSelect = overlay.querySelector('.timeline-copy-preview-analysis-select');
     if (!(analyzeBtn instanceof HTMLButtonElement) || !(confirmBtn instanceof HTMLButtonElement)) return;
 
     const copyText = overlay.__timelineCopyPreviewCopyText || confirmBtn.dataset.copyText || '';
     if (!String(copyText || '').trim()) return;
+
+    const selectedTemplateId = templateSelect instanceof HTMLSelectElement ? templateSelect.value : '';
+    const selectedTemplate = (Array.isArray(overlay.__timelineAnalysisTemplates) ? overlay.__timelineAnalysisTemplates : [])
+      .find((template) => template.id === selectedTemplateId) || null;
 
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = t('timelineCopyPreviewAnalyzeLoading', '打开中...');
@@ -756,7 +763,10 @@ function ensureTimelineCopyPreviewModal() {
         responses: Array.isArray(overlay.__timelineCopyPreviewResponses) ? overlay.__timelineCopyPreviewResponses : [],
         question: overlay.__timelineCopyPreviewEntry?.query || '',
         successCount: Number(confirmBtn.dataset.successCount || '0') || 0,
-        totalCount: Number(confirmBtn.dataset.totalCount || '0') || 0
+        totalCount: Number(confirmBtn.dataset.totalCount || '0') || 0,
+        analysisTemplateId: selectedTemplate?.id || '',
+        analysisTemplateName: selectedTemplate?.name || '',
+        analysisTemplateQuery: selectedTemplate?.query || ''
       });
       const saved = await analysisSavePayload(payload);
       const analysisUrl = analysisBuildCompareUrl(saved?.token || '');
@@ -786,6 +796,9 @@ function ensureTimelineCopyPreviewModal() {
   });
 
   overlay.querySelector('.timeline-copy-preview-close')?.addEventListener('click', closeModal);
+  overlay.querySelector('.timeline-copy-preview-analysis-select')?.addEventListener('change', (event) => {
+    overlay.__timelineSelectedAnalysisTemplateId = event.target?.value || '';
+  });
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) {
       closeModal();
@@ -809,8 +822,9 @@ async function showTimelineCopyPreviewModal(entry) {
   const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
   const refreshBtn = overlay.querySelector('.timeline-copy-preview-refresh');
   const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
+  const templateSelect = overlay.querySelector('.timeline-copy-preview-analysis-select');
   const closeBtn = overlay.querySelector('.timeline-copy-preview-close');
-  if (!metaEl || !contentEl || !confirmBtn || !refreshBtn || !analyzeBtn || !closeBtn) return;
+  if (!metaEl || !contentEl || !confirmBtn || !refreshBtn || !analyzeBtn || !templateSelect || !closeBtn) return;
 
   const activeEntryKey = String(entry?.timelineId || buildTimelineFavoriteKey(entry));
   const isSameVisibleEntry = overlay.classList.contains('is-visible')
@@ -835,13 +849,18 @@ async function showTimelineCopyPreviewModal(entry) {
   confirmBtn.dataset.totalCount = '0';
   overlay.__timelineCopyPreviewResponses = [];
   overlay.__timelineCopyPreviewCopyText = '';
+  overlay.__timelineAnalysisTemplates = [];
+  overlay.__timelineSelectedAnalysisTemplateId = '';
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = t('timelineCopyPreviewAnalyzeLoading', '打开中...');
   refreshBtn.disabled = true;
+  templateSelect.disabled = true;
+  templateSelect.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateLoading', '加载分析提示词...'))}</option>`;
+  await hydrateAnalysisTemplateSelect(overlay, overlay.__timelineSelectedAnalysisTemplateId);
   await refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entry);
   if (overlay.dataset.requestToken === requestToken) {
     overlay.dataset.loading = 'false';
-    analyzeBtn.disabled = !String(confirmBtn.dataset.copyText || '').trim();
+    analyzeBtn.disabled = !String(confirmBtn.dataset.copyText || '').trim() || Boolean(templateSelect.disabled);
     analyzeBtn.textContent = t('timelineCopyPreviewAnalyze', '分析');
   }
 }
@@ -1820,6 +1839,61 @@ async function copyTextToClipboard(text) {
   }
 
   copyWithExecCommand();
+}
+
+function sortAnalysisPromptTemplates(templates = []) {
+  return (Array.isArray(templates) ? templates : [])
+    .filter((template) => template && template.name && template.query)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+}
+
+async function loadAnalysisPromptTemplates() {
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    return sortAnalysisPromptTemplates(analysisPromptTemplates);
+  } catch (error) {
+    console.warn('加载分析提示词模板失败:', error);
+    return [];
+  }
+}
+
+async function hydrateAnalysisTemplateSelect(overlay, selectedTemplateId = '') {
+  const selectEl = overlay?.querySelector?.('.timeline-copy-preview-analysis-select');
+  const analyzeBtn = overlay?.querySelector?.('.timeline-copy-preview-analyze');
+  if (!(selectEl instanceof HTMLSelectElement)) return [];
+
+  selectEl.disabled = true;
+  selectEl.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateLoading', '加载分析提示词...'))}</option>`;
+  if (analyzeBtn instanceof HTMLButtonElement) {
+    analyzeBtn.disabled = true;
+  }
+
+  const templates = await loadAnalysisPromptTemplates();
+  overlay.__timelineAnalysisTemplates = templates;
+
+  if (!templates.length) {
+    selectEl.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateEmpty', '暂无分析提示词模板'))}</option>`;
+    selectEl.disabled = true;
+    return templates;
+  }
+
+  const options = templates.map((template) => {
+    const safeName = escapeHtml(template.name);
+    const safeId = escapeHtml(template.id);
+    return `<option value="${safeId}">${safeName}</option>`;
+  }).join('');
+  selectEl.innerHTML = options;
+
+  const nextSelectedId = templates.some((template) => template.id === selectedTemplateId)
+    ? selectedTemplateId
+    : (templates[0]?.id || '');
+  selectEl.value = nextSelectedId;
+  overlay.__timelineSelectedAnalysisTemplateId = nextSelectedId;
+  selectEl.disabled = false;
+  if (analyzeBtn instanceof HTMLButtonElement) {
+    analyzeBtn.disabled = !String(overlay.__timelineCopyPreviewCopyText || '').trim();
+  }
+  return templates;
 }
 
 async function collectTimelineEntryResponses(entry) {

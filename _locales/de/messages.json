@@ -430,7 +430,7 @@
     "message": "Vergleiche Antworten mehrerer KI-Plattformen mit AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Prompt-Vorlagen"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "Vorlage:"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "Vorschläge auf der Startseite und im Iframe werden nach dem aktuellen Website-Typ gefiltert."
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "Unterstützt jeden {xxx}-Platzhalter; wenn keiner vorhanden ist, wird der Analyseinhalt automatisch angehängt"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "Urteil zuerst"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "Gib zuerst ein klares Urteil ab und stütze es dann mit den wichtigsten Belegen. Schließe mit deinem Sicherheitsgrad und möglichen Einschränkungen ab.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "Vergleichsübersicht"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "Vergleiche die Antworten Punkt für Punkt und beleuchte mindestens vier Aspekte: Gemeinsamkeiten, Unterschiede, Widersprüche und welche Antwort am zuverlässigsten ist. Nutze nach Möglichkeit eine Tabelle oder gruppierte Abschnitte.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "Entscheidungsmemo"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "Verwandle dieses Material in ein einseitiges Entscheidungsmemo: beginne mit der Empfehlung, erkläre dann, warum sie die beste Wahl ist, welche Risiken bestehen und was als Nächstes zu tun ist. Der Ton soll direkt und entscheidungsorientiert sein.\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Ins Chinesische übersetzen"

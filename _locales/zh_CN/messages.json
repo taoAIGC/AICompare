@@ -425,7 +425,7 @@
     "message": "使用AI比一比进行多AI对比搜索"
   },
   "promptTemplatesTitle": {
-    "message": "提示词模板管理"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "模板："
@@ -1286,6 +1286,69 @@
   },
   "templateTypeHelp": {
     "message": "homepage 和 iframe 会按当前站点类型过滤提示词模板"
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "自定义分析汇总结果时使用的提示词模板"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "添加分析提示词"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "添加分析提示词"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "编辑分析提示词"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "暂无分析提示词模板"
+  },
+  "analysisTemplateListHint": {
+    "message": "点击上方“添加分析提示词”按钮开始创建"
+  },
+  "analysisTemplateLoading": {
+    "message": "正在加载分析提示词..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "暂无分析提示词模板"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "例如：请基于以下内容进行分析..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "支持任意 {xxx} 占位符；如果不写占位符，会自动把分析内容追加到末尾"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "例如：结论优先"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "显示在分析提示词下拉按钮里的文字"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "选择分析提示词"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "分析"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "结论先行"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "对比拆解"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "决策备忘录"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "翻译成中文"

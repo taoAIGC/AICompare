@@ -430,7 +430,7 @@
     "message": "AI Compare で複数の AI プラットフォームの回答を比較します"
   },
   "promptTemplatesTitle": {
-    "message": "プロンプトテンプレート"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "テンプレート:"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "ホームページと iframe の候補は、現在のサイト種別に応じて絞り込まれます。"
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "任意の {xxx} プレースホルダーに対応します。指定がない場合は分析内容が自動的に末尾へ追加されます"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "結論先行"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "まず明確な判断を示し、その後に最重要の根拠で支えてください。最後に確信度と注意点も添えてください。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "比較整理"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "各サイトの回答を項目ごとに比較し、少なくとも「共通点 / 相違点 / 矛盾点 / どれが最も信頼できるか」の4つの観点で整理してください。可能なら表やグループ分けも使ってください。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "意思決定メモ"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "この素材を1ページの意思決定メモにしてください。まず推奨案を示し、次にそれが最適な理由、リスク、次にやるべきことを説明してください。直接的で意思決定向けの口調でお願いします。\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "中国語に翻訳"

@@ -430,7 +430,7 @@
     "message": "Comparez les reponses de plusieurs plateformes IA avec AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Modeles de prompt"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "Modele :"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "Les suggestions de la page d’accueil et de l’iframe sont filtrées selon le type de site actuel."
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "Prend en charge n'importe quel espace réservé {xxx} ; s'il n'y en a pas, le contenu d'analyse est ajouté automatiquement"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "Verdict d'abord"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "Donnez d'abord un verdict clair, puis appuyez-le avec les preuves les plus importantes. Terminez par votre niveau de confiance et les éventuelles réserves.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "Décomposition comparative"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "Comparez les réponses point par point et couvrez au moins quatre angles : points communs, différences, contradictions et réponse la plus fiable. Utilisez un tableau ou des sections groupées si possible.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "Note de décision"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "Transformez ce contenu en note de décision d'une page : commencez par la recommandation, puis expliquez pourquoi c'est le meilleur choix, quels sont les risques et quoi faire ensuite. Gardez un ton direct et orienté décision.\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Traduire en chinois"

@@ -28,6 +28,10 @@ function initializeI18n() {
 document.addEventListener('DOMContentLoaded', async () => {
     initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
+    const favoritesList = document.getElementById('favoritesList');
+    if (favoritesList && window.SiteUrlTooltip?.attachUrlTooltip) {
+        window.SiteUrlTooltip.attachUrlTooltip(favoritesList);
+    }
     await renderFolderTabs();
     await loadFavorites();
 
@@ -287,6 +291,11 @@ function createFavoriteItem(item, folderMap) {
     item.sites.forEach(site => {
         const tag = document.createElement('span');
         tag.className = 'site-tag favorite-tag';
+        const siteUrl = String(site.url || '').trim();
+        if (siteUrl) {
+            tag.dataset.url = siteUrl;
+            tag.title = siteUrl;
+        }
         tag.textContent = site.name;
         sitesDiv.appendChild(tag);
     });

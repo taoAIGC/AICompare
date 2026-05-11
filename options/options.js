@@ -132,6 +132,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     initializeI18n();
     initializeRuleInfo();
     initializePromptTemplates();
+    initializeAnalysisPromptTemplates();
   });
 }
 
@@ -1018,6 +1019,7 @@ async function handleDisabledSiteAction(event) {
 
 // 当前编辑的模板ID
 let currentEditingTemplateId = null;
+let currentEditingAnalysisTemplateId = null;
 let currentEditingCustomSiteId = null;
 
 // 初始化提示词模板管理
@@ -1037,6 +1039,17 @@ async function initializePromptTemplates() {
     console.log('提示词模板管理初始化完成');
   } catch (error) {
     console.error('初始化提示词模板失败:', error);
+  }
+}
+
+async function initializeAnalysisPromptTemplates() {
+  try {
+    await ensureDefaultAnalysisTemplates();
+    await loadAnalysisTemplatesList();
+    bindAnalysisTemplateEvents();
+    console.log('分析提示词模板管理初始化完成');
+  } catch (error) {
+    console.error('初始化分析提示词模板失败:', error);
   }
 }
 
@@ -1366,6 +1379,285 @@ function generateTemplateId() {
   return 'template_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
+async function ensureDefaultAnalysisTemplates() {
+  try {
+    await chrome.runtime.sendMessage({ action: 'initializeDefaultTemplates' });
+  } catch (error) {
+    console.log('无法发送分析模板初始化消息，background 可能已处理:', error);
+  }
+}
+
+function generateAnalysisTemplateId() {
+  return 'analysis_template_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+async function getNextAnalysisOrder() {
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const maxOrder = analysisPromptTemplates.reduce((max, template) =>
+      Math.max(max, template.order || 0), 0);
+    return maxOrder + 1;
+  } catch (error) {
+    return 1;
+  }
+}
+
+async function loadAnalysisTemplatesList() {
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const container = document.getElementById('analysisTemplatesList');
+    if (!container) return;
+
+    const sortedTemplates = (Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [])
+      .filter(template => template?.name && template?.query)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (sortedTemplates.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; color: #666; padding: 40px;">
+          <p>${chrome.i18n.getMessage('analysisTemplateListEmpty') || '暂无分析提示词模板'}</p>
+          <p style="font-size: 14px;">${chrome.i18n.getMessage('analysisTemplateListHint') || '点击上方“添加分析提示词”按钮开始创建'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = sortedTemplates.map(template => `
+      <div class="template-item" data-template-id="${template.id}" style="
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: box-shadow 0.2s ease;
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <div style="flex: 1;">
+            <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${template.name}</h4>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666;">
+              <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
+              <span style="
+                display: inline-flex;
+                align-items: center;
+                padding: 2px 8px;
+                border-radius: 999px;
+                background: #eef3ff;
+                color: #3659c9;
+                font-size: 12px;
+                line-height: 1.4;
+              ">${chrome.i18n.getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="edit-analysis-template-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}" style="
+              background: transparent;
+              border: none;
+              border-radius: 4px;
+              padding: 6px;
+              width: 30px;
+              height: 30px;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <img src="../icons/edit.svg" alt="" style="width: 16px; height: 16px; opacity: 0.8;">
+            </button>
+            ${!template.isDefault ? `<button class="delete-analysis-template-btn" data-template-id="${template.id}" style="
+              background: #ffebee;
+              border: 1px solid #ffcdd2;
+              border-radius: 4px;
+              padding: 6px 12px;
+              cursor: pointer;
+              font-size: 12px;
+              color: #d32f2f;
+            ">${chrome.i18n.getMessage('deleteButton') || 'Delete'}</button>` : ''}
+          </div>
+        </div>
+        <div style="
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 4px;
+          padding: 12px;
+          font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+          font-size: 13px;
+          color: #495057;
+          word-break: break-word;
+          white-space: pre-wrap;
+        ">${template.query}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.template-item').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        item.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.boxShadow = 'none';
+      });
+    });
+  } catch (error) {
+    console.error('加载分析提示词模板列表失败:', error);
+  }
+}
+
+function bindAnalysisTemplateEvents() {
+  const addBtn = document.getElementById('addAnalysisTemplateBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      currentEditingAnalysisTemplateId = null;
+      void showAnalysisTemplateDialog();
+    });
+  }
+
+  const dialogClose = document.getElementById('analysisDialogClose');
+  const cancelBtn = document.getElementById('cancelAnalysisTemplate');
+  const overlay = document.getElementById('analysisDialogOverlay');
+
+  [dialogClose, cancelBtn, overlay].forEach(el => {
+    if (el) {
+      el.addEventListener('click', hideAnalysisTemplateDialog);
+    }
+  });
+
+  document.getElementById('saveAnalysisTemplate')?.addEventListener('click', saveAnalysisTemplate);
+  document.getElementById('analysisTemplatesList')?.addEventListener('click', handleAnalysisTemplateListClick);
+}
+
+async function showAnalysisTemplateDialog(template = null) {
+  const dialog = document.getElementById('analysisTemplateDialog');
+  const title = document.getElementById('analysisDialogTitle');
+  const nameInput = document.getElementById('analysisTemplateName');
+  const queryInput = document.getElementById('analysisTemplateQuery');
+  const orderInput = document.getElementById('analysisTemplateOrder');
+
+  if (!dialog) return;
+
+  if (template) {
+    title.textContent = chrome.i18n.getMessage('editAnalysisTemplateTitle') || '编辑分析提示词';
+    nameInput.value = template.name;
+    queryInput.value = template.query;
+    orderInput.value = template.order || 1;
+  } else {
+    title.textContent = chrome.i18n.getMessage('addAnalysisTemplateTitle') || '添加分析提示词';
+    nameInput.value = '';
+    queryInput.value = '';
+    orderInput.value = 1;
+    void getNextAnalysisOrder().then(nextOrder => {
+      orderInput.value = nextOrder;
+    });
+  }
+
+  dialog.style.display = 'block';
+  nameInput.focus();
+}
+
+function hideAnalysisTemplateDialog() {
+  const dialog = document.getElementById('analysisTemplateDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
+  }
+  currentEditingAnalysisTemplateId = null;
+}
+
+async function saveAnalysisTemplate() {
+  const nameInput = document.getElementById('analysisTemplateName');
+  const queryInput = document.getElementById('analysisTemplateQuery');
+  const orderInput = document.getElementById('analysisTemplateOrder');
+
+  const name = nameInput.value.trim();
+  const query = queryInput.value.trim();
+  const order = parseInt(orderInput.value) || 1;
+
+  if (!name) {
+    showToast(chrome.i18n.getMessage('templateNameRequired'));
+    nameInput.focus();
+    return;
+  }
+
+  if (!query) {
+    showToast(chrome.i18n.getMessage('templateQueryRequired'));
+    queryInput.focus();
+    return;
+  }
+
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+
+    if (currentEditingAnalysisTemplateId) {
+      const index = analysisPromptTemplates.findIndex(t => t.id === currentEditingAnalysisTemplateId);
+      if (index !== -1) {
+        analysisPromptTemplates[index] = {
+          ...analysisPromptTemplates[index],
+          name,
+          query,
+          order
+        };
+      }
+    } else {
+      analysisPromptTemplates.push({
+        id: generateAnalysisTemplateId(),
+        name,
+        query,
+        order,
+        isDefault: false
+      });
+    }
+
+    await chrome.storage.sync.set({ analysisPromptTemplates });
+    hideAnalysisTemplateDialog();
+    await loadAnalysisTemplatesList();
+    showToast(chrome.i18n.getMessage('templateSavedSuccess'));
+  } catch (error) {
+    console.error('保存分析提示词失败:', error);
+    showToast(chrome.i18n.getMessage('saveFailed') || '保存失败，请重试');
+  }
+}
+
+async function editAnalysisTemplate(templateId) {
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const template = analysisPromptTemplates.find(t => t.id === templateId);
+    if (template) {
+      currentEditingAnalysisTemplateId = templateId;
+      await showAnalysisTemplateDialog(template);
+    }
+  } catch (error) {
+    console.error('编辑分析提示词失败:', error);
+  }
+}
+
+async function deleteAnalysisTemplate(templateId) {
+  const confirmMessage = chrome.i18n.getMessage('confirmDeleteTemplate');
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const filteredTemplates = analysisPromptTemplates.filter(t => t.id !== templateId);
+    await chrome.storage.sync.set({ analysisPromptTemplates: filteredTemplates });
+    await loadAnalysisTemplatesList();
+    showToast(chrome.i18n.getMessage('templateDeletedSuccess'));
+  } catch (error) {
+    console.error('删除分析提示词失败:', error);
+    showToast(chrome.i18n.getMessage('deleteFailed') || '删除失败，请重试');
+  }
+}
+
+async function handleAnalysisTemplateListClick(event) {
+  const editBtn = event.target.closest('.edit-analysis-template-btn');
+  const deleteBtn = event.target.closest('.delete-analysis-template-btn');
+
+  if (editBtn) {
+    const templateId = editBtn.getAttribute('data-template-id');
+    if (templateId) await editAnalysisTemplate(templateId);
+  } else if (deleteBtn) {
+    const templateId = deleteBtn.getAttribute('data-template-id');
+    if (templateId) await deleteAnalysisTemplate(templateId);
+  }
+}
+
 // ── 数据同步（WebDAV）──────────────────────────────────────────
 
 const SYNC_STORAGE_KEY = 'webdavSyncConfig';
@@ -1381,6 +1673,7 @@ const SYNC_KEYS = [
   'siteSettings',
   'disabledSites',
   'promptTemplates',
+  'analysisPromptTemplates',
   'favoritePrompts',
   'favoriteSites',
 ];

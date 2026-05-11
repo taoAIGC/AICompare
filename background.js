@@ -150,6 +150,146 @@ async function initializeDefaultPromptTemplates() {
   }
 }
 
+function getDefaultAnalysisPromptTemplates() {
+  return [
+    {
+      id: 'analysis_conclusion_first',
+      name: chrome.i18n.getMessage('defaultAnalysisTemplateConclusionName') || '结论先行',
+      query: chrome.i18n.getMessage('defaultAnalysisTemplateConclusionQuery') || '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}',
+      order: 1,
+      isDefault: true
+    },
+    {
+      id: 'analysis_difference_focus',
+      name: chrome.i18n.getMessage('defaultAnalysisTemplateDifferenceName') || '对比拆解',
+      query: chrome.i18n.getMessage('defaultAnalysisTemplateDifferenceQuery') || '请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}',
+      order: 2,
+      isDefault: true
+    },
+    {
+      id: 'analysis_report',
+      name: chrome.i18n.getMessage('defaultAnalysisTemplateReportName') || '决策备忘录',
+      query: chrome.i18n.getMessage('defaultAnalysisTemplateReportQuery') || '请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}',
+      order: 3,
+      isDefault: true
+    }
+  ];
+}
+
+function getLegacyAnalysisTemplateSignatures() {
+  return {
+    analysis_conclusion_first: [
+      {
+        name: 'Conclusion First',
+        query: 'Please give the conclusion first, then explain the reasons.\n\nQuestion: {question}\n\nSummary:\n{summary}\n\nRaw Answers:\n{rawAnswers}'
+      },
+      {
+        name: '结论优先',
+        query: '请先给出结论，再说明理由。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
+      },
+      {
+        name: '结论先行',
+        query: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
+      },
+      {
+        name: '结论先行',
+        query: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}'
+      }
+    ],
+    analysis_difference_focus: [
+      {
+        name: 'Difference Analysis',
+        query: 'Focus on the shared points, differences, and conflicts across the answers, and give the most credible conclusion.\n\n{analysisInput}'
+      },
+      {
+        name: '差异分析',
+        query: '请重点比较各站回答的共同点、差异点和冲突点，并给出更可信的结论。\n\n{analysisInput}'
+      },
+      {
+        name: '对比拆解',
+        query: '请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}'
+      }
+    ],
+    analysis_report: [
+      {
+        name: 'Structured Report',
+        query: 'Please write a structured analysis report with conclusion, reasons, differences, and recommendations.\n\n{analysisInput}'
+      },
+      {
+        name: '结构化报告',
+        query: '请输出一份结构化分析报告，包含：结论、理由、差异点、建议。\n\n{analysisInput}'
+      },
+      {
+        name: '决策备忘录',
+        query: '请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}'
+      }
+    ]
+  };
+}
+
+function shouldMigrateAnalysisTemplate(template, desiredTemplate, legacySignatures = []) {
+  if (!template || !desiredTemplate || template.id !== desiredTemplate.id) {
+    return false;
+  }
+
+  const currentName = String(template.name || '').trim();
+  const currentQuery = String(template.query || '').trim();
+
+  return legacySignatures.some((signature) => {
+    return currentName === signature.name && currentQuery === signature.query;
+  });
+}
+
+async function initializeDefaultAnalysisPromptTemplates() {
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const defaultTemplates = getDefaultAnalysisPromptTemplates();
+    const legacySignatures = getLegacyAnalysisTemplateSignatures();
+    const existingTemplates = Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [];
+    const existingTemplateIds = new Set(
+      existingTemplates
+        .map(template => template?.id)
+        .filter(Boolean)
+    );
+    const missingTemplates = defaultTemplates.filter(template => !existingTemplateIds.has(template.id));
+    const migratedTemplates = existingTemplates.map((template) => {
+      const desiredTemplate = defaultTemplates.find((item) => item.id === template?.id);
+      const legacyTemplateSignatures = legacySignatures[template?.id] || [];
+      if (!shouldMigrateAnalysisTemplate(template, desiredTemplate, legacyTemplateSignatures)) {
+        return template;
+      }
+
+      return {
+        ...template,
+        name: desiredTemplate.name,
+        query: desiredTemplate.query,
+        order: desiredTemplate.order,
+        isDefault: true
+      };
+    });
+    const migrationChanged = JSON.stringify(migratedTemplates) !== JSON.stringify(existingTemplates);
+
+    if (existingTemplates.length === 0) {
+      await chrome.storage.sync.set({ analysisPromptTemplates: defaultTemplates });
+      console.log('已初始化默认分析提示词模板');
+    } else if (migrationChanged || missingTemplates.length > 0) {
+      const mergedTemplates = [...migratedTemplates, ...missingTemplates]
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      await chrome.storage.sync.set({ analysisPromptTemplates: mergedTemplates });
+      if (migrationChanged) {
+        console.log('已迁移旧版默认分析提示词模板');
+      }
+      if (missingTemplates.length > 0) {
+        console.log('已补充缺失的默认分析提示词模板:', missingTemplates.map(template => template.id));
+      }
+    } else {
+      console.log('分析提示词模板已存在，跳过初始化');
+    }
+  } catch (error) {
+    console.error('初始化默认分析提示词模板失败:', error);
+  }
+}
+
 const CONTEXT_MENU_COMPARE_ROOT_ID = 'searchWithMultiAI';
 const CONTEXT_MENU_DIRECT_COMPARE_ID = 'searchWithMultiAI:direct';
 const CONTEXT_MENU_TEMPLATE_PREFIX = 'searchWithMultiAI:template:';
@@ -208,6 +348,7 @@ chrome.runtime.onStartup.addListener(async () => {
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
     await initializeDefaultPromptTemplates();
+    await initializeDefaultAnalysisPromptTemplates();
     
     console.log('扩展启动，检查站点配置更新...');
     if (self.RemoteConfigManager) {
@@ -240,6 +381,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     
     // 初始化默认提示词模板
     await initializeDefaultPromptTemplates();
+    await initializeDefaultAnalysisPromptTemplates();
     
     // 检查配置更新
     if (self.RemoteConfigManager) {
@@ -516,7 +658,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   else if (message.action === 'initializeDefaultTemplates') {
     // 手动触发默认提示词模板初始化
-    initializeDefaultPromptTemplates().then(() => {
+    Promise.all([
+      initializeDefaultPromptTemplates(),
+      initializeDefaultAnalysisPromptTemplates()
+    ]).then(() => {
       sendResponse({ success: true });
     }).catch(error => {
       console.error('手动初始化默认模板失败:', error);
@@ -1218,7 +1363,7 @@ async function createContextMenu() {
 
 // 监听存储变化，当配置更改时更新右键菜单
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && (changes.buttonConfig || changes.promptTemplates)) {
+  if (namespace === 'sync' && (changes.buttonConfig || changes.promptTemplates || changes.analysisPromptTemplates)) {
     createContextMenu();
   }
 });
@@ -1228,7 +1373,7 @@ const WEBDAV_SYNC_KEY      = 'webdavSyncConfig';
 const WEBDAV_SYNC_FILENAME = 'multiAI-settings.json';
 const WEBDAV_SYNC_KEYS = [
   'buttonConfig', 'sites', 'customSites',
-  'siteSettings', 'disabledSites', 'promptTemplates',
+  'siteSettings', 'disabledSites', 'promptTemplates', 'analysisPromptTemplates',
   'favoritePrompts', 'favoriteSites',
 ];
 const WEBDAV_LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders'];

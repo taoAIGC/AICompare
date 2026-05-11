@@ -29,6 +29,10 @@ function initializeI18n() {
 document.addEventListener('DOMContentLoaded', async () => {
     initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
+    const historyList = document.getElementById('historyList');
+    if (historyList && window.SiteUrlTooltip?.attachUrlTooltip) {
+        window.SiteUrlTooltip.attachUrlTooltip(historyList);
+    }
     await loadHistory();
     
     // 绑定清空历史按钮事件
@@ -236,6 +240,11 @@ function createHistoryItem(item) {
     item.sites.forEach(site => {
         const tag = document.createElement('span');
         tag.className = 'site-tag';
+        const siteUrl = String(site.url || '').trim();
+        if (siteUrl) {
+            tag.dataset.url = siteUrl;
+            tag.title = siteUrl;
+        }
         if (site.isFavorite === true) {
             tag.classList.add('favorite-tag');
         }

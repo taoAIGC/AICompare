@@ -430,7 +430,7 @@
     "message": "قارن الردود من منصات ذكاء اصطناعي متعددة باستخدام AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "قوالب الموجهات"
+    "message": "Chat Prompt"
   },
   "promptTemplatesLabel": {
     "message": "القالب:"
@@ -1291,6 +1291,69 @@
   },
   "templateTypeHelp": {
     "message": "يتم تصفية اقتراحات الصفحة الرئيسية وiframe حسب نوع الموقع الحالي."
+  },
+  "analysisPromptTemplatesTitle": {
+    "message": "Analysis Prompt"
+  },
+  "analysisPromptTemplatesDescription": {
+    "message": "Customize the prompt templates used to analyze copied summaries"
+  },
+  "addAnalysisTemplateButton": {
+    "message": "Add Analysis Prompt"
+  },
+  "addAnalysisTemplateTitle": {
+    "message": "Add Analysis Prompt"
+  },
+  "editAnalysisTemplateTitle": {
+    "message": "Edit Analysis Prompt"
+  },
+  "analysisTemplateListEmpty": {
+    "message": "No analysis prompt templates yet"
+  },
+  "analysisTemplateListHint": {
+    "message": "Click \"Add Analysis Prompt\" to create one"
+  },
+  "analysisTemplateLoading": {
+    "message": "Loading analysis prompts..."
+  },
+  "analysisTemplateEmpty": {
+    "message": "No analysis prompt templates"
+  },
+  "analysisTemplateQueryPlaceholder": {
+    "message": "For example: Please analyze the following content..."
+  },
+  "analysisTemplateQueryHelp": {
+    "message": "يدعم أي عنصر نائب {xxx}؛ وإذا لم يوجد عنصر نائب فسيُضاف محتوى التحليل تلقائيًا في النهاية"
+  },
+  "analysisTemplateNamePlaceholder": {
+    "message": "For example: Conclusion First"
+  },
+  "analysisTemplateNameHelp": {
+    "message": "Text shown in the analysis prompt dropdown"
+  },
+  "analysisPromptTemplateSelectLabel": {
+    "message": "Select analysis prompt"
+  },
+  "analysisPromptTemplateBadge": {
+    "message": "Analysis"
+  },
+  "defaultAnalysisTemplateConclusionName": {
+    "message": "الحكم أولًا"
+  },
+  "defaultAnalysisTemplateConclusionQuery": {
+    "message": "أعطِ حكمًا واضحًا أولًا، ثم ادعمه بأهم الأدلة. اختم بدرجة الثقة وأي تحفّظات محتملة.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateDifferenceName": {
+    "message": "تفكيك مقارن"
+  },
+  "defaultAnalysisTemplateDifferenceQuery": {
+    "message": "قارن الإجابات بندًا بندًا وغطِّ على الأقل أربعة جوانب: نقاط التشابه، الفروقات، التعارضات، وأي إجابة أكثر موثوقية. استخدم جدولًا أو أقسامًا مجمعة إن أمكن.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateReportName": {
+    "message": "مذكرة قرار"
+  },
+  "defaultAnalysisTemplateReportQuery": {
+    "message": "حوّل هذه المادة إلى مذكرة قرار من صفحة واحدة: ابدأ بالتوصية، ثم اشرح لماذا هي الخيار الأفضل، وما المخاطر، وما الذي يجب فعله بعد ذلك. اجعل النبرة مباشرة وموجهة للقرار.\n\n{analysisInput}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "الترجمة إلى الصينية"
