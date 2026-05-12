@@ -245,3 +245,42 @@ test('extractMessagesWithContainer skips shell-like container fallback content',
   assert.equal(result.content, 'A real answer\nwith details');
   assert.equal(result.messageCount, 1);
 });
+
+test('resolveDocumentUrl keeps alternate link when history feature differs only by trailing slash', () => {
+  const alternateLink = {
+    getAttribute(name) {
+      if (name === 'href') {
+        return 'https://example.com/chat/123';
+      }
+      return null;
+    }
+  };
+
+  const selectorMap = new Map();
+  selectorMap.set('a[data-ignore]', []);
+  const doc = createDocument(selectorMap);
+  doc.location.href = 'https://example.com/chat';
+  doc.querySelectorAll = (selector) => {
+    if (selector === 'link[rel="alternate"]') return [];
+    if (selector === 'a[data-history-link]') return [alternateLink];
+    return selectorMap.get(selector) || [];
+  };
+
+  const extraction = loadExtractionCore(doc);
+  const resolved = extraction.resolveDocumentUrl(
+    doc,
+    'https://example.com/chat',
+    {
+      historyHandler: {
+        urlFeature: '/chat/'
+      },
+      contentExtractor: {
+        urlExtractor: {
+          alternateLinkSelector: 'a[data-history-link]'
+        }
+      }
+    }
+  );
+
+  assert.equal(resolved, 'https://example.com/chat/123');
+});

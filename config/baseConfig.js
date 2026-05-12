@@ -8,12 +8,14 @@ if ((typeof window !== 'undefined' && window.BaseConfigLoaded) ||
 // 开发环境配置
 const DEV_CONFIG = {
   IS_PRODUCTION: true,  // 开发时设为 false，发布时设为 true
-  SKIP_REMOTE_CONFIG: true,  // 开发时跳过远程配置，直接使用本地文件
+  SKIP_REMOTE_CONFIG: false,  // 需要时可切回本地配置优先
   ENABLE_CONFIG_CACHE: false, // 开发时禁用配置缓存，确保修改立即生效
-  FORCE_LOCAL_CONFIG: true,   // 开发时强制使用本地配置文件
+  FORCE_LOCAL_CONFIG: false,   // 需要时可强制使用本地配置文件
   ENABLE_SITE_BUTTON: false  // site-button 是否生效的开关
 
 };
+
+const REMOTE_SITE_HANDLERS_URL = 'https://raw.githubusercontent.com/taoAIGC/AI-Shortcuts/main/config/siteHandlers.json';
 
 const DEV_BRANDING_ENABLED = DEV_CONFIG.IS_PRODUCTION === false;
 const DEFAULT_BRAND_ICON_PATHS = Object.freeze({
@@ -396,17 +398,17 @@ function compareVersions(version1, version2) {
   return 0;
 }
 
-// 站点配置同步功能（仅在扩展包内同步配置，不加载远程代码）
+// 站点配置同步功能（远程 JSON 配置 + 本地缓存回退）
 const RemoteConfigManager = {
-  // 配置来源始终指向扩展包内的本地文件，避免远程脚本/远程命令风险
+  // 远程配置来源，失败时仍会回退到扩展包内的本地文件
   get configUrl() {
-    return chrome.runtime.getURL('config/siteHandlers.json');
+    return REMOTE_SITE_HANDLERS_URL;
   },
   
   // 检查并同步本地配置
   async checkAndUpdateConfig() {
     try {
-      const response = await fetch(this.configUrl);
+      const response = await fetch(this.configUrl, { cache: 'no-store' });
       if (!response.ok) {
         throw new Error(`配置服务器错误: ${response.status}`);
       }
@@ -498,18 +500,21 @@ const RemoteConfigManager = {
       // 计算站点变化
       let newSites = 0;
       let updatedSites = 0;
+      let newSiteNames = [];
+      let updatedSiteNames = [];
       
       if (oldConfig && oldConfig.sites && remoteConfig.sites) {
         const oldSites = oldConfig.sites;
         const newSitesList = remoteConfig.sites;
         
         // 计算新增站点
-        newSites = newSitesList.filter(newSite => 
+        newSiteNames = newSitesList.filter(newSite =>
           !oldSites.some(oldSite => oldSite.name === newSite.name)
-        ).length;
+        ).map(site => site.name).filter(Boolean);
+        newSites = newSiteNames.length;
         
         // 计算更新站点（URL或配置有变化的站点）
-        updatedSites = newSitesList.filter(newSite => {
+        updatedSiteNames = newSitesList.filter(newSite => {
           const oldSite = oldSites.find(oldSite => oldSite.name === newSite.name);
           if (!oldSite) return false;
           
@@ -518,11 +523,18 @@ const RemoteConfigManager = {
                  oldSite.supportIframe !== newSite.supportIframe ||
                  oldSite.supportUrlQuery !== newSite.supportUrlQuery ||
                  JSON.stringify(oldSite.handler) !== JSON.stringify(newSite.handler);
-        }).length;
+        }).map(site => site.name).filter(Boolean);
+        updatedSites = updatedSiteNames.length;
       } else if (remoteConfig.sites) {
         // 首次安装或没有旧配置
-        newSites = remoteConfig.sites.length;
+        newSiteNames = remoteConfig.sites.map(site => site.name).filter(Boolean);
+        newSites = newSiteNames.length;
       }
+
+      const changedSiteNames = Array.from(new Set([
+        ...newSiteNames,
+        ...updatedSiteNames
+      ]));
       
       // 创建更新记录
       const updateRecord = {
@@ -530,6 +542,9 @@ const RemoteConfigManager = {
         version: remoteConfig.version || currentTime,
         newSites: newSites,
         updatedSites: updatedSites,
+        newSiteNames,
+        updatedSiteNames,
+        changedSiteNames,
         totalSites: remoteConfig.sites ? remoteConfig.sites.length : 0,
         oldVersion: oldConfig ? (oldConfig.version || 'unknown') : 'unknown'
       };

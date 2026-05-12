@@ -1,5 +1,6 @@
 let allFavoriteItems = [];
 let currentFolderId = null; // null = all
+let siteUrlFallbackMap = new Map();
 
 function t(key, fallback = '') {
     return chrome?.i18n?.getMessage?.(key) || fallback;
@@ -28,6 +29,7 @@ function initializeI18n() {
 document.addEventListener('DOMContentLoaded', async () => {
     initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
+    siteUrlFallbackMap = await loadSiteUrlFallbackMap();
     const favoritesList = document.getElementById('favoritesList');
     if (favoritesList && window.SiteUrlTooltip?.attachUrlTooltip) {
         window.SiteUrlTooltip.attachUrlTooltip(favoritesList);
@@ -46,6 +48,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         filterFavorites(e.target.value);
     });
 });
+
+async function loadSiteUrlFallbackMap() {
+    try {
+        if (typeof window.getDefaultSites !== 'function') {
+            return new Map();
+        }
+
+        const sites = await window.getDefaultSites();
+        const map = new Map();
+        (Array.isArray(sites) ? sites : []).forEach((site) => {
+            const name = String(site?.name || '').trim();
+            const url = String(site?.url || '').trim();
+            if (name && url && !map.has(name)) {
+                map.set(name, url);
+            }
+        });
+        return map;
+    } catch (error) {
+        console.warn('加载站点 URL 兜底映射失败:', error);
+        return new Map();
+    }
+}
 
 // ─── Folder tabs ───
 
@@ -291,7 +315,7 @@ function createFavoriteItem(item, folderMap) {
     item.sites.forEach(site => {
         const tag = document.createElement('span');
         tag.className = 'site-tag favorite-tag';
-        const siteUrl = String(site.url || '').trim();
+        const siteUrl = String(site.url || siteUrlFallbackMap.get(site.name) || '').trim();
         if (siteUrl) {
             tag.dataset.url = siteUrl;
             tag.title = siteUrl;

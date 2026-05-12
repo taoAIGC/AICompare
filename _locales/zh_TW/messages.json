@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "快捷入口設定",
+    "message": "入口",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,48 @@
   "checkUpdates": {
     "message": "檢查更新"
   },
+  "configUpdateToastTag": {
+    "message": "設定更新"
+  },
+  "configUpdateToastTitle": {
+    "message": "設定檔已更新"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "設定檔已更新。"
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "設定檔已更新，涉及以下站點。"
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "設定檔已更新，涉及 $1 等站點。"
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "設定檔已更新，涉及 $1 個站點。"
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "涉及站點"
+  },
+  "configUpdateToastReview": {
+    "message": "查看詳細資訊"
+  },
+  "configUpdateToastDismiss": {
+    "message": "知道了"
+  },
+  "configUpdateToastFallback": {
+    "message": "設定已更新，但提示介面未能顯示。"
+  },
+  "configUpdateDetailsTitle": {
+    "message": "更新詳細資訊"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "最近的版本紀錄、站點變更和同步來源。"
+  },
+  "configUpdateDetailsSource": {
+    "message": "開啟原始碼檔案"
+  },
+  "configUpdateDetailsClose": {
+    "message": "關閉"
+  },
   "unknownTime": {
     "message": "未知時間"
   },
@@ -422,6 +464,9 @@
   },
   "disabledSitesDescription": {
     "message": "管理懸浮球被禁用的網站，您可以在这里重新啟用懸浮球"
+  },
+  "noDisabledSites": {
+    "message": "目前沒有停用的網站"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +533,9 @@
   },
   "templateDeletedSuccess": {
     "message": "範本刪除成功"
+  },
+  "deleteFailed": {
+    "message": "刪除失敗，請再試一次"
   },
   "templateNameRequired": {
     "message": "請輸入範本名稱"
@@ -673,6 +721,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "執行中断"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "網頁未載入成功或者已經改版"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "執行中"

@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "Configuration des raccourcis",
+    "message": "Accès rapide",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,45 @@
   "checkUpdates": {
     "message": "Verifier les mises a jour"
   },
+  "configUpdateToastTag": {
+    "message": "Mise à jour de configuration"
+  },
+  "configUpdateToastTitle": {
+    "message": "Fichier de configuration mis a jour"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "Le fichier de configuration a ete mis a jour."
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "Le fichier de configuration a ete mis a jour et concerne $1."
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "Le fichier de configuration a ete mis a jour et concerne $1 et d'autres sites."
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "Le fichier de configuration a ete mis a jour et concerne $1 sites."
+  },
+  "configUpdateToastReview": {
+    "message": "Voir les détails"
+  },
+  "configUpdateToastDismiss": {
+    "message": "Fermer"
+  },
+  "configUpdateToastFallback": {
+    "message": "La configuration a été mise à jour, mais l'interface de notification n'a pas pu s'afficher."
+  },
+  "configUpdateDetailsTitle": {
+    "message": "Détails de la mise à jour"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "Enregistrements de versions récentes, changements de sites et source de synchronisation."
+  },
+  "configUpdateDetailsSource": {
+    "message": "Ouvrir le fichier source"
+  },
+  "configUpdateDetailsClose": {
+    "message": "Fermer"
+  },
   "unknownTime": {
     "message": "Heure inconnue"
   },
@@ -422,6 +461,9 @@
   },
   "disabledSitesDescription": {
     "message": "Gerez les sites web ou le bouton flottant est desactive. Vous pouvez le reactiver ici."
+  },
+  "noDisabledSites": {
+    "message": "Aucun site désactivé pour le moment"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +530,9 @@
   },
   "templateDeletedSuccess": {
     "message": "Modele supprime avec succes"
+  },
+  "deleteFailed": {
+    "message": "Échec de la suppression. Réessayez."
   },
   "templateNameRequired": {
     "message": "Veuillez saisir un nom de modele"
@@ -673,6 +718,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "Execution interrompue"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "La page ne s'est pas chargée correctement ou a changé"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "En cours"

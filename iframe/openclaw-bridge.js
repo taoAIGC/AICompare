@@ -177,6 +177,9 @@
   }
 
   function urlMatchesHistoryFeature(url, urlFeature) {
+    if (window.SiteLaunchUtils?.urlMatchesHistoryFeature) {
+      return window.SiteLaunchUtils.urlMatchesHistoryFeature(url, urlFeature);
+    }
     if (!urlFeature) return true;
     try {
       return new URL(url).pathname.includes(urlFeature);

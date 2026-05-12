@@ -132,6 +132,17 @@
     justify-content: flex-start;
 }
 
+.multi-ai-toolbar-float .multi-ai-compare-button {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.multi-ai-toolbar-float .multi-ai-compare-button:hover {
+    background: transparent;
+}
+
 .multi-ai-toolbar[data-toolbar-theme="dark-surface"] .multi-ai-favorite-button,
 .multi-ai-toolbar[data-toolbar-theme="dark-surface"] .multi-ai-compare-button,
 .multi-ai-toolbar[data-toolbar-theme="dark-surface"] .site-select-button,

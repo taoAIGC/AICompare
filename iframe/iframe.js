@@ -692,22 +692,28 @@ function ensureTimelineCopyPreviewModal() {
   overlay.setAttribute('aria-labelledby', 'timelineCopyPreviewTitle');
   overlay.innerHTML = `
     <div class="timeline-copy-preview-modal">
-      <button
-        class="timeline-copy-preview-close"
-        type="button"
-        aria-label="${escapeHtml(t('closeButton', '关闭'))}"
-      >×</button>
       <div class="timeline-copy-preview-header">
-        <div class="timeline-copy-preview-title" id="timelineCopyPreviewTitle">${escapeHtml(t('timelineCopyPreviewTitle', '复制回答汇总'))}</div>
+        <div class="timeline-copy-preview-heading">
+          <div class="timeline-copy-preview-title" id="timelineCopyPreviewTitle">${escapeHtml(t('timelineCopyPreviewTitle', '复制回答汇总'))}</div>
+          <div class="timeline-copy-preview-meta"></div>
+        </div>
         <div class="timeline-copy-preview-header-actions">
           <button class="timeline-copy-preview-refresh" type="button">${escapeHtml(t('timelineCopyPreviewRefresh', '刷新'))}</button>
+          <button
+            class="timeline-copy-preview-close"
+            type="button"
+            aria-label="${escapeHtml(t('closeButton', '关闭'))}"
+          >×</button>
         </div>
       </div>
-      <div class="timeline-copy-preview-meta"></div>
-      <pre class="timeline-copy-preview-content" aria-live="polite"></pre>
+      <div class="timeline-copy-preview-body">
+        <pre class="timeline-copy-preview-content" aria-live="polite"></pre>
+      </div>
       <div class="timeline-copy-preview-actions">
-        <select class="timeline-copy-preview-analysis-select" aria-label="${escapeHtml(t('analysisPromptTemplateSelectLabel', '分析提示词选择'))}"></select>
-        <button class="timeline-copy-preview-analyze" type="button">${escapeHtml(t('timelineCopyPreviewAnalyze', '分析'))}</button>
+        <div class="timeline-copy-preview-tools">
+          <select class="timeline-copy-preview-analysis-select" aria-label="${escapeHtml(t('analysisPromptTemplateSelectLabel', '分析提示词选择'))}"></select>
+          <button class="timeline-copy-preview-analyze" type="button">${escapeHtml(t('timelineCopyPreviewAnalyze', '分析'))}</button>
+        </div>
         <button class="timeline-copy-preview-confirm" type="button">${escapeHtml(t('timelineCopyPreviewConfirm', '确认复制'))}</button>
       </div>
     </div>
@@ -2546,17 +2552,29 @@ function setInjectProgressState(overlay, payload) {
     ? t('injectProgressRetryInfo', '重试 $1/$2', [String(payload.retryAttempts), String(payload.retryMax)])
     : '';
   const retrySuffix = retryInfo ? `（${retryInfo}）` : '';
+  const notLoadedMessage = t(
+    'injectProgressErrorPageNotLoadedOrChanged',
+    '网页未加载成功或者已经改版'
+  );
+  const elementNotFoundMessage = t('injectProgressErrorElementNotFound', '未找到元素');
+  const isElementNotFoundError = String(payload.errorMessage || '').trim() === elementNotFoundMessage;
 
   if (status === 'error') {
     markInjectProgressVisible(overlay);
     overlay.classList.add('is-error');
     overlay.dataset.lastStatus = status;
     if (titleEl) titleEl.textContent = t('injectProgressTitleError', '执行失败');
-    const stepInfo = payload.stepIndex && payload.totalSteps
-      ? t('injectProgressStepInfo', '步骤 $1/$2', [String(payload.stepIndex), String(payload.totalSteps)])
-      : t('injectProgressStepInfoFallback', '执行中断');
-    const detailText = description ? `${stepInfo}：${description}${retrySuffix}` : stepInfo;
-    if (detailEl) detailEl.textContent = payload.errorMessage ? `${detailText}（${payload.errorMessage}）` : detailText;
+    if (detailEl) {
+      if (isElementNotFoundError) {
+        detailEl.textContent = notLoadedMessage;
+      } else {
+        const stepInfo = payload.stepIndex && payload.totalSteps
+          ? t('injectProgressStepInfo', '步骤 $1/$2', [String(payload.stepIndex), String(payload.totalSteps)])
+          : t('injectProgressStepInfoFallback', '执行中断');
+        const detailText = description ? `${stepInfo}：${description}${retrySuffix}` : stepInfo;
+        detailEl.textContent = payload.errorMessage ? `${detailText}（${payload.errorMessage}）` : detailText;
+      }
+    }
     if (retryBtn) retryBtn.style.display = 'inline-flex';
     if (closeBtn) closeBtn.style.display = 'inline-flex';
     return;
@@ -5890,8 +5908,18 @@ async function loadHistoryIframes(sites, restoreContext = null) {
     
     // 设置搜索框的值（如果有的话）
     const urlParams = new URLSearchParams(window.location.search);
-    const resolvedRestoreContext = normalizeRestoreContext(restoreContext, '');
+    let resolvedRestoreContext = normalizeRestoreContext(restoreContext, '');
     const query = resolvedRestoreContext?.query || urlParams.get('query');
+    if (!resolvedRestoreContext && query && replaySiteNames.length > 0) {
+      resolvedRestoreContext = {
+        source: 'history',
+        query,
+        autoSearch: true,
+        scrollToPrompt: false,
+        occurrenceIndex: 0,
+        sourceHistoryId: window._currentHistoryId ? String(window._currentHistoryId) : null
+      };
+    }
     if (query) {
       const searchInput = document.getElementById('searchInput');
       if (searchInput) {
@@ -5994,8 +6022,12 @@ async function isHistoryDuplicate(newItem, existingItem) {
         
         // 如果两个 URL 都包含相同的 urlFeature，认为是重复
         if (newPathname && existingPathname) {
-          const newHasFeature = newPathname.includes(urlFeature);
-          const existingHasFeature = existingPathname.includes(urlFeature);
+          const newHasFeature = SiteLaunchUtils.urlMatchesHistoryFeature
+            ? SiteLaunchUtils.urlMatchesHistoryFeature(newSite.url, urlFeature)
+            : newPathname.includes(urlFeature);
+          const existingHasFeature = SiteLaunchUtils.urlMatchesHistoryFeature
+            ? SiteLaunchUtils.urlMatchesHistoryFeature(existingSite.url, urlFeature)
+            : existingPathname.includes(urlFeature);
           
           // 如果都包含 urlFeature，认为是重复
           if (newHasFeature && existingHasFeature) {
@@ -6075,11 +6107,11 @@ async function savePKHistory(query) {
           // 如果 URL 不为空，检查是否包含 urlFeature
           if (url) {
             try {
-              const urlObj = new URL(url);
-              const pathname = urlObj.pathname;
-              
               // 如果 URL 不包含 urlFeature，不保存该 URL（留空，等待后续更新）
-              if (!pathname.includes(urlFeature)) {
+              const matchesHistoryFeature = SiteLaunchUtils.urlMatchesHistoryFeature
+                ? SiteLaunchUtils.urlMatchesHistoryFeature(url, urlFeature)
+                : new URL(url).pathname.includes(urlFeature);
+              if (!matchesHistoryFeature) {
                 console.log(`⚠️ ${siteName} 的 URL 不包含 urlFeature "${urlFeature}"，不保存该 URL（等待后续更新）: ${url}`);
                 sites.push({
                   name: siteName,
@@ -6268,11 +6300,11 @@ async function updateHistorySiteUrl(siteName, url, historyId) {
       }
       
       try {
-        const urlObj = new URL(url);
-        const pathname = urlObj.pathname;
-        
         // 如果 URL 不包含 urlFeature，不更新
-        if (!pathname.includes(urlFeature)) {
+        const matchesHistoryFeature = SiteLaunchUtils.urlMatchesHistoryFeature
+          ? SiteLaunchUtils.urlMatchesHistoryFeature(url, urlFeature)
+          : new URL(url).pathname.includes(urlFeature);
+        if (!matchesHistoryFeature) {
           console.log(`⚠️ ${siteName} 的 URL 不包含 urlFeature "${urlFeature}"，不更新历史记录: ${url}`);
           return;
         }
@@ -6324,8 +6356,10 @@ async function updateHistorySiteUrl(siteName, url, historyId) {
         const urlFeature = siteCfg.historyHandler.urlFeature;
         if (site.url) {
           try {
-            const urlObj = new URL(site.url);
-            if (urlObj.pathname.includes(urlFeature)) {
+            const matchesHistoryFeature = SiteLaunchUtils.urlMatchesHistoryFeature
+              ? SiteLaunchUtils.urlMatchesHistoryFeature(site.url, urlFeature)
+              : new URL(site.url).pathname.includes(urlFeature);
+            if (matchesHistoryFeature) {
               hasValidUrl = true;
               break;
             }
@@ -6513,6 +6547,201 @@ function showClipboardDeniedMessage() {
   }, 5000);
 }
 
+function getUpdateUiLocale() {
+  try {
+    const locale = chrome?.i18n?.getUILanguage?.() || navigator.language || 'en';
+    return String(locale).replace('_', '-');
+  } catch (_) {
+    return String(navigator.language || 'en').replace('_', '-');
+  }
+}
+
+function formatUpdateRelativeTime(timestamp) {
+  const value = Number(timestamp);
+  if (!Number.isFinite(value) || value <= 0) {
+    return t('unknownTime', 'Unknown time');
+  }
+
+  const diff = value - Date.now();
+  const absDiff = Math.abs(diff);
+
+  try {
+    if (typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function') {
+      const formatter = new Intl.RelativeTimeFormat(getUpdateUiLocale(), { numeric: 'auto' });
+      const units = [
+        ['year', 31536000000],
+        ['month', 2592000000],
+        ['week', 604800000],
+        ['day', 86400000],
+        ['hour', 3600000],
+        ['minute', 60000],
+        ['second', 1000]
+      ];
+
+      for (const [unit, unitMs] of units) {
+        if (absDiff >= unitMs || unit === 'second') {
+          return formatter.format(Math.round(diff / unitMs), unit);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to format relative update time:', error);
+  }
+
+  const minutes = Math.max(1, Math.round(absDiff / 60000));
+  return diff < 0 ? `${minutes}m ago` : `in ${minutes}m`;
+}
+
+function formatUpdateAbsoluteTime(timestamp) {
+  const value = Number(timestamp);
+  if (!Number.isFinite(value) || value <= 0) {
+    return t('unknownTime', 'Unknown time');
+  }
+
+  const date = new Date(value);
+  try {
+    return new Intl.DateTimeFormat(getUpdateUiLocale(), {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  } catch (error) {
+    console.warn('Failed to format absolute update time:', error);
+    try {
+      return date.toLocaleString(getUpdateUiLocale());
+    } catch (_) {
+      return date.toLocaleString();
+    }
+  }
+}
+
+function buildUpdateMetricCards(latestUpdate, siteConfigVersion) {
+  const cards = [];
+  const versionText = latestUpdate?.version || siteConfigVersion || '';
+
+  if (versionText) {
+    cards.push({ tone: 'version', text: `V ${versionText}` });
+  }
+
+  if (Number(latestUpdate?.newSites) > 0) {
+    cards.push({
+      tone: 'success',
+      text: t('newSitesCount', 'Added $1 new sites', [latestUpdate.newSites])
+    });
+  }
+
+  if (Number(latestUpdate?.updatedSites) > 0) {
+    cards.push({
+      tone: 'warning',
+      text: t('updatedSitesCount', 'Updated $1 sites', [latestUpdate.updatedSites])
+    });
+  }
+
+  if (Number(latestUpdate?.totalSites) > 0) {
+    cards.push({
+      tone: 'info',
+      text: t('totalSitesCount', 'Total $1 sites', [latestUpdate.totalSites])
+    });
+  }
+
+  if (cards.length === 0) {
+    cards.push({
+      tone: 'version',
+      text: t('unknownTime', 'Unknown time')
+    });
+  }
+
+  return cards.map(card => `
+    <div class="config-update-metric" data-tone="${escapeHtml(card.tone)}">
+      <span class="config-update-metric__text">${escapeHtml(card.text)}</span>
+    </div>
+  `).join('');
+}
+
+function buildUpdateHistoryCards(updateHistory, siteConfigVersion) {
+  const items = Array.isArray(updateHistory)
+    ? updateHistory.filter((update, index, arr) => {
+        if (index === arr.length - 1 && update.version === siteConfigVersion) {
+          return false;
+        }
+        return true;
+      }).slice(-5).reverse()
+    : [];
+
+  if (items.length === 0) {
+    return `
+      <div class="config-update-dialog__empty">
+        <div class="config-update-dialog__empty-title">${escapeHtml(t('noUpdateHistory', 'No update history available'))}</div>
+      </div>
+    `;
+  }
+
+  return items.map(update => {
+    const chips = [];
+    if (Number(update.newSites) > 0) {
+      chips.push(`<span class="config-update-dialog__chip config-update-dialog__chip--success">${escapeHtml(t('newSitesCount', 'Added $1 new sites', [update.newSites]))}</span>`);
+    }
+    if (Number(update.updatedSites) > 0) {
+      chips.push(`<span class="config-update-dialog__chip config-update-dialog__chip--warning">${escapeHtml(t('updatedSitesCount', 'Updated $1 sites', [update.updatedSites]))}</span>`);
+    }
+    if (Number(update.totalSites) > 0) {
+      chips.push(`<span class="config-update-dialog__chip config-update-dialog__chip--info">${escapeHtml(t('totalSitesCount', 'Total $1 sites', [update.totalSites]))}</span>`);
+    }
+
+    return `
+      <article class="config-update-dialog__history-item">
+        <div class="config-update-dialog__history-head">
+          <div class="config-update-dialog__history-version">V ${escapeHtml(update.version || siteConfigVersion || '—')}</div>
+          <div class="config-update-dialog__history-time">${escapeHtml(formatUpdateAbsoluteTime(update.timestamp))}</div>
+        </div>
+        ${chips.length > 0 ? `<div class="config-update-dialog__history-chips">${chips.join('')}</div>` : ''}
+      </article>
+    `;
+  }).join('');
+}
+
+function getConfigUpdateChangedSiteNames(latestUpdate) {
+  const changedSiteNames = Array.isArray(latestUpdate?.changedSiteNames)
+    ? latestUpdate.changedSiteNames
+    : [
+        ...(Array.isArray(latestUpdate?.newSiteNames) ? latestUpdate.newSiteNames : []),
+        ...(Array.isArray(latestUpdate?.updatedSiteNames) ? latestUpdate.updatedSiteNames : [])
+      ];
+
+  return Array.from(new Set(
+    changedSiteNames.map((name) => String(name || '').trim()).filter(Boolean)
+  ));
+}
+
+function buildConfigUpdateSiteSummary(latestUpdate) {
+  const uniqueNames = getConfigUpdateChangedSiteNames(latestUpdate);
+  const totalChanged = Number(latestUpdate?.newSites || 0) + Number(latestUpdate?.updatedSites || 0);
+  const fallbackCount = Number.isFinite(totalChanged) && totalChanged > 0
+    ? totalChanged
+    : Number(latestUpdate?.totalSites || 0);
+
+  if (uniqueNames.length > 0) {
+    return t('configUpdateToastSubtitleWithNames', '配置文件已更新，涉及以下站点。');
+  }
+
+  return t('configUpdateToastSubtitleWithCount', '配置文件已更新，涉及 $1 个站点。', [String(Math.max(1, fallbackCount || 0))]);
+}
+
+function buildConfigUpdateSiteList(latestUpdate) {
+  const uniqueNames = getConfigUpdateChangedSiteNames(latestUpdate);
+  if (uniqueNames.length === 0) {
+    return '';
+  }
+
+  return `
+    <div class="config-update-toast__site-list" aria-label="${escapeHtml(t('configUpdateToastSitesLabel', 'Updated sites'))}">
+      ${uniqueNames.map((siteName) => `<span class="config-update-toast__site-chip">${escapeHtml(siteName)}</span>`).join('')}
+    </div>
+  `;
+}
+
 
 // 检查站点配置更新
 async function checkForSiteConfigUpdates() {
@@ -6548,128 +6777,104 @@ async function checkForSiteConfigUpdates() {
 // 显示更新通知
 async function showUpdateNotification() {
   try {
-    // 获取更新信息
     const { siteConfigVersion, lastUpdateTime, updateHistory } = await chrome.storage.local.get(['siteConfigVersion', 'lastUpdateTime', 'updateHistory']);
-    
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-    color: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    z-index: 10000;
-      max-width: 350px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
-      line-height: 1.5;
-    cursor: pointer;
-      border: 1px solid rgba(255,255,255,0.2);
-      backdrop-filter: blur(10px);
-      animation: slideInRight 0.3s ease-out;
+    const latestUpdate = Array.isArray(updateHistory) && updateHistory.length > 0
+      ? updateHistory[updateHistory.length - 1]
+      : null;
+    const subtitleText = buildConfigUpdateSiteSummary(latestUpdate);
+    const siteListMarkup = buildConfigUpdateSiteList(latestUpdate);
+
+    const notification = document.createElement('div');
+    notification.id = 'configUpdateToastShell';
+    notification.className = 'config-update-toast-shell';
+    notification.setAttribute('role', 'status');
+    notification.setAttribute('aria-live', 'polite');
+    notification.setAttribute('aria-atomic', 'true');
+    notification.dir = 'auto';
+
+    notification.innerHTML = `
+      <div class="config-update-toast">
+        <button class="config-update-toast__close" type="button" aria-label="${escapeHtml(t('configUpdateToastDismiss', 'Dismiss'))}">×</button>
+        <div class="config-update-toast__header">
+          <div class="config-update-toast__copy">
+            <div class="config-update-toast__title-row">
+              <div class="config-update-toast__title">${escapeHtml(t('configUpdateToastTitle', 'Configuration updated'))}</div>
+              <span class="config-update-toast__time">${escapeHtml(formatUpdateRelativeTime(latestUpdate?.timestamp || lastUpdateTime))}</span>
+            </div>
+            <div class="config-update-toast__subtitle">${escapeHtml(subtitleText)}</div>
+            ${siteListMarkup}
+          </div>
+        </div>
+        <div class="config-update-toast__actions">
+          <button class="config-update-toast__button config-update-toast__button--secondary" type="button">${escapeHtml(t('configUpdateToastDismiss', 'Got it'))}</button>
+        </div>
+      </div>
     `;
-    
-    // 格式化更新时间
-    const formatUpdateTime = (timestamp) => {
-      if (!timestamp) return '刚刚';
-      const now = Date.now();
-      const diff = now - timestamp;
-      const minutes = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
-      
-      if (minutes < 1) return '刚刚';
-      if (minutes < 60) return `${minutes}分钟前`;
-      if (hours < 24) return `${hours}小时前`;
-      return `${days}天前`;
+
+    const toastCard = notification.querySelector('.config-update-toast');
+    const dismissButtons = notification.querySelectorAll('.config-update-toast__close, .config-update-toast__button--secondary');
+    let autoHideTimer = null;
+    let isClosing = false;
+
+    const clearAutoHide = () => {
+      if (autoHideTimer) {
+        clearTimeout(autoHideTimer);
+        autoHideTimer = null;
+      }
     };
-    
-    // 获取更新历史信息
-    let updateInfo = '';
-    if (updateHistory && updateHistory.length > 0) {
-      const latestUpdate = updateHistory[updateHistory.length - 1];
-      updateInfo = `
-        <div style="font-size: 12px; opacity: 0.9; margin-top: 8px;">
-          <div>V ${latestUpdate.version || siteConfigVersion || '未知'}</div>
-          <div>${formatUpdateTime(latestUpdate.timestamp || lastUpdateTime)}</div>
-          ${latestUpdate.newSites ? `<div>新增站点: ${latestUpdate.newSites}个</div>` : ''}
-          ${latestUpdate.updatedSites ? `<div>更新站点: ${latestUpdate.updatedSites}个</div>` : ''}
-        </div>
-      `;
-    } else {
-      updateInfo = `
-        <div style="font-size: 12px; opacity: 0.9; margin-top: 8px;">
-          <div>V ${siteConfigVersion || '未知'}</div>
-          <div>${formatUpdateTime(lastUpdateTime)}</div>
-        </div>
-      `;
-    }
-  
-  notification.innerHTML = `
-     
-      <div style="font-size: 13px; opacity: 0.95; margin-bottom: 8px;">
-        🆕AI站点处理规则已自动更新到最新版本
-      </div>
-      ${updateInfo}
-      <div style="font-size: 11px; opacity: 0.8; margin-top: 12px; text-align: center; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
-        🔎
-      </div>
-    `;
-    
-    // 添加CSS动画
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // 点击通知显示详细更新信息
-  notification.addEventListener('click', () => {
-      showDetailedUpdateInfo();
-    notification.remove();
-      style.remove();
+
+    const closeToast = (openDetails = false) => {
+      if (isClosing) return;
+      isClosing = true;
+      clearAutoHide();
+      toastCard.classList.remove('is-visible');
+      notification.classList.remove('is-visible');
+
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.remove();
+        }
+      }, 240);
+    };
+
+    const scheduleAutoHide = (delayMs = 10000) => {
+      clearAutoHide();
+      autoHideTimer = setTimeout(() => closeToast(false), delayMs);
+    };
+
+    dismissButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        closeToast(false);
+      });
     });
-    
-    // 添加悬停效果
-    notification.addEventListener('mouseenter', () => {
-      notification.style.transform = 'translateY(-2px)';
-      notification.style.boxShadow = '0 8px 25px rgba(0,0,0,0.4)';
-    });
-    
-    notification.addEventListener('mouseleave', () => {
-      notification.style.transform = 'translateY(0)';
-      notification.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
-  });
-  
-  document.body.appendChild(notification);
-  
-    // 10秒后自动消失
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.style.animation = 'slideInRight 0.3s ease-out reverse';
-  setTimeout(() => {
-    if (notification.parentElement) {
-      notification.remove();
-            style.remove();
-          }
-        }, 300);
+
+    toastCard.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeToast(false);
+        return;
       }
-    }, 10000);
-    
+    });
+
+    toastCard.addEventListener('mouseenter', clearAutoHide);
+    toastCard.addEventListener('mouseleave', () => scheduleAutoHide(5000));
+    toastCard.addEventListener('focusin', clearAutoHide);
+    toastCard.addEventListener('focusout', () => {
+      if (!toastCard.contains(document.activeElement)) {
+        scheduleAutoHide(5000);
+      }
+    });
+
+    document.body.appendChild(notification);
+    requestAnimationFrame(() => {
+      notification.classList.add('is-visible');
+      toastCard.classList.add('is-visible');
+    });
+
+    scheduleAutoHide(10000);
   } catch (error) {
     console.error('显示更新通知失败:', error);
-    // 显示简单的 toast 提示
-    showToast('配置已更新，但无法显示详细信息');
+    showToast(t('configUpdateToastFallback', 'Configuration updated, but the notification UI could not be displayed.'));
   }
 }
 
@@ -6677,185 +6882,104 @@ async function showUpdateNotification() {
 async function showDetailedUpdateInfo() {
   try {
     const { updateHistory, siteConfigVersion, lastUpdateTime } = await chrome.storage.local.get(['updateHistory', 'siteConfigVersion', 'lastUpdateTime']);
-    
-    // 创建模态框背景
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 20000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: fadeIn 0.3s ease-out;
-    `;
-    
-    // 创建模态框内容
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      animation: slideInUp 0.3s ease-out;
-    `;
-    
-    // 格式化时间
-    const formatTime = (timestamp) => {
-      if (!timestamp) return chrome.i18n.getMessage('unknownTime');
-      const date = new Date(timestamp);
-      return date.toLocaleString(chrome.i18n.getUILanguage(), {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
-    
-    // 生成更新历史内容
-    let historyContent = '';
-    if (updateHistory && updateHistory.length > 0) {
-      // 去重：只显示历史记录，不重复显示当前更新信息
-      const uniqueHistory = updateHistory.filter((update, index, arr) => {
-        // 如果是最后一个记录且与当前版本相同，则跳过（避免重复显示）
-        if (index === arr.length - 1 && update.version === siteConfigVersion) {
-          return false;
-        }
-        return true;
-      });
-      
-      historyContent = uniqueHistory.slice(-5).reverse().map((update, index) => `
-        <div style="padding: 12px; border-left: 3px solid #4CAF50; margin-bottom: 12px; background: #f8f9fa; border-radius: 0 8px 8px 0;">
-          <div style="font-weight: 600; color: #333; margin-bottom: 4px;">
-            V${update.version} - ${formatTime(update.timestamp)}
-          </div>
-          <div style="font-size: 13px; color: #666;">
-            ${(() => {
-              const parts = [];
-              if (update.newSites > 0) {
-                parts.push(chrome.i18n.getMessage('newSitesCount', [update.newSites]));
-              }
-              if (update.updatedSites > 0) {
-                parts.push(chrome.i18n.getMessage('updatedSitesCount', [update.updatedSites]));
-              }
-              if (update.totalSites > 0) {
-                parts.push(chrome.i18n.getMessage('totalSitesCount', [update.totalSites]));
-              }
-              return parts.join('，');
-            })()}
-          </div>
-        </div>
-      `).join('');
-      
-      // 如果没有历史记录可显示，显示空状态
-      if (historyContent === '') {
-        historyContent = `
-          <div style="padding: 20px; text-align: center; color: #666;">
-            <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
-            <div>${chrome.i18n.getMessage('noUpdateHistory')}</div>
-          </div>
-        `;
-      }
-    } else {
-      historyContent = `
-        <div style="padding: 20px; text-align: center; color: #666;">
-          <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
-          <div>${chrome.i18n.getMessage('noUpdateHistory')}</div>
-        </div>
-      `;
+    const latestUpdate = Array.isArray(updateHistory) && updateHistory.length > 0
+      ? updateHistory[updateHistory.length - 1]
+      : null;
+
+    const existingOverlay = document.getElementById('configUpdateDialogOverlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
     }
-    
-    modal.innerHTML = `
-      <div style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="margin: 0; color: #333; font-size: 16px; font-weight: 600;">📈 ${chrome.i18n.getMessage('recentUpdateRecords')}</h3>
-          <button id="closeModal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #999; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s;">
-            ×
-          </button>
+
+    const overlay = document.createElement('div');
+    overlay.id = 'configUpdateDialogOverlay';
+    overlay.className = 'config-update-dialog-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'configUpdateDialogTitle');
+    overlay.dir = 'auto';
+
+    overlay.innerHTML = `
+      <div class="config-update-dialog">
+        <div class="config-update-dialog__hero">
+          <button class="config-update-dialog__close" type="button" aria-label="${escapeHtml(t('configUpdateDetailsClose', 'Close'))}">×</button>
+          <div class="config-update-dialog__eyebrow">
+            <span class="config-update-dialog__badge">${escapeHtml(t('configUpdateToastTag', 'Configuration update'))}</span>
+            <span class="config-update-dialog__time">${escapeHtml(formatUpdateRelativeTime(latestUpdate?.timestamp || lastUpdateTime))}</span>
+          </div>
+          <h2 class="config-update-dialog__title" id="configUpdateDialogTitle">${escapeHtml(t('configUpdateDetailsTitle', 'Update details'))}</h2>
+          <p class="config-update-dialog__subtitle">${escapeHtml(t('configUpdateDetailsSubtitle', 'Recent version records, site changes, and sync source.'))}</p>
+          <div class="config-update-metrics config-update-metrics--dialog">
+            ${buildUpdateMetricCards(latestUpdate, siteConfigVersion)}
+          </div>
         </div>
-        <div style="max-height: 300px; overflow-y: auto;">
-          ${historyContent}
+        <div class="config-update-dialog__body">
+          <section class="config-update-dialog__section">
+            <div class="config-update-dialog__section-header">
+              <h3 class="config-update-dialog__section-title">${escapeHtml(t('recentUpdateRecords', 'Recent Update Records'))}</h3>
+            </div>
+            <div class="config-update-dialog__history-list">
+              ${buildUpdateHistoryCards(updateHistory, siteConfigVersion)}
+            </div>
+          </section>
+        </div>
+        <div class="config-update-dialog__footer">
+          <button class="config-update-dialog__button config-update-dialog__button--secondary" type="button" data-action="source">${escapeHtml(t('configUpdateDetailsSource', 'Open source file'))}</button>
+          <button class="config-update-dialog__button config-update-dialog__button--primary" type="button" data-action="refresh">${escapeHtml(t('checkUpdates', 'Check updates'))}</button>
         </div>
       </div>
-      
-      <div style="display: flex; gap: 12px; justify-content: flex-end;">
-        <button id="viewGitHub" style="background: #f5f5f5; border: 1px solid #ddd; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; color: #333; transition: all 0.2s;">
-          📖 ${chrome.i18n.getMessage('participateAISiteRuleDev')}
-        </button>
-        <button id="refreshConfig" style="background: #f5f5f5; border: 1px solid #ddd; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; color: #333; transition: all 0.2s;">
-          🔄 ${chrome.i18n.getMessage('checkUpdates')}
-        </button>
-      </div>
     `;
-    
-    // 添加CSS动画
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+
+    const panel = overlay.querySelector('.config-update-dialog');
+    const closeButton = overlay.querySelector('.config-update-dialog__close');
+    const sourceButton = overlay.querySelector('[data-action="source"]');
+    const refreshButton = overlay.querySelector('[data-action="refresh"]');
+    let isClosing = false;
+
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
       }
-      @keyframes slideInUp {
-        from { transform: translateY(30px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // 事件处理
+    };
+
     const closeModal = () => {
-      overlay.style.animation = 'fadeIn 0.3s ease-out reverse';
+      if (isClosing) return;
+      isClosing = true;
+      overlay.classList.remove('is-visible');
+      panel.classList.remove('is-visible');
+      document.removeEventListener('keydown', handleEsc);
+
       setTimeout(() => {
         if (overlay.parentElement) {
           overlay.remove();
-          style.remove();
         }
-      }, 300);
+      }, 260);
     };
-    
-    // 关闭按钮
-    modal.querySelector('#closeModal').addEventListener('click', closeModal);
-    
-    // 点击背景关闭
+
+    closeButton.addEventListener('click', closeModal);
+
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         closeModal();
       }
     });
-    
-    // 查看GitHub
-    modal.querySelector('#viewGitHub').addEventListener('click', () => {
-      window.open('https://github.com/taoAIGC/AI-Shortcuts/blob/main/config/siteHandlers.json', '_blank');
+
+    sourceButton.addEventListener('click', () => {
+      window.open('https://github.com/taoAIGC/AI-Shortcuts/blob/main/config/siteHandlers.json', '_blank', 'noopener,noreferrer');
     });
-    
-    // 检查更新
-    modal.querySelector('#refreshConfig').addEventListener('click', async () => {
-      const button = modal.querySelector('#refreshConfig');
-      const originalText = button.textContent;
-      button.textContent = t('refreshConfigChecking', 'Checking for updates...');
-      button.disabled = true;
-      
+
+    refreshButton.addEventListener('click', async () => {
+      const originalText = refreshButton.textContent;
+      refreshButton.textContent = t('refreshConfigChecking', 'Checking for updates...');
+      refreshButton.disabled = true;
+
       try {
         if (window.RemoteConfigManager) {
           const updateInfo = await window.RemoteConfigManager.autoCheckUpdate();
           if (updateInfo && updateInfo.hasUpdate) {
             await window.RemoteConfigManager.updateLocalConfig(updateInfo.config);
-            showToast(t('refreshConfigUpdated', 'Configuration has been updated to the latest version.'));
             closeModal();
-            // 显示新的更新通知
+            showToast(t('refreshConfigUpdated', 'Configuration has been updated to the latest version.'));
             setTimeout(() => showUpdateNotification(), 500);
           } else {
             showToast(t('refreshConfigLatest', 'Already up to date.'));
@@ -6867,20 +6991,18 @@ async function showDetailedUpdateInfo() {
         console.error('检查更新失败:', error);
         showToast(t('refreshConfigFailed', 'Failed to check for updates.'));
       } finally {
-        button.textContent = originalText;
-        button.disabled = false;
+        refreshButton.textContent = originalText;
+        refreshButton.disabled = false;
       }
     });
-    
-    // ESC键关闭
-    const handleEsc = (e) => {
-      if (e.key === 'Escape') {
-        closeModal();
-        document.removeEventListener('keydown', handleEsc);
-      }
-    };
+
     document.addEventListener('keydown', handleEsc);
-    
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      overlay.classList.add('is-visible');
+      panel.classList.add('is-visible');
+    });
+    closeButton.focus();
   } catch (error) {
     console.error('显示详细更新信息失败:', error);
     showToast(t('updateInfoShowFailed', 'Failed to show update details.'));

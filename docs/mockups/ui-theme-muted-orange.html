@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Compare Muted Orange Mockup</title>
+    <style>
+        :root {
+            --bg: #f8f4ee;
+            --bg-soft: #f1e9df;
+            --panel: rgba(255, 252, 248, 0.82);
+            --panel-strong: rgba(255, 252, 248, 0.94);
+            --border: rgba(99, 76, 60, 0.10);
+            --border-strong: rgba(99, 76, 60, 0.18);
+            --ink: #25201b;
+            --ink-muted: #675e57;
+            --ink-soft: #9a8e84;
+            --accent: #c56431;
+            --accent-hover: #b65828;
+            --accent-deep: #8e4a24;
+            --accent-soft: rgba(197, 100, 49, 0.12);
+            --accent-soft-strong: rgba(197, 100, 49, 0.18);
+            --accent-glow: rgba(197, 100, 49, 0.16);
+            --nav: #54473e;
+            --nav-soft: rgba(255, 255, 255, 0.10);
+            --success: #5f8366;
+            --shadow-lg: 0 28px 80px rgba(72, 49, 31, 0.14);
+            --shadow-md: 0 18px 42px rgba(72, 49, 31, 0.08);
+            --shadow-sm: 0 8px 22px rgba(72, 49, 31, 0.06);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 40px;
+            background:
+                radial-gradient(circle at top left, rgba(197, 100, 49, 0.12), transparent 28%),
+                radial-gradient(circle at top right, rgba(255, 240, 224, 0.72), transparent 36%),
+                linear-gradient(180deg, #fcfaf7 0%, #f8f4ee 44%, #efe6da 100%);
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Helvetica Neue", sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(120, 88, 63, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(120, 88, 63, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(circle at center, black 32%, transparent 92%);
+            pointer-events: none;
+        }
+
+        .scene {
+            width: 1440px;
+            height: 920px;
+            position: relative;
+            border-radius: 36px;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.20));
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+        }
+
+        .scene::after {
+            content: "";
+            position: absolute;
+            inset: 14px;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            pointer-events: none;
+        }
+
+        .caption {
+            position: absolute;
+            left: 34px;
+            top: 28px;
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--ink-soft);
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .caption-badge {
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(99, 76, 60, 0.08);
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .window {
+            position: absolute;
+            inset: 78px 28px 28px 28px;
+            display: grid;
+            grid-template-columns: 248px 1fr;
+            border-radius: var(--radius-xl);
+            background: rgba(255, 255, 255, 0.48);
+            border: 1px solid rgba(255, 255, 255, 0.68);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .sidebar {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+                linear-gradient(180deg, #645448 0%, #4c4036 100%);
+            color: rgba(255, 247, 240, 0.92);
+            padding: 28px 22px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 15px;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.26), rgba(197, 100, 49, 0.34));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+            position: relative;
+        }
+
+        .brand-mark::before,
+        .brand-mark::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            background: rgba(255, 251, 246, 0.88);
+        }
+
+        .brand-mark::before {
+            width: 16px;
+            height: 16px;
+            left: 8px;
+            top: 13px;
+        }
+
+        .brand-mark::after {
+            width: 10px;
+            height: 10px;
+            right: 8px;
+            top: 9px;
+            box-shadow: 0 14px 0 0 rgba(255, 251, 246, 0.76);
+        }
+
+        .brand-text strong {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .brand-text span {
+            display: block;
+            margin-top: 4px;
+            color: rgba(255, 243, 234, 0.62);
+            font-size: 12px;
+        }
+
+        .nav-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .nav-label {
+            padding: 0 12px;
+            color: rgba(255, 240, 230, 0.42);
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            height: 46px;
+            padding: 0 14px;
+            border-radius: 14px;
+            color: rgba(255, 245, 238, 0.76);
+            background: transparent;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
+            color: #fffdfb;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 20px rgba(0, 0, 0, 0.10);
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.86;
+        }
+
+        .workspace-status {
+            margin-top: auto;
+            padding: 18px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .workspace-status small {
+            display: block;
+            margin-bottom: 10px;
+            color: rgba(255, 242, 233, 0.5);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: rgba(197, 100, 49, 0.18);
+            color: #fff4ea;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .status-chip::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f0bf99;
+            box-shadow: 0 0 0 6px rgba(240, 191, 153, 0.10);
+        }
+
+        .content {
+            position: relative;
+            padding: 24px;
+            background: linear-gradient(180deg, rgba(255, 252, 248, 0.58), rgba(250, 245, 238, 0.92));
+        }
+
+        .topbar {
+            height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px 0 20px;
+            border-radius: 20px;
+            background: rgba(255, 252, 248, 0.74);
+            border: 1px solid rgba(99, 76, 60, 0.08);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .crumbs {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--ink-soft);
+            font-size: 14px;
+        }
+
+        .crumbs strong {
+            color: var(--ink);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ghost-btn,
+        .primary-btn {
+            height: 42px;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            padding: 0 16px;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .ghost-btn {
+            background: rgba(99, 76, 60, 0.05);
+            border-color: rgba(99, 76, 60, 0.08);
+            color: var(--ink);
+        }
+
+        .primary-btn {
+            background: linear-gradient(180deg, #cf7b4b 0%, #c56431 100%);
+            color: #fffaf6;
+            box-shadow: 0 10px 18px rgba(197, 100, 49, 0.14);
+        }
+
+        .workspace-grid {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+            gap: 20px;
+        }
+
+        .hero-panel,
+        .insight-panel,
+        .site-card {
+            border-radius: 24px;
+            border: 1px solid rgba(99, 76, 60, 0.08);
+            background: var(--panel);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(14px);
+        }
+
+        .hero-panel {
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            right: -120px;
+            top: -150px;
+            background: radial-gradient(circle, rgba(197, 100, 49, 0.14) 0%, transparent 72%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 34px;
+            padding: 0 14px;
+            border-radius: 999px;
+            background: rgba(197, 100, 49, 0.10);
+            color: var(--accent-deep);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .hero-title {
+            max-width: 760px;
+            margin: 18px 0 14px;
+            font-family: "Iowan Old Style", "Palatino Linotype", serif;
+            font-size: 44px;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-copy {
+            max-width: 780px;
+            margin: 0;
+            color: var(--ink-muted);
+            font-size: 16px;
+            line-height: 1.65;
+        }
+
+        .composer {
+            margin-top: 26px;
+            padding: 18px 18px 18px 22px;
+            border-radius: 20px;
+            background: rgba(255, 252, 248, 0.9);
+            border: 1px solid rgba(99, 76, 60, 0.10);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
+        }
+
+        .composer-label {
+            color: var(--ink-soft);
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .composer-query {
+            margin-top: 10px;
+            font-size: 20px;
+            line-height: 1.55;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .composer-meta {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .meta-chips {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .meta-chip {
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: rgba(99, 76, 60, 0.05);
+            color: var(--ink-muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .insight-panel {
+            padding: 24px;
+            background: linear-gradient(180deg, #5b4d43 0%, #4f433a 100%);
+            color: rgba(255, 248, 242, 0.92);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .panel-title strong {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .panel-title span {
+            color: rgba(255, 242, 233, 0.56);
+            font-size: 13px;
+        }
+
+        .metric-stack {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .metric-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .metric-card strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 26px;
+            letter-spacing: -0.03em;
+        }
+
+        .metric-card span {
+            color: rgba(255, 244, 237, 0.6);
+            font-size: 13px;
+        }
+
+        .checklist {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .check-item {
+            display: flex;
+            gap: 10px;
+            color: rgba(255, 246, 240, 0.78);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .check-item::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            margin-top: 6px;
+            border-radius: 50%;
+            background: #e9b58f;
+            flex: 0 0 auto;
+        }
+
+        .sites-grid {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .site-card {
+            padding: 18px;
+            background: var(--panel-strong);
+        }
+
+        .site-card.featured {
+            border-color: rgba(197, 100, 49, 0.26);
+            box-shadow: 0 16px 28px rgba(197, 100, 49, 0.08);
+        }
+
+        .site-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .site-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .site-badge {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(95, 131, 102, 0.10);
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .avatar.claude {
+            background: linear-gradient(180deg, #7b6758, #604f43);
+        }
+
+        .avatar.gemini {
+            background: linear-gradient(180deg, #c77a4d, #b55c2b);
+        }
+
+        .avatar.chatgpt {
+            background: linear-gradient(180deg, #8c7869, #6f5f53);
+        }
+
+        .site-copy {
+            color: var(--ink-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .site-points {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .site-point {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(99, 76, 60, 0.045);
+            color: var(--ink);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .site-point strong {
+            color: #7a4f32;
+        }
+
+        .footer-bar {
+            margin-top: 18px;
+            height: 60px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 20px;
+            background: rgba(255, 252, 248, 0.74);
+            border: 1px solid rgba(99, 76, 60, 0.08);
+            color: var(--ink-muted);
+            font-size: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .footer-rail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-pill {
+            padding: 8px 11px;
+            border-radius: 999px;
+            background: rgba(99, 76, 60, 0.05);
+            color: var(--ink);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="caption">
+            <span class="caption-badge">Muted Orange</span>
+            <span>AI Compare UI concept</span>
+        </div>
+
+        <div class="window">
+            <aside class="sidebar">
+                <div class="brand">
+                    <div class="brand-mark"></div>
+                    <div class="brand-text">
+                        <strong>AI Compare</strong>
+                        <span>soft orange workspace</span>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">Workspace</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 首页</div>
+                    <div class="nav-item active"><span class="nav-dot"></span> 对比工作台</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 收藏夹</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 历史记录</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">System</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 站点管理</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 快捷动作</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 偏好设置</div>
+                </div>
+
+                <div class="workspace-status">
+                    <small>Session mode</small>
+                    <div class="status-chip">Warm focus / 3 sites active</div>
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="topbar">
+                    <div class="crumbs">
+                        <strong>当前任务</strong>
+                        <span>产品 PRD 对比分析</span>
+                    </div>
+                    <div class="topbar-actions">
+                        <button class="ghost-btn">保存站点组合</button>
+                        <button class="primary-btn">开始并行对比</button>
+                    </div>
+                </div>
+
+                <section class="workspace-grid">
+                    <div>
+                        <div class="hero-panel">
+                            <div class="eyebrow">Query Composer</div>
+                            <h1 class="hero-title">保留橙色的亲和力，但把它从“高调”收回到“耐看”。</h1>
+                            <p class="hero-copy">这版不是换主题，而是把现在的橙色降饱和，让按钮、焦点和高亮依然有识别性，但不再抢走内容本身的注意力。</p>
+
+                            <div class="composer">
+                                <div class="composer-label">Live prompt</div>
+                                <div class="composer-query">帮我比较 Claude、Gemini、ChatGPT 对这个 PRD 的拆解差异：先给出核心任务，再指出风险和优先级。</div>
+                                <div class="composer-meta">
+                                    <div class="meta-chips">
+                                        <div class="meta-chip">3 个站点并行</div>
+                                        <div class="meta-chip">结果按结构对齐</div>
+                                        <div class="meta-chip">保留历史上下文</div>
+                                    </div>
+                                    <button class="primary-btn">发送问题</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sites-grid">
+                            <article class="site-card">
+                                <div class="site-head">
+                                    <div class="site-name">
+                                        <div class="avatar claude">C</div>
+                                        Claude
+                                    </div>
+                                    <div class="site-badge">分析型</div>
+                                </div>
+                                <div class="site-copy">偏向结构化拆解，先梳理问题边界，再进入约束条件和执行层。</div>
+                                <div class="site-points">
+                                    <div class="site-point"><strong>优点：</strong>结构清晰，适合看推理链和优先级。</div>
+                                    <div class="site-point"><strong>风险：</strong>容易偏长，需要更强的摘要层。</div>
+                                </div>
+                            </article>
+
+                            <article class="site-card featured">
+                                <div class="site-head">
+                                    <div class="site-name">
+                                        <div class="avatar gemini">G</div>
+                                        Gemini
+                                    </div>
+                                    <div class="site-badge">平衡型</div>
+                                </div>
+                                <div class="site-copy">在方案宽度和速度之间比较均衡，适合做首轮发散，再进入收敛。</div>
+                                <div class="site-points">
+                                    <div class="site-point"><strong>优点：</strong>覆盖面广，适合早期探索。</div>
+                                    <div class="site-point"><strong>风险：</strong>重点不够聚焦时，需要后续再压一轮。</div>
+                                </div>
+                            </article>
+
+                            <article class="site-card">
+                                <div class="site-head">
+                                    <div class="site-name">
+                                        <div class="avatar chatgpt">P</div>
+                                        ChatGPT
+                                    </div>
+                                    <div class="site-badge">执行型</div>
+                                </div>
+                                <div class="site-copy">适合从问题直接切到可执行计划，节奏快，落地导向更强。</div>
+                                <div class="site-points">
+                                    <div class="site-point"><strong>优点：</strong>行动导向明确，产出速度快。</div>
+                                    <div class="site-point"><strong>风险：</strong>若输入模糊，可能过早进入实现。</div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <aside class="insight-panel">
+                        <div class="panel-title">
+                            <strong>Decision pulse</strong>
+                            <span>live synthesis</span>
+                        </div>
+
+                        <div class="metric-stack">
+                            <div class="metric-card">
+                                <span>当前最优阅读节奏</span>
+                                <strong>先看差异，再看共识</strong>
+                            </div>
+                            <div class="metric-card">
+                                <span>推荐下一步</span>
+                                <strong>把 3 份回答压成 1 个行动面板</strong>
+                            </div>
+                        </div>
+
+                        <div class="checklist">
+                            <div class="check-item">橙色还在，但从高饱和主角退回到温和强调。</div>
+                            <div class="check-item">整体暖感还在，所以不会丢掉这个产品原本的亲和气质。</div>
+                            <div class="check-item">更适合长时间使用，也更容易压住不同 AI 网站自身的花色。</div>
+                        </div>
+                    </aside>
+                </section>
+
+                <div class="footer-bar">
+                    <div class="footer-rail">
+                        <span class="footer-pill">Search</span>
+                        <span class="footer-pill">Compare</span>
+                        <span class="footer-pill">Synthesize</span>
+                    </div>
+                    <div>保留现在的情绪方向，但让整个界面更安静</div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

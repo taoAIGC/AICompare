@@ -1,38 +1,44 @@
-body {
+* {
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--ai-font-sans);
+    background: var(--ai-page-bg);
+    color: var(--ai-text);
+    line-height: 1.6;
     overflow: hidden;
-    color: #333;
 }
 
 code {
     padding: 2px 6px;
     border-radius: 6px;
-    background: #f3f4f6;
+    background: var(--ai-surface-soft);
     font-size: 0.95em;
 }
 
 .page-layout {
     display: flex;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 .main-content {
     flex: 1;
-    padding: 20px;
+    padding: 24px;
     overflow-y: auto;
     height: 100vh;
 }
 
 .container {
-    max-width: 800px;
+    max-width: 840px;
     margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: var(--ai-surface-strong);
+    padding: 24px;
+    border-radius: var(--ai-radius-lg);
+    border: 1px solid var(--ai-border);
+    box-shadow: var(--ai-shadow-sm);
 }
 
 .settings-section {
@@ -40,13 +46,15 @@ code {
 }
 
 h1 {
-    margin: 0 0 20px 0;
-    color: #333;
+    margin: 0 0 18px 0;
+    color: var(--ai-text);
     font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
 }
 
 .section-description {
-    color: #666;
+    color: var(--ai-text-muted);
     margin: 0 0 20px 0;
     font-size: 14px;
 }
@@ -58,32 +66,34 @@ h1 {
 }
 
 .contact-item {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    background: var(--ai-surface-strong);
+    border: 1px solid var(--ai-border);
+    border-radius: var(--ai-radius);
+    padding: 18px 20px;
+    box-shadow: var(--ai-shadow-sm);
+    transition: transform var(--ai-transition), box-shadow var(--ai-transition), border-color var(--ai-transition);
 }
 
 .contact-item:hover {
-    border-color: #c9d8ee;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-color: var(--ai-border-strong);
+    box-shadow: var(--ai-shadow);
+    transform: translateY(-1px);
 }
 
 .contact-item-label {
     margin-bottom: 8px;
     font-size: 12px;
-    font-weight: 600;
-    color: #666;
+    font-weight: 700;
+    color: var(--ai-text-soft);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
 }
 
 .contact-item-value,
 .contact-item-link {
     font-size: 15px;
     line-height: 1.6;
-    color: #333;
+    color: var(--ai-text);
     word-break: break-word;
 }
 
@@ -92,25 +102,25 @@ h1 {
 }
 
 .contact-item-link:hover {
-    color: #4a90e2;
+    color: var(--ai-accent);
     text-decoration: underline;
 }
 
 .contact-empty {
     padding: 16px;
-    border: 1px dashed #d0d7de;
-    border-radius: 8px;
-    color: #666;
-    background: #fafafa;
+    border: 1px dashed var(--ai-border-strong);
+    border-radius: 12px;
+    color: var(--ai-text-muted);
+    background: var(--ai-surface-soft);
 }
 
 @media (max-width: 768px) {
     .main-content {
-        padding: 10px;
+        padding: 16px;
     }
 
     .container {
-        padding: 16px;
+        padding: 18px;
     }
 }
 
@@ -121,7 +131,6 @@ h1 {
 
     .page-layout {
         flex-direction: column;
-        height: auto;
         min-height: 100vh;
     }
 

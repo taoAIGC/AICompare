@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "Konfiguration der Schnellzugriffe",
+    "message": "Schnellzugriff",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,45 @@
   "checkUpdates": {
     "message": "Nach Updates suchen"
   },
+  "configUpdateToastTag": {
+    "message": "Konfigurationsupdate"
+  },
+  "configUpdateToastTitle": {
+    "message": "Konfigurationsdatei aktualisiert"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "Die Konfigurationsdatei wurde aktualisiert."
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "Die Konfigurationsdatei wurde aktualisiert und betrifft $1."
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "Die Konfigurationsdatei wurde aktualisiert und betrifft $1 und weitere Seiten."
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "Die Konfigurationsdatei wurde aktualisiert und betrifft $1 Seiten."
+  },
+  "configUpdateToastReview": {
+    "message": "Details ansehen"
+  },
+  "configUpdateToastDismiss": {
+    "message": "Schließen"
+  },
+  "configUpdateToastFallback": {
+    "message": "Konfiguration aktualisiert, aber die Benachrichtigungsoberfläche konnte nicht angezeigt werden."
+  },
+  "configUpdateDetailsTitle": {
+    "message": "Update-Details"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "Aktuelle Versionseinträge, Website-Änderungen und Sync-Quelle."
+  },
+  "configUpdateDetailsSource": {
+    "message": "Quelldatei öffnen"
+  },
+  "configUpdateDetailsClose": {
+    "message": "Schließen"
+  },
   "unknownTime": {
     "message": "Unbekannte Zeit"
   },
@@ -422,6 +461,9 @@
   },
   "disabledSitesDescription": {
     "message": "Verwalte Websites, auf denen der schwebende Button deaktiviert ist. Hier kannst du ihn wieder aktivieren."
+  },
+  "noDisabledSites": {
+    "message": "Noch keine deaktivierten Websites"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +530,9 @@
   },
   "templateDeletedSuccess": {
     "message": "Vorlage erfolgreich geloscht"
+  },
+  "deleteFailed": {
+    "message": "Löschen fehlgeschlagen. Bitte erneut versuchen."
   },
   "templateNameRequired": {
     "message": "Bitte gib einen Vorlagennamen ein"
@@ -673,6 +718,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "Ausfuhrung unterbrochen"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "Die Seite wurde nicht erfolgreich geladen oder hat sich geändert"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "Wird ausgefuhrt"

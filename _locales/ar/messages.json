@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "اعدادات الوصول السريع",
+    "message": "الوصول السريع",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,45 @@
   "checkUpdates": {
     "message": "التحقق من التحديثات"
   },
+  "configUpdateToastTag": {
+    "message": "تحديث التهيئة"
+  },
+  "configUpdateToastTitle": {
+    "message": "تم تحديث ملف الإعدادات"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "تم تحديث ملف الإعدادات."
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "تم تحديث ملف الإعدادات ويشمل $1."
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "تم تحديث ملف الإعدادات ويشمل $1 ومواقع أخرى."
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "تم تحديث ملف الإعدادات ويشمل $1 مواقع."
+  },
+  "configUpdateToastReview": {
+    "message": "عرض التفاصيل"
+  },
+  "configUpdateToastDismiss": {
+    "message": "إغلاق"
+  },
+  "configUpdateToastFallback": {
+    "message": "تم تحديث التهيئة، لكن تعذر عرض واجهة الإشعار."
+  },
+  "configUpdateDetailsTitle": {
+    "message": "تفاصيل التحديث"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "سجلات الإصدارات الأخيرة وتغييرات المواقع ومصدر المزامنة."
+  },
+  "configUpdateDetailsSource": {
+    "message": "فتح ملف المصدر"
+  },
+  "configUpdateDetailsClose": {
+    "message": "إغلاق"
+  },
   "unknownTime": {
     "message": "وقت غير معروف"
   },
@@ -422,6 +461,9 @@
   },
   "disabledSitesDescription": {
     "message": "ادِر المواقع التي تم تعطيل الزر العائم فيها. يمكنك اعادة تفعيله هنا."
+  },
+  "noDisabledSites": {
+    "message": "لا توجد مواقع معطلة بعد"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +530,9 @@
   },
   "templateDeletedSuccess": {
     "message": "تم حذف القالب بنجاح"
+  },
+  "deleteFailed": {
+    "message": "فشل الحذف. يرجى المحاولة مرة أخرى."
   },
   "templateNameRequired": {
     "message": "يرجى ادخال اسم القالب"
@@ -673,6 +718,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "تمت مقاطعة التنفيذ"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "تعذّر تحميل الصفحة بنجاح أو تم تعديلها"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "جار التنفيذ"

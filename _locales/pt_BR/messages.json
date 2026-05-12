@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "Configuracao dos atalhos",
+    "message": "Acesso rápido",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,45 @@
   "checkUpdates": {
     "message": "Verificar atualizacoes"
   },
+  "configUpdateToastTag": {
+    "message": "Atualização de configuração"
+  },
+  "configUpdateToastTitle": {
+    "message": "Arquivo de configuracao atualizado"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "O arquivo de configuracao foi atualizado."
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "O arquivo de configuracao foi atualizado e envolve $1."
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "O arquivo de configuracao foi atualizado e envolve $1 e outros sites."
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "O arquivo de configuracao foi atualizado e envolve $1 sites."
+  },
+  "configUpdateToastReview": {
+    "message": "Ver detalhes"
+  },
+  "configUpdateToastDismiss": {
+    "message": "Fechar"
+  },
+  "configUpdateToastFallback": {
+    "message": "A configuração foi atualizada, mas a interface de notificação não pôde ser exibida."
+  },
+  "configUpdateDetailsTitle": {
+    "message": "Detalhes da atualização"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "Registros de versões recentes, mudanças nos sites e origem da sincronização."
+  },
+  "configUpdateDetailsSource": {
+    "message": "Abrir arquivo de origem"
+  },
+  "configUpdateDetailsClose": {
+    "message": "Fechar"
+  },
   "unknownTime": {
     "message": "Horario desconhecido"
   },
@@ -422,6 +461,9 @@
   },
   "disabledSitesDescription": {
     "message": "Gerencie os sites em que o botao flutuante esta desativado. Voce pode reativar o botao aqui."
+  },
+  "noDisabledSites": {
+    "message": "Ainda não há sites desativados"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +530,9 @@
   },
   "templateDeletedSuccess": {
     "message": "Modelo excluido com sucesso"
+  },
+  "deleteFailed": {
+    "message": "Falha ao excluir. Tente novamente."
   },
   "templateNameRequired": {
     "message": "Digite o nome do modelo"
@@ -673,6 +718,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "Execucao interrompida"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "A página não carregou corretamente ou mudou"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "Em execucao"

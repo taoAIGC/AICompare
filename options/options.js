@@ -954,7 +954,7 @@ async function initializeDisabledSites() {
     if (disabledSites.length === 0) {
       container.innerHTML = `
         <div class="empty-state" style="text-align: center; color: #999; padding: 40px;">
-          <p>${chrome.i18n.getMessage('noDisabledSites')}</p>
+          <p>${chrome.i18n.getMessage('noDisabledSites') || '暂无被禁用的网站'}</p>
         </div>
       `;
       return;
@@ -1107,8 +1107,8 @@ async function loadTemplatesList() {
                 align-items: center;
                 padding: 2px 8px;
                 border-radius: 999px;
-                background: #eef3ff;
-                color: #3659c9;
+                background: var(--ai-accent-soft);
+                color: var(--ai-accent);
                 font-size: 12px;
                 line-height: 1.4;
               ">${getPromptTemplateTypeLabel(template.type)}</span>
@@ -1441,8 +1441,8 @@ async function loadAnalysisTemplatesList() {
                 align-items: center;
                 padding: 2px 8px;
                 border-radius: 999px;
-                background: #eef3ff;
-                color: #3659c9;
+                background: var(--ai-accent-soft);
+                color: var(--ai-accent);
                 font-size: 12px;
                 line-height: 1.4;
               ">${chrome.i18n.getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>

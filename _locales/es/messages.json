@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "Configuracion de accesos rapidos",
+    "message": "Acceso rápido",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,45 @@
   "checkUpdates": {
     "message": "Buscar actualizaciones"
   },
+  "configUpdateToastTag": {
+    "message": "Actualización de configuración"
+  },
+  "configUpdateToastTitle": {
+    "message": "Configuracion actualizada"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "El archivo de configuración se ha actualizado."
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "El archivo de configuración se ha actualizado e incluye $1."
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "El archivo de configuración se ha actualizado e incluye $1 y más sitios."
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "El archivo de configuración se ha actualizado e incluye $1 sitios."
+  },
+  "configUpdateToastReview": {
+    "message": "Ver detalles"
+  },
+  "configUpdateToastDismiss": {
+    "message": "Cerrar"
+  },
+  "configUpdateToastFallback": {
+    "message": "La configuración se actualizó, pero no se pudo mostrar la interfaz de notificación."
+  },
+  "configUpdateDetailsTitle": {
+    "message": "Detalles de la actualización"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "Registros de versiones recientes, cambios del sitio y origen de sincronización."
+  },
+  "configUpdateDetailsSource": {
+    "message": "Abrir archivo de origen"
+  },
+  "configUpdateDetailsClose": {
+    "message": "Cerrar"
+  },
   "unknownTime": {
     "message": "Hora desconocida"
   },
@@ -422,6 +461,9 @@
   },
   "disabledSitesDescription": {
     "message": "Administra los sitios web donde el boton flotante esta desactivado. Puedes reactivarlo aqui."
+  },
+  "noDisabledSites": {
+    "message": "Todavía no hay sitios deshabilitados"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +530,9 @@
   },
   "templateDeletedSuccess": {
     "message": "Plantilla eliminada correctamente"
+  },
+  "deleteFailed": {
+    "message": "No se pudo eliminar. Inténtalo de nuevo."
   },
   "templateNameRequired": {
     "message": "Introduce el nombre de la plantilla"
@@ -673,6 +718,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "Ejecucion interrumpida"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "La página no se cargó correctamente o ha cambiado"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "En ejecucion"

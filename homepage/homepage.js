@@ -620,6 +620,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (inputWrapper) {
                 inputWrapper.classList.toggle('avoid-overlap', layout.avoidOverlap);
+                inputWrapper.classList.toggle('compact', layout.compact);
             }
 
             searchInput.style.height = layout.height + 'px';

@@ -338,6 +338,9 @@ async function resolveCurrentPageUrl(preferredSiteName = null) {
 }
 
 function urlMatchesHistoryFeature(url, urlFeature) {
+  if (SiteLaunchUtils.urlMatchesHistoryFeature) {
+    return SiteLaunchUtils.urlMatchesHistoryFeature(url, urlFeature);
+  }
   if (!urlFeature) return true;
   try {
     return new URL(url).pathname.includes(urlFeature);
@@ -3882,10 +3885,9 @@ function startHistoryUrlDetection(siteName, urlFeature, historyId) {
   const checkUrl = () => {
     try {
       const currentUrl = window.location.href;
-      const currentPath = window.location.pathname;
       
       // 检查 URL 路径是否包含 urlFeature
-      if (currentPath.includes(urlFeature)) {
+      if (urlMatchesHistoryFeature(currentUrl, urlFeature)) {
         if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(currentUrl, siteName)) {
           console.log(`⏳ ${siteName} 命中占位页 URL，继续等待真实历史地址: ${currentUrl}`);
           return false;
@@ -4002,8 +4004,7 @@ function startDirectHistoryUrlDetection(siteName, urlFeature, historyId) {
   const interval = setInterval(async () => {
     try {
       const currentUrl = window.location.href;
-      const currentPath = window.location.pathname;
-      if (currentPath.includes(urlFeature)) {
+      if (urlMatchesHistoryFeature(currentUrl, urlFeature)) {
         if (SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(currentUrl, siteName)) {
           return;
         }
@@ -4065,8 +4066,7 @@ async function saveDirectHistory(query, siteName, siteConfig) {
   }
   if (siteConfig?.historyHandler?.urlFeature) {
     try {
-      const currentPath = window.location.pathname;
-      if (!currentPath.includes(siteConfig.historyHandler.urlFeature)) {
+      if (!urlMatchesHistoryFeature(urlToSave, siteConfig.historyHandler.urlFeature)) {
         urlToSave = '';
       }
     } catch (_) {
@@ -4206,9 +4206,9 @@ function injectFavModalStyles() {
   if (__favModalStylesInjected) return;
   __favModalStylesInjected = true;
   const style = document.createElement('style');
-  style.id = 'ai-fav-modal-styles';
-  style.textContent = `
-    .ai-fav-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:2147483646;display:flex;align-items:center;justify-content:center;animation:aiFavFadeIn 0.15s ease}
+      style.id = 'ai-fav-modal-styles';
+      style.textContent = `
+    .ai-fav-modal-overlay{--ai-fav-accent:#111111;--ai-fav-accent-hover:#2a2a2a;--ai-fav-accent-soft:rgba(17,17,17,0.08);position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:2147483646;display:flex;align-items:center;justify-content:center;animation:aiFavFadeIn 0.15s ease}
     @keyframes aiFavFadeIn{from{opacity:0}to{opacity:1}}
     @keyframes aiFavSlideIn{from{opacity:0;transform:translateY(-12px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
     .ai-fav-modal{background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.18);width:360px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;animation:aiFavSlideIn 0.2s ease;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -4220,30 +4220,30 @@ function injectFavModalStyles() {
     .ai-fav-folder-list{display:flex;flex-direction:column;gap:4px}
     .ai-fav-folder-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s ease;user-select:none}
     .ai-fav-folder-item:hover{background:#f5f7fa}
-    .ai-fav-folder-item.selected{background:#eef4ff}
+    .ai-fav-folder-item.selected{background:var(--ai-fav-accent-soft)}
     .ai-fav-folder-radio{width:18px;height:18px;border:2px solid #ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease}
-    .ai-fav-folder-item.selected .ai-fav-folder-radio{border-color:#4a90e2}
+    .ai-fav-folder-item.selected .ai-fav-folder-radio{border-color:var(--ai-fav-accent)}
     .ai-fav-folder-radio-inner{width:10px;height:10px;border-radius:50%;background:transparent;transition:background 0.15s ease}
-    .ai-fav-folder-item.selected .ai-fav-folder-radio-inner{background:#4a90e2}
+    .ai-fav-folder-item.selected .ai-fav-folder-radio-inner{background:var(--ai-fav-accent)}
     .ai-fav-folder-name{flex:1;font-size:14px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .ai-fav-folder-count{font-size:12px;color:#999;flex-shrink:0}
     .ai-fav-folder-new-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0}
     .ai-fav-folder-new-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed #ccc;border-radius:8px;background:none;cursor:pointer;color:#666;font-size:13px;transition:all 0.15s ease;width:100%}
-    .ai-fav-folder-new-btn:hover{border-color:#4a90e2;color:#4a90e2;background:#f8faff}
+    .ai-fav-folder-new-btn:hover{border-color:var(--ai-fav-accent);color:var(--ai-fav-accent);background:rgba(17,17,17,0.06)}
     .ai-fav-folder-new-input-row{display:flex;align-items:center;gap:8px;width:100%}
     .ai-fav-folder-new-input{flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;transition:border-color 0.15s ease}
-    .ai-fav-folder-new-input:focus{border-color:#4a90e2}
-    .ai-fav-folder-new-confirm{width:32px;height:32px;border:none;background:#4a90e2;color:#fff;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s ease}
-    .ai-fav-folder-new-confirm:hover{background:#3a7bd5}
+    .ai-fav-folder-new-input:focus{border-color:var(--ai-fav-accent)}
+    .ai-fav-folder-new-confirm{width:32px;height:32px;border:none;background:var(--ai-fav-accent);color:#fff;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s ease}
+    .ai-fav-folder-new-confirm:hover{background:var(--ai-fav-accent-hover)}
     .ai-fav-folder-new-cancel{width:32px;height:32px;border:1px solid #ddd;background:#fff;color:#999;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s ease}
     .ai-fav-folder-new-cancel:hover{border-color:#ccc;color:#666}
     .ai-fav-modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:12px 20px 16px;border-top:1px solid #f0f0f0}
     .ai-fav-modal-footer button{padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s ease}
-    .ai-fav-modal-remove-btn{background:#fff;border:1px solid #fca5a5;color:#dc2626}
-    .ai-fav-modal-remove-btn:hover{background:#fef2f2;border-color:#f87171;color:#b91c1c}
-    .ai-fav-modal-save-btn{background:#4a90e2;border:1px solid #4a90e2;color:#fff}
-    .ai-fav-modal-save-btn:hover{background:#3a7bd5}
-    .ai-fav-modal-save-btn:disabled{background:#b0c4de;border-color:#b0c4de;cursor:not-allowed}
+    .ai-fav-modal-remove-btn{background:#fff;border:1px solid #cfcfcf;color:#111111}
+    .ai-fav-modal-remove-btn:hover{background:#f3f4f6;border-color:#9a9a9a;color:#111111}
+    .ai-fav-modal-save-btn{background:var(--ai-fav-accent);border:1px solid var(--ai-fav-accent);color:#fff}
+    .ai-fav-modal-save-btn:hover{background:var(--ai-fav-accent-hover)}
+    .ai-fav-modal-save-btn:disabled{background:#e5e5e5;border-color:#e5e5e5;color:#8a8a8a;cursor:not-allowed}
     .ai-fav-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;z-index:2147483647;pointer-events:none;animation:aiFavFadeIn 0.2s ease}
   `;
   (document.head || document.documentElement).appendChild(style);
@@ -4645,12 +4645,12 @@ async function initDirectUserPromptButtons() {
           transition: opacity 0.15s ease;
         }
         .ai-compare-userprompt-btn-wrap {
-          --ai-compare-userprompt-fg: #111827;
-          --ai-compare-userprompt-focus-ring: rgba(59, 130, 246, 0.18);
+          --ai-compare-userprompt-fg: #111111;
+          --ai-compare-userprompt-focus-ring: rgba(17, 17, 17, 0.10);
         }
         .ai-compare-userprompt-btn-wrap[data-ai-compare-ui-surface="dark"] {
           --ai-compare-userprompt-fg: #f9fafb;
-          --ai-compare-userprompt-focus-ring: rgba(96, 165, 250, 0.28);
+          --ai-compare-userprompt-focus-ring: rgba(255, 255, 255, 0.16);
         }
         html:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension,
         body:hover .ai-compare-userprompt-btn-wrap.ai-compare-userprompt-btn-wrap-extension {

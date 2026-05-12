@@ -46,3 +46,4 @@ functions/firebase-debug.log
 /.test-results/
 /.playwright-user-data/
 /.test-results/
+.gstack/

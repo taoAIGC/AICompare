@@ -105,6 +105,37 @@
     }
   }
 
+  function normalizeHistoryFeature(value) {
+    return normalizeString(value).replace(/\/+$/g, '');
+  }
+
+  function urlMatchesHistoryFeature(url, urlFeature) {
+    const normalizedFeature = normalizeHistoryFeature(urlFeature);
+    if (!normalizedFeature) {
+      return true;
+    }
+
+    try {
+      const parsed = new URL(normalizeEntryUrl(url));
+      const pathname = normalizeString(parsed.pathname);
+      if (!pathname) {
+        return false;
+      }
+
+      if (pathname === normalizedFeature) {
+        return true;
+      }
+
+      if (`${pathname}/` === `${normalizedFeature}/`) {
+        return true;
+      }
+
+      return pathname.startsWith(`${normalizedFeature}/`);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function getRootLaunchUrl(url) {
     const normalizedUrl = normalizeEntryUrl(url);
     if (!normalizedUrl) {
@@ -241,9 +272,11 @@
     normalizeCustomSites,
     normalizeCustomSiteUrl,
     normalizeEntryUrl,
+    normalizeHistoryFeature,
     normalizeNumber,
     resolveCustomLaunchTarget,
     resolveOfficialLaunchTarget,
-    replaceQueryToken
+    replaceQueryToken,
+    urlMatchesHistoryFeature
   };
 });

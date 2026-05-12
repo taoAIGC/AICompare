@@ -121,7 +121,7 @@
     "description": "站点设置对话框的标题"
   },
   "configButtonTitle": {
-    "message": "快捷入口配置",
+    "message": "入口",
     "description": "入口配置标题"
   },
   "launchSettingsTitle": {
@@ -409,6 +409,48 @@
   "checkUpdates": {
     "message": "检查更新"
   },
+  "configUpdateToastTag": {
+    "message": "配置更新"
+  },
+  "configUpdateToastTitle": {
+    "message": "配置文件已更新"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "配置文件已更新。"
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "配置文件已更新，涉及以下站点。"
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "配置文件已更新，涉及 $1 等站点。"
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "配置文件已更新，涉及 $1 个站点。"
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "涉及站点"
+  },
+  "configUpdateToastReview": {
+    "message": "查看详情"
+  },
+  "configUpdateToastDismiss": {
+    "message": "知道了"
+  },
+  "configUpdateToastFallback": {
+    "message": "配置已更新，但提示界面未能显示。"
+  },
+  "configUpdateDetailsTitle": {
+    "message": "更新详情"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "最近的版本记录、站点变更和同步来源。"
+  },
+  "configUpdateDetailsSource": {
+    "message": "打开源码文件"
+  },
+  "configUpdateDetailsClose": {
+    "message": "关闭"
+  },
   "unknownTime": {
     "message": "未知时间"
   },
@@ -417,6 +459,9 @@
   },
   "disabledSitesDescription": {
     "message": "管理悬浮球被禁用的网站，您可以在这里重新启用悬浮球"
+  },
+  "noDisabledSites": {
+    "message": "暂无被禁用的网站"
   },
   "searchProviderName": {
     "message": "AI比一比"
@@ -483,6 +528,9 @@
   },
   "templateDeletedSuccess": {
     "message": "模板删除成功"
+  },
+  "deleteFailed": {
+    "message": "删除失败，请重试"
   },
   "templateNameRequired": {
     "message": "请输入模板名称"
@@ -668,6 +716,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "执行中断"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "网页未加载成功或者已经改版"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "执行中"

@@ -1,10 +1,8 @@
 .fav-folder-modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    inset: 0;
+    background: rgba(15, 23, 42, 0.46);
+    backdrop-filter: blur(6px);
     z-index: 100000;
     display: flex;
     align-items: center;
@@ -14,24 +12,24 @@
 
 @keyframes favFolderFadeIn {
     from { opacity: 0; }
-    to   { opacity: 1; }
+    to { opacity: 1; }
 }
 
 @keyframes favFolderSlideIn {
     from { opacity: 0; transform: translateY(-12px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .fav-folder-modal {
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-    width: 360px;
-    max-width: 90vw;
-    max-height: 80vh;
+    width: min(400px, calc(100vw - 32px));
+    max-height: 82vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--ai-surface-strong);
+    border: 1px solid var(--ai-border);
+    border-radius: var(--ai-radius-lg);
+    box-shadow: var(--ai-shadow-lg);
     animation: favFolderSlideIn 0.2s ease;
 }
 
@@ -39,39 +37,42 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--ai-border);
 }
 
 .fav-folder-modal-header h3 {
     margin: 0;
     font-size: 16px;
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    color: var(--ai-text);
 }
 
 .fav-folder-modal-close {
-    width: 28px;
-    height: 28px;
-    border: none;
-    background: none;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--ai-border);
+    background: var(--ai-surface-soft);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #999;
+    color: var(--ai-text-muted);
     font-size: 18px;
-    transition: all 0.15s ease;
+    transition: background-color var(--ai-transition), border-color var(--ai-transition), color var(--ai-transition), transform var(--ai-transition);
 }
 
 .fav-folder-modal-close:hover {
-    background: #f5f5f5;
-    color: #333;
+    background: var(--ai-accent-soft);
+    border-color: var(--ai-border-strong);
+    color: var(--ai-text);
+    transform: translateY(-1px);
 }
 
 .fav-folder-modal-body {
-    padding: 12px 20px;
+    padding: 14px 20px 18px;
     overflow-y: auto;
     flex: 1;
 }
@@ -79,7 +80,7 @@
 .fav-folder-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .fav-folder-item {
@@ -87,34 +88,35 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background-color var(--ai-transition), transform var(--ai-transition);
     user-select: none;
 }
 
 .fav-folder-item:hover {
-    background: #f5f7fa;
+    background: var(--ai-surface-soft);
+    transform: translateY(-1px);
 }
 
 .fav-folder-item.selected {
-    background: #eef4ff;
+    background: var(--ai-accent-soft);
 }
 
 .fav-folder-radio {
     width: 18px;
     height: 18px;
-    border: 2px solid #ccc;
+    border: 2px solid #cbd5e1;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: all 0.15s ease;
+    transition: border-color var(--ai-transition), transform var(--ai-transition);
 }
 
 .fav-folder-item.selected .fav-folder-radio {
-    border-color: #4a90e2;
+    border-color: var(--ai-accent);
 }
 
 .fav-folder-radio-inner {
@@ -122,17 +124,17 @@
     height: 10px;
     border-radius: 50%;
     background: transparent;
-    transition: background 0.15s ease;
+    transition: background-color var(--ai-transition);
 }
 
 .fav-folder-item.selected .fav-folder-radio-inner {
-    background: #4a90e2;
+    background: var(--ai-accent);
 }
 
 .fav-folder-name {
     flex: 1;
     font-size: 14px;
-    color: #333;
+    color: var(--ai-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -140,7 +142,7 @@
 
 .fav-folder-count {
     font-size: 12px;
-    color: #999;
+    color: var(--ai-text-soft);
     flex-shrink: 0;
 }
 
@@ -148,30 +150,31 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #f0f0f0;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--ai-border);
 }
 
 .fav-folder-new-btn {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 12px;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-    color: #666;
-    font-size: 13px;
-    transition: all 0.15s ease;
     width: 100%;
+    padding: 9px 12px;
+    border: 1px dashed var(--ai-border-strong);
+    border-radius: 12px;
+    background: var(--ai-surface-soft);
+    cursor: pointer;
+    color: var(--ai-text-muted);
+    font-size: 13px;
+    transition: background-color var(--ai-transition), border-color var(--ai-transition), color var(--ai-transition), transform var(--ai-transition);
 }
 
 .fav-folder-new-btn:hover {
-    border-color: #4a90e2;
-    color: #4a90e2;
-    background: #f8faff;
+    border-color: var(--ai-accent);
+    color: var(--ai-text);
+    background: var(--ai-accent-soft);
+    transform: translateY(-1px);
 }
 
 .fav-folder-new-btn svg {
@@ -187,98 +190,100 @@
 
 .fav-folder-new-input {
     flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    padding: 9px 12px;
+    border: 1px solid var(--ai-border);
+    border-radius: 12px;
     font-size: 13px;
     outline: none;
-    transition: border-color 0.15s ease;
+    background: var(--ai-surface-strong);
+    color: var(--ai-text);
+    transition: border-color var(--ai-transition), box-shadow var(--ai-transition);
 }
 
 .fav-folder-new-input:focus {
-    border-color: #4a90e2;
+    border-color: var(--ai-accent);
+    box-shadow: 0 0 0 3px var(--ai-accent-soft);
+}
+
+.fav-folder-new-confirm,
+.fav-folder-new-cancel {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background-color var(--ai-transition), border-color var(--ai-transition), color var(--ai-transition), transform var(--ai-transition);
 }
 
 .fav-folder-new-confirm {
-    width: 32px;
-    height: 32px;
     border: none;
-    background: #4a90e2;
+    background: linear-gradient(180deg, var(--ai-accent) 0%, var(--ai-accent-hover) 100%);
     color: #fff;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: background 0.15s ease;
 }
 
 .fav-folder-new-confirm:hover {
-    background: #3a7bd5;
+    transform: translateY(-1px);
 }
 
 .fav-folder-new-cancel {
-    width: 32px;
-    height: 32px;
-    border: 1px solid #ddd;
-    background: #fff;
-    color: #999;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s ease;
+    border: 1px solid var(--ai-border);
+    background: var(--ai-surface-strong);
+    color: var(--ai-text-muted);
 }
 
 .fav-folder-new-cancel:hover {
-    border-color: #ccc;
-    color: #666;
+    border-color: var(--ai-border-strong);
+    color: var(--ai-text);
+    background: var(--ai-surface-soft);
 }
 
 .fav-folder-modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    padding: 12px 20px 16px;
-    border-top: 1px solid #f0f0f0;
+    padding: 12px 20px 18px;
+    border-top: 1px solid var(--ai-border);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(255, 255, 255, 0.98) 100%);
 }
 
 .fav-folder-modal-footer button {
-    padding: 8px 20px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 12px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform var(--ai-transition), background-color var(--ai-transition), border-color var(--ai-transition), color var(--ai-transition), opacity var(--ai-transition);
 }
 
 .fav-folder-remove-btn {
-    background: #fff;
-    border: 1px solid #fca5a5;
-    color: #dc2626;
+    background: var(--ai-surface-strong);
+    border: 1px solid var(--ai-border-strong);
+    color: var(--ai-danger);
 }
 
 .fav-folder-remove-btn:hover {
-    background: #fef2f2;
-    border-color: #f87171;
-    color: #b91c1c;
+    background: var(--ai-danger-soft);
+    border-color: var(--ai-border-strong);
+    transform: translateY(-1px);
 }
 
 .fav-folder-save-btn {
-    background: #4a90e2;
-    border: 1px solid #4a90e2;
+    background: linear-gradient(180deg, var(--ai-accent) 0%, var(--ai-accent-hover) 100%);
+    border: none;
     color: #fff;
+    box-shadow: 0 10px 24px rgba(17, 17, 17, 0.16);
 }
 
 .fav-folder-save-btn:hover {
-    background: #3a7bd5;
+    transform: translateY(-1px);
 }
 
 .fav-folder-save-btn:disabled {
-    background: #b0c4de;
-    border-color: #b0c4de;
+    opacity: 0.55;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }

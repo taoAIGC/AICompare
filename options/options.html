@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title data-i18n="appName"></title>
+  <link rel="stylesheet" href="../shared/ui-tokens.css">
   <link rel="stylesheet" href="../shared/sidebar.css">
   <link rel="stylesheet" href="options.css">
 </head>
@@ -18,7 +19,7 @@
       <div class="action-links">
         <a href="#quick-entry" class="action-link nav-link active" data-section="quick-entry">
           <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
-          <span data-i18n="configButtonTitle">快捷入口设置</span>
+          <span data-i18n="configButtonTitle">入口</span>
         </a>
         <a href="#launch-settings" class="action-link nav-link" data-section="launch-settings">
           <img class="action-link-icon" src="../icons/layout-grid.svg" alt="" aria-hidden="true">
@@ -54,7 +55,7 @@
       <div class="container">
         <!-- 快捷入口设置 -->
         <section id="quick-entry" class="settings-section">
-          <h1 data-i18n="configButtonTitle">快捷入口设置</h1>
+          <h1 data-i18n="configButtonTitle">入口</h1>
           <div class="site-section">
             <div id="buttonSiteConfigs" class="site-configs"></div>
             <div id="sendShortcutConfig" class="site-configs"></div>
@@ -107,15 +108,8 @@
           <div class="prompt-templates-section">
             <!-- 添加新模板按钮 -->
             <div class="template-header" style="margin-bottom: 20px;">
-              <button id="addTemplateBtn" class="add-template-btn" style="
-                background: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                display: flex;
+              <button id="addTemplateBtn" class="btn-primary add-template-btn" style="
+                display: inline-flex;
                 align-items: center;
                 gap: 5px;
               ">
@@ -181,14 +175,7 @@
                       font-weight: 500;
                       color: #333;
                     ">模板名称:</label>
-                    <input type="text" id="templateName" data-i18n-placeholder="templateNamePlaceholder" placeholder="例如：风险分析" maxlength="20" style="
-                      width: 100%;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      box-sizing: border-box;
-                    ">
+                    <input type="text" id="templateName" class="dialog-field" data-i18n-placeholder="templateNamePlaceholder" placeholder="例如：风险分析" maxlength="20">
                     <div class="help-text" data-i18n="templateNameHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -203,16 +190,7 @@
                       font-weight: 500;
                       color: #333;
                     ">查询模板:</label>
-                    <textarea id="templateQuery" data-i18n-placeholder="templateQueryPlaceholder" placeholder="例如：导致失败的原因:「{query}」" rows="3" style="
-                      width: 100%;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      box-sizing: border-box;
-                      resize: vertical;
-                      font-family: inherit;
-                    "></textarea>
+                    <textarea id="templateQuery" class="dialog-field" data-i18n-placeholder="templateQueryPlaceholder" placeholder="例如：导致失败的原因:「{query}」" rows="3"></textarea>
                     <div class="help-text" data-i18n="templateQueryHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -227,15 +205,7 @@
                       font-weight: 500;
                       color: #333;
                     ">模板类型:</label>
-                    <select id="templateType" style="
-                      width: 100%;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      box-sizing: border-box;
-                      background: white;
-                    "></select>
+                    <select id="templateType" class="dialog-field"></select>
                     <div class="help-text" data-i18n="templateTypeHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -250,13 +220,7 @@
                       font-weight: 500;
                       color: #333;
                     ">显示顺序:</label>
-                    <input type="number" id="templateOrder" min="1" max="99" value="1" style="
-                      width: 100px;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                    ">
+                    <input type="number" id="templateOrder" class="dialog-field dialog-field-narrow" min="1" max="99" value="1">
                     <div class="help-text" data-i18n="templateOrderHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -271,24 +235,8 @@
                   justify-content: flex-end;
                   gap: 12px;
                 ">
-                  <button id="cancelTemplate" class="btn-secondary" data-i18n="cancelButton" style="
-                    background: #f5f5f5;
-                    color: #666;
-                    border: 1px solid #ddd;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                  ">取消</button>
-                  <button id="saveTemplate" class="btn-primary" data-i18n="saveButton" style="
-                    background: #4CAF50;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                  ">保存</button>
+                  <button id="cancelTemplate" class="btn-secondary" data-i18n="cancelButton">取消</button>
+                  <button id="saveTemplate" class="btn-primary" data-i18n="saveButton">保存</button>
                 </div>
               </div>
             </div>
@@ -301,15 +249,8 @@
 
           <div class="prompt-templates-section">
             <div class="template-header" style="margin-bottom: 20px;">
-              <button id="addAnalysisTemplateBtn" class="add-template-btn" style="
-                background: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                display: flex;
+              <button id="addAnalysisTemplateBtn" class="btn-primary add-template-btn" style="
+                display: inline-flex;
                 align-items: center;
                 gap: 5px;
               ">
@@ -371,14 +312,7 @@
                       font-weight: 500;
                       color: #333;
                     ">模板名称:</label>
-                    <input type="text" id="analysisTemplateName" data-i18n-placeholder="analysisTemplateNamePlaceholder" placeholder="例如：结论优先" maxlength="20" style="
-                      width: 100%;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      box-sizing: border-box;
-                    ">
+                    <input type="text" id="analysisTemplateName" class="dialog-field" data-i18n-placeholder="analysisTemplateNamePlaceholder" placeholder="例如：结论优先" maxlength="20">
                     <div class="help-text" data-i18n="analysisTemplateNameHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -393,16 +327,7 @@
                       font-weight: 500;
                       color: #333;
                     ">查询模板:</label>
-                    <textarea id="analysisTemplateQuery" data-i18n-placeholder="analysisTemplateQueryPlaceholder" placeholder="例如：请基于以下内容分析..." rows="6" style="
-                      width: 100%;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      box-sizing: border-box;
-                      resize: vertical;
-                      font-family: inherit;
-                    "></textarea>
+                    <textarea id="analysisTemplateQuery" class="dialog-field" data-i18n-placeholder="analysisTemplateQueryPlaceholder" placeholder="例如：请基于以下内容分析..." rows="6"></textarea>
                     <div class="help-text" data-i18n="analysisTemplateQueryHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -417,13 +342,7 @@
                       font-weight: 500;
                       color: #333;
                     ">显示顺序:</label>
-                    <input type="number" id="analysisTemplateOrder" min="1" max="99" value="1" style="
-                      width: 100px;
-                      padding: 8px 12px;
-                      border: 1px solid #ddd;
-                      border-radius: 4px;
-                      font-size: 14px;
-                    ">
+                    <input type="number" id="analysisTemplateOrder" class="dialog-field dialog-field-narrow" min="1" max="99" value="1">
                     <div class="help-text" data-i18n="templateOrderHelp" style="
                       font-size: 12px;
                       color: #666;
@@ -438,24 +357,8 @@
                   justify-content: flex-end;
                   gap: 12px;
                 ">
-                  <button id="cancelAnalysisTemplate" class="btn-secondary" data-i18n="cancelButton" style="
-                    background: #f5f5f5;
-                    color: #666;
-                    border: 1px solid #ddd;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                  ">取消</button>
-                  <button id="saveAnalysisTemplate" class="btn-primary" data-i18n="saveButton" style="
-                    background: #4CAF50;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                  ">保存</button>
+                  <button id="cancelAnalysisTemplate" class="btn-secondary" data-i18n="cancelButton">取消</button>
+                  <button id="saveAnalysisTemplate" class="btn-primary" data-i18n="saveButton">保存</button>
                 </div>
               </div>
             </div>
@@ -780,14 +683,7 @@
             font-weight: 500;
             color: #333;
           ">名称</label>
-          <input type="text" id="customSiteName" data-i18n-placeholder="customSiteNamePlaceholder" placeholder="例如：DeepSeek 专家模式对话" maxlength="80" style="
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-          ">
+          <input type="text" id="customSiteName" class="dialog-field" data-i18n-placeholder="customSiteNamePlaceholder" placeholder="例如：DeepSeek 专家模式对话" maxlength="80">
         </div>
 
         <div class="form-group" style="margin-bottom: 16px;">
@@ -797,14 +693,7 @@
             font-weight: 500;
             color: #333;
           ">页面 URL</label>
-          <input type="url" id="customSiteUrl" data-i18n-placeholder="customSiteUrlPlaceholder" placeholder="粘贴要直接打开的页面地址" style="
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-          ">
+          <input type="url" id="customSiteUrl" class="dialog-field" data-i18n-placeholder="customSiteUrlPlaceholder" placeholder="粘贴要直接打开的页面地址">
         </div>
 
         <div class="form-group" style="margin-bottom: 16px; display: flex; gap: 16px; flex-wrap: wrap;">
@@ -828,13 +717,7 @@
             font-weight: 500;
             color: #333;
           ">排序</label>
-          <input type="number" id="customSiteOrder" min="0" max="9999" value="0" style="
-            width: 120px;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-          ">
+          <input type="number" id="customSiteOrder" class="dialog-field dialog-field-narrow" min="0" max="9999" value="0">
           <div class="help-text" data-i18n="customSiteOrderHelp" style="
             font-size: 12px;
             color: #666;
@@ -849,24 +732,8 @@
         justify-content: flex-end;
         gap: 12px;
       ">
-        <button id="cancelCustomSite" class="btn-secondary" data-i18n="cancelButton" style="
-          background: #f5f5f5;
-          color: #666;
-          border: 1px solid #ddd;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        ">取消</button>
-        <button id="saveCustomSite" class="btn-primary" data-i18n="saveButton" style="
-          background: #4CAF50;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        ">保存</button>
+        <button id="cancelCustomSite" class="btn-secondary" data-i18n="cancelButton">取消</button>
+        <button id="saveCustomSite" class="btn-primary" data-i18n="saveButton">保存</button>
       </div>
     </div>
   </div>

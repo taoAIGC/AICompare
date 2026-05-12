@@ -176,55 +176,120 @@ function getDefaultAnalysisPromptTemplates() {
   ];
 }
 
-function getLegacyAnalysisTemplateSignatures() {
-  return {
-    analysis_conclusion_first: [
-      {
-        name: 'Conclusion First',
-        query: 'Please give the conclusion first, then explain the reasons.\n\nQuestion: {question}\n\nSummary:\n{summary}\n\nRaw Answers:\n{rawAnswers}'
-      },
-      {
-        name: '结论优先',
-        query: '请先给出结论，再说明理由。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
-      },
-      {
-        name: '结论先行',
-        query: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
-      },
-      {
-        name: '结论先行',
-        query: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}'
-      }
-    ],
-    analysis_difference_focus: [
-      {
-        name: 'Difference Analysis',
-        query: 'Focus on the shared points, differences, and conflicts across the answers, and give the most credible conclusion.\n\n{analysisInput}'
-      },
-      {
-        name: '差异分析',
-        query: '请重点比较各站回答的共同点、差异点和冲突点，并给出更可信的结论。\n\n{analysisInput}'
-      },
-      {
-        name: '对比拆解',
-        query: '请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}'
-      }
-    ],
-    analysis_report: [
-      {
-        name: 'Structured Report',
-        query: 'Please write a structured analysis report with conclusion, reasons, differences, and recommendations.\n\n{analysisInput}'
-      },
-      {
-        name: '结构化报告',
-        query: '请输出一份结构化分析报告，包含：结论、理由、差异点、建议。\n\n{analysisInput}'
-      },
-      {
-        name: '决策备忘录',
-        query: '请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}'
-      }
-    ]
+const ANALYSIS_TEMPLATE_LOCALE_DIRS = [
+  'ar',
+  'de',
+  'en',
+  'es',
+  'fr',
+  'ja',
+  'ko',
+  'pt_BR',
+  'zh_CN',
+  'zh_TW'
+];
+
+let analysisTemplateSignaturesCache = null;
+
+const LEGACY_ANALYSIS_TEMPLATE_SIGNATURES = {
+  analysis_conclusion_first: [
+    {
+      name: 'Conclusion First',
+      query: 'Please give the conclusion first, then explain the reasons.\n\nQuestion: {question}\n\nSummary:\n{summary}\n\nRaw Answers:\n{rawAnswers}'
+    },
+    {
+      name: '结论优先',
+      query: '请先给出结论，再说明理由。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
+    },
+    {
+      name: '结论先行',
+      query: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
+    }
+  ],
+  analysis_difference_focus: [
+    {
+      name: 'Difference Analysis',
+      query: 'Focus on the shared points, differences, and conflicts across the answers, and give the most credible conclusion.\n\n{analysisInput}'
+    },
+    {
+      name: '差异分析',
+      query: '请重点比较各站回答的共同点、差异点和冲突点，并给出更可信的结论。\n\n{analysisInput}'
+    }
+  ],
+  analysis_report: [
+    {
+      name: 'Structured Report',
+      query: 'Please write a structured analysis report with conclusion, reasons, differences, and recommendations.\n\n{analysisInput}'
+    },
+    {
+      name: '结构化报告',
+      query: '请输出一份结构化分析报告，包含：结论、理由、差异点、建议。\n\n{analysisInput}'
+    }
+  ]
+};
+
+async function getLegacyAnalysisTemplateSignatures() {
+  if (analysisTemplateSignaturesCache) {
+    return analysisTemplateSignaturesCache;
+  }
+
+  const signatureMap = {
+    analysis_conclusion_first: [],
+    analysis_difference_focus: [],
+    analysis_report: []
   };
+
+  Object.entries(LEGACY_ANALYSIS_TEMPLATE_SIGNATURES).forEach(([id, signatures]) => {
+    signatureMap[id].push(...signatures);
+  });
+
+  const keyMappings = [
+    {
+      id: 'analysis_conclusion_first',
+      nameKey: 'defaultAnalysisTemplateConclusionName',
+      queryKey: 'defaultAnalysisTemplateConclusionQuery'
+    },
+    {
+      id: 'analysis_difference_focus',
+      nameKey: 'defaultAnalysisTemplateDifferenceName',
+      queryKey: 'defaultAnalysisTemplateDifferenceQuery'
+    },
+    {
+      id: 'analysis_report',
+      nameKey: 'defaultAnalysisTemplateReportName',
+      queryKey: 'defaultAnalysisTemplateReportQuery'
+    }
+  ];
+
+  for (const localeDir of ANALYSIS_TEMPLATE_LOCALE_DIRS) {
+    try {
+      const response = await fetch(chrome.runtime.getURL(`_locales/${localeDir}/messages.json`));
+      if (!response.ok) {
+        continue;
+      }
+
+      const localeMessages = await response.json();
+      keyMappings.forEach(({ id, nameKey, queryKey }) => {
+        const name = String(localeMessages?.[nameKey]?.message || '').trim();
+        const query = String(localeMessages?.[queryKey]?.message || '').trim();
+        if (!name || !query) {
+          return;
+        }
+
+        const alreadyExists = signatureMap[id].some((signature) => {
+          return signature.name === name && signature.query === query;
+        });
+        if (!alreadyExists) {
+          signatureMap[id].push({ name, query });
+        }
+      });
+    } catch (error) {
+      console.warn(`读取分析提示词 locale 失败: ${localeDir}`, error);
+    }
+  }
+
+  analysisTemplateSignaturesCache = signatureMap;
+  return signatureMap;
 }
 
 function shouldMigrateAnalysisTemplate(template, desiredTemplate, legacySignatures = []) {
@@ -244,7 +309,7 @@ async function initializeDefaultAnalysisPromptTemplates() {
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
     const defaultTemplates = getDefaultAnalysisPromptTemplates();
-    const legacySignatures = getLegacyAnalysisTemplateSignatures();
+    const legacySignatures = await getLegacyAnalysisTemplateSignatures();
     const existingTemplates = Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [];
     const existingTemplateIds = new Set(
       existingTemplates

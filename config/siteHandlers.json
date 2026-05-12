@@ -1137,6 +1137,7 @@
               "button[aria-label*=\"Submit\"]",
               "button[title*=\"发送\"]"
             ],
+            "required": false,
             "condition": {
               "selector": "textarea[placeholder=\"输入主题和报告要求\"], .message-input-textarea-separation, [role=\"textbox\"]"
             },
@@ -1698,7 +1699,7 @@
         }
       },
       "historyHandler": {
-        "urlFeature": "-"
+        "urlFeature": "/chat"
       },
       "userPrompt": {
         "containerSelector": "div.agent-chat__list__item--human, [class*=\"agent-dialogue\"][class*=\"human\"], [class*=\"chat-item\"][class*=\"human\"]",
@@ -1734,7 +1735,7 @@
       "supportUrlQuery": false,
       "region": "Global",
       "hidden": false,
-      "supportIframe": false,
+      "supportIframe": true,
       "searchHandler": {
         "steps": [
           {

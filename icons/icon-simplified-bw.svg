@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">AI Compare simplified black and white icon</title>
+  <desc id="desc">A rounded square icon split into black and white halves with bold A and I letterforms.</desc>
+  <defs>
+    <clipPath id="clip">
+      <rect x="32" y="32" width="960" height="960" rx="188" ry="188"/>
+    </clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#clip)">
+    <rect x="32" y="32" width="480" height="960" fill="#f6f4ef"/>
+    <rect x="512" y="32" width="480" height="960" fill="#111111"/>
+
+    <path d="M32 196C70 96 146 38 198 32C232 69 243 122 233 169C219 232 171 261 120 261C83 261 52 242 32 196Z" fill="#111111"/>
+    <path d="M992 828C953 928 878 986 826 992C792 955 781 902 791 855C805 792 853 763 904 763C941 763 972 782 992 828Z" fill="#f6f4ef"/>
+
+    <rect x="496" y="32" width="32" height="960" fill="#181818" opacity="0.96"/>
+
+    <path
+      d="M218 708L346 340C357 307 391 284 427 284C464 284 498 307 509 340L637 708C645 732 627 756 602 756H542C522 756 504 743 499 724L474 642H380L355 724C350 743 332 756 312 756H252C227 756 210 732 218 708ZM408 560H446L435 521C424 484 414 443 407 405H405C397 443 387 484 376 521L365 560H408Z"
+      fill="#111111"
+      filter="url(#shadow)"
+    />
+
+    <path
+      d="M690 356C690 325 715 300 746 300H784C815 300 840 325 840 356V388C840 419 815 444 784 444H779V580H784C815 580 840 605 840 636V668C840 699 815 724 784 724H746C715 724 690 699 690 668V636C690 605 715 580 746 580H751V444H746C715 444 690 419 690 388V356Z"
+      fill="#f6f4ef"
+      filter="url(#shadow)"
+    />
+  </g>
+</svg>

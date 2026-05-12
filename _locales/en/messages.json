@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "Shortcut Entry Configuration",
+    "message": "Quick Access",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,48 @@
   "checkUpdates": {
     "message": "Check Updates"
   },
+  "configUpdateToastTag": {
+    "message": "Configuration update"
+  },
+  "configUpdateToastTitle": {
+    "message": "Configuration updated"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "Configuration file updated."
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "Configuration file updated, covering the following sites."
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "Configuration file updated, covering $1 and more sites."
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "Configuration file updated, covering $1 sites."
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "configUpdateToastReview": {
+    "message": "Review details"
+  },
+  "configUpdateToastDismiss": {
+    "message": "Got it"
+  },
+  "configUpdateToastFallback": {
+    "message": "Configuration updated, but the notification UI could not be displayed."
+  },
+  "configUpdateDetailsTitle": {
+    "message": "Update details"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "Recent version records, site changes, and sync source."
+  },
+  "configUpdateDetailsSource": {
+    "message": "Open source file"
+  },
+  "configUpdateDetailsClose": {
+    "message": "Close"
+  },
   "unknownTime": {
     "message": "Unknown time"
   },
@@ -422,6 +464,9 @@
   },
   "disabledSitesDescription": {
     "message": "Manage websites where the floating button is disabled. You can re-enable the floating button here."
+  },
+  "noDisabledSites": {
+    "message": "No disabled sites yet"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +533,9 @@
   },
   "templateDeletedSuccess": {
     "message": "Template deleted successfully"
+  },
+  "deleteFailed": {
+    "message": "Delete failed. Please try again."
   },
   "templateNameRequired": {
     "message": "Please enter template name"
@@ -673,6 +721,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "Execution interrupted"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "The page did not load successfully or has changed"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "Running"

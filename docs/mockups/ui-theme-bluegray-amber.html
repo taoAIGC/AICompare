@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Compare Theme Mockup</title>
+    <style>
+        :root {
+            --bg: #f7f5f1;
+            --bg-soft: #efeae2;
+            --panel: rgba(255, 255, 255, 0.82);
+            --panel-strong: rgba(255, 255, 255, 0.94);
+            --border: rgba(60, 75, 100, 0.14);
+            --border-strong: rgba(60, 75, 100, 0.24);
+            --ink: #1f2937;
+            --ink-muted: #5c6778;
+            --ink-soft: #8b95a4;
+            --nav: #3c4b64;
+            --nav-deep: #2f3b4f;
+            --nav-soft: rgba(255, 255, 255, 0.12);
+            --accent: #c9821a;
+            --accent-deep: #9a6312;
+            --accent-soft: rgba(201, 130, 26, 0.14);
+            --accent-glow: rgba(201, 130, 26, 0.22);
+            --success: #3d7656;
+            --shadow-lg: 0 28px 80px rgba(31, 41, 55, 0.16);
+            --shadow-md: 0 20px 40px rgba(31, 41, 55, 0.08);
+            --shadow-sm: 0 10px 24px rgba(31, 41, 55, 0.06);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 40px;
+            background:
+                radial-gradient(circle at top left, rgba(201, 130, 26, 0.10), transparent 30%),
+                radial-gradient(circle at top right, rgba(60, 75, 100, 0.10), transparent 30%),
+                linear-gradient(180deg, #fcfaf7 0%, #f7f5f1 48%, #efeae2 100%);
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Helvetica Neue", sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(60, 75, 100, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(60, 75, 100, 0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(circle at center, black 30%, transparent 92%);
+            pointer-events: none;
+        }
+
+        .scene {
+            width: 1440px;
+            height: 920px;
+            position: relative;
+            border-radius: 36px;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18));
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+        }
+
+        .scene::after {
+            content: "";
+            position: absolute;
+            inset: 14px;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            pointer-events: none;
+        }
+
+        .caption {
+            position: absolute;
+            left: 34px;
+            top: 28px;
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--ink-soft);
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .caption-badge {
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(60, 75, 100, 0.10);
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .window {
+            position: absolute;
+            inset: 78px 28px 28px 28px;
+            display: grid;
+            grid-template-columns: 248px 1fr;
+            border-radius: var(--radius-xl);
+            background: rgba(255, 255, 255, 0.52);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .sidebar {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 26%),
+                linear-gradient(180deg, var(--nav) 0%, var(--nav-deep) 100%);
+            color: rgba(255, 255, 255, 0.92);
+            padding: 28px 22px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 15px;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), rgba(201, 130, 26, 0.34));
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
+            position: relative;
+        }
+
+        .brand-mark::before,
+        .brand-mark::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .brand-mark::before {
+            width: 16px;
+            height: 16px;
+            left: 8px;
+            top: 13px;
+        }
+
+        .brand-mark::after {
+            width: 10px;
+            height: 10px;
+            right: 8px;
+            top: 9px;
+            box-shadow: 0 14px 0 0 rgba(255, 255, 255, 0.75);
+        }
+
+        .brand-text strong {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .brand-text span {
+            display: block;
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.62);
+            font-size: 12px;
+        }
+
+        .nav-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .nav-label {
+            padding: 0 12px;
+            color: rgba(255, 255, 255, 0.46);
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            height: 46px;
+            padding: 0 14px;
+            border-radius: 14px;
+            color: rgba(255, 255, 255, 0.76);
+            background: transparent;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.86;
+        }
+
+        .workspace-status {
+            margin-top: auto;
+            padding: 18px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .workspace-status small {
+            display: block;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.52);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: rgba(201, 130, 26, 0.20);
+            color: #fff4de;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .status-chip::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffd48a;
+            box-shadow: 0 0 0 6px rgba(255, 212, 138, 0.12);
+        }
+
+        .content {
+            position: relative;
+            padding: 24px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(249, 246, 241, 0.9));
+        }
+
+        .topbar {
+            height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px 0 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(60, 75, 100, 0.10);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .crumbs {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--ink-soft);
+            font-size: 14px;
+        }
+
+        .crumbs strong {
+            color: var(--ink);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ghost-btn,
+        .primary-btn {
+            height: 42px;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            padding: 0 16px;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .ghost-btn {
+            background: rgba(60, 75, 100, 0.06);
+            border-color: rgba(60, 75, 100, 0.08);
+            color: var(--ink);
+        }
+
+        .primary-btn {
+            background: linear-gradient(180deg, #d79a3a 0%, #c9821a 100%);
+            color: #fffaf2;
+            box-shadow: 0 12px 20px rgba(201, 130, 26, 0.18);
+        }
+
+        .workspace-grid {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+            gap: 20px;
+        }
+
+        .hero-panel,
+        .insight-panel,
+        .site-card {
+            border-radius: 24px;
+            border: 1px solid rgba(60, 75, 100, 0.10);
+            background: var(--panel);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(14px);
+        }
+
+        .hero-panel {
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            width: 340px;
+            height: 340px;
+            border-radius: 50%;
+            right: -120px;
+            top: -140px;
+            background: radial-gradient(circle, rgba(201, 130, 26, 0.18) 0%, transparent 70%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 34px;
+            padding: 0 14px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent-deep);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .hero-title {
+            max-width: 760px;
+            margin: 18px 0 14px;
+            font-family: "Iowan Old Style", "Palatino Linotype", serif;
+            font-size: 44px;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-copy {
+            max-width: 780px;
+            margin: 0;
+            color: var(--ink-muted);
+            font-size: 16px;
+            line-height: 1.65;
+        }
+
+        .composer {
+            margin-top: 26px;
+            padding: 18px 18px 18px 22px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(60, 75, 100, 0.12);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .composer-label {
+            color: var(--ink-soft);
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .composer-query {
+            margin-top: 10px;
+            font-size: 20px;
+            line-height: 1.55;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .composer-meta {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .meta-chips {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .meta-chip {
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: rgba(60, 75, 100, 0.06);
+            color: var(--ink-muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .insight-panel {
+            padding: 24px;
+            background: linear-gradient(180deg, rgba(60, 75, 100, 0.96), rgba(47, 59, 79, 0.96));
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .panel-title strong {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .panel-title span {
+            color: rgba(255, 255, 255, 0.56);
+            font-size: 13px;
+        }
+
+        .metric-stack {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .metric-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .metric-card strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 26px;
+            letter-spacing: -0.03em;
+        }
+
+        .metric-card span {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+        }
+
+        .checklist {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .check-item {
+            display: flex;
+            gap: 10px;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .check-item::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            margin-top: 6px;
+            border-radius: 50%;
+            background: #ffd48a;
+            flex: 0 0 auto;
+        }
+
+        .sites-grid {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .site-card {
+            padding: 18px;
+            background: var(--panel-strong);
+        }
+
+        .site-card.featured {
+            border-color: rgba(201, 130, 26, 0.36);
+            box-shadow: 0 18px 32px rgba(201, 130, 26, 0.10);
+        }
+
+        .site-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .site-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .site-badge {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(61, 118, 86, 0.10);
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .avatar.claude {
+            background: linear-gradient(180deg, #55657d, #3c4b64);
+        }
+
+        .avatar.gemini {
+            background: linear-gradient(180deg, #d09a46, #b67317);
+        }
+
+        .avatar.chatgpt {
+            background: linear-gradient(180deg, #748196, #596579);
+        }
+
+        .site-copy {
+            color: var(--ink-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .site-points {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .site-point {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(60, 75, 100, 0.05);
+            color: var(--ink);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .site-point strong {
+            color: var(--nav);
+        }
+
+        .footer-bar {
+            margin-top: 18px;
+            height: 60px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(60, 75, 100, 0.10);
+            color: var(--ink-muted);
+            font-size: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .footer-rail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-pill {
+            padding: 8px 11px;
+            border-radius: 999px;
+            background: rgba(60, 75, 100, 0.06);
+            color: var(--ink);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="caption">
+            <span class="caption-badge">Blue-Gray / Amber</span>
+            <span>AI Compare UI concept</span>
+        </div>
+
+        <div class="window">
+            <aside class="sidebar">
+                <div class="brand">
+                    <div class="brand-mark"></div>
+                    <div class="brand-text">
+                        <strong>AI Compare</strong>
+                        <span>calm comparison workspace</span>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">Workspace</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 首页</div>
+                    <div class="nav-item active"><span class="nav-dot"></span> 对比工作台</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 收藏夹</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 历史记录</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-label">System</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 站点管理</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 快捷动作</div>
+                    <div class="nav-item"><span class="nav-dot"></span> 偏好设置</div>
+                </div>
+
+                <div class="workspace-status">
+                    <small>Session mode</small>
+                    <div class="status-chip">Focus compare / 3 sites active</div>
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="topbar">
+                    <div class="crumbs">
+                        <strong>当前任务</strong>
+                        <span>产品 PRD 对比分析</span>
+                    </div>
+                    <div class="topbar-actions">
+                        <button class="ghost-btn">保存站点组合</button>
+                        <button class="primary-btn">开始并行对比</button>
+                    </div>
+                </div>
+
+                <section class="workspace-grid">
+                    <div>
+                        <div class="hero-panel">
+                            <div class="eyebrow">Query Composer</div>
+                            <h1 class="hero-title">冷静的蓝灰骨架，配一点琥珀色的行动信号。</h1>
+                            <p class="hero-copy">这套颜色更适合“长期停留 + 多模型并行工作”的工作台，而不是短时吸睛的内容首页。它会把注意力留给问题本身，而不是留给页面装饰。</p>
+
+                            <div class="composer">
+                                <div class="composer-label">Live prompt</div>
+                                <div class="composer-query">帮我比较 Claude、Gemini、ChatGPT 对这个 PRD 的拆解差异：先给出核心任务，再指出风险和优先级。</div>
+                                <div class="composer-meta">
+                                    <div class="meta-chips">
+                                        <div class="meta-chip">3 个站点并行</div>
+                                        <div class="meta-chip">结果按结构对齐</div>
+                                        <div class="meta-chip">保留历史上下文</div>
+                                    </div>
+                                    <button class="primary-btn">发送问题</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sites-grid">
+                            <article class="site-card">
+                                <div class="site-head">
+                                    <div class="site-name">
+                                        <div class="avatar claude">C</div>
+                                        Claude
+                                    </div>
+                                    <div class="site-badge">分析型</div>
+                                </div>
+                                <div class="site-copy">偏向结构化拆解，先梳理问题边界，再进入约束条件和执行层。</div>
+                                <div class="site-points">
+                                    <div class="site-point"><strong>优点：</strong>结构清晰，适合看推理链和优先级。</div>
+                                    <div class="site-point"><strong>风险：</strong>容易偏长，需要更强的摘要层。</div>
+                                </div>
+                            </article>
+
+                            <article class="site-card featured">
+                                <div class="site-head">
+                                    <div class="site-name">
+                                        <div class="avatar gemini">G</div>
+                                        Gemini
+                                    </div>
+                                    <div class="site-badge">平衡型</div>
+                                </div>
+                                <div class="site-copy">在方案宽度和速度之间比较均衡，适合做首轮发散，再进入收敛。</div>
+                                <div class="site-points">
+                                    <div class="site-point"><strong>优点：</strong>覆盖面广，适合早期探索。</div>
+                                    <div class="site-point"><strong>风险：</strong>重点不够聚焦时，需要后续再压一轮。</div>
+                                </div>
+                            </article>
+
+                            <article class="site-card">
+                                <div class="site-head">
+                                    <div class="site-name">
+                                        <div class="avatar chatgpt">P</div>
+                                        ChatGPT
+                                    </div>
+                                    <div class="site-badge">执行型</div>
+                                </div>
+                                <div class="site-copy">适合从问题直接切到可执行计划，节奏快，落地导向更强。</div>
+                                <div class="site-points">
+                                    <div class="site-point"><strong>优点：</strong>行动导向明确，产出速度快。</div>
+                                    <div class="site-point"><strong>风险：</strong>若输入模糊，可能过早进入实现。</div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <aside class="insight-panel">
+                        <div class="panel-title">
+                            <strong>Decision pulse</strong>
+                            <span>live synthesis</span>
+                        </div>
+
+                        <div class="metric-stack">
+                            <div class="metric-card">
+                                <span>当前最优阅读节奏</span>
+                                <strong>先看差异，再看共识</strong>
+                            </div>
+                            <div class="metric-card">
+                                <span>推荐下一步</span>
+                                <strong>把 3 份回答压成 1 个行动面板</strong>
+                            </div>
+                        </div>
+
+                        <div class="checklist">
+                            <div class="check-item">琥珀色只用在“发送、选中、强调、进度”，不会大面积抢视线。</div>
+                            <div class="check-item">蓝灰色承担导航、框架和稳定感，适合长时间并行阅读。</div>
+                            <div class="check-item">底色偏暖灰，不会像纯白后台那样刺眼，也不会像深色界面那样压迫。</div>
+                        </div>
+                    </aside>
+                </section>
+
+                <div class="footer-bar">
+                    <div class="footer-rail">
+                        <span class="footer-pill">Search</span>
+                        <span class="footer-pill">Compare</span>
+                        <span class="footer-pill">Synthesize</span>
+                    </div>
+                    <div>适合浏览器插件工作台，而不是高饱和营销首页</div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

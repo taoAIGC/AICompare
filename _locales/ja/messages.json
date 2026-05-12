@@ -126,7 +126,7 @@
     "description": "Title for collection mode section"
   },
   "configButtonTitle": {
-    "message": "ショートカット設定",
+    "message": "クイックアクセス",
     "description": "Title for shortcut entry configuration"
   },
   "launchSettingsTitle": {
@@ -414,6 +414,45 @@
   "checkUpdates": {
     "message": "更新を確認"
   },
+  "configUpdateToastTag": {
+    "message": "設定更新"
+  },
+  "configUpdateToastTitle": {
+    "message": "設定ファイルを更新しました"
+  },
+  "configUpdateToastSubtitle": {
+    "message": "設定ファイルを更新しました。"
+  },
+  "configUpdateToastSubtitleWithNames": {
+    "message": "設定ファイルを更新しました。対象サイト: $1。"
+  },
+  "configUpdateToastSubtitleWithNamesMore": {
+    "message": "設定ファイルを更新しました。対象サイト: $1 など。"
+  },
+  "configUpdateToastSubtitleWithCount": {
+    "message": "設定ファイルを更新しました。対象サイト数: $1。"
+  },
+  "configUpdateToastReview": {
+    "message": "詳細を見る"
+  },
+  "configUpdateToastDismiss": {
+    "message": "閉じる"
+  },
+  "configUpdateToastFallback": {
+    "message": "設定は更新されましたが、通知 UI を表示できませんでした。"
+  },
+  "configUpdateDetailsTitle": {
+    "message": "更新の詳細"
+  },
+  "configUpdateDetailsSubtitle": {
+    "message": "最近のバージョン記録、サイト変更、同期元。"
+  },
+  "configUpdateDetailsSource": {
+    "message": "ソースファイルを開く"
+  },
+  "configUpdateDetailsClose": {
+    "message": "閉じる"
+  },
   "unknownTime": {
     "message": "不明な時刻"
   },
@@ -422,6 +461,9 @@
   },
   "disabledSitesDescription": {
     "message": "フロートボタンが無効になっているサイトを管理します。ここで再度有効化できます。"
+  },
+  "noDisabledSites": {
+    "message": "無効化されたサイトはまだありません"
   },
   "searchProviderName": {
     "message": "AI Compare"
@@ -488,6 +530,9 @@
   },
   "templateDeletedSuccess": {
     "message": "テンプレートを削除しました"
+  },
+  "deleteFailed": {
+    "message": "削除に失敗しました。もう一度お試しください。"
   },
   "templateNameRequired": {
     "message": "テンプレート名を入力してください"
@@ -673,6 +718,9 @@
   },
   "injectProgressStepInfoFallback": {
     "message": "実行が中断されました"
+  },
+  "injectProgressErrorPageNotLoadedOrChanged": {
+    "message": "ページの読み込みに失敗したか、内容が変更されています"
   },
   "injectProgressStepInfoFallbackProgress": {
     "message": "実行中"

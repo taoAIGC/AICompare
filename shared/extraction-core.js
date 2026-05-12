@@ -907,8 +907,14 @@
         removeParams.forEach((param) => nextUrl.searchParams.delete(param));
 
         if (requiredUrlFeature) {
-          const currentHasRequiredFeature = currentUrl && currentUrl.pathname.includes(requiredUrlFeature);
-          const nextHasRequiredFeature = nextUrl.pathname.includes(requiredUrlFeature);
+          const currentHasRequiredFeature = currentUrl && (
+            global.SiteLaunchUtils?.urlMatchesHistoryFeature
+              ? global.SiteLaunchUtils.urlMatchesHistoryFeature(currentUrl.toString(), requiredUrlFeature)
+              : currentUrl.pathname.includes(requiredUrlFeature)
+          );
+          const nextHasRequiredFeature = global.SiteLaunchUtils?.urlMatchesHistoryFeature
+            ? global.SiteLaunchUtils.urlMatchesHistoryFeature(nextUrl.toString(), requiredUrlFeature)
+            : nextUrl.pathname.includes(requiredUrlFeature);
           const currentLooksMoreSpecific = currentHasRequiredFeature && currentUrl.pathname.length > nextUrl.pathname.length;
           if (!nextHasRequiredFeature || currentLooksMoreSpecific) {
             return currentUrl ? currentUrl.toString() : fallbackUrl;

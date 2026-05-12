@@ -1,0 +1,71 @@
+:root {
+    --ai-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --ai-page-bg: linear-gradient(180deg, #fafafa 0%, #f3f3f3 52%, #ececec 100%);
+    --ai-page-glow: radial-gradient(circle at top left, rgba(17, 17, 17, 0.05), transparent 34%), radial-gradient(circle at top right, rgba(17, 17, 17, 0.03), transparent 28%), radial-gradient(circle at bottom right, rgba(17, 17, 17, 0.04), transparent 24%);
+    --ai-surface: rgba(255, 255, 255, 0.92);
+    --ai-surface-strong: #ffffff;
+    --ai-surface-soft: #f5f5f5;
+    --ai-surface-alt: #eeeeee;
+    --ai-border: rgba(17, 17, 17, 0.10);
+    --ai-border-strong: rgba(17, 17, 17, 0.18);
+    --ai-text: #111111;
+    --ai-text-muted: #5f5f5f;
+    --ai-text-soft: #8c8c8c;
+    --ai-accent: #111111;
+    --ai-accent-hover: #2a2a2a;
+    --ai-accent-soft: rgba(17, 17, 17, 0.08);
+    --ai-accent-soft-strong: rgba(17, 17, 17, 0.14);
+    --ai-success: #111111;
+    --ai-success-soft: rgba(17, 17, 17, 0.08);
+    --ai-danger: #111111;
+    --ai-danger-soft: rgba(17, 17, 17, 0.10);
+    --ai-info: #111111;
+    --ai-info-soft: rgba(17, 17, 17, 0.08);
+    --ai-warning: #111111;
+    --ai-warning-soft: rgba(17, 17, 17, 0.08);
+    --ai-focus-ring: rgba(17, 17, 17, 0.10);
+    --ai-focus-ring-strong: rgba(17, 17, 17, 0.16);
+    --ai-radius-sm: 10px;
+    --ai-radius: 16px;
+    --ai-radius-lg: 24px;
+    --ai-shadow-sm: 0 6px 18px rgba(17, 17, 17, 0.06);
+    --ai-shadow: 0 18px 40px rgba(17, 17, 17, 0.08);
+    --ai-shadow-lg: 0 30px 60px rgba(17, 17, 17, 0.12);
+    --ai-shadow-ambient: 0 24px 80px rgba(17, 17, 17, 0.08);
+    --ai-transition: 180ms ease;
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]), textarea, select) {
+    font: inherit;
+    color: var(--ai-text);
+    background: var(--ai-surface-strong);
+    border: 1px solid var(--ai-border);
+    border-radius: 12px;
+    box-sizing: border-box;
+    transition: border-color var(--ai-transition), box-shadow var(--ai-transition), background-color var(--ai-transition), transform var(--ai-transition);
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]), textarea, select)::placeholder {
+    color: var(--ai-text-soft);
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]), textarea, select):focus,
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]), textarea, select):focus-visible {
+    outline: none;
+    border-color: var(--ai-accent);
+    box-shadow: 0 0 0 3px var(--ai-focus-ring);
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--ai-accent);
+}
+
+:where(input[type="checkbox"], input[type="radio"]):focus-visible {
+    outline: 2px solid var(--ai-accent);
+    outline-offset: 2px;
+}
+
+:where(button):focus-visible {
+    outline: 2px solid var(--ai-accent);
+    outline-offset: 2px;
+}
