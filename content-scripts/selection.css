@@ -132,15 +132,30 @@
     justify-content: flex-start;
 }
 
-.multi-ai-toolbar-float .multi-ai-compare-button {
+.multi-ai-toolbar-float .multi-ai-search-engine-compare-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     background: transparent;
     border: none;
     box-shadow: none;
     padding: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-.multi-ai-toolbar-float .multi-ai-compare-button:hover {
+.multi-ai-toolbar-float .multi-ai-search-engine-compare-button:hover {
     background: transparent;
+}
+
+.multi-ai-toolbar-float .multi-ai-search-engine-compare-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+    pointer-events: none;
 }
 
 .multi-ai-toolbar[data-toolbar-theme="dark-surface"] .multi-ai-favorite-button,

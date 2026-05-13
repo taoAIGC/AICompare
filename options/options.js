@@ -280,7 +280,7 @@ async function renderOfficialEntryUrlConfigs() {
       card.innerHTML = `
         <div class="site-header site-setting-row">
           <span class="site-name-display">${siteName}</span>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div class="site-setting-actions">
             <button type="button" class="btn-secondary reset-entry-url-btn" data-site-name="${siteName}">
               ${getLaunchMessage('entryUrlResetButton', 'Reset')}
             </button>
@@ -289,8 +289,8 @@ async function renderOfficialEntryUrlConfigs() {
             </button>
           </div>
         </div>
-        <div style="margin-top: 10px;">
-          <label for="${safeId}" style="display:block; margin-bottom: 6px; font-weight: 500; color: #333;">
+        <div class="site-setting-field">
+          <label for="${safeId}" class="site-setting-label">
             ${getLaunchMessage('entryUrlLabel', 'Entry URL')}
           </label>
           <input
@@ -299,7 +299,6 @@ async function renderOfficialEntryUrlConfigs() {
             class="entry-url-input"
             value="${currentEntryUrl.replace(/"/g, '&quot;')}"
             placeholder="${getLaunchMessage('entryUrlPlaceholder', 'Enter a launch URL or use {query}')}"
-            style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
           >
         </div>
       `;
@@ -378,14 +377,14 @@ function renderCustomSitesManager(customSites = []) {
     const siteIcon = typeof site?.icon === 'string' ? site.icon.trim() : '';
     const displayNote = siteNote
       ? `
-        <div style="margin-top: 6px; font-size: 12px; color: #777; word-break: break-word; white-space: pre-wrap;">
+        <div class="custom-site-detail">
           ${getLaunchMessage('customSiteNoteLabel', 'Note')}: ${escapeHtml(siteNote)}
         </div>
       `
       : '';
     const displayIcon = siteIcon
       ? `
-        <div style="margin-top: 4px; font-size: 12px; color: #777; word-break: break-word;">
+        <div class="custom-site-detail">
           ${getLaunchMessage('customSiteIconLabel', 'Icon')}: ${escapeHtml(siteIcon)}
         </div>
       `
@@ -396,21 +395,19 @@ function renderCustomSitesManager(customSites = []) {
     card.title = [siteNote, siteIcon, site?.url || '']
       .filter(Boolean)
       .join(' · ');
-    card.style.padding = '16px';
-    card.style.cursor = 'default';
     card.innerHTML = `
-      <div style="display:flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
-        <div style="min-width: 0; flex: 1;">
-          <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${siteName}</h4>
-          <div style="font-size: 12px; color: #666; word-break: break-all;">${siteUrl}</div>
+      <div class="template-item-head">
+        <div class="template-item-body">
+          <h4 class="template-item-title">${siteName}</h4>
+          <div class="custom-site-url">${siteUrl}</div>
           ${displayNote}
           ${displayIcon}
-          <div style="margin-top: 6px; font-size: 12px; color: #888;">
+          <div class="custom-site-summary">
             ${site.enabled ? getLaunchMessage('customSiteEnabledBadge', 'Enabled') : getLaunchMessage('customSiteDisabledBadge', 'Disabled')}
             ${site.order !== undefined ? ` · #${site.order}` : ''}
           </div>
         </div>
-        <div style="display:flex; gap: 8px; flex-shrink: 0;">
+        <div class="template-actions">
           <button type="button" class="btn-secondary edit-custom-site-btn" data-site-id="${siteId}">${getLaunchMessage('editButton', 'Edit')}</button>
           <button type="button" class="btn-secondary delete-custom-site-btn" data-site-id="${siteId}">${getLaunchMessage('deleteButton', 'Delete')}</button>
         </div>
@@ -953,7 +950,7 @@ async function initializeDisabledSites() {
     
     if (disabledSites.length === 0) {
       container.innerHTML = `
-        <div class="empty-state" style="text-align: center; color: #999; padding: 40px;">
+        <div class="empty-state state-panel">
           <p>${chrome.i18n.getMessage('noDisabledSites') || '暂无被禁用的网站'}</p>
         </div>
       `;
@@ -961,13 +958,13 @@ async function initializeDisabledSites() {
     }
 
     container.innerHTML = disabledSites.map(site => `
-      <div class="disabled-site-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px;">
+      <div class="disabled-site-item">
         <div class="site-info">
-          <span class="site-domain" style="font-weight: 500; color: #333;">${site}</span>
-          <span class="site-note" style="color: #666; font-size: 12px; margin-left: 8px;">悬浮球已禁用</span>
+          <span class="site-domain">${site}</span>
+          <span class="site-note">悬浮球已禁用</span>
         </div>
         <div class="site-actions">
-          <button class="enable-btn" data-domain="${site}" style="padding: 6px 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+          <button class="enable-btn btn-secondary" data-domain="${site}">
             重新启用
           </button>
         </div>
@@ -980,7 +977,7 @@ async function initializeDisabledSites() {
   } catch (error) {
     console.error('加载禁用网站列表失败:', error);
     container.innerHTML = `
-      <div class="error-state" style="text-align: center; color: #f44336; padding: 40px;">
+      <div class="error-state state-panel">
         <p>加载失败，请刷新页面重试</p>
       </div>
     `;
@@ -1080,88 +1077,34 @@ async function loadTemplatesList() {
     
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; color: #666; padding: 40px;">
+        <div class="state-panel">
           <p>暂无提示词模板</p>
-          <p style="font-size: 14px;">点击上方"添加新模板"按钮开始创建</p>
+          <p class="state-message">点击上方"添加新模板"按钮开始创建</p>
         </div>
       `;
       return;
     }
     
     container.innerHTML = sortedTemplates.map(template => `
-      <div class="template-item" data-template-id="${template.id}" style="
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 12px;
-        transition: box-shadow 0.2s ease;
-      ">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${template.name}</h4>
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666;">
+      <div class="template-item" data-template-id="${template.id}">
+        <div class="template-item-head">
+          <div class="template-item-body">
+            <h4 class="template-item-title">${template.name}</h4>
+            <div class="template-meta">
               <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
-              <span style="
-                display: inline-flex;
-                align-items: center;
-                padding: 2px 8px;
-                border-radius: 999px;
-                background: var(--ai-accent-soft);
-                color: var(--ai-accent);
-                font-size: 12px;
-                line-height: 1.4;
-              ">${getPromptTemplateTypeLabel(template.type)}</span>
+              <span class="template-badge">${getPromptTemplateTypeLabel(template.type)}</span>
             </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="edit-template-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}" style="
-              background: transparent;
-              border: none;
-              border-radius: 4px;
-              padding: 6px;
-              width: 30px;
-              height: 30px;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">
-              <img src="../icons/edit.svg" alt="" style="width: 16px; height: 16px; opacity: 0.8;">
+          <div class="template-actions">
+            <button class="edit-template-btn icon-action-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}">
+              <img src="../icons/edit.svg" alt="">
             </button>
-            ${!template.isDefault ? `<button class="delete-template-btn" data-template-id="${template.id}" style="
-              background: #ffebee;
-              border: 1px solid #ffcdd2;
-              border-radius: 4px;
-              padding: 6px 12px;
-              cursor: pointer;
-              font-size: 12px;
-              color: #d32f2f;
-            " data-i18n="deleteButton">删除</button>` : ''}
+            ${!template.isDefault ? `<button class="delete-template-btn danger-btn" data-template-id="${template.id}" data-i18n="deleteButton">删除</button>` : ''}
           </div>
         </div>
-        <div style="
-          background: #f8f9fa;
-          border: 1px solid #e9ecef;
-          border-radius: 4px;
-          padding: 12px;
-          font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-          font-size: 13px;
-          color: #495057;
-          word-break: break-word;
-        ">${template.query}</div>
+        <div class="template-code">${template.query}</div>
       </div>
     `).join('');
-    
-    // 添加hover效果
-    container.querySelectorAll('.template-item').forEach(item => {
-      item.addEventListener('mouseenter', () => {
-        item.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.boxShadow = 'none';
-      });
-    });
     
   } catch (error) {
     console.error('加载模板列表失败:', error);
@@ -1414,88 +1357,34 @@ async function loadAnalysisTemplatesList() {
 
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; color: #666; padding: 40px;">
+        <div class="state-panel">
           <p>${chrome.i18n.getMessage('analysisTemplateListEmpty') || '暂无分析提示词模板'}</p>
-          <p style="font-size: 14px;">${chrome.i18n.getMessage('analysisTemplateListHint') || '点击上方“添加分析提示词”按钮开始创建'}</p>
+          <p class="state-message">${chrome.i18n.getMessage('analysisTemplateListHint') || '点击上方“添加分析提示词”按钮开始创建'}</p>
         </div>
       `;
       return;
     }
 
     container.innerHTML = sortedTemplates.map(template => `
-      <div class="template-item" data-template-id="${template.id}" style="
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 12px;
-        transition: box-shadow 0.2s ease;
-      ">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #333;">${template.name}</h4>
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666;">
+      <div class="template-item" data-template-id="${template.id}">
+        <div class="template-item-head">
+          <div class="template-item-body">
+            <h4 class="template-item-title">${template.name}</h4>
+            <div class="template-meta">
               <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
-              <span style="
-                display: inline-flex;
-                align-items: center;
-                padding: 2px 8px;
-                border-radius: 999px;
-                background: var(--ai-accent-soft);
-                color: var(--ai-accent);
-                font-size: 12px;
-                line-height: 1.4;
-              ">${chrome.i18n.getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
+              <span class="template-badge">${chrome.i18n.getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
             </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="edit-analysis-template-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}" style="
-              background: transparent;
-              border: none;
-              border-radius: 4px;
-              padding: 6px;
-              width: 30px;
-              height: 30px;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">
-              <img src="../icons/edit.svg" alt="" style="width: 16px; height: 16px; opacity: 0.8;">
+          <div class="template-actions">
+            <button class="edit-analysis-template-btn icon-action-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}">
+              <img src="../icons/edit.svg" alt="">
             </button>
-            ${!template.isDefault ? `<button class="delete-analysis-template-btn" data-template-id="${template.id}" style="
-              background: #ffebee;
-              border: 1px solid #ffcdd2;
-              border-radius: 4px;
-              padding: 6px 12px;
-              cursor: pointer;
-              font-size: 12px;
-              color: #d32f2f;
-            ">${chrome.i18n.getMessage('deleteButton') || 'Delete'}</button>` : ''}
+            ${!template.isDefault ? `<button class="delete-analysis-template-btn danger-btn" data-template-id="${template.id}">${chrome.i18n.getMessage('deleteButton') || 'Delete'}</button>` : ''}
           </div>
         </div>
-        <div style="
-          background: #f8f9fa;
-          border: 1px solid #e9ecef;
-          border-radius: 4px;
-          padding: 12px;
-          font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-          font-size: 13px;
-          color: #495057;
-          word-break: break-word;
-          white-space: pre-wrap;
-        ">${template.query}</div>
+        <div class="template-code preserve-lines">${template.query}</div>
       </div>
     `).join('');
-
-    container.querySelectorAll('.template-item').forEach(item => {
-      item.addEventListener('mouseenter', () => {
-        item.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.boxShadow = 'none';
-      });
-    });
   } catch (error) {
     console.error('加载分析提示词模板列表失败:', error);
   }

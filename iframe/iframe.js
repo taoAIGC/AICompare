@@ -394,7 +394,6 @@ function ensureRatingModal() {
 
   overlay.innerHTML = `
     <div class="rating-modal">
-      <button class="rating-modal-close" type="button" aria-label="${t('ratingModalClose', '关闭')}">×</button>
       <div class="rating-modal-title">${t('ratingModalTitle', '喜欢这个插件吗？')}</div>
       <div class="rating-modal-subtitle">${t('ratingModalSubtitle', '如果它帮到你，给我们一个五星好评吧！')}</div>
       <div class="rating-modal-stars" aria-label="${t('ratingModalStars', '五星好评')}">
@@ -407,7 +406,6 @@ function ensureRatingModal() {
     </div>
   `;
 
-  const closeBtn = overlay.querySelector('.rating-modal-close');
   const laterBtn = overlay.querySelector('.rating-modal-secondary');
   const rateBtn = overlay.querySelector('.rating-modal-primary');
 
@@ -416,10 +414,6 @@ function ensureRatingModal() {
     overlay.setAttribute('aria-hidden', 'true');
   };
 
-  closeBtn?.addEventListener('click', async () => {
-    await handleRatingPromptLater();
-    closeModal();
-  });
   laterBtn?.addEventListener('click', async () => {
     await handleRatingPromptLater();
     closeModal();

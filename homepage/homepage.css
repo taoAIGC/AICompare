@@ -205,7 +205,7 @@ html, body {
 /* Pin 引导提示样式 */
 .pin-guide-banner {
     width: 100%;
-    max-width: 1120px;
+    max-width: 720px;
     margin-bottom: 4px;
     position: relative;
     overflow: hidden;
@@ -408,7 +408,7 @@ html, body {
 
 .search-bar {
     width: 100%;
-    max-width: 1120px;
+    max-width: 720px;
     background: var(--ai-surface-strong);
     border: 1px solid var(--ai-border);
     border-radius: var(--ai-radius-lg);
@@ -428,7 +428,7 @@ body.search-bar-bottom .search-bar {
     left: calc(50% + 90px);
     transform: translateX(-50%);
     width: calc(100% - 40px);
-    max-width: 1120px;
+    max-width: 720px;
     z-index: 1000;
 }
 
@@ -557,8 +557,8 @@ body.search-bar-bottom .query-suggestions {
 
 .file-upload-btn {
     position: static;
-    background: #ffffff;
-    border: 1px solid rgba(15, 23, 42, 0.10);
+    background: transparent;
+    border: 1px solid transparent;
     cursor: pointer;
     width: 36px;
     height: 36px;
@@ -568,13 +568,14 @@ body.search-bar-bottom .query-suggestions {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--ai-shadow-sm);
+    box-shadow: none;
 }
 
 .file-upload-btn:hover {
-    background: #f4f4f5;
-    border-color: rgba(15, 23, 42, 0.18);
+    background: var(--ai-accent-soft);
+    border-color: var(--ai-border);
     transform: translateY(-1px);
+    box-shadow: none;
 }
 
 .file-upload-btn img {
@@ -1130,6 +1131,26 @@ body.search-bar-bottom .query-suggestions {
 .coffee-modal-close:hover {
     background: var(--ai-accent-soft);
     color: var(--ai-text);
+}
+
+.search-bar .file-upload-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.search-bar .file-upload-btn:hover {
+    background: var(--ai-accent-soft);
+    border-color: var(--ai-border);
+    transform: translateY(-1px);
+    box-shadow: none;
+}
+
+.search-bar .file-upload-btn:focus,
+.search-bar .file-upload-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .remote-search-home-card[hidden] {

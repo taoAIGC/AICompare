@@ -18,12 +18,8 @@ const SEARCH_ENGINE_CONFIGS = {
   }
 };
 
-function getBrandIconUrl(size = 48) {
-  if (window.ExtensionEnvironment && typeof window.ExtensionEnvironment.getBrandIconUrl === 'function') {
-    return window.ExtensionEnvironment.getBrandIconUrl(size);
-  }
-
-  return chrome.runtime.getURL(`icons/icon${size}.png`);
+function getSearchToolbarIconUrl() {
+  return chrome.runtime.getURL('icons/search-toolbar-icon.svg');
 }
 
 let searchEngineToolbarActive = false;
@@ -173,10 +169,17 @@ async function createSearchToolbar(container, position) {
    singleSearchGroup.appendChild(siteDropdown);
 
   // 创建对比按钮
-  const compareButton = document.createElement('img');
-  compareButton.src = getBrandIconUrl(48);
+  const compareButton = document.createElement('button');
+  compareButton.type = 'button';
   compareButton.title = chrome.i18n.getMessage('searchWithMultiAI');
-  compareButton.className = 'multi-ai-compare-button';
+  compareButton.setAttribute('aria-label', compareButton.title || '');
+  compareButton.className = 'multi-ai-search-engine-compare-button';
+
+  const compareIcon = document.createElement('img');
+  compareIcon.src = getSearchToolbarIconUrl();
+  compareIcon.alt = '';
+  compareIcon.className = 'multi-ai-search-engine-compare-icon';
+  compareButton.appendChild(compareIcon);
   
   // 添加按钮到工具栏
   toolbar.appendChild(singleSearchGroup);
@@ -285,6 +288,10 @@ function initSearchEngineToolbar() {
   const config = SEARCH_ENGINE_CONFIGS[hostname];
   if (!config) return;
 
+  if (searchEngineToolbarActive || document.querySelector('.multi-ai-toolbar-float')) {
+    return;
+  }
+
   searchEngineToolbarActive = true;
 
   // 等待搜索框容器加载
@@ -331,7 +338,10 @@ if (chrome.storage?.onChanged) {
       const buttonConfig = result.buttonConfig || defaultButtonConfig;
       if (!buttonConfig.searchEngine) {
         removeSearchEngineToolbar();
+        return;
       }
+
+      initSearchEngineToolbar();
     });
   });
 }

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">AI Compare icon</title>
+  <defs>
+    <clipPath id="toolbar-icon-clip">
+      <rect x="2" y="2" width="44" height="44"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#toolbar-icon-clip)">
+    <rect x="2" y="2" width="22" height="44" fill="#31b44b"/>
+    <rect x="24" y="2" width="22" height="44" fill="#ff7a1a"/>
+    <rect x="23" y="2" width="2" height="44" fill="#111111"/>
+
+    <path d="M8.9 34.5 14.8 13.8h4.4l5.9 20.7h-4.1l-1.1-4.1h-6.1l-1.1 4.1H8.9Zm6-7.3h4.2L17 19h-.1l-2 8.2Z" fill="#111111"/>
+    <rect x="31" y="13" width="4.5" height="22" rx="1.5" ry="1.5" fill="#111111"/>
+  </g>
+</svg>

@@ -381,68 +381,29 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-12 17:01:25 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-14 00:03:00 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `.DS_Store`
-- `M` `.gitignore`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/de/messages.json`
-- `M` `_locales/en/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/pt_BR/messages.json`
-- `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
-- `M` `config/baseConfig.js`
-- `M` `config/siteHandlers.json`
-- `M` `contact/contact.css`
-- `M` `contact/contact.html`
-- `M` `content-scripts/float-button.css`
+- `M` `content-scripts/search-engines.js`
 - `M` `content-scripts/selection.css`
-- `A` `docs/mockups/output/ui-theme-bluegray-amber.png`
-- `A` `docs/mockups/output/ui-theme-muted-orange.png`
-- `A` `docs/mockups/ui-theme-bluegray-amber.html`
-- `A` `docs/mockups/ui-theme-muted-orange.html`
-- `A` `docs/ui-optimization-plan.md`
 - `M` `favorites/favorites.css`
-- `M` `favorites/favorites.html`
-- `M` `favorites/favorites.js`
 - `M` `history/history.css`
-- `M` `history/history.html`
-- `M` `history/history.js`
 - `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `A` `icons/icon-simplified-bw.svg`
-- `M` `icons/icon128.png`
-- `M` `icons/icon16.png`
-- `M` `icons/icon48.png`
+- `A` `icons/search-toolbar-icon.svg`
 - `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
-- `M` `iframe/openclaw-bridge.js`
 - `M` `manifest.json`
 - `M` `options/options.css`
 - `M` `options/options.html`
 - `M` `options/options.js`
-- `M` `shared/extraction-core.js`
-- `M` `shared/favorite-folder-modal.css`
-- `M` `shared/sidebar.css`
-- `M` `shared/site-launch-utils.js`
-- `A` `shared/ui-tokens.css`
-- `M` `tests/extraction-core.test.js`
 
 ### Recent commits / 最近提交
+- `d730a72` 2026-05-12 V3.4.0 UI主题黑白色
 - `71ec1e1` 2026-05-11 V3.3.0 支持汇总答案的分析
 - `c210df9` 2026-05-11 V3.2.4 快速汇总答案
 - `fd3e99b` 2026-05-11 V3.2.3 支持导出文件
 - `c00b358` 2026-05-09 V3.2.2 修复部分站点的抽取效果
-- `8dce00a` 2026-05-06 V3.2.0 支持自定义站点、移除 firebase 的 远程js
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->
