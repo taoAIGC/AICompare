@@ -381,29 +381,30 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-14 00:03:00 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-15 17:07:04 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `.DS_Store`
-- `M` `content-scripts/search-engines.js`
-- `M` `content-scripts/selection.css`
-- `M` `favorites/favorites.css`
-- `M` `history/history.css`
-- `M` `homepage/homepage.css`
-- `A` `icons/search-toolbar-icon.svg`
-- `M` `iframe/iframe.css`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
+- `M` `_locales/en/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
+- `M` `_locales/zh_CN/messages.json`
+- `M` `_locales/zh_TW/messages.json`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `M` `options/options.css`
-- `M` `options/options.html`
 - `M` `options/options.js`
 
 ### Recent commits / 最近提交
+- `52ad022` 2026-05-14 V3.4.1 修复 UI 小问题
 - `d730a72` 2026-05-12 V3.4.0 UI主题黑白色
 - `71ec1e1` 2026-05-11 V3.3.0 支持汇总答案的分析
 - `c210df9` 2026-05-11 V3.2.4 快速汇总答案
 - `fd3e99b` 2026-05-11 V3.2.3 支持导出文件
-- `c00b358` 2026-05-09 V3.2.2 修复部分站点的抽取效果
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

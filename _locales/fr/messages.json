@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "Échec de l’enregistrement. Veuillez réessayer."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "Le bouton flottant a été réactivé pour $DOMAIN$.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "L’opération a échoué. Veuillez réessayer."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js n’est pas chargé."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "Impossible d’ouvrir la page de paiement."
+  },
+  "stripePortalOpenFailed": {
+    "message": "Impossible d’ouvrir la page de gestion de l’abonnement."
+  },
+  "clipboardPermissionDenied": {
+    "message": "Autorisation du presse-papiers refusée"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "Veuillez autoriser l’accès au presse-papiers dans les paramètres du navigateur, ou cliquez sur l’icône en forme de cadenas à gauche de la barre d’adresse pour modifier l’autorisation."
+  },
+  "fileUploadFailedTitle": {
+    "message": "Échec du téléversement du fichier"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "Supprimer le prompt favori"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "Supprimer le prompt favori"
   }
 }

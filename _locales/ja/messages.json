@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "保存に失敗しました。もう一度お試しください。"
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "$DOMAIN$ のフローティングボタンを再度有効にしました。",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "操作に失敗しました。もう一度お試しください。"
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js が読み込まれていません。"
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "決済ページを開けませんでした。"
+  },
+  "stripePortalOpenFailed": {
+    "message": "サブスクリプション管理ページを開けませんでした。"
+  },
+  "clipboardPermissionDenied": {
+    "message": "クリップボード権限が拒否されました"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "ブラウザの設定でクリップボードへのアクセスを許可するか、アドレスバー左側の鍵アイコンをクリックして権限を更新してください。"
+  },
+  "fileUploadFailedTitle": {
+    "message": "ファイルのアップロードに失敗しました"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "お気に入りのプロンプトを削除"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "お気に入りのプロンプトを削除"
   }
 }

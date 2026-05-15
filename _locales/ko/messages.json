@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "저장에 실패했습니다. 다시 시도해 주세요."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "$DOMAIN$의 플로팅 버튼을 다시 활성화했습니다.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "작업에 실패했습니다. 다시 시도해 주세요."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js가 로드되지 않았습니다."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "결제 페이지를 열지 못했습니다."
+  },
+  "stripePortalOpenFailed": {
+    "message": "구독 관리 페이지를 열지 못했습니다."
+  },
+  "clipboardPermissionDenied": {
+    "message": "클립보드 권한이 거부되었습니다"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "브라우저 설정에서 클립보드 접근을 허용하거나 주소 표시줄 왼쪽의 자물쇠 아이콘을 클릭해 권한을 변경해 주세요."
+  },
+  "fileUploadFailedTitle": {
+    "message": "파일 업로드에 실패했습니다"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "즐겨찾기 프롬프트 삭제"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "즐겨찾기 프롬프트 삭제"
   }
 }

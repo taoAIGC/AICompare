@@ -1766,5 +1766,43 @@
         "content": "$1"
       }
     }
+  },
+  "saveFailedGeneric": {
+    "message": "保存失败，请重试"
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "已重新启用 $DOMAIN$ 的悬浮球。",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "操作失败，请重试"
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js 未加载"
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "跳转付款页失败"
+  },
+  "stripePortalOpenFailed": {
+    "message": "无法打开订阅管理页"
+  },
+  "clipboardPermissionDenied": {
+    "message": "剪贴板权限被拒绝"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "请在浏览器设置中允许剪贴板访问权限，或点击地址栏左侧的锁图标进行设置"
+  },
+  "fileUploadFailedTitle": {
+    "message": "文件上传失败"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "删除收藏提示词"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "删除收藏提示词"
   }
 }

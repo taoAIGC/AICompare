@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "Falha ao salvar. Tente novamente."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "O botão flutuante foi reativado para $DOMAIN$.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "A operação falhou. Tente novamente."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js não foi carregado."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "Não foi possível abrir a página de pagamento."
+  },
+  "stripePortalOpenFailed": {
+    "message": "Não foi possível abrir a página de gerenciamento da assinatura."
+  },
+  "clipboardPermissionDenied": {
+    "message": "Permissão da área de transferência negada"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "Permita o acesso à área de transferência nas configurações do navegador ou clique no ícone de cadeado à esquerda da barra de endereço para atualizar a permissão."
+  },
+  "fileUploadFailedTitle": {
+    "message": "Falha no envio do arquivo"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "Excluir prompt favorito"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "Excluir prompt favorito"
   }
 }

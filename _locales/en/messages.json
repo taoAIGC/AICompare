@@ -1771,5 +1771,43 @@
         "content": "$1"
       }
     }
+  },
+  "saveFailedGeneric": {
+    "message": "Save failed. Please try again."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "Re-enabled the floating button for $DOMAIN$.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "Operation failed. Please try again."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js is not loaded."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "Failed to open the checkout page."
+  },
+  "stripePortalOpenFailed": {
+    "message": "Failed to open the subscription management page."
+  },
+  "clipboardPermissionDenied": {
+    "message": "Clipboard permission denied"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "Please allow clipboard access in your browser settings, or click the lock icon to the left of the address bar to update the permission."
+  },
+  "fileUploadFailedTitle": {
+    "message": "File upload failed"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "Delete favorite prompt"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "Delete favorite prompt"
   }
 }

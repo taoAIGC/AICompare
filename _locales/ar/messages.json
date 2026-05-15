@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "فشل الحفظ. يرجى المحاولة مرة أخرى."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "تمت إعادة تفعيل الزر العائم لـ $DOMAIN$.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "فشلت العملية. يرجى المحاولة مرة أخرى."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "لم يتم تحميل stripe-payment.js."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "تعذر فتح صفحة الدفع."
+  },
+  "stripePortalOpenFailed": {
+    "message": "تعذر فتح صفحة إدارة الاشتراك."
+  },
+  "clipboardPermissionDenied": {
+    "message": "تم رفض إذن الحافظة"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "يرجى السماح بالوصول إلى الحافظة في إعدادات المتصفح، أو انقر على رمز القفل بجانب شريط العنوان لتحديث الإذن."
+  },
+  "fileUploadFailedTitle": {
+    "message": "فشل رفع الملف"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "حذف الموجّه المفضل"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "حذف الموجّه المفضل"
   }
 }

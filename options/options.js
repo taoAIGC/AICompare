@@ -26,6 +26,10 @@ function getMessage(key, substitutions = null) {
   return chrome.i18n.getMessage(key, substitutions);
 }
 
+function getMessageWithFallback(key, fallback = '', substitutions = null) {
+  return getMessage(key, substitutions) || fallback;
+}
+
 function getPromptTemplateUtils() {
   return window.PromptTemplateUtils || null;
 }
@@ -999,14 +1003,14 @@ async function handleDisabledSiteAction(event) {
     const updatedSites = disabledSites.filter(site => site !== domain);
     await chrome.storage.sync.set({ disabledSites: updatedSites });
     
-    showToast(`已重新启用 ${domain} 的悬浮球`);
+    showToast(getMessageWithFallback('reEnableFloatButtonSuccess', 'Re-enabled the floating button for $1', [domain]));
 
     // 重新加载列表
     initializeDisabledSites();
     
   } catch (error) {
     console.error('操作失败:', error);
-    showToast('操作失败，请重试');
+    showToast(getMessageWithFallback('operationFailedRetry', 'Operation failed. Please try again.'));
   }
 }
 
@@ -1277,7 +1281,7 @@ async function saveTemplate() {
     
   } catch (error) {
     console.error('保存模板失败:', error);
-    showToast('保存失败，请重试');
+    showToast(getMessageWithFallback('saveFailedGeneric', 'Save failed. Please try again.'));
   }
 }
 
@@ -1423,12 +1427,12 @@ async function showAnalysisTemplateDialog(template = null) {
   if (!dialog) return;
 
   if (template) {
-    title.textContent = chrome.i18n.getMessage('editAnalysisTemplateTitle') || '编辑分析提示词';
+    title.textContent = chrome.i18n.getMessage('editAnalysisTemplateTitle') || 'Edit analysis prompt';
     nameInput.value = template.name;
     queryInput.value = template.query;
     orderInput.value = template.order || 1;
   } else {
-    title.textContent = chrome.i18n.getMessage('addAnalysisTemplateTitle') || '添加分析提示词';
+    title.textContent = chrome.i18n.getMessage('addAnalysisTemplateTitle') || 'Add analysis prompt';
     nameInput.value = '';
     queryInput.value = '';
     orderInput.value = 1;
@@ -1499,7 +1503,7 @@ async function saveAnalysisTemplate() {
     showToast(chrome.i18n.getMessage('templateSavedSuccess'));
   } catch (error) {
     console.error('保存分析提示词失败:', error);
-    showToast(chrome.i18n.getMessage('saveFailed') || '保存失败，请重试');
+    showToast(getMessageWithFallback('saveFailedGeneric', 'Save failed. Please try again.'));
   }
 }
 
@@ -1530,7 +1534,7 @@ async function deleteAnalysisTemplate(templateId) {
     showToast(chrome.i18n.getMessage('templateDeletedSuccess'));
   } catch (error) {
     console.error('删除分析提示词失败:', error);
-    showToast(chrome.i18n.getMessage('deleteFailed') || '删除失败，请重试');
+    showToast(getMessageWithFallback('deleteFailed', 'Delete failed. Please try again.'));
   }
 }
 
@@ -2429,7 +2433,7 @@ async function initializeMembership() {
 
   async function handleUpgrade(priceId, btn) {
     if (!priceId || priceId.startsWith('price_REPLACE')) {
-      showToast(chrome.i18n.getMessage('membershipPriceNotConfigured') || '请先配置 Stripe Price ID', 3000);
+      showToast(chrome.i18n.getMessage('membershipPriceNotConfigured') || 'Stripe Price ID not configured. Please set it first.', 3000);
       return;
     }
     if (btn) btn.disabled = true;
@@ -2437,10 +2441,10 @@ async function initializeMembership() {
       if (typeof window.startCheckout === 'function') {
         await window.startCheckout(priceId);
       } else {
-        showToast('stripe-payment.js 未加载', 3000);
+        showToast(getMessageWithFallback('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'), 3000);
       }
     } catch (e) {
-      showToast(e.message || '跳转付款页失败', 3000);
+      showToast(e.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -2469,10 +2473,10 @@ async function initializeMembership() {
         if (typeof window.openCustomerPortal === 'function') {
           await window.openCustomerPortal();
         } else {
-          showToast('stripe-payment.js 未加载', 3000);
+          showToast(getMessageWithFallback('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'), 3000);
         }
       } catch (e) {
-        showToast(e.message || '无法打开订阅管理页', 3000);
+        showToast(e.message || getMessageWithFallback('stripePortalOpenFailed', 'Failed to open the subscription management page.'), 3000);
       } finally {
         btnManage.disabled = false;
       }

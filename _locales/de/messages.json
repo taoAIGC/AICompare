@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "Die schwebende Schaltfläche für $DOMAIN$ wurde wieder aktiviert.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "Vorgang fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js wurde nicht geladen."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "Die Checkout-Seite konnte nicht geöffnet werden."
+  },
+  "stripePortalOpenFailed": {
+    "message": "Die Verwaltungsseite für Abonnements konnte nicht geöffnet werden."
+  },
+  "clipboardPermissionDenied": {
+    "message": "Zwischenablage-Berechtigung verweigert"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "Bitte erlauben Sie den Zugriff auf die Zwischenablage in den Browsereinstellungen oder klicken Sie auf das Schlosssymbol links neben der Adressleiste, um die Berechtigung zu ändern."
+  },
+  "fileUploadFailedTitle": {
+    "message": "Datei-Upload fehlgeschlagen"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "Favoriten-Prompt löschen"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "Favoriten-Prompt löschen"
   }
 }

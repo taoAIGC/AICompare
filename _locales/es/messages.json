@@ -1759,5 +1759,55 @@
         "content": "$1"
       }
     }
+  },
+  "configUpdateToastSitesLabel": {
+    "message": "Updated sites"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "Refresh"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "Refreshing..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "Remote relay is offline."
+  },
+  "saveFailedGeneric": {
+    "message": "Error al guardar. Inténtalo de nuevo."
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "Se volvió a habilitar el botón flotante para $DOMAIN$.",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "La operación falló. Inténtalo de nuevo."
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js no está cargado."
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "No se pudo abrir la página de pago."
+  },
+  "stripePortalOpenFailed": {
+    "message": "No se pudo abrir la página de gestión de suscripción."
+  },
+  "clipboardPermissionDenied": {
+    "message": "Permiso del portapapeles denegado"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "Permite el acceso al portapapeles en la configuración del navegador o haz clic en el icono del candado a la izquierda de la barra de direcciones para actualizar el permiso."
+  },
+  "fileUploadFailedTitle": {
+    "message": "Error al subir el archivo"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "Eliminar prompt favorito"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "Eliminar prompt favorito"
   }
 }

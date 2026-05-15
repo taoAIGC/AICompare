@@ -1762,5 +1762,52 @@
         "content": "$1"
       }
     }
+  },
+  "saveFailedGeneric": {
+    "message": "保存失敗，請重試"
+  },
+  "reEnableFloatButtonSuccess": {
+    "message": "已重新啟用 $DOMAIN$ 的懸浮按鈕。",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "operationFailedRetry": {
+    "message": "操作失敗，請重試"
+  },
+  "stripePaymentScriptNotLoaded": {
+    "message": "stripe-payment.js 未載入"
+  },
+  "stripeCheckoutOpenFailed": {
+    "message": "開啟付款頁失敗"
+  },
+  "stripePortalOpenFailed": {
+    "message": "無法開啟訂閱管理頁"
+  },
+  "clipboardPermissionDenied": {
+    "message": "剪貼簿權限被拒絕"
+  },
+  "clipboardPermissionDeniedDetail": {
+    "message": "請在瀏覽器設定中允許剪貼簿存取權限，或點擊網址列左側的鎖頭圖示進行設定"
+  },
+  "fileUploadFailedTitle": {
+    "message": "檔案上傳失敗"
+  },
+  "favoriteItemDeleteTitle": {
+    "message": "刪除收藏提示詞"
+  },
+  "favoriteItemDeleteAlt": {
+    "message": "刪除收藏提示詞"
+  },
+  "timelineCopyPreviewRefresh": {
+    "message": "重新整理"
+  },
+  "timelineCopyPreviewRefreshing": {
+    "message": "重新整理中..."
+  },
+  "remoteSearchRelayUnavailable": {
+    "message": "遠端中繼服務離線。"
   }
 }

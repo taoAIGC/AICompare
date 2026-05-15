@@ -577,6 +577,10 @@ function t(key, fallback = '', substitutions = undefined) {
   }
 }
 
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;');
+}
+
 function getTimelineElements() {
   return {
     panel: document.getElementById('timelinePanel'),
@@ -6504,6 +6508,11 @@ async function checkClipboardPermissionStatus() {
 // 显示剪贴板权限被拒绝的消息
 function showClipboardDeniedMessage() {
   const message = document.createElement('div');
+  const deniedTitle = t('clipboardPermissionDenied', 'Clipboard permission denied');
+  const deniedDetail = t(
+    'clipboardPermissionDeniedDetail',
+    'Please allow clipboard access in your browser settings, or click the lock icon to the left of the address bar to update the permission.'
+  );
   message.style.cssText = `
     position: fixed;
     top: 20px;
@@ -6524,10 +6533,10 @@ function showClipboardDeniedMessage() {
   message.innerHTML = `
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
       <span>🚫</span>
-      <span style="font-weight: 600;">剪贴板权限被拒绝</span>
+      <span style="font-weight: 600;">${escapeHtml(deniedTitle)}</span>
     </div>
     <div style="font-size: 12px; opacity: 0.9;">
-      请在浏览器设置中允许剪贴板访问权限，或点击地址栏左侧的锁图标进行设置
+      ${escapeHtml(deniedDetail)}
     </div>
   `;
   
@@ -7087,6 +7096,8 @@ function showFavorites() {
     queryList.innerHTML = `<div class="favorites-section"><div class="favorites-title">${favoritesTitle}</div><div style="padding: 10px; color: #666; text-align: center;">${noFavoritesMessage}</div></div>`;
   } else {
     const favoritesTitle = chrome.i18n.getMessage('favoritesTitle');
+    const deleteTitle = chrome.i18n.getMessage('favoriteItemDeleteTitle') || chrome.i18n.getMessage('deleteButton') || 'Delete';
+    const deleteAlt = chrome.i18n.getMessage('favoriteItemDeleteAlt') || deleteTitle;
     let html = `<div class="favorites-section"><div class="favorites-title">${favoritesTitle}</div>`;
     
     favoritePrompts.forEach((prompt, index) => {
@@ -7101,8 +7112,8 @@ function showFavorites() {
             </button>
             -->
 
-            <button class="favorite-item-delete" title="删除">
-              <img src="../icons/close.svg" alt="删除">
+            <button class="favorite-item-delete" title="${escapeAttr(deleteTitle)}" aria-label="${escapeAttr(deleteTitle)}">
+              <img src="../icons/close.svg" alt="${escapeAttr(deleteAlt)}">
             </button>
            
           </div>
@@ -7176,7 +7187,7 @@ function editFavoriteItem(item) {
     // 忽略埋点中的异常，避免影响主流程
     console.warn('记录编辑收藏埋点失败:', e);
   }
-  showToast('coming soon');
+  showToast(t('comingSoonNotice', 'In development, not available yet'));
 }
 
 // 删除收藏项
@@ -7535,10 +7546,11 @@ function showFileUploadError(message) {
   
   const safeMessage = escapeHtml(message);
   
+  const uploadFailedTitle = t('fileUploadFailedTitle', 'File upload failed');
   error.innerHTML = `
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
       <span style="font-size: 18px;">❌</span>
-      <span style="font-weight: 600;">文件上传失败</span>
+      <span style="font-weight: 600;">${escapeHtml(uploadFailedTitle)}</span>
     </div>
     <div style="font-size: 13px; opacity: 0.9;">${safeMessage}</div>
   `;
