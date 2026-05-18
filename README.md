@@ -165,7 +165,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
 - Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
-- The built-in agent-engine defaults now target the Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the Settings page pre-fills that base URL and the bundled default key unless you override them locally, and old `https://api.pptoken.org/v1` + `gpt-5.4-mini` defaults are migrated automatically.
+- The built-in agent-engine defaults are now centralized in `config/agentEngineConfig.js`, currently targeting Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the bundled API key is stored there as ciphertext and decrypted at runtime, user-saved values still override them, and each agent uses only its own persona prompt as the system prompt.
+- Imported GitHub `SKILL.md` entries can be converted into custom agents through `Settings -> Agent settings -> Import from URL`, and the dedicated verifier is `node debug/verify-agent-import-runtime-playwright.js`.
 - The default retry ceiling for configured step retries is now 10 attempts.
 - Config-driven `sendKeys` steps now honor `waitForElement`, `maxAttempts`, and `retryInterval`, so Enter-based submits can retry like `focus` / `setValue` / `triggerEvents`.
 - Timeline copy now shows a "Copying..." toast first and falls back to `execCommand('copy')` if `navigator.clipboard.writeText` fails.
@@ -352,7 +353,8 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
 - 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
-- 内置的智能体引擎默认配置现已切到火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；在本地未手动覆盖时，设置页会默认带入该地址和仓库内置默认密钥，旧的 `https://api.pptoken.org/v1` + `gpt-5.4-mini` 默认配置也会自动迁移。
+- 内置的智能体引擎默认配置现已统一收口到 `config/agentEngineConfig.js`，当前默认值为火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；其中内置 API Key 在配置文件中以密文形式保存、运行时再解密，用户在设置页手动保存后的值仍然优先覆盖，并且每个智能体只使用自己配置的 persona 提示词作为 system prompt。
+- 现在可以通过“设置 -> 智能体设置 -> 从 URL 导入”把 GitHub 上的 `SKILL.md` 转成自定义智能体；对应的专项验证脚本为 `node debug/verify-agent-import-runtime-playwright.js`。
 - 配置步骤的默认重试上限现在是 10 次。
 - 配置驱动的 `sendKeys` 步骤现在也会遵循 `waitForElement`、`maxAttempts` 和 `retryInterval`，因此回车提交可以像 `focus` / `setValue` / `triggerEvents` 一样重试。
 - 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
@@ -388,75 +390,33 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-18 20:07:40 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-18 22:25:55 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
-- `A` `config/agentCatalog.js`
-- `M` `config/baseConfig.js`
-- `M` `config/siteHandlers.json`
-- `A` `docs/hybrid-site-agent-plan.md`
-- `A` `docs/hybrid-site-agent-test-log.md`
-- `M` `favorites/favorites.html`
-- `M` `favorites/favorites.js`
-- `M` `history/history.css`
-- `M` `history/history.html`
-- `M` `history/history.js`
+- `M` `config/agentCatalog.js`
+- `A` `config/agentEngineConfig.js`
+- `M` `docs/hybrid-site-agent-test-log.md`
 - `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `A` `iframe/agent-panel.css`
-- `A` `iframe/agent-panel.html`
-- `A` `iframe/agent-panel.js`
+- `M` `iframe/agent-panel.css`
+- `M` `iframe/agent-panel.js`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/timeline-utils.js`
-- `M` `manifest.json`
-- `A` `openclaw-extension.disabled/LICENSE`
-- `A` `openclaw-extension.disabled/README.md`
-- `A` `openclaw-extension.disabled/ai-compare-hard-router-0.1.0.tgz`
-- `R100` `openclaw-extension/bin/ai-compare-openclaw-fast.cjs	openclaw-extension.disabled/bin/ai-compare-openclaw-fast.cjs`
-- `R099` `openclaw-extension/bin/ai-compare-openclaw-runner.cjs	openclaw-extension.disabled/bin/ai-compare-openclaw-runner.cjs`
-- `R100` `openclaw-extension/config/route-rules.js	openclaw-extension.disabled/config/route-rules.js`
-- `A` `openclaw-extension.disabled/docs/install-browser-extension.md`
-- `A` `openclaw-extension.disabled/index.js`
-- `R051` `openclaw-extension/lib/defaults.js	openclaw-extension.disabled/lib/defaults.js`
-- `R078` `openclaw-extension/lib/formatters.js	openclaw-extension.disabled/lib/formatters.js`
-- `R100` `openclaw-extension/lib/intent.js	openclaw-extension.disabled/lib/intent.js`
-- `R100` `openclaw-extension/lib/logging.js	openclaw-extension.disabled/lib/logging.js`
-- `R100` `openclaw-extension/lib/runner.js	openclaw-extension.disabled/lib/runner.js`
-- `R069` `openclaw-extension/openclaw.plugin.json	openclaw-extension.disabled/openclaw.plugin.json`
-- `R100` `openclaw-extension/package.json	openclaw-extension.disabled/package.json`
-- `M` `openclaw/ai-compare-openclaw-runner.js`
-- `M` `openclaw/references/install-browser-extension.md`
 - `M` `options/options.css`
 - `M` `options/options.html`
 - `M` `options/options.js`
-- `A` `shared/agent-prompt-utils.js`
-- `M` `shared/favorite-folder-modal.js`
-- `A` `shared/hybrid-favorites.js`
-- `A` `shared/hybrid-history-db.js`
-- `M` `shared/sidebar.css`
-- `M` `shared/sidebar.js`
-- `M` `tests/iframe-timeline-utils.test.js`
+- `M` `shared/agent-prompt-utils.js`
 
 ### Recent commits / 最近提交
+- `63e4f41` 2026-05-18 V4.0.0 支持智能体
 - `16923e6` 2026-05-15 V3.4.2 完善语言包
 - `52ad022` 2026-05-14 V3.4.1 修复 UI 小问题
 - `d730a72` 2026-05-12 V3.4.0 UI主题黑白色
 - `71ec1e1` 2026-05-11 V3.3.0 支持汇总答案的分析
-- `c210df9` 2026-05-11 V3.2.4 快速汇总答案
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

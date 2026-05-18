@@ -1,5 +1,5 @@
 (function(root, factory) {
-  const api = factory();
+  const api = factory(root);
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
@@ -8,13 +8,7 @@
   if (root && typeof root === 'object') {
     root.AICompareAgentPromptUtils = api;
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
-  const LEGACY_DEFAULT_MODEL = 'gpt-5.4-mini';
-  const LEGACY_DEFAULT_BASE_URL = 'https://api.pptoken.org/v1';
-  const DEFAULT_MODEL = 'glm-5.1';
-  const DEFAULT_BASE_URL = 'https://ark.cn-beijing.volces.com/api/coding/v3';
-  const DEFAULT_API_KEY = 'ark-d4be039c-7683-4a1d-ba62-04f670dc237f-e6173';
-
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(root) {
   function normalizeString(value) {
     return String(value || '').trim();
   }
@@ -23,37 +17,71 @@
     return String(value || '').replace(/\r\n/g, '\n').trim();
   }
 
+  function resolveBundledAgentEngineDefaults() {
+    const bundledConfig = root?.AICompareAgentEngineConfig;
+    if (bundledConfig && typeof bundledConfig.getDefaults === 'function') {
+      return bundledConfig.getDefaults();
+    }
+
+    if (typeof module !== 'undefined' && module.exports) {
+      try {
+        const nodeConfig = require('../config/agentEngineConfig.js');
+        if (nodeConfig && typeof nodeConfig.getDefaults === 'function') {
+          return nodeConfig.getDefaults();
+        }
+      } catch (_) {
+        // Ignore missing config in non-browser environments.
+      }
+    }
+
+    return {
+      baseUrl: '',
+      apiKey: '',
+      model: '',
+      concurrency: 2,
+      systemPrompt: ''
+    };
+  }
+
+  const AGENT_ENGINE_DEFAULTS = resolveBundledAgentEngineDefaults();
+  const DEFAULT_MODEL = normalizeString(AGENT_ENGINE_DEFAULTS.model);
+  const DEFAULT_BASE_URL = normalizeString(AGENT_ENGINE_DEFAULTS.baseUrl).replace(/\/+$/, '');
+  const DEFAULT_API_KEY = normalizeString(AGENT_ENGINE_DEFAULTS.apiKey);
+  const DEFAULT_CONCURRENCY = Math.max(1, Number(AGENT_ENGINE_DEFAULTS.concurrency) || 2);
+  const DEFAULT_SYSTEM_PROMPT = normalizeMultilineString(AGENT_ENGINE_DEFAULTS.systemPrompt);
+  const LEGACY_AUTO_MIGRATED_MODEL = 'glm-5.1';
+  const LEGACY_AUTO_MIGRATED_BASE_URL = 'https://ark.cn-beijing.volces.com/api/coding/v3';
+
   function migrateLegacyApiConfig(config = {}) {
-    const nextConfig = config && typeof config === 'object'
+    return config && typeof config === 'object'
       ? { ...config }
       : {};
-    const baseUrl = normalizeString(nextConfig.baseUrl).replace(/\/+$/, '');
-    const model = normalizeString(nextConfig.model);
-
-    if (baseUrl === LEGACY_DEFAULT_BASE_URL) {
-      nextConfig.baseUrl = DEFAULT_BASE_URL;
-    }
-
-    if (model === LEGACY_DEFAULT_MODEL) {
-      nextConfig.model = DEFAULT_MODEL;
-    }
-
-    return nextConfig;
   }
 
   function buildSystemPrompt(agent, engineConfig = {}) {
-    const globalSystemPrompt = normalizeMultilineString(engineConfig?.systemPrompt);
     const personaPrompt = normalizeMultilineString(agent?.personaPrompt);
-    return [globalSystemPrompt, personaPrompt].filter(Boolean).join('\n\n');
+    return personaPrompt;
   }
 
   function normalizeApiConfig(config = {}) {
     const migratedConfig = migrateLegacyApiConfig(config);
     const apiKey = normalizeString(migratedConfig.apiKey) || DEFAULT_API_KEY;
-    const baseUrl = normalizeString(migratedConfig.baseUrl).replace(/\/+$/, '') || DEFAULT_BASE_URL;
-    const model = normalizeString(migratedConfig.model) || DEFAULT_MODEL;
-    const concurrency = Math.max(1, Number(migratedConfig.concurrency) || 2);
-    const systemPrompt = normalizeMultilineString(migratedConfig.systemPrompt);
+    let baseUrl = normalizeString(migratedConfig.baseUrl).replace(/\/+$/, '') || DEFAULT_BASE_URL;
+    let model = normalizeString(migratedConfig.model) || DEFAULT_MODEL;
+    const concurrency = Math.max(1, Number(migratedConfig.concurrency) || DEFAULT_CONCURRENCY);
+    const systemPrompt = normalizeMultilineString(migratedConfig.systemPrompt) || DEFAULT_SYSTEM_PROMPT;
+
+    // Older builds forcibly rewrote the pptoken defaults to Ark defaults.
+    // If the saved key is still an `sk-*` style key, restore the expected
+    // pptoken-compatible defaults automatically.
+    if (
+      apiKey.startsWith('sk-') &&
+      baseUrl === LEGACY_AUTO_MIGRATED_BASE_URL &&
+      model === LEGACY_AUTO_MIGRATED_MODEL
+    ) {
+      baseUrl = DEFAULT_BASE_URL;
+      model = DEFAULT_MODEL;
+    }
 
     return {
       apiKey,
@@ -91,8 +119,7 @@
     DEFAULT_BASE_URL,
     DEFAULT_API_KEY,
     DEFAULT_MODEL,
-    LEGACY_DEFAULT_BASE_URL,
-    LEGACY_DEFAULT_MODEL,
+    DEFAULT_CONCURRENCY,
     buildChatMessages,
     buildSystemPrompt,
     migrateLegacyApiConfig,

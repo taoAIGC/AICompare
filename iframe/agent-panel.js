@@ -53,7 +53,7 @@
         if (state.isLoading) {
             const loading = document.createElement('div');
             loading.className = 'agent-message assistant';
-            loading.textContent = t('agentPanelThinking', 'tinking...');
+            loading.textContent = t('agentPanelThinking', 'thinking...');
             fragment.appendChild(loading);
         }
 

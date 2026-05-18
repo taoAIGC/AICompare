@@ -4,6 +4,7 @@ import {
 
 const SiteLaunchUtils = window.SiteLaunchUtils || {};
 const AgentCatalog = window.AICompareAgentCatalog || {};
+const AgentEngineConfig = window.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = window.AICompareAgentPromptUtils || {};
 const HybridHistoryDB = window.AICompareHybridHistoryDB || {};
 const SubmitShortcutUtils = window.SubmitShortcutUtils || {};
@@ -2680,6 +2681,21 @@ function createInjectProgressOverlay(siteName) {
   return overlay;
 }
 
+async function retryCurrentUploadBatch() {
+  if (!currentUploadRetryContext?.file) {
+    showToast(chrome.i18n.getMessage('fileUploadFailedTitle') || 'File upload failed');
+    return;
+  }
+
+  const file = currentUploadRetryContext.file;
+  currentUploadBatch = {
+    index: 1,
+    total: 1,
+    name: file.name
+  };
+  await processUploadedFile(file);
+}
+
 function buildAgentPanelState(agent) {
   return {
     agentId: agent.id,
@@ -2754,12 +2770,16 @@ async function getAgentEngineConfigForIframe() {
     return AgentPromptUtils.normalizeApiConfig(rawConfig);
   }
 
+  const bundledDefaults = typeof AgentEngineConfig.getDefaults === 'function'
+    ? AgentEngineConfig.getDefaults()
+    : {};
+
   return {
-    apiKey: String(rawConfig.apiKey || '').trim(),
-    baseUrl: String(rawConfig.baseUrl || 'https://ark.cn-beijing.volces.com/api/coding/v3').replace(/\/+$/, ''),
-    model: String(rawConfig.model || 'glm-5.1').trim(),
-    concurrency: Math.max(1, Number(rawConfig.concurrency) || 2),
-    systemPrompt: String(rawConfig.systemPrompt || '').trim()
+    apiKey: String(rawConfig.apiKey || bundledDefaults.apiKey || '').trim(),
+    baseUrl: String(rawConfig.baseUrl || bundledDefaults.baseUrl || '').replace(/\/+$/, ''),
+    model: String(rawConfig.model || bundledDefaults.model || '').trim(),
+    concurrency: Math.max(1, Number(rawConfig.concurrency) || Number(bundledDefaults.concurrency) || 2),
+    systemPrompt: String(rawConfig.systemPrompt || bundledDefaults.systemPrompt || '').trim()
   };
 }
 
@@ -2774,6 +2794,36 @@ function cancelInFlightAgentRequest(agentId) {
   try {
     controller.abort();
   } catch (_) {}
+}
+
+async function parseAgentCompletionError(response) {
+  const fallback = `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
+
+  try {
+    const rawText = await response.text();
+    if (!rawText) {
+      return fallback;
+    }
+
+    try {
+      const parsed = JSON.parse(rawText);
+      const message = String(
+        parsed?.error?.message ||
+        parsed?.message ||
+        parsed?.detail ||
+        ''
+      ).trim();
+      if (message) {
+        return `HTTP ${response.status}: ${message}`;
+      }
+    } catch (_) {
+      // ignore json parse errors and fall back to raw text
+    }
+
+    return `HTTP ${response.status}: ${rawText.trim()}`;
+  } catch (_) {
+    return fallback;
+  }
 }
 
 function postMessageToAgentPanel(iframe, payload) {
@@ -3203,8 +3253,7 @@ async function runAgentPrompt(agentId, content, source = 'global') {
     });
 
     if (!completionResponse.ok) {
-      const errorText = await completionResponse.text().catch(() => '');
-      throw new Error(`HTTP ${completionResponse.status}: ${errorText || completionResponse.statusText}`);
+      throw new Error(await parseAgentCompletionError(completionResponse));
     }
 
     const reader = completionResponse.body?.getReader?.();
@@ -8720,6 +8769,7 @@ function initializeFileUpload() {
 
 // 当前批次文件上传状态（用于进度提示）
 let currentUploadBatch = null;
+let currentUploadRetryContext = null;
 
 // 简单的 HTML 转义，避免文件名插入到 innerHTML 时出现问题
 function escapeHtml(value) {
@@ -8745,6 +8795,13 @@ async function handleFileSelection(event) {
   // 逐个处理文件，避免并发触发上传流程
   for (let index = 0; index < files.length; index++) {
     const file = files[index];
+    currentUploadRetryContext = {
+      file,
+      fileData: null,
+      lastErrorMessage: '',
+      lastFailedSiteName: '',
+      kind: 'file-upload'
+    };
     currentUploadBatch = {
       index: index + 1,
       total: files.length,
@@ -8757,11 +8814,16 @@ async function handleFileSelection(event) {
       const remaining = files.length - index - 1;
       const remainingText = remaining > 0 ? `，继续处理剩余 ${remaining} 个文件` : '';
       const reason = result.errorMessage ? `：${result.errorMessage}` : '';
+      if (currentUploadRetryContext) {
+        currentUploadRetryContext.lastErrorMessage = result.errorMessage || '';
+      }
       showFileUploadError(`文件 "${file.name}" 处理失败${reason}${remainingText}`);
     }
   }
   
   currentUploadBatch = null;
+  currentUploadRetryContext.file = null;
+  currentUploadRetryContext.fileData = null;
   
   // 清空input，允许重复选择同一文件
   event.target.value = '';
@@ -8799,6 +8861,10 @@ async function processUploadedFile(file) {
       size: file.size,
       lastModified: file.lastModified
     };
+    if (currentUploadRetryContext) {
+      currentUploadRetryContext.fileData = fileData;
+      currentUploadRetryContext.file = file;
+    }
     
     console.log('🎯 文件数据准备完成:', fileData);
     
@@ -8834,6 +8900,9 @@ async function processFileToAllIframes(fileData) {
   
   // 调用现有的文件上传处理流程
   await executeFileUploadSequentially(iframes, fileData);
+  if (currentUploadRetryContext) {
+    currentUploadRetryContext.fileData = fileData;
+  }
   
   return true;
 }
@@ -8869,6 +8938,25 @@ function showFileUploadError(message) {
     </div>
     <div style="font-size: 13px; opacity: 0.9;">${safeMessage}</div>
   `;
+
+  const retryButton = document.createElement('button');
+  retryButton.type = 'button';
+  retryButton.textContent = chrome.i18n.getMessage('uploadRetryButton') || '重新上传文件';
+  retryButton.style.cssText = `
+    margin-top: 12px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.16);
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+  `;
+  retryButton.addEventListener('click', async () => {
+    error.remove();
+    await retryCurrentUploadBatch();
+  });
+  error.appendChild(retryButton);
   
   document.body.appendChild(error);
   

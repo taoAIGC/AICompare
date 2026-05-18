@@ -1,6 +1,7 @@
 importScripts(
   './shared/site-launch-utils.js',
   './config/agentCatalog.js',
+  './config/agentEngineConfig.js',
   './shared/agent-prompt-utils.js',
   './config/baseConfig.js',
   './remote/common.js',
@@ -12,17 +13,30 @@ importScripts(
 
 const SiteLaunchUtils = self.SiteLaunchUtils || {};
 const AgentCatalog = self.AICompareAgentCatalog || {};
+const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
-const DEFAULT_AGENT_ENGINE_CONFIG = Object.freeze({
-  baseUrl: AgentPromptUtils.DEFAULT_BASE_URL || 'https://ark.cn-beijing.volces.com/api/coding/v3',
-  model: AgentPromptUtils.DEFAULT_MODEL || 'glm-5.1',
-  concurrency: 2,
-  systemPrompt: ''
-});
+
+function getDefaultAgentEngineConfig() {
+  const bundledDefaults = typeof AgentEngineConfig.getDefaults === 'function'
+    ? AgentEngineConfig.getDefaults()
+    : {};
+  const normalizedDefaults = typeof AgentPromptUtils.normalizeApiConfig === 'function'
+    ? AgentPromptUtils.normalizeApiConfig(bundledDefaults)
+    : bundledDefaults;
+
+  return {
+    baseUrl: String(normalizedDefaults.baseUrl || '').trim().replace(/\/+$/, ''),
+    model: String(normalizedDefaults.model || '').trim(),
+    concurrency: Math.max(1, Number(normalizedDefaults.concurrency) || 2),
+    systemPrompt: String(normalizedDefaults.systemPrompt || '').trim()
+  };
+}
+
+const DEFAULT_AGENT_ENGINE_CONFIG = Object.freeze(getDefaultAgentEngineConfig());
 const agentRuntimeState = {
   activeCount: 0,
   queue: [],
@@ -99,15 +113,32 @@ async function ensureDefaultAgentEngineConfig() {
     };
 
     const nextSecretConfig = {
-      apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || AgentPromptUtils.DEFAULT_API_KEY || ''
+      apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
     };
+
+    const normalizedCombinedConfig = typeof AgentPromptUtils.normalizeApiConfig === 'function'
+      ? AgentPromptUtils.normalizeApiConfig({
+          ...nextSyncConfig,
+          apiKey: nextSecretConfig.apiKey
+        })
+      : {
+          ...nextSyncConfig,
+          apiKey: nextSecretConfig.apiKey
+        };
 
     await Promise.all([
       chrome.storage.sync.set({
-        [AGENT_ENGINE_STORAGE_KEY]: nextSyncConfig
+        [AGENT_ENGINE_STORAGE_KEY]: {
+          baseUrl: normalizedCombinedConfig.baseUrl,
+          model: normalizedCombinedConfig.model,
+          concurrency: normalizedCombinedConfig.concurrency,
+          systemPrompt: normalizedCombinedConfig.systemPrompt
+        }
       }),
       chrome.storage.local.set({
-        [AGENT_ENGINE_SECRET_STORAGE_KEY]: nextSecretConfig
+        [AGENT_ENGINE_SECRET_STORAGE_KEY]: {
+          apiKey: normalizedCombinedConfig.apiKey || ''
+        }
       })
     ]);
   } catch (error) {
@@ -278,6 +309,36 @@ async function consumeAgentStream(job, response) {
   return content;
 }
 
+async function parseAgentErrorMessage(response) {
+  const fallback = `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
+
+  try {
+    const rawText = await response.text();
+    if (!rawText) {
+      return fallback;
+    }
+
+    try {
+      const parsed = JSON.parse(rawText);
+      const message = String(
+        parsed?.error?.message ||
+        parsed?.message ||
+        parsed?.detail ||
+        ''
+      ).trim();
+      if (message) {
+        return `HTTP ${response.status}: ${message}`;
+      }
+    } catch (_) {
+      // ignore json parse errors and fall back to raw text
+    }
+
+    return `HTTP ${response.status}: ${rawText.trim()}`;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 async function executeAgentJob(job) {
   const agent = await getAgentByIdWithCustomSettings(job.agentId);
   const config = await getAgentEngineConfig();
@@ -323,8 +384,7 @@ async function executeAgentJob(job) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+      throw new Error(await parseAgentErrorMessage(response));
     }
 
     const content = await consumeAgentStream(job, response);

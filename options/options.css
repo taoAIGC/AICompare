@@ -223,13 +223,13 @@ h1 {
 }
 
 .agent-engine-card[data-status="configured"] {
-  border-color: rgba(24, 160, 88, 0.24);
-  box-shadow: 0 0 0 1px rgba(24, 160, 88, 0.08), var(--ai-shadow-sm);
+  border-color: rgba(17, 17, 17, 0.18);
+  box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.06), var(--ai-shadow-sm);
 }
 
 .agent-engine-card[data-status="unconfigured"] {
-  border-color: rgba(191, 90, 36, 0.22);
-  box-shadow: 0 0 0 1px rgba(191, 90, 36, 0.06), var(--ai-shadow-sm);
+  border-color: rgba(17, 17, 17, 0.14);
+  box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.04), var(--ai-shadow-sm);
 }
 
 .agent-engine-card-head {
@@ -278,13 +278,13 @@ h1 {
 }
 
 .agent-engine-card[data-status="configured"] .agent-engine-status-badge {
-  background: rgba(24, 160, 88, 0.12);
-  color: #177a47;
+  background: rgba(17, 17, 17, 0.08);
+  color: #111111;
 }
 
 .agent-engine-card[data-status="unconfigured"] .agent-engine-status-badge {
-  background: rgba(191, 90, 36, 0.12);
-  color: #a24d22;
+  background: rgba(17, 17, 17, 0.06);
+  color: #666666;
 }
 
 .agent-engine-edit-btn {

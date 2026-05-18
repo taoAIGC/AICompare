@@ -4,6 +4,7 @@ html, body {
     height: 100%;
     background: #f7f7f7;
     font-family: var(--ai-font-sans);
+    font-size: 14px;
     color: #111111;
 }
 
@@ -25,6 +26,7 @@ html, body {
 .agent-message {
     border-radius: 14px;
     padding: 12px 14px;
+    font-size: 14px;
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
@@ -69,6 +71,7 @@ html, body {
     border: 1px solid #d9d9d9;
     border-radius: 12px;
     padding: 10px 12px;
+    font-size: 14px;
     font: inherit;
     box-sizing: border-box;
 }
@@ -81,6 +84,7 @@ html, body {
     background: #111111;
     color: #ffffff;
     padding: 0 14px;
+    font-size: 14px;
     font: inherit;
     font-weight: 700;
     cursor: pointer;

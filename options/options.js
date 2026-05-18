@@ -235,18 +235,29 @@ function getAgentPromptUtils() {
   return window.AICompareAgentPromptUtils || null;
 }
 
+function getBundledAgentEngineDefaults() {
+  const promptUtils = getAgentPromptUtils();
+  if (typeof promptUtils?.normalizeApiConfig === 'function') {
+    return promptUtils.normalizeApiConfig({});
+  }
+
+  const rawDefaults = window.AICompareAgentEngineConfig?.getDefaults?.() || {};
+  return {
+    apiKey: String(rawDefaults.apiKey || '').trim(),
+    baseUrl: String(rawDefaults.baseUrl || '').trim().replace(/\/+$/, ''),
+    model: String(rawDefaults.model || '').trim(),
+    concurrency: Math.max(1, Number(rawDefaults.concurrency) || 2),
+    systemPrompt: String(rawDefaults.systemPrompt || '').trim()
+  };
+}
+
 function getAgentCatalogUtils() {
   return window.AICompareAgentCatalog || null;
 }
 
 async function loadAgentEngineConfig() {
   const promptUtils = getAgentPromptUtils();
-  const defaultConfig = promptUtils?.normalizeApiConfig?.({}) || {
-    apiKey: 'ark-d4be039c-7683-4a1d-ba62-04f670dc237f-e6173',
-    baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
-    model: 'glm-5.1',
-    concurrency: 2
-  };
+  const defaultConfig = getBundledAgentEngineDefaults();
 
   const [syncData, localData] = await Promise.all([
     chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
@@ -1169,11 +1180,12 @@ function extractSkillDescription(markdown = '') {
 
   const strippedMarkdown = stripSkillFrontmatter(normalizedMarkdown);
   const lines = strippedMarkdown.split('\n');
-  let started = false;
+  const collected = [];
+
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) {
-      if (started) {
+      if (collected.length > 0) {
         break;
       }
       continue;
@@ -1181,8 +1193,17 @@ function extractSkillDescription(markdown = '') {
     if (line.startsWith('#') || line === '---') {
       continue;
     }
-    started = true;
-    return line;
+    if (/^(use when|ask the questions|if a question|interview me relentlessly)/i.test(line) && collected.length > 0) {
+      break;
+    }
+    collected.push(line.replace(/^[-*]\s+/, ''));
+    if (collected.join(' ').length >= 240) {
+      break;
+    }
+  }
+
+  if (collected.length > 0) {
+    return collected.join(' ').replace(/\s+/g, ' ').trim();
   }
   return '';
 }

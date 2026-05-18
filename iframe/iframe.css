@@ -1010,7 +1010,7 @@ body.search-bar-bottom #iframes-container {
     left: 0;
     top: 60px;
     bottom: 0;
-    width: 70px;
+    width: 92px;
     padding: 10px 0 14px;
     display: flex;
     flex-direction: column;
@@ -1076,7 +1076,7 @@ body.search-bar-bottom #iframes-container {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    overflow-x: visible;
+    overflow-x: hidden;
 }
 
 .nav-group {
@@ -1100,6 +1100,7 @@ body.search-bar-bottom #iframes-container {
     display: block;
     text-align: center;
     border-radius: 6px;
+    min-width: 0;
 }
 
 .nav-item.active {
@@ -1115,6 +1116,8 @@ body.search-bar-bottom #iframes-container {
     align-items: center;
     gap: 6px;
     width: 100%;
+    justify-content: center;
+    min-width: 0;
 }
 
 .nav-site-checkbox {
@@ -1136,6 +1139,7 @@ body.search-bar-bottom #iframes-container {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .nav-site-icon-btn:hover {

@@ -416,6 +416,7 @@ html, body {
     padding: 18px;
     margin-left: auto;
     margin-right: auto;
+    box-sizing: border-box;
 }
 
 body.search-bar-bottom .homepage-container {
@@ -701,6 +702,7 @@ body.search-bar-bottom .query-suggestions {
     padding: 20px;
     margin-left: auto;
     margin-right: auto;
+    box-sizing: border-box;
 }
 
 .combined-selection-section {
@@ -896,6 +898,7 @@ body.search-bar-bottom .query-suggestions {
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
+    min-width: 0;
     background: var(--ai-surface-soft);
     border: 1px solid var(--ai-border);
     border-radius: 12px;
@@ -944,6 +947,10 @@ body.search-bar-bottom .query-suggestions {
 .site-item label {
     cursor: pointer;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 14px;
     color: var(--ai-text);
     user-select: none;
@@ -995,6 +1002,10 @@ body.search-bar-bottom .query-suggestions {
     align-items: center;
     width: fit-content;
     flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .agent-description {
@@ -1028,6 +1039,48 @@ body.search-bar-bottom .query-suggestions {
     .sites-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+body.is-side-panel .homepage-container {
+    align-items: stretch;
+    padding-left: 16px;
+    padding-right: 16px;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+body.is-side-panel .extension-icon-container,
+body.is-side-panel .pin-guide-banner,
+body.is-side-panel .search-bar,
+body.is-side-panel .sites-section {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+body.is-side-panel .site-filter-bar,
+body.is-side-panel .selection-group,
+body.is-side-panel .sites-list {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+body.is-side-panel .sites-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+}
+
+body.is-side-panel .site-item {
+    padding: 8px 10px;
+}
+
+body.is-side-panel .site-item,
+body.is-side-panel .agent-item-body,
+body.is-side-panel .agent-item-head,
+body.is-side-panel .custom-site-item {
+    min-width: 0;
 }
 
 .site-list-empty {

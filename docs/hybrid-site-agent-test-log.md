@@ -14,6 +14,45 @@ This file records implementation verification for the hybrid site + agent compar
 - `bug fixing`: in progress
 - `final pass`: pending
 
+## 2026-05-18 Agent Import Follow-up
+
+- `shared/agent-prompt-utils.js` now reads bundled defaults from `config/agentEngineConfig.js`, which currently points to Ark `https://ark.cn-beijing.volces.com/api/coding/v3` + `glm-5.1`.
+- `shared/agent-prompt-utils.js` still auto-heals the previously broken `sk-* + ark + glm-5.1` combination back to the configured bundled defaults.
+- `config/agentEngineConfig.js` now stores the bundled API key as ciphertext and decrypts it at runtime before agent config normalization.
+- Built-in agent engine defaults are now centralized in `config/agentEngineConfig.js`, so the extension no longer hardcodes the bundled base URL / key / model inside runtime code.
+- Agent system prompt assembly is now single-source: only each agent's own `personaPrompt` is sent as the system prompt.
+- Imported skill descriptions now keep the full frontmatter description, or a longer first-body summary instead of truncating to one short line.
+- Agent HTTP failures now surface cleaner messages such as `HTTP 401: The API key format is incorrect` instead of dumping the whole raw JSON body.
+- Added dedicated real-extension verifier:
+  - `node debug/verify-agent-import-runtime-playwright.js`
+  - Covers built-in API config, GitHub skill import, imported description, panel open, and first agent reply.
+
+### 2026-05-18 Built-in Agent Engine Config Verification
+
+- Config source:
+  - `config/agentEngineConfig.js`
+- Runtime wiring:
+  - `background.js` now seeds bundled defaults from the config file.
+  - `shared/agent-prompt-utils.js` now reads bundled defaults from the config file instead of embedding literal runtime values.
+  - `debug/verify-agent-import-runtime-playwright.js` now uses the same config file by default, instead of pre-seeding hardcoded values.
+- Commands:
+  - `node --check shared/agent-prompt-utils.js`
+  - `node --check background.js`
+  - `node --check options/options.js`
+  - `node --check iframe/iframe.js`
+  - `node --check debug/verify-agent-import-runtime-playwright.js`
+  - `node debug/verify-agent-import-runtime-playwright.js`
+- Result:
+  - pass
+- Verified outcome:
+  - Imported URL: `https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me`
+  - Imported title: `grill-me`
+  - Imported description remained complete
+  - `engineBaseUrl`: `https://ark.cn-beijing.volces.com/api/coding/v3`
+  - `engineModel`: `glm-5.1`
+  - `usedBuiltInAgentEngine`: `true`
+  - Agent panel produced a real assistant reply using the bundled engine config
+
 ## Test Matrix
 
 ### Homepage
