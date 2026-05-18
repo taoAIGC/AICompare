@@ -25,6 +25,10 @@
           <img class="action-link-icon" src="../icons/layout-grid.svg" alt="" aria-hidden="true">
           <span data-i18n="launchSettingsTitle">自定义站点</span>
         </a>
+        <a href="#agent-engine" class="action-link nav-link" data-section="agent-engine">
+          <img class="action-link-icon" src="../icons/icon16.png" alt="" aria-hidden="true">
+          <span data-i18n="agentEngineTitle">智能体设置</span>
+        </a>
         <a href="#prompt-templates" class="action-link nav-link" data-section="prompt-templates">
           <img class="action-link-icon" src="../icons/edit.svg" alt="" aria-hidden="true">
           <span data-i18n="promptTemplatesTitle">Chat Prompt</span>
@@ -96,12 +100,65 @@
           </div>
         </section>
 
+        <section id="agent-engine" class="settings-section">
+          <h1 data-i18n="agentEngineTitle">智能体设置</h1>
+
+          <div class="site-section unified-settings-panel">
+            <div id="agentEngineCard" class="agent-engine-card" data-status="unconfigured">
+              <div class="agent-engine-card-head">
+                <div class="agent-engine-card-heading">
+                  <div class="agent-engine-card-title-row">
+                    <h2 class="agent-engine-card-title" data-i18n="agentEngineCardTitle">API settings</h2>
+                    <span id="agentEngineStatusBadge" class="agent-engine-status-badge" data-i18n="agentEngineStatusUnconfigured">未配置</span>
+                  </div>
+                </div>
+                <button id="editAgentEngineBtn" class="icon-action-btn agent-engine-edit-btn" type="button" data-i18n-title="editButton" data-i18n-aria-label="editButton" title="Edit" aria-label="Edit">
+                  <img src="../icons/edit.svg" alt="">
+                </button>
+              </div>
+
+              <div class="agent-engine-summary-grid">
+                <div class="agent-engine-summary-item">
+                  <div class="agent-engine-summary-label" data-i18n="agentEngineApiUrlLabel">API 地址</div>
+                  <div id="agentEngineBaseUrlValue" class="agent-engine-summary-value"></div>
+                </div>
+
+                <div class="agent-engine-summary-item">
+                  <div class="agent-engine-summary-label" data-i18n="agentEngineApiKeyLabel">API Key</div>
+                  <div id="agentEngineApiKeyValue" class="agent-engine-summary-value"></div>
+                </div>
+
+                <div class="agent-engine-summary-item">
+                  <div class="agent-engine-summary-label" data-i18n="agentEngineModelLabel">模型</div>
+                  <div id="agentEngineModelValue" class="agent-engine-summary-value"></div>
+                </div>
+
+                <div class="agent-engine-summary-item">
+                  <div class="agent-engine-summary-label" data-i18n="agentEngineConcurrencyLabel">并发请求数</div>
+                  <div id="agentEngineConcurrencyValue" class="agent-engine-summary-value"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="agent-custom-settings" class="site-section site-section-spaced unified-settings-panel">
+            <div class="agent-custom-settings-header">
+              <h2 data-i18n="agentCustomSettingsTitle">智能体自定义设置</h2>
+              <div class="template-header agent-actions-header">
+                <button id="addAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentNewButton">新建</button>
+                <button id="importAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentImportButton">从 URL 导入</button>
+              </div>
+            </div>
+            <div id="agentCustomSettingsList" class="templates-list"></div>
+          </div>
+        </section>
+
         <!-- 提示词模板管理 -->
         <section id="prompt-templates" class="settings-section">
           <h1 data-i18n="promptTemplatesTitle">Chat Prompt</h1>
           <p class="section-description" data-i18n="promptTemplatesDescription">自定义搜索建议按钮的提示词模板</p>
           
-          <div class="prompt-templates-section">
+          <div class="prompt-templates-section unified-settings-panel">
             <!-- 添加新模板按钮 -->
             <div class="template-header">
               <button id="addTemplateBtn" class="btn-primary add-template-btn template-add-button">
@@ -160,7 +217,7 @@
           <h1 data-i18n="analysisPromptTemplatesTitle">Analysis Prompt</h1>
           <p class="section-description" data-i18n="analysisPromptTemplatesDescription">自定义复制预览中的分析提示词模板</p>
 
-          <div class="prompt-templates-section">
+          <div class="prompt-templates-section unified-settings-panel">
             <div class="template-header">
               <button id="addAnalysisTemplateBtn" class="btn-primary add-template-btn template-add-button">
                 <span>+ </span><span data-i18n="addAnalysisTemplateButton">添加分析提示词</span>
@@ -251,7 +308,7 @@
                   <input type="text" id="syncUsername" class="sync-field-input" placeholder="" data-i18n-placeholder="syncUsernamePlaceholder">
                 </div>
                 <div class="sync-table-cell sync-cell-password">
-                  <input type="password" id="syncPassword" class="sync-field-input" placeholder="••••••••" autocomplete="current-password">
+                  <input type="password" id="syncPassword" class="sync-field-input" data-i18n-placeholder="syncPasswordPlaceholder" placeholder="••••••••" autocomplete="current-password">
                   <button class="sync-password-toggle" id="togglePassword" type="button" data-i18n-aria-label="syncTogglePasswordAriaLabel" aria-label="Show password">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
@@ -304,7 +361,7 @@
                 </label>
                 <div class="remote-field">
                   <label for="remoteSearchRelayUrl" data-i18n="remoteSearchRelayUrlLabel">Relay URL</label>
-                  <input type="url" id="remoteSearchRelayUrl" class="sync-field-input" placeholder="http://127.0.0.1:8787">
+                  <input type="url" id="remoteSearchRelayUrl" class="sync-field-input" data-i18n-placeholder="remoteSearchRelayUrlPlaceholder" placeholder="http://127.0.0.1:8787">
                   <div class="site-config-help" data-i18n="remoteSearchRelayUrlHelp">填入本地或 Cloud Run relay 地址。</div>
                 </div>
                 <div class="remote-field">
@@ -505,12 +562,108 @@
       </div>
     </div>
   </div>
+
+  <div id="agentCustomDialog" class="template-dialog" style="display: none;">
+    <div class="dialog-overlay" id="agentCustomDialogOverlay"></div>
+    <div class="dialog-content dialog-content-wide">
+      <div class="dialog-header">
+        <h3 id="agentCustomDialogTitle" data-i18n="agentCustomDialogTitle" class="dialog-title">自定义智能体</h3>
+        <button class="dialog-close" id="agentCustomDialogClose">×</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="agentCustomName" class="form-label" data-i18n="agentCustomNameLabel">显示名称</label>
+          <input type="text" id="agentCustomName" class="dialog-field" data-i18n-placeholder="agentCustomNamePlaceholder" placeholder="例如：巴菲特（审慎版）" maxlength="60">
+        </div>
+
+        <div class="form-group">
+          <label for="agentCustomDescription" class="form-label" data-i18n="agentCustomDescriptionLabel">简介</label>
+          <input type="text" id="agentCustomDescription" class="dialog-field" data-i18n-placeholder="agentCustomDescriptionPlaceholder" placeholder="一句话说明这个智能体的定位">
+        </div>
+
+        <div class="form-group">
+          <label for="agentCustomPersonaPrompt" class="form-label" data-i18n="agentCustomPersonaPromptLabel">Persona 提示词</label>
+          <textarea id="agentCustomPersonaPrompt" class="dialog-field" data-i18n-placeholder="agentCustomPersonaPromptPlaceholder" placeholder="定义这个智能体的思考风格和输出要求" rows="10"></textarea>
+          <div class="help-text" data-i18n="agentCustomPersonaPromptHelp">这里会直接作为系统提示词的一部分参与智能体回答。</div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="resetAgentCustom" class="btn-secondary" data-i18n="agentCustomResetButton">恢复默认</button>
+        <button id="cancelAgentCustom" class="btn-secondary" data-i18n="cancelButton">取消</button>
+        <button id="saveAgentCustom" class="btn-primary" data-i18n="saveButton">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="agentEngineDialog" class="template-dialog" style="display: none;">
+    <div class="dialog-overlay" id="agentEngineDialogOverlay"></div>
+    <div class="dialog-content dialog-content-wide">
+      <div class="dialog-header">
+        <h3 id="agentEngineDialogTitle" data-i18n="agentEngineEditDialogTitle" class="dialog-title">编辑智能体引擎</h3>
+        <button class="dialog-close" id="agentEngineDialogClose">×</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="agentApiBaseUrl" class="form-label" data-i18n="agentEngineApiUrlLabel">API 地址</label>
+          <input type="url" id="agentApiBaseUrl" class="dialog-field" data-i18n-placeholder="agentEngineApiUrlPlaceholder" placeholder="例如：https://api.example.com/v1" required>
+        </div>
+
+        <div class="form-group">
+          <label for="agentApiKey" class="form-label" data-i18n="agentEngineApiKeyLabel">API Key</label>
+          <input type="password" id="agentApiKey" class="dialog-field" data-i18n-placeholder="agentEngineApiKeyPlaceholder" placeholder="粘贴你的 API Key" required>
+        </div>
+
+        <div class="form-group">
+          <label for="agentApiModel" class="form-label" data-i18n="agentEngineModelLabel">模型</label>
+          <input type="text" id="agentApiModel" class="dialog-field" data-i18n-placeholder="agentEngineModelPlaceholder" placeholder="例如：gpt-5.4-mini" required>
+        </div>
+
+        <div class="form-group form-group-compact">
+          <label for="agentApiConcurrency" class="form-label" data-i18n="agentEngineConcurrencyLabel">并发请求数</label>
+          <input type="number" id="agentApiConcurrency" class="dialog-field dialog-field-narrow" min="1" max="8" step="1" value="2" required>
+          <div class="help-text" data-i18n="agentEngineConcurrencyHelp">这是所有智能体面板共享的全局并发上限。</div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="cancelAgentEngine" class="btn-secondary" data-i18n="cancelButton">取消</button>
+        <button id="saveAgentEngineBtn" class="btn-primary" type="button" data-i18n="agentEngineSaveButton">保存智能体引擎</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="agentImportDialog" class="template-dialog" style="display: none;">
+    <div class="dialog-overlay" id="agentImportDialogOverlay"></div>
+    <div class="dialog-content dialog-content-wide">
+      <div class="dialog-header">
+        <h3 id="agentImportDialogTitle" data-i18n="agentImportDialogTitle" class="dialog-title">从 URL 导入智能体</h3>
+        <button class="dialog-close" id="agentImportDialogClose">×</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="agentSkillUrl" class="form-label" data-i18n="agentSkillUrlLabel">Skill URL</label>
+          <input type="url" id="agentSkillUrl" class="dialog-field" data-i18n-placeholder="agentSkillUrlPlaceholder" placeholder="粘贴 GitHub 或 raw 的 SKILL.md 链接">
+        </div>
+
+        <div class="form-group">
+          <label for="agentSkillContent" class="form-label" data-i18n="agentSkillContentLabel">Skill 内容</label>
+          <textarea id="agentSkillContent" class="dialog-field" data-i18n-placeholder="agentSkillContentPlaceholder" placeholder="可直接粘贴 SKILL.md 内容；如果填写了 URL，会优先抓取 URL 内容" rows="10"></textarea>
+          <div class="help-text" data-i18n="agentSkillContentHelp">导入后会转换为插件内可直接使用的自定义智能体。</div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="cancelAgentImport" class="btn-secondary" data-i18n="cancelButton">取消</button>
+        <button id="saveAgentImport" class="btn-primary" data-i18n="agentSkillImportButton">Create Agent</button>
+      </div>
+    </div>
+  </div>
   
   <!-- Toast提示 -->
   <div id="toast" class="toast"></div>
 
   <script src="../config/firebaseConfig.js"></script>
   <script src="../shared/site-launch-utils.js"></script>
+  <script src="../config/agentCatalog.js"></script>
+  <script src="../shared/agent-prompt-utils.js"></script>
   <script src="../config/baseConfig.js"></script>
   <script src="../firebase/firebase-auth.js"></script>
   <script src="../shared/prompt-template-utils.js"></script>

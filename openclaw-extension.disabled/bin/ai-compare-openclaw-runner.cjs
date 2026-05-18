@@ -12,7 +12,8 @@ let chromiumInstance = null;
 const DEFAULT_GUI_WAIT_RESULTS_MS = 90000;
 const DEFAULT_COMPARISON_TIMEOUT_MS = 60000;
 const DEFAULT_SITE_TIMEOUT_MS = 60000;
-const DEFAULT_INSTALL_URL = '<INSTALL_URL>';
+const DEFAULT_EXTENSION_ID = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+const DEFAULT_INSTALL_URL = 'https://chromewebstore.google.com/detail/dkhpgbbhlnmjbkihoeniojpkggkabbbl';
 
 function getChromium() {
   if (!chromiumInstance) {
@@ -168,6 +169,7 @@ function getExtensionCandidates(explicitExtensionId) {
   }
 
   return uniqueStrings([
+    DEFAULT_EXTENSION_ID,
     process.env.AI_COMPARE_EXTENSION_ID,
     process.env.EXTENSION_ID,
     ...parseSites(process.env.AI_COMPARE_EXTENSION_IDS || '')

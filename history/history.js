@@ -1,6 +1,8 @@
 // 存储所有历史记录数据
 let allHistoryItems = [];
 let siteUrlFallbackMap = new Map();
+const HybridHistoryDB = window.AICompareHybridHistoryDB || {};
+const HybridFavorites = window.AICompareHybridFavorites || {};
 
 function t(key, fallback = '') {
     return chrome?.i18n?.getMessage?.(key) || fallback;
@@ -79,9 +81,27 @@ async function loadSiteUrlFallbackMap() {
 async function loadHistory() {
     try {
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
+        const hybridSessions = typeof HybridHistoryDB.listSessions === 'function'
+            ? await HybridHistoryDB.listSessions({ limit: 1000 })
+            : [];
+        const hybridHistoryItems = hybridSessions.map((session) => ({
+            id: session.id,
+            query: resolveHybridSessionDisplayQuery(session),
+            timestamp: session.updatedAt || session.createdAt,
+            date: formatDate(session.updatedAt || session.createdAt),
+            sites: typeof HybridFavorites.buildSessionFavoriteSites === 'function'
+                ? HybridFavorites.buildSessionFavoriteSites(session)
+                : [
+                    ...(Array.isArray(session.openSiteNames) ? session.openSiteNames.map((name) => ({ name })) : []),
+                    ...(Array.isArray(session.openAgentIds) ? session.openAgentIds.map((agentId) => ({ name: `Agent:${agentId}` })) : [])
+                ],
+            favoriteFolder: session.favoriteFolder || '',
+            source: 'hybrid'
+        }));
+        const mergedHistory = [...hybridHistoryItems, ...pkHistory].sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
         
         // 保存所有历史记录
-        allHistoryItems = pkHistory;
+        allHistoryItems = mergedHistory;
         
         const historyList = document.getElementById('historyList');
         const emptyState = document.getElementById('emptyState');
@@ -92,9 +112,9 @@ async function loadHistory() {
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
         
         // 根据搜索关键词过滤
-        const filteredItems = filterItemsBySearch(pkHistory, searchTerm);
+        const filteredItems = filterItemsBySearch(mergedHistory, searchTerm);
         
-        if (pkHistory.length === 0) {
+        if (mergedHistory.length === 0) {
             historyList.style.display = 'none';
             emptyState.style.display = 'block';
             noResultsState.style.display = 'none';
@@ -124,6 +144,38 @@ async function loadHistory() {
     } catch (error) {
         console.error('加载历史记录失败:', error);
     }
+}
+
+function resolveHybridSessionDisplayQuery(session) {
+    const directQuery = String(session?.query || '').trim();
+    if (directQuery) {
+        return directQuery;
+    }
+
+    const timelineEntries = Array.isArray(session?.timelineEntries) ? session.timelineEntries : [];
+    const latestTimelineQuery = timelineEntries
+        .map((entry) => String(entry?.query || '').trim())
+        .filter(Boolean)
+        .at(-1);
+    if (latestTimelineQuery) {
+        return latestTimelineQuery;
+    }
+
+    const panels = session?.panels && typeof session.panels === 'object' ? Object.values(session.panels) : [];
+    for (const panel of panels) {
+        const messages = Array.isArray(panel?.messages) ? panel.messages : [];
+        for (let index = messages.length - 1; index >= 0; index -= 1) {
+            const message = messages[index];
+            if (message?.role === 'user') {
+                const content = String(message?.content || '').trim();
+                if (content) {
+                    return content;
+                }
+            }
+        }
+    }
+
+    return t('historyUntitledQuery', '未命名提问');
 }
 
 // 根据搜索关键词过滤历史记录
@@ -227,6 +279,8 @@ function createHistoryItem(item) {
         const folderId = result.folderId || null;
         const updatedItem = await toggleHistoryItemFavorite(item.id, shouldFavorite, folderId);
         if (updatedItem) {
+            item.source = updatedItem.source || item.source;
+            item.favoriteFolder = updatedItem.favoriteFolder || item.favoriteFolder;
             item.sites = updatedItem.sites;
             setFavoriteButtonState(favoriteBtn, isItemFavorited(updatedItem));
         }
@@ -322,11 +376,13 @@ async function openHistoryItem(item) {
         // 构建 URL 参数
         const params = new URLSearchParams();
         params.set('query', item.query);
-        
-        // 构建站点名称列表
-        const siteNames = item.sites.map(site => site.name);
-        if (siteNames.length > 0) {
-            params.set('sites', siteNames.join(','));
+        const isHybridItem = item.source === 'hybrid';
+
+        if (!isHybridItem) {
+            const siteNames = item.sites.map(site => site.name);
+            if (siteNames.length > 0) {
+                params.set('sites', siteNames.join(','));
+            }
         }
         if (item.id) params.set('historyId', item.id);
         
@@ -367,6 +423,12 @@ async function openHistoryItem(item) {
 // 删除单条历史记录
 async function deleteHistoryItem(id) {
     try {
+        const hybridSession = typeof HybridHistoryDB.getSession === 'function'
+            ? await HybridHistoryDB.getSession(id)
+            : null;
+        if (hybridSession && typeof HybridHistoryDB.deleteSession === 'function') {
+            await HybridHistoryDB.deleteSession(id);
+        }
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const updatedHistory = pkHistory.filter(item => item.id !== id);
         await chrome.storage.local.set({ pkHistory: updatedHistory });
@@ -381,6 +443,28 @@ async function deleteHistoryItem(id) {
 // 收藏或取消收藏单条历史记录（对该记录中所有站点生效）
 async function toggleHistoryItemFavorite(id, shouldFavorite, folderId) {
     try {
+        const hybridSession = typeof HybridHistoryDB.getSession === 'function'
+            ? await HybridHistoryDB.getSession(id)
+            : null;
+        if (hybridSession) {
+            const updatedSession = typeof HybridFavorites.updateHybridSessionFavorite === 'function'
+                ? await HybridFavorites.updateHybridSessionFavorite(id, {
+                    isFavorite: shouldFavorite,
+                    favoriteFolder: folderId || 'default',
+                    preserveUpdatedAt: true
+                })
+                : null;
+            if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+            return updatedSession
+                ? {
+                    ...itemFromHybridSession(updatedSession),
+                    sites: typeof HybridFavorites.buildSessionFavoriteSites === 'function'
+                        ? HybridFavorites.buildSessionFavoriteSites(updatedSession)
+                        : []
+                  }
+                : null;
+        }
+
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const historyIndex = pkHistory.findIndex(item => item.id === id);
         if (historyIndex === -1) {
@@ -411,9 +495,25 @@ async function toggleHistoryItemFavorite(id, shouldFavorite, folderId) {
     }
 }
 
+function itemFromHybridSession(session) {
+    return {
+        id: session.id,
+        query: resolveHybridSessionDisplayQuery(session),
+        timestamp: session.updatedAt || session.createdAt,
+        date: formatDate(session.updatedAt || session.createdAt),
+        sites: typeof HybridFavorites.buildSessionFavoriteSites === 'function'
+            ? HybridFavorites.buildSessionFavoriteSites(session)
+            : [],
+        source: 'hybrid'
+    };
+}
+
 // 清空所有历史记录
 async function clearHistory() {
     try {
+        if (typeof HybridHistoryDB.clearAllSessions === 'function') {
+            await HybridHistoryDB.clearAllSessions();
+        }
         await chrome.storage.local.set({ pkHistory: [] });
         if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     } catch (error) {

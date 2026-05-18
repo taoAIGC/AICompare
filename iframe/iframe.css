@@ -81,6 +81,21 @@ html {
   overscroll-behavior: contain;
 }
 
+.snapshot-panel {
+  background: #ffffff;
+  min-height: 320px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.snapshot-panel pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 13px/1.7 var(--ai-font-sans);
+  color: #111111;
+}
+
 .inject-progress {
   position: absolute;
   inset: 28px 0 0 0;
@@ -1062,6 +1077,19 @@ body.search-bar-bottom #iframes-container {
     min-height: 0;
     overflow-y: auto;
     overflow-x: visible;
+}
+
+.nav-group {
+    padding: 0 6px 10px;
+}
+
+.nav-group-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7b7b7b;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 8px 4px;
 }
 
 .nav-item {

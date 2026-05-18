@@ -3,6 +3,9 @@ import {
 } from '../shared/iframe-query-run-utils.mjs';
 
 const SiteLaunchUtils = window.SiteLaunchUtils || {};
+const AgentCatalog = window.AICompareAgentCatalog || {};
+const AgentPromptUtils = window.AICompareAgentPromptUtils || {};
+const HybridHistoryDB = window.AICompareHybridHistoryDB || {};
 const SubmitShortcutUtils = window.SubmitShortcutUtils || {};
 const normalizeSendShortcutMode = typeof SubmitShortcutUtils.normalizeSendShortcutMode === 'function'
   ? SubmitShortcutUtils.normalizeSendShortcutMode
@@ -21,6 +24,9 @@ const IFRAME_DEFAULT_SEND_SHORTCUT = 'enter';
 const IFRAME_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
   navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
 );
+const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
+const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
+const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 
 // 全局文件粘贴检测和处理
 let filePasteHandlerAdded = false;
@@ -70,7 +76,8 @@ const ratingPromptState = {
   batchId: 0,
   total: 0,
   loaded: 0,
-  shown: false
+  shown: false,
+  previousFocus: null
 };
 
 const ratingReminderState = {
@@ -96,6 +103,14 @@ const timelineBuildCopyText = typeof TimelineUtils.buildTimelineCopyText === 'fu
 const timelineMergeSnapshots = typeof TimelineUtils.mergeTimelinePromptSnapshots === 'function'
   ? TimelineUtils.mergeTimelinePromptSnapshots
   : ((snapshots) => snapshots || []);
+const timelineExtractPromptsFromMessages = typeof TimelineUtils.extractTimelinePromptsFromMessages === 'function'
+  ? TimelineUtils.extractTimelinePromptsFromMessages
+  : ((messages) => (Array.isArray(messages) ? messages
+      .filter((message) => message?.role === 'user')
+      .map((message) => ({
+        text: String(message?.content || '').replace(/\s+/g, ' ').trim()
+      }))
+      .filter((prompt) => prompt.text) : []));
 const analysisBuildPayload = typeof AnalysisUtils.buildTimelineAnalysisPayload === 'function'
   ? AnalysisUtils.buildTimelineAnalysisPayload
   : ((options = {}) => ({
@@ -325,6 +340,14 @@ function initializeAiCompareSiteRuntimeBridge() {
 }
 
 initializeAiCompareSiteRuntimeBridge();
+window.addEventListener(AI_COMPARE_RUNTIME_EVENT, () => {
+  if (!currentHybridHistorySessionId || isReadonlyHistoryMode) {
+    return;
+  }
+  persistCurrentHybridHistorySession().catch((error) => {
+    console.warn('站点运行时更新后保存 hybrid 历史失败:', error);
+  });
+});
 
 // Keep iframe permissions narrow to avoid cross-site browser permission prompts
 // when opening many third-party AI sites in parallel.
@@ -410,6 +433,16 @@ function ensureRatingModal() {
   const rateBtn = overlay.querySelector('.rating-modal-primary');
 
   const closeModal = () => {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && overlay.contains(activeElement)) {
+      const previousFocus = ratingPromptState.previousFocus;
+      if (previousFocus instanceof HTMLElement && document.contains(previousFocus)) {
+        previousFocus.focus({ preventScroll: true });
+      } else {
+        activeElement.blur();
+      }
+    }
+    ratingPromptState.previousFocus = null;
     overlay.classList.remove('is-visible');
     overlay.setAttribute('aria-hidden', 'true');
   };
@@ -481,8 +514,12 @@ async function showRatingPromptOnce(kind) {
   if (overlay) {
     setTimeout(() => {
       if (ratingPromptState.shown) {
+        const activeElement = document.activeElement;
+        ratingPromptState.previousFocus = activeElement instanceof HTMLElement ? activeElement : null;
         overlay.setAttribute('aria-hidden', 'false');
         overlay.classList.add('is-visible');
+        const primaryButton = overlay.querySelector('.rating-modal-primary');
+        primaryButton?.focus({ preventScroll: true });
         trackEvent(kind === 'reminder' ? 'rating_prompt_reminder_shown' : 'rating_prompt_shown');
       }
     }, 5000);
@@ -973,6 +1010,10 @@ function normalizeRestoreContext(context, fallbackQuery = '') {
 
 async function getHistoryItemById(historyId) {
   if (!historyId) return null;
+  const hybridSession = await getHybridHistorySessionById(historyId);
+  if (hybridSession) {
+    return hybridSession;
+  }
   const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
   return pkHistory.find((item) => String(item?.id || '') === String(historyId)) || null;
 }
@@ -981,6 +1022,14 @@ async function getHistoryRestoreContext(historyId) {
   const historyItem = await getHistoryItemById(historyId);
   if (!historyItem) return null;
   return normalizeRestoreContext(historyItem.restoreContext, historyItem.query);
+}
+
+function isHybridHistoryRecord(record) {
+  if (!record || typeof record !== 'object') return false;
+  if (String(record.mode || '').trim() === 'hybrid') return true;
+  if (Array.isArray(record.openAgentIds) && record.openAgentIds.length > 0) return true;
+  if (Array.isArray(record.openSiteNames) && record.openSiteNames.length > 0) return true;
+  return Boolean(record.panels && typeof record.panels === 'object');
 }
 
 function isTimelineEntryFavorited(entry) {
@@ -1401,9 +1450,35 @@ function buildTimelineIdFromQuery(query) {
 }
 
 function getOpenTimelineSiteNames() {
-  return Array.from(document.querySelectorAll('.ai-iframe'))
+  return getSiteIframes()
     .map((iframe) => String(iframe.getAttribute('data-site') || '').trim())
     .filter(Boolean);
+}
+
+function getOpenTimelineSnapshots() {
+  const siteNames = getOpenTimelineSiteNames();
+  const snapshots = siteNames.map((siteName) => {
+    const snapshot = timelineState.promptSnapshotsBySite.get(siteName);
+    if (!snapshot) return null;
+    return {
+      siteName: snapshot.siteName || siteName,
+      prompts: Array.isArray(snapshot.prompts) ? snapshot.prompts : []
+    };
+  }).filter(Boolean);
+
+  getOpenedAgentIds().forEach((agentId) => {
+    const state = getAgentState(agentId);
+    if (!state) return;
+    const siteName = String(state?.name || agentId || '').trim();
+    const prompts = timelineExtractPromptsFromMessages(state.messages);
+    if (!siteName || !prompts.length) return;
+    snapshots.push({
+      siteName,
+      prompts
+    });
+  });
+
+  return snapshots;
 }
 
 function resetTimelinePromptSnapshots() {
@@ -1415,7 +1490,8 @@ function resetTimelinePromptSnapshots() {
 
 function rebuildTimelineEntriesFromSnapshots() {
   const openSiteNames = getOpenTimelineSiteNames();
-  if (!openSiteNames.length) {
+  const hasAgentPanels = getOpenedAgentIds().length > 0;
+  if (!openSiteNames.length && !hasAgentPanels) {
     timelineState.promptSnapshotsBySite.clear();
     timelineState.entries = [];
     timelineState.activeTimelineId = null;
@@ -1430,14 +1506,7 @@ function rebuildTimelineEntriesFromSnapshots() {
     }
   });
 
-  const snapshots = openSiteNames.map((siteName) => {
-    const snapshot = timelineState.promptSnapshotsBySite.get(siteName);
-    if (!snapshot) return null;
-    return {
-      siteName: snapshot.siteName || siteName,
-      prompts: Array.isArray(snapshot.prompts) ? snapshot.prompts : []
-    };
-  }).filter(Boolean);
+  const snapshots = getOpenTimelineSnapshots();
 
   const mergedEntries = timelineMergeSnapshots(snapshots);
   const previousEntries = timelineState.entries;
@@ -1508,6 +1577,18 @@ function initializeTimelineMessageBridge() {
   timelineMessageBridgeInitialized = true;
 
   window.addEventListener('message', (event) => {
+    const data = event.data || {};
+    if (data.type !== 'AGENT_PANEL_EVENT') {
+      return;
+    }
+    if (data.event === 'submitLocalMessage' && data.agentId && data.content) {
+      runAgentPrompt(String(data.agentId), String(data.content), 'local').catch((error) => {
+        console.error('执行智能体本地提问失败:', error);
+      });
+    }
+  });
+
+  window.addEventListener('message', (event) => {
     if (event.data?.type !== 'TIMELINE_PROMPTS_SNAPSHOT' || event.data?.source !== 'inject-script') {
       return;
     }
@@ -1519,6 +1600,67 @@ function initializeTimelineMessageBridge() {
 
     const siteName = sourceIframe.getAttribute('data-site') || event.data.siteName || '';
     updateTimelineSnapshotFromIframe(siteName, event.data.prompts);
+  });
+
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type !== 'agentRuntimeEvent' || !message.agentId) {
+      return;
+    }
+
+    const agentId = String(message.agentId || '').trim();
+    const currentState = getAgentState(agentId);
+    if (!currentState) {
+      return;
+    }
+
+    if (message.event === 'started' || message.event === 'queued') {
+      updateAgentLoadingState(agentId, true);
+      return;
+    }
+
+    if (message.event === 'delta') {
+      const latestState = getAgentState(agentId);
+      if (!latestState) return;
+      const messages = [...latestState.messages];
+      const lastAssistant = messages[messages.length - 1];
+      if (lastAssistant && lastAssistant.role === 'assistant') {
+        lastAssistant.content = `${lastAssistant.content || ''}${message.delta || ''}`;
+      } else {
+        messages.push({
+          role: 'assistant',
+          content: message.delta || ''
+        });
+      }
+      const nextState = {
+        ...latestState,
+        messages
+      };
+      setAgentState(agentId, nextState);
+      const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+      if (iframe) {
+        syncAgentPanelStateToFrame(iframe, nextState);
+      }
+      return;
+    }
+
+    if (message.event === 'completed') {
+      updateAgentLoadingState(agentId, false);
+      return;
+    }
+
+    if (message.event === 'error') {
+      updateAgentLoadingState(agentId, false, message.error || '');
+      appendAgentMessage(agentId, {
+        role: 'assistant',
+        content: message.error || t('agentRequestFailed', 'Agent request failed'),
+        isError: true
+      });
+      return;
+    }
+
+    if (message.event === 'cancelled') {
+      updateAgentLoadingState(agentId, false);
+    }
   });
 }
 
@@ -1901,17 +2043,35 @@ async function hydrateAnalysisTemplateSelect(overlay, selectedTemplateId = '') {
 }
 
 async function collectTimelineEntryResponses(entry) {
-  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
-  if (!iframes.length) {
+  if (isReadonlyHistoryMode && readonlyHistorySession) {
+    const responses = collectReadonlyTimelineEntryResponses(entry, readonlyHistorySession);
+    const successCount = responses.filter((item) => {
+      if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
+        return true;
+      }
+      return String(item?.content || '').trim().length > 0;
+    }).length;
+
     return {
-      responses: [],
-      copyText: '',
-      successCount: 0,
-      totalCount: 0
+      responses,
+      copyText: timelineBuildCopyText(entry, responses),
+      successCount,
+      totalCount: responses.length
     };
   }
 
-  const responses = await Promise.all(iframes.map((iframe) => {
+  const iframes = getSiteIframes();
+  const agentResponses = getLiveAgentTimelineResponses(entry);
+  if (!iframes.length) {
+    return {
+      responses: agentResponses,
+      copyText: timelineBuildCopyText(entry, agentResponses),
+      successCount: agentResponses.filter((item) => String(item?.content || '').trim().length > 0).length,
+      totalCount: agentResponses.length
+    };
+  }
+
+  const siteResponses = await Promise.all(iframes.map((iframe) => {
     return requestIframeTimelineAction(
       iframe,
       'EXTRACT_PROMPT_RESPONSE',
@@ -1924,14 +2084,15 @@ async function collectTimelineEntryResponses(entry) {
     );
   }));
 
-  const normalizedResponses = responses.map((item) => ({
+  const normalizedResponses = siteResponses.map((item) => ({
     siteName: item?.siteName || '',
     answers: Array.isArray(item?.answers) ? item.answers : [],
     content: item?.content || '',
     error: item?.error || ''
   }));
+  normalizedResponses.push(...agentResponses);
 
-  const successCount = responses.filter((item) => {
+  const successCount = normalizedResponses.filter((item) => {
     if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
       return true;
     }
@@ -1942,8 +2103,112 @@ async function collectTimelineEntryResponses(entry) {
     responses: normalizedResponses,
     copyText: timelineBuildCopyText(entry, normalizedResponses),
     successCount,
-    totalCount: responses.length
+    totalCount: normalizedResponses.length
   };
+}
+
+function getPanelEntriesInOrder(session) {
+  const panels = session?.panels && typeof session.panels === 'object' ? session.panels : {};
+  const panelOrder = Array.isArray(session?.panelOrder) ? session.panelOrder : [];
+  const ordered = panelOrder
+    .map((panelId) => panels[String(panelId || '').trim()] || null)
+    .filter(Boolean);
+  const unordered = Object.entries(panels)
+    .filter(([panelId]) => !panelOrder.includes(panelId))
+    .map(([, panel]) => panel);
+  return [...ordered, ...unordered];
+}
+
+function collectReadonlyTimelineEntryResponses(entry, session) {
+  const panelEntries = getPanelEntriesInOrder(session);
+  return panelEntries.map((panel) => {
+    const panelType = String(panel?.panelType || '').trim();
+    const title = String(panel?.title || panel?.agentName || panel?.siteName || panel?.agentId || 'Panel').trim();
+
+    if (panelType === PANEL_KIND.AGENT || panelType === PANEL_KIND.AGENT_SNAPSHOT || panelType === 'agent') {
+      const assistantContent = getAgentResponseForTimelineEntry({
+        messages: Array.isArray(panel?.messages) ? panel.messages : []
+      }, entry);
+      return {
+        siteName: title,
+        answers: assistantContent ? [assistantContent] : [],
+        content: assistantContent || '',
+        error: assistantContent ? '' : t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。')
+      };
+    }
+
+    const content = String(panel?.snapshotText || panel?.content || panel?.url || '').trim();
+    return {
+      siteName: title,
+      answers: content ? [content] : [],
+      content,
+      error: content ? '' : t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。')
+    };
+  });
+}
+
+function getLiveAgentTimelineResponses(entry) {
+  return getOpenedAgentIds().map((agentId) => {
+    const state = getAgentState(agentId);
+    const content = getAgentResponseForTimelineEntry(state, entry);
+    return {
+      siteName: state?.name || agentId,
+      answers: content ? [content] : [],
+      content,
+      error: content ? '' : t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。')
+    };
+  });
+}
+
+function getAgentResponseForTimelineEntry(state, entry) {
+  if (!state || !Array.isArray(state.messages) || !entry?.query) {
+    return '';
+  }
+
+  const query = String(entry.query || '').trim();
+  if (!query) return '';
+
+  let matchedUserIndex = -1;
+  let matchedCount = -1;
+  let userOccurrenceIndex = 0;
+
+  state.messages.forEach((message, index) => {
+    if (message?.role !== 'user') return;
+    const content = String(message?.content || '').trim();
+    if (!content) return;
+    if (content !== query) return;
+    if (userOccurrenceIndex === Number(entry?.occurrenceIndex || 0)) {
+      matchedUserIndex = index;
+      matchedCount = userOccurrenceIndex;
+    }
+    userOccurrenceIndex += 1;
+  });
+
+  if (matchedUserIndex === -1 && matchedCount === -1) {
+    for (let index = state.messages.length - 1; index >= 0; index -= 1) {
+      const message = state.messages[index];
+      if (message?.role === 'user' && String(message?.content || '').trim() === query) {
+        matchedUserIndex = index;
+        break;
+      }
+    }
+  }
+
+  if (matchedUserIndex === -1) {
+    return '';
+  }
+
+  for (let index = matchedUserIndex + 1; index < state.messages.length; index += 1) {
+    const message = state.messages[index];
+    if (message?.role === 'assistant' && String(message?.content || '').trim()) {
+      return String(message.content || '').trim();
+    }
+    if (message?.role === 'user') {
+      break;
+    }
+  }
+
+  return '';
 }
 
 function sanitizeTimelineExportFileName(entry) {
@@ -1976,8 +2241,10 @@ function downloadTimelineMarkdownFile(content, filename) {
 }
 
 async function copyTimelineEntryResponses(entry) {
-  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
-  if (!iframes.length) {
+  const iframes = getSiteIframes();
+  const agentCount = getAgentPanelFrames().length;
+  const hasReadonlySnapshotPanels = isReadonlyHistoryMode && readonlyHistorySession;
+  if (!iframes.length && agentCount === 0 && !hasReadonlySnapshotPanels) {
     showToast(t('timelineNoIframes', '当前没有可用的子页面'));
     return;
   }
@@ -2413,6 +2680,610 @@ function createInjectProgressOverlay(siteName) {
   return overlay;
 }
 
+function buildAgentPanelState(agent) {
+  return {
+    agentId: agent.id,
+    panelId: `agent:${agent.id}`,
+    name: agent.name,
+    color: agent.color || '#111111',
+    messages: [],
+    localDraft: '',
+    isLoading: false,
+    error: '',
+    participatesInGlobal: true
+  };
+}
+
+async function getAgentCustomSettingsMapForIframe() {
+  const { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings } = await chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY);
+  if (typeof AgentCatalog.normalizeAgentCustomSettingsMap === 'function') {
+    return AgentCatalog.normalizeAgentCustomSettingsMap(storedSettings);
+  }
+  return storedSettings && typeof storedSettings === 'object' ? storedSettings : {};
+}
+
+async function getCustomAgentsForIframe() {
+  const [
+    { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
+    { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }
+  ] = await Promise.all([
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+  ]);
+
+  return Array.isArray(localCustomAgents) && localCustomAgents.length > 0
+    ? localCustomAgents
+    : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []);
+}
+
+async function getMergedAgentByIdForIframe(agentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  if (!normalizedAgentId) {
+    return null;
+  }
+
+  const catalog = await getAvailableAgentCatalog().catch(() => ({ agents: [] }));
+  const matchedAgent = Array.isArray(catalog?.agents)
+    ? catalog.agents.find((agent) => agent.id === normalizedAgentId)
+    : null;
+
+  return matchedAgent ? { ...matchedAgent } : null;
+}
+
+function getAgentState(agentId) {
+  return activeAgentPanelStore.get(String(agentId || '').trim()) || null;
+}
+
+function setAgentState(agentId, nextState) {
+  activeAgentPanelStore.set(String(agentId || '').trim(), nextState);
+  return nextState;
+}
+
+async function getAgentEngineConfigForIframe() {
+  const [syncData, localData] = await Promise.all([
+    chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+    chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
+  ]);
+
+  const rawConfig = {
+    ...(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {}),
+    apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
+  };
+
+  if (typeof AgentPromptUtils.normalizeApiConfig === 'function') {
+    return AgentPromptUtils.normalizeApiConfig(rawConfig);
+  }
+
+  return {
+    apiKey: String(rawConfig.apiKey || '').trim(),
+    baseUrl: String(rawConfig.baseUrl || 'https://ark.cn-beijing.volces.com/api/coding/v3').replace(/\/+$/, ''),
+    model: String(rawConfig.model || 'glm-5.1').trim(),
+    concurrency: Math.max(1, Number(rawConfig.concurrency) || 2),
+    systemPrompt: String(rawConfig.systemPrompt || '').trim()
+  };
+}
+
+function getAgentAbortController(agentId) {
+  const state = getAgentState(agentId);
+  return state?.abortController || null;
+}
+
+function cancelInFlightAgentRequest(agentId) {
+  const controller = getAgentAbortController(agentId);
+  if (!controller) return;
+  try {
+    controller.abort();
+  } catch (_) {}
+}
+
+function postMessageToAgentPanel(iframe, payload) {
+  try {
+    iframe.contentWindow?.postMessage(payload, '*');
+  } catch (error) {
+    console.warn('发送消息到智能体面板失败:', error);
+  }
+}
+
+function syncAgentPanelStateToFrame(iframe, state) {
+  if (!iframe || !state) return;
+  postMessageToAgentPanel(iframe, {
+    type: 'AGENT_PANEL_STATE',
+    state
+  });
+}
+
+function waitForNextFrame() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
+function createAgentIframe(agent, container) {
+  const panelState = setAgentState(agent.id, buildAgentPanelState(agent));
+  const iframeContainer = document.createElement('div');
+  iframeContainer.className = 'iframe-container';
+  iframeContainer.dataset.siteName = agent.name;
+  iframeContainer.dataset.panelKind = PANEL_KIND.AGENT;
+  iframeContainer.dataset.agentId = agent.id;
+
+  const iframe = document.createElement('iframe');
+  iframe.className = 'ai-iframe';
+  iframe.dataset.site = agent.name;
+  iframe.dataset.siteName = agent.name;
+  iframe.dataset.agentId = agent.id;
+  iframe.dataset.panelId = panelState.panelId;
+  iframe.dataset.panelKind = PANEL_KIND.AGENT;
+  iframe.allow = IFRAME_ALLOW_PERMISSIONS;
+  iframe.src = buildAgentPanelUrl(agent.id);
+
+  const header = document.createElement('div');
+  header.className = 'iframe-header';
+  header.innerHTML = `
+    <span class="site-name">${escapeHtml(agent.name)}</span>
+    <span class="iframe-header-status" aria-live="polite">${escapeHtml(t('iframeStatusPageLoading', '页面加载中...'))}</span>
+    <div class="iframe-controls">
+      <button class="refresh-page-btn"></button>
+      <button class="open-page-btn"></button>
+      <button class="close-btn"></button>
+    </div>
+  `;
+
+  iframe.addEventListener('load', () => {
+    setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
+    syncAgentPanelStateToFrame(iframe, getAgentState(agent.id));
+  });
+
+  const refreshPageBtn = header.querySelector('.refresh-page-btn');
+  const openPageBtn = header.querySelector('.open-page-btn');
+  const closeBtn = header.querySelector('.close-btn');
+
+  refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
+  openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
+  closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
+
+  refreshPageBtn.onclick = (event) => {
+    event.stopPropagation();
+    cancelInFlightAgentRequest(agent.id);
+    iframe.src = buildAgentPanelUrl(agent.id);
+    setAgentState(agent.id, buildAgentPanelState(agent));
+    rebuildTimelineEntriesFromSnapshots();
+  };
+
+  openPageBtn.onclick = (event) => {
+    event.stopPropagation();
+    chrome.tabs.create({ url: buildAgentPanelUrl(agent.id) });
+  };
+
+  closeBtn.onclick = () => {
+    cancelInFlightAgentRequest(agent.id);
+    iframeContainer.remove();
+    activeAgentPanelStore.delete(String(agent.id || '').trim());
+    rebuildTimelineEntriesFromSnapshots();
+    syncNavCheckboxStates();
+    persistCurrentHybridHistorySession().catch((error) => {
+      console.warn('关闭智能体面板后保存历史失败:', error);
+    });
+  };
+
+  iframeContainer.appendChild(header);
+  iframeContainer.appendChild(iframe);
+  container.appendChild(iframeContainer);
+  return iframe;
+}
+
+function createSnapshotPanel(title, content, container, panelKind, panelId) {
+  const panelContainer = document.createElement('div');
+  panelContainer.className = 'iframe-container';
+  panelContainer.dataset.siteName = title;
+  panelContainer.dataset.panelKind = panelKind;
+  panelContainer.dataset.panelId = panelId;
+
+  const header = document.createElement('div');
+  header.className = 'iframe-header';
+  header.innerHTML = `
+    <span class="site-name">${escapeHtml(title)}</span>
+    <span class="iframe-header-status" aria-live="polite">${escapeHtml(t('historyLink', 'History'))}</span>
+    <div class="iframe-controls">
+      <button class="open-page-btn"></button>
+      <button class="close-btn"></button>
+    </div>
+  `;
+
+  const body = document.createElement('div');
+  body.className = 'snapshot-panel';
+  const pre = document.createElement('pre');
+  pre.textContent = String(content || '').trim() || '-';
+  body.appendChild(pre);
+
+  const openPageBtn = header.querySelector('.open-page-btn');
+  const closeBtn = header.querySelector('.close-btn');
+  openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || 'Open in New Tab';
+  closeBtn.title = chrome.i18n.getMessage('closeButton') || 'Close';
+  openPageBtn.style.display = 'none';
+  closeBtn.onclick = () => {
+    panelContainer.remove();
+  };
+
+  panelContainer.appendChild(header);
+  panelContainer.appendChild(body);
+  container.appendChild(panelContainer);
+}
+
+function restoreHybridSessionTimeline(hybridSession) {
+  const timelineEntries = Array.isArray(hybridSession?.timelineEntries) ? hybridSession.timelineEntries : [];
+  if (timelineEntries.length > 0) {
+    timelineEntries.forEach((timelineEntry, index) => {
+      upsertTimelineEntry({
+        query: timelineEntry?.query || '',
+        timelineId: String(timelineEntry?.timelineId || `${hybridSession.id}-${index}`),
+        historyId: timelineEntry?.historyId || hybridSession.id,
+        timestamp: Number(timelineEntry?.timestamp) || hybridSession.updatedAt || hybridSession.createdAt || Date.now(),
+        dateLabel: timelineEntry?.dateLabel || formatTimelineDateLabel(Number(timelineEntry?.timestamp) || hybridSession.updatedAt || hybridSession.createdAt || Date.now())
+      }, {
+        dedupeByHistoryId: false
+      });
+    });
+    return;
+  }
+
+  const panelEntries = getPanelEntriesInOrder(hybridSession);
+  const agentSnapshots = panelEntries.map((panel) => {
+    const panelType = String(panel?.panelType || '').trim();
+    if (panelType !== PANEL_KIND.AGENT && panelType !== PANEL_KIND.AGENT_SNAPSHOT && panelType !== 'agent') {
+      return null;
+    }
+
+    const siteName = String(panel?.title || panel?.agentName || panel?.agentId || '').trim();
+    const prompts = timelineExtractPromptsFromMessages(panel?.messages || []);
+    if (!siteName || !prompts.length) {
+      return null;
+    }
+
+    return {
+      siteName,
+      prompts
+    };
+  }).filter(Boolean);
+
+  if (agentSnapshots.length > 0) {
+    const mergedEntries = timelineMergeSnapshots(agentSnapshots);
+    mergedEntries.forEach((timelineEntry, index) => {
+      upsertTimelineEntry({
+        query: timelineEntry?.query || '',
+        timelineId: String(timelineEntry?.timelineId || `${hybridSession.id}-agent-${index}`),
+        historyId: null,
+        timestamp: Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now(),
+        dateLabel: formatTimelineDateLabel(Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now())
+      }, {
+        dedupeByHistoryId: false
+      });
+    });
+    return;
+  }
+
+  if (String(hybridSession?.query || '').trim()) {
+    upsertTimelineEntry({
+      query: hybridSession.query,
+      historyId: hybridSession.id,
+      timestamp: Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now(),
+      dateLabel: formatTimelineDateLabel(Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now())
+    }, {
+      dedupeByHistoryId: true
+    });
+  }
+}
+
+async function restoreHybridSessionAsLivePanels(hybridSession, container) {
+  const siteConfigs = await getDefaultSites().catch((error) => {
+    console.warn('恢复 hybrid live 站点时加载配置失败:', error);
+    return [];
+  });
+  const customSites = typeof window.getCustomSites === 'function'
+    ? await window.getCustomSites().catch((error) => {
+        console.warn('恢复 hybrid live 自定义站点时加载配置失败:', error);
+        return [];
+      })
+    : [];
+  const catalog = await getAvailableAgentCatalog().catch((error) => {
+    console.warn('恢复 hybrid live 智能体时加载目录失败:', error);
+    return { agents: [] };
+  });
+  const panelEntries = getPanelEntriesInOrder(hybridSession);
+  const panelsById = hybridSession?.panels && typeof hybridSession.panels === 'object'
+    ? hybridSession.panels
+    : {};
+
+  const resolvedPanelEntries = panelEntries.length > 0
+    ? panelEntries
+    : [
+        ...(Array.isArray(hybridSession?.openSiteNames)
+          ? hybridSession.openSiteNames.map((siteName) => ({
+              panelId: `site:${siteName}`,
+              panelType: PANEL_KIND.SITE,
+              siteName,
+              title: siteName
+            }))
+          : []),
+        ...(Array.isArray(hybridSession?.openAgentIds)
+          ? hybridSession.openAgentIds.map((agentId) => ({
+              panelId: `agent:${agentId}`,
+              panelType: PANEL_KIND.AGENT,
+              agentId,
+              title: agentId
+            }))
+          : [])
+      ];
+
+  for (const panel of resolvedPanelEntries) {
+    const panelType = String(panel?.panelType || '').trim();
+    if (panelType === PANEL_KIND.AGENT || panelType === 'agent' || panelType === PANEL_KIND.AGENT_SNAPSHOT) {
+      const agentId = String(panel?.agentId || '').trim();
+      if (!agentId) continue;
+      const agent = (catalog?.agents || []).find((item) => item.id === agentId);
+      if (!agent) continue;
+      createAgentIframe(agent, container);
+      const restoredMessages = Array.isArray(panel?.messages) ? panel.messages : [];
+      const nextState = {
+        ...buildAgentPanelState(agent),
+        messages: restoredMessages,
+        isLoading: false,
+        error: ''
+      };
+      setAgentState(agentId, nextState);
+      const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+      if (iframe) {
+        syncAgentPanelStateToFrame(iframe, nextState);
+      }
+      continue;
+    }
+
+    const siteName = String(panel?.siteName || panel?.title || '').trim();
+    if (!siteName) continue;
+    const siteConfig = siteConfigs.find((item) => item.name === siteName) || null;
+    const customSite = customSites.find((item) => item.name === siteName) || null;
+    const savedPanel = panelsById[String(panel?.panelId || '').trim()] || panel;
+    const savedUrl = String(savedPanel?.url || '').trim();
+    const site = siteConfig || customSite || { name: siteName, url: savedUrl };
+    const isCustomSite = Boolean(customSite && !siteConfig);
+    const launchTarget = isCustomSite
+      ? (SiteLaunchUtils.resolveCustomLaunchTarget
+        ? SiteLaunchUtils.resolveCustomLaunchTarget(site, '')
+        : { url: site.url || savedUrl, queryInUrl: false, shouldAutoRun: false })
+      : (SiteLaunchUtils.resolveOfficialLaunchTarget
+        ? SiteLaunchUtils.resolveOfficialLaunchTarget(site, '')
+        : { url: site.url || savedUrl, queryInUrl: false, shouldAutoRun: false });
+    const fallbackUrl = isCustomSite
+      ? (site.url || savedUrl)
+      : (buildSiteUrlForQuery(site, '') || site.url || savedUrl);
+    const liveUrl = savedUrl && !SiteLaunchUtils.isLikelyPlaceholderHistoryUrl?.(savedUrl, siteName)
+      ? savedUrl
+      : (launchTarget?.url || fallbackUrl);
+
+    createSingleIframe(siteName, liveUrl, container, '', null, {
+      site,
+      siteKind: isCustomSite ? 'custom' : 'official',
+      isCustomSite,
+      launchTarget: {
+        ...(launchTarget || {}),
+        url: liveUrl,
+        queryInUrl: false,
+        shouldAutoRun: false
+      }
+    });
+  }
+}
+
+function appendAgentMessage(agentId, message) {
+  const existingState = getAgentState(agentId);
+  if (!existingState) return null;
+
+  const nextState = {
+    ...existingState,
+    messages: [...existingState.messages, message]
+  };
+  setAgentState(agentId, nextState);
+
+  const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+  if (iframe) {
+    syncAgentPanelStateToFrame(iframe, nextState);
+  }
+  rebuildTimelineEntriesFromSnapshots();
+  persistCurrentHybridHistorySession().catch((error) => {
+    console.warn('保存智能体消息历史失败:', error);
+  });
+  return nextState;
+}
+
+function updateAgentLoadingState(agentId, isLoading, error = '') {
+  const existingState = getAgentState(agentId);
+  if (!existingState) return null;
+
+  const nextState = {
+    ...existingState,
+    isLoading,
+    error: error || '',
+    abortController: isLoading ? existingState.abortController || null : null
+  };
+  setAgentState(agentId, nextState);
+
+  const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+  if (iframe) {
+    syncAgentPanelStateToFrame(iframe, nextState);
+  }
+  persistCurrentHybridHistorySession().catch((saveError) => {
+    console.warn('保存智能体状态历史失败:', saveError);
+  });
+  return nextState;
+}
+
+async function runAgentPrompt(agentId, content, source = 'global') {
+  const existingState = getAgentState(agentId);
+  if (!existingState) return false;
+
+  cancelInFlightAgentRequest(agentId);
+
+  appendAgentMessage(agentId, {
+    role: 'user',
+    content,
+    source
+  });
+  updateAgentLoadingState(agentId, true);
+
+  const stateAfterUserMessage = getAgentState(agentId);
+  const messages = (stateAfterUserMessage?.messages || []).map((message) => ({
+    role: message.role,
+    content: message.content,
+    source: message.source
+  }));
+
+  const config = await getAgentEngineConfigForIframe().catch(() => null);
+  const agent = await getMergedAgentByIdForIframe(agentId);
+
+  if (!agent) {
+    const unknownAgentError = chrome?.i18n?.getMessage?.('agentUnknownError', [agentId]) || `Unknown agent: ${agentId}`;
+    updateAgentLoadingState(agentId, false, unknownAgentError);
+    appendAgentMessage(agentId, {
+      role: 'assistant',
+      content: unknownAgentError,
+      isError: true
+    });
+    return false;
+  }
+
+  if (!config?.apiKey || !config?.baseUrl || !config?.model) {
+    const agentConfigError = chrome?.i18n?.getMessage?.('agentEngineNotConfigured') || 'Agent engine is not configured';
+    updateAgentLoadingState(agentId, false, agentConfigError);
+    appendAgentMessage(agentId, {
+      role: 'assistant',
+      content: agentConfigError,
+      isError: true
+    });
+    return false;
+  }
+
+  const abortController = new AbortController();
+  const existingAssistantState = getAgentState(agentId);
+  const nextState = {
+    ...existingAssistantState,
+    abortController,
+    messages: [
+      ...existingAssistantState.messages,
+      {
+        role: 'assistant',
+        content: ''
+      }
+    ]
+  };
+  setAgentState(agentId, nextState);
+  const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+  if (iframe) {
+    syncAgentPanelStateToFrame(iframe, nextState);
+  }
+
+  try {
+    const requestMessages = typeof AgentPromptUtils.buildChatMessages === 'function'
+      ? AgentPromptUtils.buildChatMessages(agent, messages, config)
+      : messages;
+
+    const completionResponse = await fetch(`${String(config.baseUrl).replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: config.model,
+        stream: true,
+        thinking: {
+          type: 'disabled'
+        },
+        messages: requestMessages
+      }),
+      signal: abortController.signal
+    });
+
+    if (!completionResponse.ok) {
+      const errorText = await completionResponse.text().catch(() => '');
+      throw new Error(`HTTP ${completionResponse.status}: ${errorText || completionResponse.statusText}`);
+    }
+
+    const reader = completionResponse.body?.getReader?.();
+    if (!reader) {
+      const data = await completionResponse.json();
+      const text = data?.choices?.[0]?.message?.content || '';
+      const stateAfterText = getAgentState(agentId);
+      if (stateAfterText) {
+        const messagesWithReply = [...stateAfterText.messages];
+        const lastAssistant = messagesWithReply[messagesWithReply.length - 1];
+        if (lastAssistant?.role === 'assistant') {
+          lastAssistant.content = text;
+        }
+        setAgentState(agentId, {
+          ...stateAfterText,
+          messages: messagesWithReply
+        });
+      }
+    } else {
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          let parsed;
+          try {
+            parsed = JSON.parse(payload);
+          } catch (_) {
+            continue;
+          }
+          const delta = parsed?.choices?.[0]?.delta?.content || '';
+          if (!delta) continue;
+          const latestState = getAgentState(agentId);
+          if (!latestState) continue;
+          const nextMessages = [...latestState.messages];
+          const lastAssistant = nextMessages[nextMessages.length - 1];
+          if (lastAssistant?.role === 'assistant') {
+            lastAssistant.content = `${lastAssistant.content || ''}${delta}`;
+          } else {
+            nextMessages.push({ role: 'assistant', content: delta });
+          }
+          const streamedState = {
+            ...latestState,
+            messages: nextMessages
+          };
+          setAgentState(agentId, streamedState);
+          if (iframe) {
+            syncAgentPanelStateToFrame(iframe, streamedState);
+          }
+          await waitForNextFrame();
+        }
+      }
+    }
+    updateAgentLoadingState(agentId, false);
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      updateAgentLoadingState(agentId, false);
+      return false;
+    }
+    updateAgentLoadingState(agentId, false, error?.message || t('agentRequestFailed', 'Agent request failed'));
+    appendAgentMessage(agentId, {
+      role: 'assistant',
+      content: error?.message || t('agentRequestFailed', 'Agent request failed'),
+      isError: true
+    });
+    return false;
+  }
+  return true;
+}
+
 function clearInjectProgressHideTimer(overlay) {
   if (!overlay?.__hideTimer) return;
   clearTimeout(overlay.__hideTimer);
@@ -2691,7 +3562,7 @@ function resolveSiteForIframeUrl(sites, iframeUrl, preferredSiteName = null) {
 }
 
 function getOpenedSites() {
-  return Array.from(document.querySelectorAll('.ai-iframe'))
+  return getSiteIframes()
     .map(iframe => iframe.getAttribute('data-site'))
     .filter(Boolean);
 }
@@ -2940,6 +3811,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const hasQueryParam = urlParams.has('query') || Boolean(analysisContext);
     const hasSitesParam = urlParams.has('sites');
     const hasCustomSitesParam = urlParams.has('customSites');
+    const hasAgentsParam = urlParams.has('agents');
 
     // 如果 URL 中携带了 historyId，表示从历史/收藏页打开，直接恢复该记录的 ID，
     // 避免 createIframes → savePKHistory 创建重复记录
@@ -2982,20 +3854,44 @@ document.addEventListener('DOMContentLoaded', async function() {
       ? allCustomSites.filter(site => selectedCustomSiteIds.includes(site.id) || selectedCustomSiteIds.includes(site.name))
       : [];
 
+    let selectedAgentIds = null;
+    if (hasAgentsParam) {
+      const agentsParam = urlParams.get('agents');
+      if (agentsParam) {
+        selectedAgentIds = agentsParam.split(',').map(id => id.trim()).filter(Boolean);
+      }
+    }
+    const agentCatalog = await getAvailableAgentCatalog();
+    const selectedAgents = selectedAgentIds && selectedAgentIds.length > 0
+      ? (agentCatalog?.agents || []).filter(agent => selectedAgentIds.includes(agent.id))
+      : [];
+    const shouldOpenDefaultSites = shouldFallbackToDefaultSites({
+      hasSitesParam,
+      hasCustomSitesParam,
+      hasAgentsParam,
+      selectedSiteNames,
+      selectedCustomSites,
+      selectedAgents
+    });
+
     let restoredHistoryIframesOnInit = false;
+    const shouldRestoreHybridHistoryOnInit = Boolean(urlHistoryId && isHybridHistoryRecord(historyItem));
     const historySites = Array.isArray(historyItem?.sites) ? historyItem.sites : [];
     const filteredHistorySites = selectedSiteNames && selectedSiteNames.length > 0
       ? historySites.filter((site) => selectedSiteNames.includes(site?.name))
       : historySites;
     const initialHistorySites = filteredHistorySites.length > 0 ? filteredHistorySites : historySites;
-    const shouldDeferQueryDrivenInit = initialHistorySites.length > 0 && Boolean(historyRestoreContext?.autoSearch);
+    const shouldDeferQueryDrivenInit = !shouldRestoreHybridHistoryOnInit
+      && initialHistorySites.length > 0
+      && Boolean(historyRestoreContext?.autoSearch);
 
-    if (urlHistoryId && initialHistorySites.length > 0) {
+    if (urlHistoryId && (shouldRestoreHybridHistoryOnInit || initialHistorySites.length > 0)) {
         console.log('检测到 historyId，首屏直接恢复历史 iframe:', {
             historyId: urlHistoryId,
+            hybrid: shouldRestoreHybridHistoryOnInit,
             sites: initialHistorySites.map((site) => site?.name).filter(Boolean)
         });
-        await loadHistoryIframes(initialHistorySites, historyRestoreContext);
+        await loadHistoryIframes(shouldRestoreHybridHistoryOnInit ? [] : initialHistorySites, historyRestoreContext);
         restoredHistoryIframesOnInit = true;
     }
     
@@ -3018,20 +3914,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // 获取站点配置并创建 iframes
                 getDefaultSites().then((sites) => {
                     if (sites && sites.length > 0) {
-                        const availableSites = getInitialIframeSites(sites, selectedSiteNames);
+                        const availableSites = shouldOpenDefaultSites
+                          ? getInitialIframeSites(sites, selectedSiteNames)
+                          : (Array.isArray(selectedSiteNames) && selectedSiteNames.length > 0
+                              ? getInitialIframeSites(sites, selectedSiteNames)
+                              : []);
 
                         if (selectedSiteNames && selectedSiteNames.length > 0) {
                             console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                        } else if (!shouldOpenDefaultSites) {
+                            console.log('URL 中已显式指定面板且没有站点，跳过默认站点回退');
                         } else {
                             console.log('如果没有指定站点列表，默认只打开已启用的站点:', availableSites);
                         }
 
                         if (availableSites.length > 0) {
                             console.log('使用查询内容创建 iframes:', query, availableSites);
-                            createIframes(query, availableSites, selectedCustomSites);
+                            createIframes(query, availableSites, selectedCustomSites, selectedAgents);
                         } else {
-                            console.log('没有可用的站点');
+                            createIframes(query, [], selectedCustomSites, selectedAgents);
                         }
+                    } else {
+                        createIframes(query, [], selectedCustomSites, selectedAgents);
                     }
                 });
             }
@@ -3040,20 +3944,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('URL 参数 query=true，按直接打开处理');
             getDefaultSites().then((sites) => {
                 if (sites && sites.length > 0) {
-                    const availableSites = getInitialIframeSites(sites, selectedSiteNames);
+                    const availableSites = shouldOpenDefaultSites
+                      ? getInitialIframeSites(sites, selectedSiteNames)
+                      : (Array.isArray(selectedSiteNames) && selectedSiteNames.length > 0
+                          ? getInitialIframeSites(sites, selectedSiteNames)
+                          : []);
 
                     if (selectedSiteNames && selectedSiteNames.length > 0) {
                         console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                    } else if (!shouldOpenDefaultSites) {
+                        console.log('URL 中已显式指定面板且没有站点，跳过默认站点回退');
                     } else {
                         console.log('如果没有指定站点列表，默认只打开已启用的站点:', availableSites);
                     }
 
                     if (availableSites.length > 0) {
                         console.log('初始化可用站点:', availableSites);
-                        createIframes('', availableSites, selectedCustomSites);
+                        createIframes('', availableSites, selectedCustomSites, selectedAgents);
                     } else {
-                        console.log('没有可用的站点');
+                        createIframes('', [], selectedCustomSites, selectedAgents);
                     }
+                } else {
+                    createIframes('', [], selectedCustomSites, selectedAgents);
                 }
             });
         }
@@ -3061,20 +3973,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 直接打开（方式1）
         getDefaultSites().then((sites) => {
             if (sites && sites.length > 0) {
-                const availableSites = getInitialIframeSites(sites, selectedSiteNames);
+                const availableSites = shouldOpenDefaultSites
+                  ? getInitialIframeSites(sites, selectedSiteNames)
+                  : (Array.isArray(selectedSiteNames) && selectedSiteNames.length > 0
+                      ? getInitialIframeSites(sites, selectedSiteNames)
+                      : []);
 
                 if (selectedSiteNames && selectedSiteNames.length > 0) {
                     console.log('根据选中的站点列表过滤:', selectedSiteNames, availableSites);
+                } else if (!shouldOpenDefaultSites) {
+                    console.log('URL 中已显式指定面板且没有站点，跳过默认站点回退');
                 } else {
                     console.log('如果没有指定站点列表，默认只打开已启用的站点:', availableSites);
                 }
 
                 if (availableSites.length > 0) {
                     console.log('初始化可用站点:', availableSites);
-                    createIframes('', availableSites, selectedCustomSites);
+                    createIframes('', availableSites, selectedCustomSites, selectedAgents);
                 } else {
-                    console.log('没有可用的站点');
+                    createIframes('', [], selectedCustomSites, selectedAgents);
                 }
+            } else {
+                createIframes('', [], selectedCustomSites, selectedAgents);
             }
         });
     }
@@ -3364,7 +4284,7 @@ async function handleUnifiedFilePaste(event) {
 
 // 发送文件到所有iframe的简化函数
 async function sendFileToAllIframes(fileObj) {
-  const iframes = document.querySelectorAll('.ai-iframe');
+  const iframes = getSiteIframes();
   console.log(`🎯 开始向 ${iframes.length} 个iframe发送文件`);
   console.log('🎯 文件对象详情:', {
     name: fileObj.name,
@@ -3556,17 +4476,152 @@ let navColumnOutsideClickBound = false;
 let requestedIframeSiteType = '';
 let iframeConfiguredTypes = ['information'];
 let ensureIframePromptTemplatesPromise = null;
+let activeAgentPanelStore = new Map();
+let currentHybridHistorySessionId = null;
+let isReadonlyHistoryMode = false;
+let readonlyHistorySession = null;
 const DEFAULT_IFRAME_SITE_TYPE = 'information';
 const IFRAME_SITE_TYPE_ALIASES = {
   chat: 'information',
   agent: 'agents',
   translation: 'translate'
 };
+const PANEL_KIND = Object.freeze({
+  SITE: 'site',
+  AGENT: 'agent',
+  SITE_SNAPSHOT: 'site_snapshot',
+  AGENT_SNAPSHOT: 'agent_snapshot'
+});
 
 function normalizeSiteTypeToken(rawValue) {
   const normalized = String(rawValue || '').trim().toLowerCase();
   if (!normalized) return '';
   return IFRAME_SITE_TYPE_ALIASES[normalized] || normalized;
+}
+
+function getPanelKindFromElement(element) {
+  return String(element?.dataset?.panelKind || PANEL_KIND.SITE).trim() || PANEL_KIND.SITE;
+}
+
+function getSiteIframes() {
+  return Array.from(document.querySelectorAll('.ai-iframe'))
+    .filter((iframe) => getPanelKindFromElement(iframe) === PANEL_KIND.SITE);
+}
+
+function getAllPanelFrames() {
+  return Array.from(document.querySelectorAll('.ai-iframe'));
+}
+
+function getAgentPanelFrames() {
+  return getAllPanelFrames().filter((iframe) => getPanelKindFromElement(iframe) === PANEL_KIND.AGENT);
+}
+
+function getOpenedPanelIds() {
+  return getAllPanelFrames()
+    .map((iframe) => String(iframe.dataset.panelId || '').trim())
+    .filter(Boolean);
+}
+
+function getOpenedAgentIds() {
+  return getAgentPanelFrames()
+    .map((iframe) => String(iframe.dataset.agentId || '').trim())
+    .filter(Boolean);
+}
+
+function buildHybridHistorySessionId() {
+  return `hybrid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function saveHybridHistorySession(record) {
+  if (typeof HybridHistoryDB.saveSession !== 'function') {
+    return null;
+  }
+  return HybridHistoryDB.saveSession(record);
+}
+
+async function getHybridHistorySessionById(sessionId) {
+  if (!sessionId || typeof HybridHistoryDB.getSession !== 'function') {
+    return null;
+  }
+  return HybridHistoryDB.getSession(sessionId);
+}
+
+async function persistCurrentHybridHistorySession(query = '') {
+  if (!currentHybridHistorySessionId || typeof HybridHistoryDB.saveSession !== 'function') {
+    return null;
+  }
+
+  const existingSession = await getHybridHistorySessionById(currentHybridHistorySessionId).catch(() => null);
+
+  const normalizedIncomingQuery = String(query || '').trim();
+  const currentSearchQuery = getCurrentQueryText();
+  const resolvedQuery = normalizedIncomingQuery
+    || currentSearchQuery
+    || String(readonlyHistorySession?.query || '').trim()
+    || String(existingSession?.query || '').trim();
+
+  const runtimeSnapshot = window.aiCompareSiteRuntime?.getSnapshot?.(getOpenedSites()) || { bySite: {} };
+  const sitePanels = await Promise.all(getSiteIframes().map(async (iframe) => {
+    const siteName = String(iframe.dataset.site || iframe.dataset.siteName || '').trim();
+    const panelId = String(iframe.dataset.panelId || `site:${siteName}`).trim();
+    const url = await getIframeLatestUrl(iframe, siteName, window._currentHistoryId || null);
+    const runtimeEntry = runtimeSnapshot?.bySite?.[siteName] || null;
+    const snapshotText = String(runtimeEntry?.content || '').trim();
+    return {
+      panelId,
+      panelType: PANEL_KIND.SITE,
+      title: siteName,
+      siteName,
+      url: url || iframe.src || '',
+      snapshotText: snapshotText || url || iframe.src || '',
+      content: snapshotText || '',
+      runtimePhase: String(runtimeEntry?.phase || '').trim(),
+      runtimeUpdatedAt: runtimeEntry?.updatedAt || ''
+    };
+  }));
+
+  const agentPanels = getOpenedAgentIds().map((agentId) => {
+    const state = getAgentState(agentId);
+    if (!state) return null;
+    return {
+      panelId: state.panelId,
+      panelType: PANEL_KIND.AGENT,
+      title: state.name,
+      agentId,
+      agentName: state.name,
+      messages: state.messages || []
+    };
+  }).filter(Boolean);
+
+  const panels = {};
+  [...sitePanels, ...agentPanels].forEach((panel) => {
+    panels[panel.panelId] = panel;
+  });
+
+  return saveHybridHistorySession({
+    id: currentHybridHistorySessionId,
+    query: resolvedQuery,
+    createdAt: existingSession?.createdAt || readonlyHistorySession?.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    isFavorite: existingSession?.isFavorite === true,
+    favoriteFolder: existingSession?.isFavorite === true
+      ? (String(existingSession?.favoriteFolder || '').trim() || 'default')
+      : '',
+    openSiteNames: getOpenedSites(),
+    openAgentIds: getOpenedAgentIds(),
+    panelOrder: getOpenedPanelIds(),
+    panels,
+    timelineEntries: timelineState.entries.map((timelineEntry) => ({
+      query: String(timelineEntry?.query || '').trim(),
+      timelineId: String(timelineEntry?.timelineId || '').trim(),
+      historyId: timelineEntry?.historyId || null,
+      timestamp: Number(timelineEntry?.timestamp) || Date.now(),
+      dateLabel: timelineEntry?.dateLabel || '',
+      occurrenceIndex: Math.max(0, Number(timelineEntry?.occurrenceIndex) || 0),
+      sourceSites: Array.isArray(timelineEntry?.sourceSites) ? [...timelineEntry.sourceSites] : [],
+      siteCount: Math.max(0, Number(timelineEntry?.siteCount) || 0)
+    }))
+  });
 }
 
 function normalizeSiteCategory(site) {
@@ -3652,6 +4707,23 @@ function getInitialIframeSites(sites = [], selectedSiteNames = null) {
   }
 
   return getDefaultOpenIframeSites(sites);
+}
+
+function shouldFallbackToDefaultSites(options = {}) {
+  const hasSitesParam = options.hasSitesParam === true;
+  const hasCustomSitesParam = options.hasCustomSitesParam === true;
+  const hasAgentsParam = options.hasAgentsParam === true;
+  const selectedSiteNames = Array.isArray(options.selectedSiteNames) ? options.selectedSiteNames : [];
+  const selectedCustomSites = Array.isArray(options.selectedCustomSites) ? options.selectedCustomSites : [];
+  const selectedAgents = Array.isArray(options.selectedAgents) ? options.selectedAgents : [];
+
+  const hasAnyExplicitPanelParams = hasSitesParam || hasCustomSitesParam || hasAgentsParam;
+  if (!hasAnyExplicitPanelParams) {
+    return true;
+  }
+
+  const hasAnyResolvedPanels = selectedSiteNames.length > 0 || selectedCustomSites.length > 0 || selectedAgents.length > 0;
+  return !hasAnyResolvedPanels;
 }
 
 function getColumnSvgTemplate(columns) {
@@ -3900,6 +4972,10 @@ function getOpenedSiteSet() {
   return new Set(getOpenedSites());
 }
 
+function getOpenedAgentSet() {
+  return new Set(getOpenedAgentIds());
+}
+
 async function getAvailableIframeSites() {
   try {
     const sites = await getDefaultSites();
@@ -3945,6 +5021,65 @@ function buildSiteUrlForQuery(site, query) {
     : (site.url || '');
 }
 
+async function getAvailableAgentCatalog() {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'getAgentCatalog'
+    });
+    if (response?.success) {
+      return response.result || { categories: [], agents: [] };
+    }
+  } catch (error) {
+    console.warn('获取智能体目录失败:', error);
+  }
+
+  const customSettingsMap = await getAgentCustomSettingsMapForIframe().catch(() => ({}));
+  if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
+    return AgentCatalog.buildCatalogWithCustomSettings(customSettingsMap);
+  }
+
+  return typeof AgentCatalog.getCatalog === 'function'
+    ? AgentCatalog.getCatalog()
+    : { categories: [], agents: [] };
+}
+
+function buildAgentPanelUrl(agentId) {
+  const params = new URLSearchParams();
+  params.set('agentId', agentId);
+  return `${chrome.runtime.getURL('iframe/agent-panel.html')}?${params.toString()}`;
+}
+
+async function ensureAgentIframeById(agentId) {
+  if (!agentId) return false;
+  const existingIframe = getAgentPanelFrames()
+    .find((iframe) => iframe.getAttribute('data-agent-id') === agentId);
+  if (existingIframe) return true;
+
+  const catalog = await getAvailableAgentCatalog();
+  const agent = (catalog?.agents || []).find((item) => item.id === agentId);
+  if (!agent) {
+    return false;
+  }
+
+  const container = document.getElementById('iframes-container');
+  if (!container) return false;
+
+  createAgentIframe(agent, container);
+  return true;
+}
+
+function removeAgentIframeById(agentId) {
+  cancelInFlightAgentRequest(agentId);
+  const iframe = getAgentPanelFrames()
+    .find((item) => item.getAttribute('data-agent-id') === agentId);
+  const container = iframe?.closest('.iframe-container');
+  if (!container) return false;
+  container.remove();
+  activeAgentPanelStore.delete(String(agentId || '').trim());
+  rebuildTimelineEntriesFromSnapshots();
+  return true;
+}
+
 async function ensureSiteIframeByName(siteName) {
   if (!siteName) return false;
   const existingIframe = Array.from(document.querySelectorAll('.ai-iframe'))
@@ -3963,9 +5098,8 @@ async function ensureSiteIframeByName(siteName) {
     return false;
   }
 
-  const query = getCurrentQueryText();
-  const iframeUrl = buildSiteUrlForQuery(site, query);
-  createSingleIframe(site.name, iframeUrl, container, query, null);
+  const iframeUrl = buildSiteUrlForQuery(site, '');
+  createSingleIframe(site.name, iframeUrl, container, '', null);
   return true;
 }
 
@@ -3987,6 +5121,13 @@ function syncNavCheckboxStates() {
   checkboxes.forEach(checkbox => {
     const siteName = checkbox.dataset.siteName;
     checkbox.checked = openedSet.has(siteName);
+  });
+
+  const openedAgentSet = getOpenedAgentSet();
+  const agentCheckboxes = document.querySelectorAll('.nav-agent-checkbox');
+  agentCheckboxes.forEach((checkbox) => {
+    const agentId = checkbox.dataset.agentId;
+    checkbox.checked = openedAgentSet.has(agentId);
   });
 }
 
@@ -4079,6 +5220,71 @@ function createNavItemElement(site, container = document.getElementById('iframes
   return navItem;
 }
 
+function createNavAgentItemElement(agent, container = document.getElementById('iframes-container')) {
+  const agentId = agent.id;
+  const navItem = document.createElement('li');
+  navItem.className = 'nav-item nav-site-item';
+  navItem.dataset.agentId = agentId;
+
+  const row = document.createElement('div');
+  row.className = 'nav-site-row';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'nav-site-checkbox nav-agent-checkbox';
+  checkbox.dataset.agentId = agentId;
+  checkbox.checked = getOpenedAgentSet().has(agentId);
+
+  const iconBtn = document.createElement('button');
+  iconBtn.type = 'button';
+  iconBtn.className = 'nav-site-icon-btn';
+  iconBtn.title = agent.name;
+  iconBtn.setAttribute('aria-label', agent.name);
+  iconBtn.textContent = String(agent.shortName || agent.name || '?').slice(0, 1);
+  iconBtn.style.background = agent.color || '#111111';
+  iconBtn.style.color = '#ffffff';
+  iconBtn.style.fontWeight = '700';
+
+  row.appendChild(checkbox);
+  row.appendChild(iconBtn);
+  navItem.appendChild(row);
+
+  checkbox.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  checkbox.addEventListener('change', async (event) => {
+    const targetCheckbox = event.currentTarget;
+    const targetAgentId = targetCheckbox.dataset.agentId;
+    targetCheckbox.disabled = true;
+    try {
+      if (targetCheckbox.checked) {
+        await ensureAgentIframeById(targetAgentId);
+      } else {
+        removeAgentIframeById(targetAgentId);
+      }
+    } finally {
+      targetCheckbox.disabled = false;
+      syncNavCheckboxStates();
+    }
+  });
+
+  iconBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!checkbox.checked) return;
+    setActiveNavItem(navItem);
+    const targetIframe = getAgentPanelFrames()
+      .find((iframe) => iframe.getAttribute('data-agent-id') === agentId);
+    const targetContainer = targetIframe?.closest('.iframe-container');
+    if (targetContainer) {
+      targetContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  return navItem;
+}
+
 function removeNavItemBySiteName(siteName) {
   if (!siteName) return;
   syncNavCheckboxStates();
@@ -4137,6 +5343,7 @@ async function renderSideNav() {
   if (!nav) return;
 
   const sites = await getAvailableIframeSites();
+  const agentCatalog = await getAvailableAgentCatalog();
 
   const navControls = nav.querySelector('.nav-controls');
   if (navControls) {
@@ -4157,6 +5364,14 @@ async function renderSideNav() {
   navList.className = 'nav-list';
   nav.appendChild(navList);
 
+  const siteGroup = document.createElement('li');
+  siteGroup.className = 'nav-group';
+  siteGroup.innerHTML = `<div class="nav-group-title">Sites</div>`;
+  const siteGroupList = document.createElement('ul');
+  siteGroupList.className = 'nav-list';
+  siteGroup.appendChild(siteGroupList);
+  navList.appendChild(siteGroup);
+
   const normalizedSites = (sites || [])
     .map(site => typeof site === 'string' ? { name: site } : site)
     .filter(site => site && site.name);
@@ -4164,8 +5379,23 @@ async function renderSideNav() {
   normalizedSites.forEach((site, index) => {
     const navItem = createNavItemElement(site, container);
     navItem.dataset.originalIndex = String(index);
-    navList.appendChild(navItem);
+    siteGroupList.appendChild(navItem);
   });
+
+  const agents = Array.isArray(agentCatalog?.agents) ? agentCatalog.agents : [];
+  if (agents.length > 0) {
+    const agentGroup = document.createElement('li');
+    agentGroup.className = 'nav-group';
+    agentGroup.innerHTML = `<div class="nav-group-title">Agents</div>`;
+    const agentGroupList = document.createElement('ul');
+    agentGroupList.className = 'nav-list';
+    agentGroup.appendChild(agentGroupList);
+    navList.appendChild(agentGroup);
+
+    agents.forEach((agent) => {
+      agentGroupList.appendChild(createNavAgentItemElement(agent, container));
+    });
+  }
 
   // 默认隐藏，鼠标移动到左侧热区再显示
   hideSideNav();
@@ -4206,11 +5436,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // 处理 iframe 的创建和加载
-async function createIframes(query, sites, customSites = []) {
+async function createIframes(query, sites, customSites = [], agents = []) {
   const enabledSites = Array.isArray(sites) ? sites : [];
   const normalizedCustomSites = SiteLaunchUtils.normalizeCustomSites
     ? SiteLaunchUtils.normalizeCustomSites(customSites)
     : [];
+  const normalizedAgents = Array.isArray(agents) ? agents : [];
     
   console.log('过滤后的官方站点:', enabledSites);
   console.log('过滤后的 customSites:', normalizedCustomSites);
@@ -4273,6 +5504,10 @@ async function createIframes(query, sites, customSites = []) {
         siteKind: 'custom',
         launchTarget
       });
+    });
+
+    normalizedAgents.forEach((agent) => {
+      createAgentIframe(agent, container);
     });
   } catch (error) {
     console.error('创建 iframes 失败:', error);
@@ -4355,7 +5590,23 @@ async function createIframes(query, sites, customSites = []) {
   // 如果是从历史/收藏页打开的，跳过保存（避免重复创建记录）
   if (query && query.trim() !== '' && !window._openedFromHistory) {
     // 立即保存历史记录，不等待 iframe 加载
-    await savePKHistory(query);
+    const hasAgentPanels = normalizedAgents.length > 0;
+    if (hasAgentPanels) {
+      currentHybridHistorySessionId = currentHybridHistorySessionId || buildHybridHistorySessionId();
+      await saveHybridHistorySession({
+        id: currentHybridHistorySessionId,
+        query,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        openSiteNames: [...enabledSites.map((site) => site.name), ...normalizedCustomSites.map((site) => site.name)],
+        openAgentIds: normalizedAgents.map((agent) => agent.id),
+        panelOrder: getOpenedPanelIds(),
+        panels: {}
+      });
+      window._currentHistoryId = currentHybridHistorySessionId;
+    } else {
+      await savePKHistory(query);
+    }
   }
 
   // 首页/直达页带着 query 进来后，站点已开始自动发送；发送链路启动后即可清空顶部输入框，
@@ -4363,6 +5614,14 @@ async function createIframes(query, sites, customSites = []) {
   if (query && query.trim() !== '' && !window._openedFromHistory) {
     clearIframeSearchInput();
     armSearchBarAutoCollapse();
+  }
+
+  if (query && query.trim() !== '' && normalizedAgents.length > 0 && !window._openedFromHistory) {
+    normalizedAgents.forEach((agent) => {
+      runAgentPrompt(agent.id, query, 'global').catch((error) => {
+        console.error('初始化智能体提问失败:', error);
+      });
+    });
   }
 }
 
@@ -5496,6 +6755,19 @@ async function runIframeSearchQuery(query, options = {}) {
 
   if (!normalizedQuery) return false;
 
+  if (isReadonlyHistoryMode && readonlyHistorySession) {
+    const params = new URLSearchParams();
+    params.set('query', normalizedQuery);
+    if (Array.isArray(readonlyHistorySession.openSiteNames) && readonlyHistorySession.openSiteNames.length > 0) {
+      params.set('sites', readonlyHistorySession.openSiteNames.join(','));
+    }
+    if (Array.isArray(readonlyHistorySession.openAgentIds) && readonlyHistorySession.openAgentIds.length > 0) {
+      params.set('agents', readonlyHistorySession.openAgentIds.join(','));
+    }
+    window.location.href = `${chrome.runtime.getURL('iframe/iframe.html')}?${params.toString()}`;
+    return true;
+  }
+
   if (options.syncInputValue !== false) {
     setIframeSearchInputValue(normalizedQuery);
   }
@@ -5549,17 +6821,26 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
       const targetSiteNameSet = Array.isArray(targetSiteNames) && targetSiteNames.length > 0
         ? new Set(targetSiteNames.map((name) => String(name || '').trim()).filter(Boolean))
         : null;
+      const hasAgentPanels = getAgentPanelFrames().length > 0;
 
       let historyId = providedHistoryId || window._currentHistoryId || null;
       if (persistHistory) {
         try {
-          historyId = await savePKHistory(query);
+          if (hasAgentPanels) {
+            currentHybridHistorySessionId = buildHybridHistorySessionId();
+            historyId = currentHybridHistorySessionId;
+            window._currentHistoryId = currentHybridHistorySessionId;
+            await persistCurrentHybridHistorySession(query);
+          } else {
+            historyId = await savePKHistory(query);
+          }
         } catch (error) {
           console.error('立即保存 PK 历史记录失败（将继续执行 PK）:', error);
         }
       }
         
-      const iframes = document.querySelectorAll('iframe');
+      const iframes = getSiteIframes();
+      const agentIframes = getAgentPanelFrames();
       let sites = [];
       try {
         sites = await getDefaultSites();
@@ -5661,8 +6942,21 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
         }
     });
 
+      for (const agentIframe of agentIframes) {
+        const agentId = String(agentIframe.dataset.agentId || '').trim();
+        if (!agentId) {
+          continue;
+        }
+        if (targetSiteNameSet && !targetSiteNameSet.has(String(agentIframe.dataset.site || '').trim()) && !targetSiteNameSet.has(agentId)) {
+          continue;
+        }
+        runAgentPrompt(agentId, query, 'global').catch((error) => {
+          console.error('执行智能体全局提问失败:', error);
+        });
+      }
+
       scheduleTimelineSyncBurst([1800, 4200, 7600]);
-      return iframes.length > 0;
+      return iframes.length > 0 || agentIframes.length > 0;
 }
 
 function scheduleRestoreScrollToPrompt(restoreContext) {
@@ -5748,6 +7042,27 @@ async function loadHistoryIframes(sites, restoreContext = null) {
     resetTimelinePromptSnapshots();
     // 清空现有 iframe
     container.innerHTML = '';
+
+    const hybridSession = window._currentHistoryId
+      ? await getHybridHistorySessionById(window._currentHistoryId)
+      : null;
+    if (hybridSession) {
+      isReadonlyHistoryMode = false;
+      readonlyHistorySession = hybridSession;
+      currentHybridHistorySessionId = hybridSession.id;
+      await restoreHybridSessionAsLivePanels(hybridSession, container);
+
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.value = hybridSession.query || '';
+        updateFavoriteButtonVisibility(hybridSession.query || '');
+      }
+
+      restoreHybridSessionTimeline(hybridSession);
+
+      await renderSideNav();
+      return;
+    }
 
     let siteConfigs = [];
     try {
@@ -7509,7 +8824,7 @@ async function processFileToAllIframes(fileData) {
   console.log('🎯 开始向所有iframe发送文件');
   
   // 获取所有 iframe 元素
-  const iframes = document.querySelectorAll('.ai-iframe');
+  const iframes = getSiteIframes();
   console.log(`找到 ${iframes.length} 个 iframe`);
   
   if (iframes.length === 0) {

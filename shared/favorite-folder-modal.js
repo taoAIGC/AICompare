@@ -11,6 +11,10 @@
 const FAV_FOLDERS_KEY = 'favoriteFolders';
 const DEFAULT_FOLDER_ID = 'default';
 
+function getHybridFavoritesApi() {
+    return window.AICompareHybridFavorites || {};
+}
+
 function i18n(key, fallback) {
     try {
         const msg = chrome.i18n.getMessage(key);
@@ -76,6 +80,13 @@ async function getFolderCounts() {
                 }
             }
         });
+    });
+    const hybridFavorites = getHybridFavoritesApi();
+    const hybridCounts = typeof hybridFavorites.getFavoriteFolderCounts === 'function'
+        ? await hybridFavorites.getFavoriteFolderCounts()
+        : {};
+    Object.entries(hybridCounts).forEach(([folderId, count]) => {
+        counts[folderId] = (counts[folderId] || 0) + (Number(count) || 0);
     });
     return counts;
 }

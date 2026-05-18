@@ -703,6 +703,37 @@ body.search-bar-bottom .query-suggestions {
     margin-right: auto;
 }
 
+.combined-selection-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.selection-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.selection-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.selection-group-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ai-text);
+}
+
+.site-filter-bar {
+    width: 100%;
+    max-width: 720px;
+    margin: 18px auto 0;
+}
+
 .sites-list-skeleton {
     display: flex;
     flex-direction: column;
@@ -936,6 +967,57 @@ body.search-bar-bottom .query-suggestions {
     user-select: none;
 }
 
+.agent-item {
+    align-items: flex-start;
+}
+
+.agents-section[hidden] {
+    display: none;
+}
+
+.agent-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    flex: 1;
+}
+
+.agent-item-head {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.agent-name-label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    flex: 0 1 auto;
+}
+
+.agent-description {
+    max-height: 0;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--ai-text-muted);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-2px);
+    transition: max-height 0.16s ease, opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+}
+
+.agent-name-label:hover + .agent-description,
+.agent-name-label:focus-visible + .agent-description {
+    max-height: 80px;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
 @media (max-width: 760px) {
     .sites-list {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -957,31 +1039,6 @@ body.search-bar-bottom .query-suggestions {
     color: var(--ai-text-muted);
     background: var(--ai-surface-soft);
     font-size: 14px;
-}
-
-.site-list-empty-action {
-    border: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    font: inherit;
-    color: var(--ai-accent);
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.site-list-empty-action:hover {
-    color: var(--ai-accent-hover);
-}
-
-.custom-sites-empty-state {
-    margin: 8px 0 18px;
-    padding: 2px 4px;
-    color: var(--ai-text-muted);
-    font-size: 14px;
-    line-height: 1.7;
-    text-align: left;
 }
 
 /* 微信号弹窗 */

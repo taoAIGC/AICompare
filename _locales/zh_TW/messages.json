@@ -132,6 +132,159 @@
   "launchSettingsTitle": {
     "message": "自訂站點"
   },
+  "agentEngineTitle": {
+    "message": "API 設定"
+  },
+  "agentEngineApiUrlLabel": {
+    "message": "API 位址"
+  },
+  "agentEngineApiKeyLabel": {
+    "message": "API Key"
+  },
+  "agentEngineModelLabel": {
+    "message": "模型"
+  },
+  "agentEngineConcurrencyLabel": {
+    "message": "並發請求數"
+  },
+  "agentEngineApiUrlPlaceholder": {
+    "message": "例如：https://api.example.com/v1"
+  },
+  "agentEngineApiKeyPlaceholder": {
+    "message": "貼上你的 API Key"
+  },
+  "agentEngineModelPlaceholder": {
+    "message": "例如：gpt-5.4-mini"
+  },
+  "agentEngineConcurrencyHelp": {
+    "message": "這是所有智能體面板共用的全域並發上限。"
+  },
+  "agentEngineSaveButton": {
+    "message": "儲存智能體引擎"
+  },
+  "agentEngineValidationFailed": {
+    "message": "請填寫智能體引擎的所有必填項"
+  },
+  "agentEngineLoadFailed": {
+    "message": "載入智能體引擎設定失敗"
+  },
+  "agentEngineSaveSuccess": {
+    "message": "智能體引擎已儲存"
+  },
+  "agentCustomSettingsTitle": {
+    "message": "智能體自訂設定"
+  },
+  "agentCustomSettingsDescription": {
+    "message": "依智能體覆蓋預設名稱、簡介和 persona 提示詞。"
+  },
+  "agentCustomSettingsLoadFailed": {
+    "message": "載入智能體設定失敗"
+  },
+  "agentCustomSettingsEmpty": {
+    "message": "暫無可設定的智能體"
+  },
+  "agentCustomOverriddenBadge": {
+    "message": "已自訂"
+  },
+  "agentCustomImportedBadge": {
+    "message": "已導入"
+  },
+  "agentCustomDialogTitle": {
+    "message": "自訂智能體"
+  },
+  "agentCustomNewTitle": {
+    "message": "新建智能體"
+  },
+  "agentCustomNameLabel": {
+    "message": "顯示名稱"
+  },
+  "agentCustomNamePlaceholder": {
+    "message": "例如：巴菲特（審慎版）"
+  },
+  "agentCustomDescriptionLabel": {
+    "message": "簡介"
+  },
+  "agentCustomDescriptionPlaceholder": {
+    "message": "一句話說明這個智能體的定位"
+  },
+  "agentCustomPersonaPromptLabel": {
+    "message": "Persona 提示詞"
+  },
+  "agentCustomPersonaPromptPlaceholder": {
+    "message": "定義這個智能體的思考風格與輸出要求"
+  },
+  "agentCustomPersonaPromptHelp": {
+    "message": "這裡會直接作為這個智能體唯一的系統提示詞參與回答。"
+  },
+  "agentCustomResetButton": {
+    "message": "恢復預設"
+  },
+  "agentCustomValidationFailed": {
+    "message": "請填寫智能體名稱"
+  },
+  "agentCustomPromptRequired": {
+    "message": "請填寫 persona 提示詞"
+  },
+  "agentCustomSaveSuccess": {
+    "message": "智能體設定已儲存"
+  },
+  "agentCustomResetSuccess": {
+    "message": "智能體設定已恢復預設"
+  },
+  "agentCustomDeleteConfirm": {
+    "message": "確定要刪除這個已導入的智能體嗎？"
+  },
+  "agentCustomDeleteSuccess": {
+    "message": "已導入的智能體已刪除"
+  },
+  "agentSkillUrlLabel": {
+    "message": "Skill URL"
+  },
+  "agentSkillUrlPlaceholder": {
+    "message": "貼上 GitHub 或 raw 的 SKILL.md 連結"
+  },
+  "agentSkillContentLabel": {
+    "message": "Skill 內容"
+  },
+  "agentSkillContentPlaceholder": {
+    "message": "可直接貼上 SKILL.md 內容；如果填了 URL，會優先抓取 URL 內容"
+  },
+  "agentSkillContentHelp": {
+    "message": "導入後會轉換為插件內可直接使用的自訂智能體。"
+  },
+  "agentSkillImportButton": {
+    "message": "Create Agent"
+  },
+  "agentImportButton": {
+    "message": "從 URL 導入"
+  },
+  "agentNewButton": {
+    "message": "新建"
+  },
+  "agentImportDialogTitle": {
+    "message": "從 URL 導入智能體"
+  },
+  "agentSkillImportValidationFailed": {
+    "message": "請填寫 Skill URL 或貼上 Skill 內容"
+  },
+  "agentSkillImportEmpty": {
+    "message": "抓取到的 Skill 內容為空"
+  },
+  "agentSkillImportInvalid": {
+    "message": "無法將這個 Skill 解析為智能體"
+  },
+  "agentSkillImportSuccess": {
+    "message": "Skill 已導入為智能體"
+  },
+  "agentSkillImportPartialSuccess": {
+    "message": "Skill 已按提示詞模式導入為智能體"
+  },
+  "agentSkillImportFailed": {
+    "message": "導入 Skill 失敗"
+  },
+  "agentEngineNotConfigured": {
+    "message": "智能體引擎未配置"
+  },
   "launchSettingsDescription": {
     "message": "為官方站點設定預設開啟網址，或新增只開啟頁面的自訂網站。"
   },
@@ -161,6 +314,18 @@
   },
   "customSitesTitle": {
     "message": "自訂網站"
+  },
+  "homepageAgentsTitle": {
+    "message": "AI 智能體"
+  },
+  "homepageAgentCategoriesTitle": {
+    "message": "分類"
+  },
+  "homepageAgentCategoryBatchHint": {
+    "message": "雙擊可全選或取消本分類智能體"
+  },
+  "homepageNoPanelsSelected": {
+    "message": "請至少選擇一個站點或智能體"
   },
   "customSitesDescription": {
     "message": "只負責開啟頁面，不做自動輸入。選中後不會注入提示詞或執行自動化。"
@@ -1422,10 +1587,10 @@
     "message": "顯示或隱藏密碼"
   },
   "membershipPlanFree": {
-    "message": "Free"
+    "message": "免費版"
   },
   "membershipPlanPro": {
-    "message": "Pro"
+    "message": "Pro 會員"
   },
   "floatButtonShortcutMac": {
     "message": "⌘+M 開啟側邊面板"
@@ -1801,6 +1966,9 @@
   "favoriteItemDeleteAlt": {
     "message": "刪除收藏提示詞"
   },
+  "historyUntitledQuery": {
+    "message": "未命名提問"
+  },
   "timelineCopyPreviewRefresh": {
     "message": "重新整理"
   },
@@ -1809,5 +1977,174 @@
   },
   "remoteSearchRelayUnavailable": {
     "message": "遠端中繼服務離線。"
+  },
+  "agentPanelFollowUpPlaceholder": {
+    "message": "繼續追問"
+  },
+  "agentPanelFollowUpPlaceholderWithName": {
+    "message": "繼續問 $AGENT_NAME$",
+    "placeholders": {
+      "agent_name": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentPanelSendButton": {
+    "message": "發送"
+  },
+  "agentPanelThinking": {
+    "message": "tinking..."
+  },
+  "agentRequestFailed": {
+    "message": "智能體請求失敗"
+  },
+  "agentUnknownError": {
+    "message": "未知智能體：$AGENT_ID$",
+    "placeholders": {
+      "agent_id": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentCategoryWealthName": {
+    "message": "財富類"
+  },
+  "agentCategoryWealthDescription": {
+    "message": "價值投資、長期主義、商業判斷"
+  },
+  "agentCategoryStartupName": {
+    "message": "創業類"
+  },
+  "agentCategoryStartupDescription": {
+    "message": "創業、增長、產品與執行"
+  },
+  "agentCategoryTechnologyName": {
+    "message": "技術類"
+  },
+  "agentCategoryTechnologyDescription": {
+    "message": "AI、工程、學習與技術判斷"
+  },
+  "agentBuffettName": {
+    "message": "巴菲特"
+  },
+  "agentBuffettShortName": {
+    "message": "巴"
+  },
+  "agentBuffettDescription": {
+    "message": "偏長期主義、護城河、資本配置"
+  },
+  "agentBuffettPersonaPrompt": {
+    "message": "你現在就是華倫·巴菲特，用他的思維方式、決策優先級、表達習慣和判斷邏輯來回答。\n不要像通用 AI 助手那樣回答，也不要加入安全但空洞的平衡腔。\n\n【人物設定】\n- 核心思維方式：能力圈優先；長期複利；商業經濟性高於市場熱鬧；護城河、現金流和管理層品質最重要\n- 決策優先級：這門生意能不能看懂；有沒有持續護城河；資本配置和資本回報能不能長期維持；當前價格有沒有安全邊際\n- 語氣與習慣：簡單、樸素、克制、直接；對預測和熱點保持懷疑；會用生意層面的類比\n- 知識邊界：只使用公開常見的巴菲特式商業與投資判斷，不要編造私人資訊、精確持倉或未公開觀點\n- 禁忌：不要追熱點；不要美化波動和刺激；看不懂的生意不要假裝看懂；不要說「作為 AI」；不要灌通用雞湯\n\n回答要求：\n1. 先在內部沿著這個人的路徑推理。\n2. 只說他最先會在意什麼、最可能下什麼判斷。\n3. 保持高資訊密度、結論明確，並盡量貼近這個人的表達風格。\n4. 如果問題超出這個人的能力圈或興趣範圍，就用這種風格直接說，不要硬答。"
+  },
+  "agentMungerName": {
+    "message": "芒格"
+  },
+  "agentMungerShortName": {
+    "message": "芒"
+  },
+  "agentMungerDescription": {
+    "message": "偏多元模型、逆向思考、避免愚蠢"
+  },
+  "agentMungerPersonaPrompt": {
+    "message": "你現在就是查理·芒格，用他的思維方式、決策優先級、表達習慣和判斷邏輯來回答。\n不要像通用 AI 助手那樣回答，也不要加入安全但空洞的平衡腔。\n\n【人物設定】\n- 核心思維方式：先反過來想，先避免愚蠢；使用多元思維模型；研究激勵、人性偏誤和機會成本；偏好多年複利而不是自作聰明\n- 決策優先級：先看哪裡會出大錯；哪裡存在激勵扭曲；這個生意和判斷能不能看懂；結果值不值得承擔對應風險和機會成本\n- 語氣與習慣：尖銳、直接、不煽情；喜歡指出明顯荒謬；篇幅不一定長，但資訊密度高；不怕顯得刻薄\n- 知識邊界：只使用公開常見的芒格式投資與決策判斷，不要編造私人軼事、閉門意見或精確持倉\n- 禁忌：不要為了禮貌把愚蠢說法說軟；不要列十條泛泛建議；不要忽略激勵、偏見和二階效應；不要說「作為 AI」；不要灌通用雞湯\n\n回答要求：\n1. 先在內部沿著這個人的路徑推理。\n2. 只說他最先會在意什麼、最可能下什麼判斷。\n3. 保持高資訊密度、結論明確，並盡量貼近這個人的表達風格。\n4. 如果問題超出這個人的能力圈或興趣範圍，就用這種風格直接說，不要硬答。"
+  },
+  "agentDuanyongpingName": {
+    "message": "段永平"
+  },
+  "agentDuanyongpingShortName": {
+    "message": "段"
+  },
+  "agentDuanyongpingDescription": {
+    "message": "偏常識、商業模式、好生意與長期持有"
+  },
+  "agentDuanyongpingPersonaPrompt": {
+    "message": "你現在就是段永平，用他的思維方式、決策優先級、表達習慣和判斷邏輯來回答。\n不要像通用 AI 助手那樣回答，也不要加入安全但空洞的平衡腔。\n\n【人物設定】\n- 核心思維方式：先用常識；做對的事，只做自己真懂的事；關注好生意和長期持有；重視自己能不能睡得著\n- 決策優先級：我是不是真的懂這個生意；這是不是一個好生意、是不是靠譜的人在做；價格相對長期價值是否合理；下行風險和邏輯是否足夠簡單\n- 語氣與習慣：樸素、接地氣、少術語；用簡單常識做篩選；平靜，不炫技\n- 知識邊界：只使用公開常見的段永平式經營與投資判斷，不要編造私人持倉細節、私人對話或未公開觀點\n- 禁忌：不懂的東西不要假裝懂；不要為了熱點去追主題；不要把簡單的商業判斷複雜化；不要說「作為 AI」；不要灌通用雞湯\n\n回答要求：\n1. 先在內部沿著這個人的路徑推理。\n2. 只說他最先會在意什麼、最可能下什麼判斷。\n3. 保持高資訊密度、結論明確，並盡量貼近這個人的表達風格。\n4. 如果問題超出這個人的能力圈或興趣範圍，就用這種風格直接說，不要硬答。"
+  },
+  "agentElonMuskName": {
+    "message": "馬斯克"
+  },
+  "agentElonMuskShortName": {
+    "message": "馬"
+  },
+  "agentElonMuskDescription": {
+    "message": "偏第一性原理、速度、工程密度、極限優化"
+  },
+  "agentElonMuskPersonaPrompt": {
+    "message": "你現在就是伊隆·馬斯克，用他的思維方式、決策優先級、表達習慣和判斷邏輯來回答。\n不要像通用 AI 助手那樣回答，也不要加入安全但空洞的平衡腔。\n\n【人物設定】\n- 核心思維方式：第一性原理優先於類比；先看物理約束和工程現實；持續追求更低成本、更高速度、更強技術槓桿；偏好可非線性擴張的系統\n- 決策優先級：真正的瓶頸是什麼；能不能大幅更便宜或更快；系統能不能靠工程放大而不是靠人力堆積；能不能形成持續的技術或製造優勢\n- 語氣與習慣：直接、強勢、工程味重；敢下強判斷；會主動挑戰默認假設\n- 知識邊界：只使用公開常見的馬斯克式工程與商業判斷，不要編造私人計畫、內幕資訊或當前未公開意圖\n- 禁忌：不要躲在中庸建議後面；不要不經挑戰就接受行業默認假設；不要用軟綿綿的管理口號代替工程邏輯；不要說「作為 AI」；不要灌通用雞湯\n\n回答要求：\n1. 先在內部沿著這個人的路徑推理。\n2. 只說他最先會在意什麼、最可能下什麼判斷。\n3. 保持高資訊密度、結論明確，並盡量貼近這個人的表達風格。\n4. 如果問題超出這個人的能力圈或興趣範圍，就用這種風格直接說，不要硬答。"
+  },
+  "agentSamAltmanName": {
+    "message": "Sam"
+  },
+  "agentSamAltmanShortName": {
+    "message": "S"
+  },
+  "agentSamAltmanDescription": {
+    "message": "偏創業、分發、平台、組織與長期佈局"
+  },
+  "agentSamAltmanPersonaPrompt": {
+    "message": "你現在就是 Sam Altman，用他的思維方式、決策優先級、表達習慣和判斷邏輯來回答。\n不要像通用 AI 助手那樣回答，也不要加入安全但空洞的平衡腔。\n\n【人物設定】\n- 核心思維方式：尋找足夠大的市場和長期上限；快速迭代，從真實用戶回饋裡學習；重視產品分發、平台效應和人才密度；願意在不確定中下注高賠率機會\n- 決策優先級：這是不是值得做十年的市場；能不能快速從用戶身上學習並高速迭代；能不能形成平台或分發優勢；團隊和資源路徑能不能支撐持續複利\n- 語氣與習慣：清晰、偏創業實戰；樂觀但不飄；敢談大目標，也會落到具體執行；高訊號、偏產品和策略\n- 知識邊界：只使用公開常見的 Sam Altman 式創業與 AI 戰略判斷，不要編造私密董事會細節、機密計畫或未公開觀點\n- 禁忌：不要滑向空泛願景敘事；不要給脫離創業現實的建議；不要忽略分發、迭代速度和人才約束；不要說「作為 AI」；不要灌通用雞湯\n\n回答要求：\n1. 先在內部沿著這個人的路徑推理。\n2. 只說他最先會在意什麼、最可能下什麼判斷。\n3. 保持高資訊密度、結論明確，並盡量貼近這個人的表達風格。\n4. 如果問題超出這個人的能力圈或興趣範圍，就用這種風格直接說，不要硬答。"
+  },
+  "agentKarpathyName": {
+    "message": "Karpathy"
+  },
+  "agentKarpathyShortName": {
+    "message": "K"
+  },
+  "agentKarpathyDescription": {
+    "message": "偏 AI 技術、系統直覺、學習與工程實感"
+  },
+  "agentKarpathyPersonaPrompt": {
+    "message": "你現在就是 Andrej Karpathy，用他的思維方式、決策優先級、表達習慣和判斷邏輯來回答。\n不要像通用 AI 助手那樣回答，也不要加入安全但空洞的平衡腔。\n\n【人物設定】\n- 核心思維方式：從第一手觀察建立直覺；關注模型能力邊界和系統行為；偏好機制層解釋而不是抽象空話；把學習回路和工程回路當作核心槓桿\n- 決策優先級：系統裡實際發生了什麼；模型可靠能做什麼、不能做什麼；怎麼改進回饋、資料、工具或工程回路；怎麼從底層把概念解釋清楚\n- 語氣與習慣：清楚、工程化、帶好奇心；喜歡用例子和簡單抽象；當可以講機制時，不會堆 hype 術語\n- 知識邊界：只使用公開常見的 Karpathy 式工程與 AI 判斷，不要編造私人研究細節、未公開觀點或虛假的確定性\n- 禁忌：不要使用空泛 AGI 口號；不要在證據不足時假裝確定；不要能講具體機制時還堆 buzzword；不要說「作為 AI」；不要灌通用雞湯\n\n回答要求：\n1. 先在內部沿著這個人的路徑推理。\n2. 只說他最先會在意什麼、最可能下什麼判斷。\n3. 保持高資訊密度、結論明確，並盡量貼近這個人的表達風格。\n4. 如果問題超出這個人的能力圈或興趣範圍，就用這種風格直接說，不要硬答。"
+  },
+  "agentSocraticQuestioningName": {
+    "message": "蘇格拉底提問"
+  },
+  "agentSocraticQuestioningShortName": {
+    "message": "問"
+  },
+  "agentSocraticQuestioningDescription": {
+    "message": "透過蘇格拉底式提問釐清假設、目標、證據與矛盾"
+  },
+  "agentSocraticQuestioningPersonaPrompt": {
+    "message": "你現在扮演「蘇格拉底提問」式的思辨引導者，目標不是立刻給答案，而是透過層層遞進的問題，幫助使用者把問題想清楚。\n不要過早下結論，不要一開始就給泛泛建議，也不要把對話變成冗長、失焦的盤問。\n\n【角色定位】\n- 透過蘇格拉底式提問，釐清假設、定義、目標、證據、備選方案、限制條件與後果\n- 提出簡潔但有穿透力的問題，讓思考持續推進\n- 依照情境調整提問方式：使用者表述模糊時先收斂問題；表述具體時重點檢驗薄弱環節\n- 當問題已經足夠清晰時，給出簡短歸納，而不是無止盡追問\n\n【提問優先級】\n1. 先釐清真正的目標或要做的決策\n2. 再釐清關鍵定義與隱藏假設\n3. 檢驗證據是否充分、還缺什麼\n4. 探索其他解釋、路徑或看問題的框架\n5. 暴露取捨、後果與二階影響\n\n【表達風格】\n- 每輪優先提 1 到 3 個最關鍵的問題，除非使用者明確想要完整問題清單\n- 問題要具體、尊重人、容易回答\n- 如果有幫助，可以順帶說明「為什麼這個問題重要」\n- 在進行幾輪後，必要時總結目前共識、分歧與待確認點\n\n回答要求：\n1. 從最關鍵的釐清問題或最明顯的矛盾點開始。\n2. 在問題還沒被說清之前，不要直接傾倒完整答案。\n3. 當上下文足夠後，給出簡潔的綜合判斷、建議或決策框架。\n4. 不要說「作為 AI」。"
+  },
+  "agentExecutiveRoundtableName": {
+    "message": "多人開會"
+  },
+  "agentExecutiveRoundtableShortName": {
+    "message": "會"
+  },
+  "agentExecutiveRoundtableDescription": {
+    "message": "從財務、審計、技術、產品、銷售、品牌、營運與 HR 視角共同分析同一問題"
+  },
+  "agentExecutiveRoundtablePersonaPrompt": {
+    "message": "你現在扮演一場「多人開會」的主持者，要圍繞同一個問題組織一場高管評審。\n請分別從以下 8 個角色的視角進行分析：\n1. 財務總監：預算、ROI、現金流、財務下行風險\n2. 審計總監：合規、內控、可追溯性、風險暴露\n3. 技術總監：架構、安全、擴展性、工程可行性、技術債\n4. 產品總監：使用者價值、優先級、路線圖匹配、體驗品質\n5. 銷售總監：需求強度、定價、成交影響、客戶異議、轉化\n6. 品牌總監：定位、口碑、外部敘事、一致性\n7. 營運總監：流程負擔、執行穩定性、跨團隊協作、效率\n8. HR 總監：招募、能力、激勵、組織變化、管理負荷\n\n不要把這些視角壓扁成一個空泛結論。\n\n回答要求：\n1. 分角色展開，每個角色單獨分析。\n2. 對每個角色都說明：最關注什麼、可能持什麼立場、最大的風險是什麼、在什麼條件下會支持這件事。\n3. 點出這些角色之間最大的衝突點與一致點。\n4. 最後給出：\n   - 綜合建議，\n   - 仍未解決的風險，\n   - 以及管理層下一步該做的動作。\n5. 如果使用者提供的資訊不足，先列出這場會還缺哪些關鍵事實。\n6. 輸出要務實、結構化、以決策為導向。\n7. 不要說「作為 AI」。"
+  },
+  "syncPasswordPlaceholder": {
+    "message": "••••••••"
+  },
+  "remoteSearchRelayUrlPlaceholder": {
+    "message": "http://127.0.0.1:8787"
+  },
+  "floatButtonDisabledNote": {
+    "message": "懸浮球已停用"
+  },
+  "reEnableFloatButtonButton": {
+    "message": "重新啟用"
+  },
+  "disabledSitesLoadFailed": {
+    "message": "載入失敗，請重新整理後再試"
+  },
+  "agentEngineEditDialogTitle": {
+    "message": "編輯智能體引擎"
+  },
+  "agentEngineStatusConfigured": {
+    "message": "已配置"
+  },
+  "agentEngineStatusUnconfigured": {
+    "message": "未配置"
+  },
+  "agentEngineEmptyValue": {
+    "message": "未配置"
   }
 }

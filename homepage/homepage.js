@@ -24,7 +24,6 @@ const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
 );
 const SITE_GROUP_LABELS = {
     information: 'homepageTypeInformation',
-    agents: 'homepageTypeAgents',
     translate: 'homepageTypeTranslate'
 };
 
@@ -33,6 +32,11 @@ const homepageSitesState = {
     selectedSites: new Map(),
     customSites: [],
     selectedCustomSites: new Map(),
+    agentCatalog: {
+        categories: [],
+        agents: []
+    },
+    selectedAgents: new Map(),
     activeGroup: DEFAULT_SITE_GROUP,
     configuredGroups: [DEFAULT_SITE_GROUP],
     dragAndDropBound: false
@@ -142,11 +146,6 @@ function t(key, fallback = '') {
     return chrome?.i18n?.getMessage?.(key) || fallback;
 }
 
-function openCustomSitesSettingsPage() {
-    const targetUrl = chrome.runtime.getURL('options/options.html?scrollTarget=custom-sites-settings#launch-settings');
-    window.location.href = targetUrl;
-}
-
 function openRemoteSearchSettingsPage() {
     const targetUrl = chrome.runtime.getURL('options/options.html#remote-search');
     window.location.href = targetUrl;
@@ -244,29 +243,11 @@ async function initializeRemoteSearchHomepageCard() {
 }
 
 function updateCustomSitesEmptyState(isEmpty) {
-    const emptyState = document.getElementById('customSitesEmptyState');
     const customSitesSection = document.querySelector('.custom-sites-section');
-
-    if (emptyState) {
-        emptyState.hidden = !isEmpty;
-    }
 
     if (customSitesSection) {
         customSitesSection.hidden = isEmpty;
     }
-}
-
-function bindCustomSitesEmptyStateAction() {
-    const actionButton = document.querySelector('#customSitesEmptyState .site-list-empty-action');
-    if (!actionButton || actionButton.dataset.bound === 'true') {
-        return;
-    }
-
-    actionButton.dataset.bound = 'true';
-    actionButton.addEventListener('click', () => {
-        trackEvent('homepage_custom_site_empty_add_click');
-        openCustomSitesSettingsPage();
-    });
 }
 
 function getSiteGroup(site) {
@@ -371,6 +352,7 @@ function renderSiteTypeTabs() {
             homepageSitesState.activeGroup = groupKey;
             renderSiteTypeTabs();
             renderSitesList();
+            updateAgentsSectionVisibility();
         });
         fragment.appendChild(button);
     });
@@ -465,6 +447,127 @@ function getSelectedCustomSiteIds() {
         .map(site => site.id);
 }
 
+function getSelectedAgentIds() {
+    return (homepageSitesState.agentCatalog?.agents || [])
+        .filter(agent =>
+            homepageSitesState.selectedAgents.get(agent.id) === true
+            && getAgentGroup(agent) === homepageSitesState.activeGroup
+        )
+        .map(agent => agent.id);
+}
+
+function getAgentGroup(agent) {
+    const rawGroup = String(agent?.type || DEFAULT_SITE_GROUP).trim().toLowerCase();
+    return rawGroup === 'agents' ? DEFAULT_SITE_GROUP : (rawGroup || DEFAULT_SITE_GROUP);
+}
+
+function getFilteredAgents() {
+    return (homepageSitesState.agentCatalog?.agents || [])
+        .filter(agent => getAgentGroup(agent) === DEFAULT_SITE_GROUP);
+}
+
+function updateAgentsSectionVisibility() {
+    const agentsSection = document.getElementById('agentsSection');
+    if (!agentsSection) {
+        return;
+    }
+
+    const hasVisibleAgents = (homepageSitesState.agentCatalog?.agents || [])
+        .some(agent => getAgentGroup(agent) === DEFAULT_SITE_GROUP);
+    agentsSection.hidden = !(homepageSitesState.activeGroup === DEFAULT_SITE_GROUP && hasVisibleAgents);
+}
+
+function renderAgentsList() {
+    const agentsList = document.getElementById('agentsList');
+    if (!agentsList) {
+        return;
+    }
+
+    const agents = getFilteredAgents();
+    agentsList.innerHTML = '';
+
+    if (!agents.length) {
+        agentsList.innerHTML = `<div class="site-list-empty">${t('siteListEmpty', 'No sites in this type yet')}</div>`;
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    agents.forEach((agent) => {
+        const item = document.createElement('div');
+        item.className = 'site-item agent-item';
+        item.dataset.agentId = agent.id;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'site-checkbox';
+        checkbox.id = `agent-${agent.id}`;
+        checkbox.checked = homepageSitesState.selectedAgents.get(agent.id) === true;
+        checkbox.addEventListener('change', () => {
+            homepageSitesState.selectedAgents.set(agent.id, checkbox.checked);
+            trackEvent('homepage_agent_toggle', {
+                agent_id: agent.id,
+                enabled: checkbox.checked
+            });
+        });
+
+        const body = document.createElement('div');
+        body.className = 'agent-item-body';
+
+        const head = document.createElement('div');
+        head.className = 'agent-item-head';
+
+        const label = document.createElement('label');
+        label.htmlFor = `agent-${agent.id}`;
+        label.textContent = agent.name;
+        label.className = 'agent-name-label';
+
+        const description = document.createElement('div');
+        description.className = 'agent-description';
+        description.textContent = agent.description || '';
+
+        head.appendChild(label);
+        body.appendChild(head);
+        if (description.textContent) {
+            body.appendChild(description);
+        }
+
+        item.appendChild(checkbox);
+        item.appendChild(body);
+
+        item.addEventListener('click', (event) => {
+            if (event.target === checkbox || event.target === label) {
+                return;
+            }
+            checkbox.click();
+        });
+
+        fragment.appendChild(item);
+    });
+
+    agentsList.appendChild(fragment);
+}
+
+async function initializeAgentsList() {
+    try {
+        const response = await chrome.runtime.sendMessage({
+            action: 'getAgentCatalog'
+        });
+        const catalog = response?.success ? response.result : { categories: [], agents: [] };
+        homepageSitesState.agentCatalog = {
+            categories: Array.isArray(catalog?.categories) ? catalog.categories : [],
+            agents: Array.isArray(catalog?.agents) ? catalog.agents : []
+        };
+        homepageSitesState.selectedAgents = new Map(
+            (homepageSitesState.agentCatalog.agents || []).map(agent => [agent.id, agent.defaultEnabled === true])
+        );
+        updateAgentsSectionVisibility();
+        renderAgentsList();
+    } catch (error) {
+        console.error('加载智能体列表失败:', error);
+    }
+}
+
 function renderCustomSitesList() {
     const customSitesList = document.getElementById('customSitesList');
     if (!customSitesList) {
@@ -476,7 +579,6 @@ function renderCustomSitesList() {
 
     if (customSites.length === 0) {
         updateCustomSitesEmptyState(true);
-        bindCustomSitesEmptyStateAction();
         return;
     }
 
@@ -731,6 +833,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         measureAsyncStep('pin_guide_init', () => checkAndShowPinGuide()),
         measureAsyncStep('query_suggestions_init', () => initializeQuerySuggestions()),
         measureAsyncStep('sites_list_init', () => initializeSitesList()),
+        measureAsyncStep('agents_list_init', () => initializeAgentsList()),
         measureAsyncStep('custom_sites_init', () => initializeCustomSitesList()),
         measureAsyncStep('remote_search_card_init', () => initializeRemoteSearchHomepageCard())
     ]).finally(() => {
@@ -992,6 +1095,11 @@ async function handleQuery(query) {
     // 获取选中的站点列表
     const selectedSites = getSelectedSites();
     const selectedCustomSiteIds = getSelectedCustomSiteIds();
+    const selectedAgentIds = getSelectedAgentIds();
+    if (selectedSites.length === 0 && selectedCustomSiteIds.length === 0 && selectedAgentIds.length === 0) {
+        showToast(t('homepageNoPanelsSelected', 'Select at least one site or agent'));
+        return;
+    }
     const selectedSiteConfigs = homepageSitesState.supportedSites.filter(site =>
         selectedSites.includes(site.name)
     );
@@ -1030,6 +1138,9 @@ async function handleQuery(query) {
     if (customIframeSiteIds.length > 0) {
         params.set('customSites', customIframeSiteIds.join(','));
     }
+    if (selectedAgentIds.length > 0) {
+        params.set('agents', selectedAgentIds.join(','));
+    }
     if (homepageSitesState.activeGroup) {
         params.set('type', homepageSitesState.activeGroup);
     }
@@ -1044,6 +1155,8 @@ async function handleQuery(query) {
         selected_sites: selectedSites,
         custom_sites_count: selectedCustomSiteIds.length,
         custom_sites: selectedCustomSiteIds,
+        agents_count: selectedAgentIds.length,
+        agents: selectedAgentIds,
         iframe_sites_count: iframeSiteNames.length,
         external_sites_count: externalSiteNames.length,
         custom_iframe_sites_count: customIframeSiteIds.length,
@@ -1073,7 +1186,7 @@ async function handleQuery(query) {
             }
         }
 
-        if (iframeSiteNames.length > 0 || customIframeSiteIds.length > 0) {
+        if (iframeSiteNames.length > 0 || customIframeSiteIds.length > 0 || selectedAgentIds.length > 0) {
             let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
             if (params.toString()) {
                 searchUrl += '?' + params.toString();
@@ -1145,6 +1258,7 @@ async function initializeSitesList() {
         perfMark('sites_list_render_start');
         renderSiteTypeTabs();
         renderSitesList();
+        updateAgentsSectionVisibility();
         perfMark('sites_list_render_end');
         perfMeasure('sites_list_render_duration', 'sites_list_render_start', 'sites_list_render_end');
         
@@ -1298,7 +1412,7 @@ function initializeSaveSitesButton() {
     // 使用自定义 tooltip（快速显示），仅设置 aria-label 供无障碍
     const saveTitle = chrome.i18n.getMessage('saveFavoriteSitesTitle') || 
         chrome.i18n.getMessage('saveFavoriteSites') || 
-        '保存为默认站点';
+        'Save as default sites';
     saveBtn.setAttribute('aria-label', saveTitle);
     
     // 点击保存按钮
@@ -1311,16 +1425,21 @@ function initializeSaveSitesButton() {
             // 获取当前选中的站点
             const selectedSites = getSelectedSites();
             const selectedCustomSiteIds = getSelectedCustomSiteIds();
+            const selectedAgentIds = getSelectedAgentIds();
             console.log('选中的站点:', selectedSites);
             console.log('选中的 customSites:', selectedCustomSiteIds);
+            console.log('选中的 agents:', selectedAgentIds);
             
-            if (selectedSites.length === 0 && selectedCustomSiteIds.length === 0) {
-                showToast(chrome.i18n.getMessage('noSitesSelected') || '请至少选择一个站点');
+            if (selectedSites.length === 0 && selectedCustomSiteIds.length === 0 && selectedAgentIds.length === 0) {
+                showToast(t('homepageNoPanelsSelected', 'Select at least one site or agent'));
                 return;
             }
             
             // 1. 读取现有的用户设置
-            const { sites: existingUserSettings = {} } = await chrome.storage.sync.get('sites');
+            const {
+                sites: existingUserSettings = {},
+                agentCustomSettings: storedAgentCustomSettings = {}
+            } = await chrome.storage.sync.get(['sites', 'agentCustomSettings']);
             console.log('现有的用户设置:', existingUserSettings);
             
             // 2. 获取所有可用站点（用于更新所有站点的 enabled 状态）
@@ -1351,20 +1470,46 @@ function initializeSaveSitesButton() {
                 ...site,
                 enabled: selectedCustomSiteIds.includes(site.id)
             }));
+
+            const agentCatalogUtils = window.AICompareAgentCatalog || null;
+            const normalizedAgentSettings = typeof agentCatalogUtils?.normalizeAgentCustomSettingsMap === 'function'
+                ? agentCatalogUtils.normalizeAgentCustomSettingsMap(storedAgentCustomSettings)
+                : (storedAgentCustomSettings && typeof storedAgentCustomSettings === 'object'
+                    ? { ...storedAgentCustomSettings }
+                    : {});
+            const updatedAgentCustomSettings = {
+                ...normalizedAgentSettings
+            };
+
+            (homepageSitesState.agentCatalog?.agents || []).forEach((agent) => {
+                const currentSettings = updatedAgentCustomSettings[agent.id] && typeof updatedAgentCustomSettings[agent.id] === 'object'
+                    ? updatedAgentCustomSettings[agent.id]
+                    : {};
+                updatedAgentCustomSettings[agent.id] = {
+                    ...currentSettings,
+                    defaultEnabled: selectedAgentIds.includes(agent.id)
+                };
+            });
             
             console.log('更新后的用户设置:', updatedUserSettings);
             console.log('更新后的 customSites:', updatedCustomSites);
+            console.log('更新后的 agentCustomSettings:', updatedAgentCustomSettings);
             
-            // 4. 保存到 chrome.storage.sync.sites 和 customSites
+            // 4. 保存到 chrome.storage.sync.sites、customSites 和 agentCustomSettings
             await chrome.storage.sync.set({
                 sites: updatedUserSettings,
-                customSites: updatedCustomSites
+                customSites: updatedCustomSites,
+                agentCustomSettings: updatedAgentCustomSettings
             });
             homepageSitesState.customSites = updatedCustomSites;
             homepageSitesState.selectedCustomSites = new Map(
                 updatedCustomSites.map(site => [site.id, site.enabled === true])
             );
+            homepageSitesState.selectedAgents = new Map(
+                (homepageSitesState.agentCatalog?.agents || []).map(agent => [agent.id, selectedAgentIds.includes(agent.id)])
+            );
             renderCustomSitesList();
+            renderAgentsList();
             console.log('已保存到 chrome.storage.sync.sites');
             
             // 记录分析事件
@@ -1372,7 +1517,9 @@ function initializeSaveSitesButton() {
                 sites_count: selectedSites.length,
                 sites: selectedSites,
                 custom_sites_count: selectedCustomSiteIds.length,
-                custom_sites: selectedCustomSiteIds
+                custom_sites: selectedCustomSiteIds,
+                agents_count: selectedAgentIds.length,
+                agents: selectedAgentIds
             });
             
             // 显示成功提示

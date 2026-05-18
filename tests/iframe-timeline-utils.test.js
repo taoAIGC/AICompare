@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   buildTimelineEntry,
   buildTimelineCopyText,
+  extractTimelinePromptsFromMessages,
   mergeTimelinePromptSnapshots
 } = require('../iframe/timeline-utils.js');
 
@@ -99,4 +100,19 @@ test('mergeTimelinePromptSnapshots uses iframe prompts as source and deduplicate
   );
   assert.deepEqual(entries[0].sourceSites, ['ChatGPT', 'Gemini', 'Claude']);
   assert.deepEqual(entries[1].sourceSites, ['ChatGPT', 'Gemini']);
+});
+
+test('extractTimelinePromptsFromMessages keeps agent user turns in order', () => {
+  const prompts = extractTimelinePromptsFromMessages([
+    { role: 'assistant', content: '先给一个结论' },
+    { role: 'user', content: '  第一轮问题  ' },
+    { role: 'assistant', content: '第一轮回答' },
+    { role: 'user', content: '第二轮   跟进' },
+    { role: 'user', content: '   ' }
+  ]);
+
+  assert.deepEqual(prompts, [
+    { text: '第一轮问题' },
+    { text: '第二轮 跟进' }
+  ]);
 });

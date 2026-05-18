@@ -216,13 +216,77 @@ const AppConfigManager = {
   }
 };
 
-async function loadLocalSitesConfig() {
+async function loadLocalSiteConfigSnapshot() {
   const response = await fetch(chrome.runtime.getURL('config/siteHandlers.json'));
   if (!response.ok) {
     throw new Error(`加载本地站点配置失败: HTTP ${response.status}`);
   }
-  const localConfig = await response.json();
+  return await response.json();
+}
+
+async function loadLocalSitesConfig() {
+  const localConfig = await loadLocalSiteConfigSnapshot();
   return Array.isArray(localConfig?.sites) ? localConfig.sites : [];
+}
+
+async function hydrateBundledSiteConfigIfNeeded() {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return [];
+  }
+
+  const {
+    remoteSiteHandlers,
+    siteConfigVersion,
+    siteConfigSource,
+    lastUpdateTime
+  } = await chrome.storage.local.get([
+    'remoteSiteHandlers',
+    'siteConfigVersion',
+    'siteConfigSource',
+    'lastUpdateTime'
+  ]);
+
+  const cachedSites = Array.isArray(remoteSiteHandlers?.sites) ? remoteSiteHandlers.sites : [];
+  const cachedVersion = remoteSiteHandlers?.version ?? siteConfigVersion ?? 0;
+
+  let localConfig = null;
+  try {
+    localConfig = await loadLocalSiteConfigSnapshot();
+  } catch (error) {
+    console.error('读取扩展包内站点配置失败:', error);
+    return cachedSites;
+  }
+
+  const localSites = Array.isArray(localConfig?.sites) ? localConfig.sites : [];
+  if (!localSites.length) {
+    return cachedSites;
+  }
+
+  const localVersion = localConfig.version ?? 0;
+  const versionComparison = compareVersions(localVersion, cachedVersion);
+  const cacheLooksRemoteManaged = siteConfigSource === 'remote' || Boolean(lastUpdateTime);
+  const bundledDiffersFromCache = JSON.stringify(localSites) !== JSON.stringify(cachedSites);
+  const shouldRefreshFromBundled =
+    cachedSites.length === 0
+    || versionComparison > 0
+    || (versionComparison === 0 && !cacheLooksRemoteManaged && bundledDiffersFromCache);
+
+  if (shouldRefreshFromBundled) {
+    await chrome.storage.local.set({
+      siteConfigVersion: localConfig.version || Date.now(),
+      remoteSiteHandlers: localConfig,
+      siteConfigSource: 'bundled'
+    });
+    return localSites;
+  }
+
+  if (!siteConfigSource && cachedSites.length > 0) {
+    await chrome.storage.local.set({
+      siteConfigSource: cacheLooksRemoteManaged ? 'remote' : 'bundled'
+    });
+  }
+
+  return cachedSites;
 }
 
 function getSiteLaunchUtils() {
@@ -555,6 +619,7 @@ const RemoteConfigManager = {
       await chrome.storage.local.set({
         siteConfigVersion: remoteConfig.version || currentTime,
         remoteSiteHandlers: remoteConfig,
+        siteConfigSource: 'remote',
         lastUpdateTime: currentTime,  // 记录更新时间，供 iframe 页面检测
         updateNotificationShown: false,  // 重置通知显示状态，允许显示新的更新提示
         updateHistory: newUpdateHistory  // 保存更新历史
@@ -637,9 +702,8 @@ if (typeof window === 'undefined') {
       console.log('尝试从 remoteSiteHandlers 读取站点配置...');
       let baseSites = [];
       try {
-        const result = await chrome.storage.local.get('remoteSiteHandlers');
-        if (result.remoteSiteHandlers && result.remoteSiteHandlers.sites && result.remoteSiteHandlers.sites.length > 0) {
-          baseSites = result.remoteSiteHandlers.sites;
+        baseSites = await hydrateBundledSiteConfigIfNeeded();
+        if (baseSites.length > 0) {
           console.log('从 remoteSiteHandlers 加载站点配置成功');
           console.log('remoteSiteHandlers 加载的站点配置:', baseSites.map(site => ({ name: site.name, enabled: site.enabled })));
         }
@@ -780,15 +844,14 @@ else {
       try {
         if (chrome.storage?.local) {
           markHomepagePerf('get_default_sites_local_storage_start');
-          const result = await chrome.storage.local.get('remoteSiteHandlers');
+          baseSites = await hydrateBundledSiteConfigIfNeeded();
           markHomepagePerf('get_default_sites_local_storage_end');
           measureHomepagePerf(
             'get_default_sites_local_storage_duration',
             'get_default_sites_local_storage_start',
             'get_default_sites_local_storage_end'
           );
-          if (result.remoteSiteHandlers && result.remoteSiteHandlers.sites && result.remoteSiteHandlers.sites.length > 0) {
-            baseSites = result.remoteSiteHandlers.sites;
+          if (baseSites.length > 0) {
             console.log('从 remoteSiteHandlers 加载站点配置成功');
           }
         }

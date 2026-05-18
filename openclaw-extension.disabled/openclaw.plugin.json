@@ -3,12 +3,22 @@
   "name": "AI Compare Hard Router",
   "description": "Intercepts search-style user requests before model dispatch and routes them directly to the AI Compare GUI runner.",
   "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "runnerPath": {
         "type": "string"
+      },
+      "environment": {
+        "type": "string",
+        "enum": [
+          "production",
+          "development"
+        ]
       },
       "extensionId": {
         "type": "string"
@@ -33,9 +43,13 @@
       "label": "Runner Path",
       "help": "Legacy override path. The plugin uses its bundled runner in bin/ by default."
     },
+    "environment": {
+      "label": "Runtime Environment",
+      "help": "Select production to use the Chrome Web Store extension id, or development to use the local unpacked extension id."
+    },
     "extensionId": {
       "label": "Extension ID",
-      "help": "Optional AI Compare extension id override. Use a release-specific value or AI_COMPARE_EXTENSION_ID."
+      "help": "Optional AI Compare extension id override. If omitted, the plugin derives the id from the selected environment or AI_COMPARE_EXTENSION_ID."
     },
     "browserApp": {
       "label": "Browser App",
@@ -47,7 +61,7 @@
     },
     "installUrl": {
       "label": "Install URL",
-      "help": "Optional browser extension install page URL shown in missing-extension guidance. Use a release-specific value or AI_COMPARE_INSTALL_URL."
+      "help": "Optional browser extension install page URL shown in missing-extension guidance. If omitted, the plugin derives it from the selected environment or AI_COMPARE_INSTALL_URL."
     },
     "debugLogPath": {
       "label": "Debug Log Path",

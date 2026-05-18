@@ -1,6 +1,7 @@
 let allFavoriteItems = [];
 let currentFolderId = null; // null = all
 let siteUrlFallbackMap = new Map();
+const HybridFavorites = window.AICompareHybridFavorites || {};
 
 function t(key, fallback = '') {
     return chrome?.i18n?.getMessage?.(key) || fallback;
@@ -141,6 +142,12 @@ async function getFolderCounts() {
             }
         });
     });
+    const hybridCounts = typeof HybridFavorites.getFavoriteFolderCounts === 'function'
+        ? await HybridFavorites.getFavoriteFolderCounts()
+        : {};
+    Object.entries(hybridCounts).forEach(([folderId, count]) => {
+        counts[folderId] = (counts[folderId] || 0) + (Number(count) || 0);
+    });
     return counts;
 }
 
@@ -160,6 +167,11 @@ async function loadFavorites() {
                 ...item,
                 sites: item.sites.filter(s => s.isFavorite)
             }));
+        const hybridFavoriteItems = typeof HybridFavorites.listFavoritedHybridSessions === 'function'
+            ? await HybridFavorites.listFavoritedHybridSessions({ limit: 500 })
+            : [];
+        favoriteItems = [...hybridFavoriteItems, ...favoriteItems]
+            .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
 
         // Filter by current folder
         if (currentFolderId !== null) {
@@ -341,13 +353,17 @@ async function openFavoriteItem(item) {
     try {
         const params = new URLSearchParams();
         params.set('query', item.query);
-        const siteNames = item.sites.map(s => s.name);
-        if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        const isHybridItem = item.source === 'hybrid';
+        if (!isHybridItem) {
+            const siteNames = item.sites.map(s => s.name);
+            if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        }
         if (item.id) params.set('historyId', item.id);
         const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
         await chrome.tabs.create({ url: iframeUrl, active: true });
 
-        setTimeout(async () => {
+        if (!isHybridItem) {
+            setTimeout(async () => {
             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('iframe.html')) {
                 try {
@@ -358,7 +374,8 @@ async function openFavoriteItem(item) {
                     });
                 } catch (_) {}
             }
-        }, 1000);
+            }, 1000);
+        }
     } catch (error) {
         console.error('打开收藏记录失败:', error);
         alert('打开收藏记录失败，请重试');
@@ -367,6 +384,21 @@ async function openFavoriteItem(item) {
 
 async function deleteFavoriteItem(id) {
     try {
+        const hybridSession = typeof HybridFavorites.getHybridSessionById === 'function'
+            ? await HybridFavorites.getHybridSessionById(id)
+            : null;
+        if (hybridSession) {
+            if (typeof HybridFavorites.updateHybridSessionFavorite === 'function') {
+                await HybridFavorites.updateHybridSessionFavorite(id, {
+                    isFavorite: false,
+                    favoriteFolder: '',
+                    preserveUpdatedAt: true
+                });
+            }
+            if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+            return;
+        }
+
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const historyIndex = pkHistory.findIndex(item => item.id === id);
         if (historyIndex === -1) return;
@@ -397,6 +429,21 @@ async function deleteFavoriteItem(id) {
 
 async function moveFavoriteItemToFolder(id, folderId) {
     try {
+        const hybridSession = typeof HybridFavorites.getHybridSessionById === 'function'
+            ? await HybridFavorites.getHybridSessionById(id)
+            : null;
+        if (hybridSession) {
+            if (typeof HybridFavorites.updateHybridSessionFavorite === 'function') {
+                await HybridFavorites.updateHybridSessionFavorite(id, {
+                    isFavorite: true,
+                    favoriteFolder: folderId || 'default',
+                    preserveUpdatedAt: true
+                });
+            }
+            if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
+            return;
+        }
+
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const historyItem = pkHistory.find(item => item.id === id);
         if (!historyItem || !historyItem.sites) return;
@@ -414,6 +461,9 @@ async function moveFavoriteItemToFolder(id, folderId) {
 
 async function clearAllFavorites() {
     try {
+        if (typeof HybridFavorites.clearHybridFavorites === 'function') {
+            await HybridFavorites.clearHybridFavorites(currentFolderId);
+        }
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         pkHistory.forEach(item => {
             if (!item.sites) return;
@@ -566,6 +616,10 @@ async function showFolderManageModal() {
 }
 
 async function deleteFolder(folderId) {
+    if (typeof HybridFavorites.moveHybridFavoritesToFolder === 'function') {
+        await HybridFavorites.moveHybridFavoritesToFolder(folderId);
+    }
+
     // Move all favorites in this folder to default
     const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
     pkHistory.forEach(item => {

@@ -6,6 +6,10 @@ const TEMPLATE_TYPE_LABELS = {
   translate: 'homepageTypeTranslate'
 };
 let configuredTemplateTypes = ['information'];
+const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
+const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
+const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
+const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
 
 
 // 加载保存的配置
@@ -129,6 +133,44 @@ function initializeI18n() {
   });
 }
 
+function initializeI18nWithin(root) {
+  if (!root || typeof root.querySelectorAll !== 'function') {
+    return;
+  }
+
+  root.querySelectorAll('[data-i18n]').forEach(element => {
+    const key = element.getAttribute('data-i18n');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.textContent = message;
+    }
+  });
+
+  root.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+    const key = element.getAttribute('data-i18n-placeholder');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.placeholder = message;
+    }
+  });
+
+  root.querySelectorAll('[data-i18n-title]').forEach(element => {
+    const key = element.getAttribute('data-i18n-title');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.title = message;
+    }
+  });
+
+  root.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+    const key = element.getAttribute('data-i18n-aria-label');
+    const message = chrome.i18n.getMessage(key);
+    if (message) {
+      element.setAttribute('aria-label', message);
+    }
+  });
+}
+
 // 等待 DOM 加载完成后初始化
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('DOMContentLoaded', () => {
@@ -137,6 +179,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     initializeRuleInfo();
     initializePromptTemplates();
     initializeAnalysisPromptTemplates();
+    initializeAgentEngineSettings();
+    loadAgentCustomSettingsManager();
+    bindAgentCustomSettingsEvents();
   });
 }
 
@@ -186,6 +231,687 @@ function getLaunchMessage(key, fallback = '') {
   return chrome.i18n.getMessage(key) || fallback;
 }
 
+function getAgentPromptUtils() {
+  return window.AICompareAgentPromptUtils || null;
+}
+
+function getAgentCatalogUtils() {
+  return window.AICompareAgentCatalog || null;
+}
+
+async function loadAgentEngineConfig() {
+  const promptUtils = getAgentPromptUtils();
+  const defaultConfig = promptUtils?.normalizeApiConfig?.({}) || {
+    apiKey: 'ark-d4be039c-7683-4a1d-ba62-04f670dc237f-e6173',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
+    model: 'glm-5.1',
+    concurrency: 2
+  };
+
+  const [syncData, localData] = await Promise.all([
+    chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+    chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
+  ]);
+
+  const merged = {
+    ...(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {}),
+    apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
+  };
+
+  const normalizedConfig = promptUtils?.normalizeApiConfig?.(merged) || {
+    ...defaultConfig,
+    ...merged
+  };
+
+  return normalizedConfig;
+}
+
+function isAgentEngineConfigured(config = {}) {
+  return Boolean(
+    String(config.baseUrl || '').trim() &&
+    String(config.apiKey || '').trim() &&
+    String(config.model || '').trim() &&
+    Number(config.concurrency) >= 1
+  );
+}
+
+function getMaskedAgentApiKey(apiKey = '') {
+  const trimmed = String(apiKey || '').trim();
+  if (!trimmed) {
+    return getMessageWithFallback('agentEngineEmptyValue', 'Not configured');
+  }
+  if (trimmed.length <= 8) {
+    return '••••••••';
+  }
+  return `${trimmed.slice(0, 4)}••••••${trimmed.slice(-4)}`;
+}
+
+function renderAgentEngineCard(config = {}) {
+  const card = document.getElementById('agentEngineCard');
+  const statusBadge = document.getElementById('agentEngineStatusBadge');
+  const baseUrlValue = document.getElementById('agentEngineBaseUrlValue');
+  const apiKeyValue = document.getElementById('agentEngineApiKeyValue');
+  const modelValue = document.getElementById('agentEngineModelValue');
+  const concurrencyValue = document.getElementById('agentEngineConcurrencyValue');
+
+  if (!card || !statusBadge || !baseUrlValue || !apiKeyValue || !modelValue || !concurrencyValue) {
+    return;
+  }
+
+  const configured = isAgentEngineConfigured(config);
+  card.dataset.status = configured ? 'configured' : 'unconfigured';
+  statusBadge.textContent = configured
+    ? getMessageWithFallback('agentEngineStatusConfigured', 'Configured')
+    : getMessageWithFallback('agentEngineStatusUnconfigured', 'Not configured');
+  card.classList.toggle('agent-engine-card-collapsed', !configured);
+
+  const emptyValue = getMessageWithFallback('agentEngineEmptyValue', 'Not configured');
+  baseUrlValue.textContent = String(config.baseUrl || '').trim() || emptyValue;
+  apiKeyValue.textContent = getMaskedAgentApiKey(config.apiKey);
+  modelValue.textContent = String(config.model || '').trim() || emptyValue;
+  concurrencyValue.textContent = String(Math.max(1, Number(config.concurrency) || 0) || '') || emptyValue;
+}
+
+function openAgentEngineDialog() {
+  const dialog = document.getElementById('agentEngineDialog');
+  if (!dialog) {
+    return;
+  }
+
+  initializeI18nWithin(dialog);
+  dialog.style.display = 'block';
+  document.getElementById('agentApiBaseUrl')?.focus();
+}
+
+function closeAgentEngineDialog() {
+  const dialog = document.getElementById('agentEngineDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
+  }
+}
+
+async function saveAgentEngineConfig() {
+  const baseUrlInput = document.getElementById('agentApiBaseUrl');
+  const apiKeyInput = document.getElementById('agentApiKey');
+  const modelInput = document.getElementById('agentApiModel');
+  const concurrencyInput = document.getElementById('agentApiConcurrency');
+  const promptUtils = getAgentPromptUtils();
+
+  const normalizedConfig = promptUtils?.normalizeApiConfig?.({
+    baseUrl: baseUrlInput?.value || '',
+    apiKey: apiKeyInput?.value || '',
+    model: modelInput?.value || '',
+    concurrency: concurrencyInput?.value || 2
+  }) || {
+    baseUrl: String(baseUrlInput?.value || '').trim(),
+    apiKey: String(apiKeyInput?.value || '').trim(),
+    model: String(modelInput?.value || '').trim(),
+    concurrency: Math.max(1, Number(concurrencyInput?.value) || 2)
+  };
+
+  if (!isAgentEngineConfigured(normalizedConfig)) {
+    showToast(getMessageWithFallback('agentEngineValidationFailed', 'Please fill in all required agent engine fields'));
+    return false;
+  }
+
+  await Promise.all([
+    chrome.storage.sync.set({
+      [AGENT_ENGINE_STORAGE_KEY]: {
+        baseUrl: normalizedConfig.baseUrl,
+        model: normalizedConfig.model,
+        concurrency: normalizedConfig.concurrency
+      }
+    }),
+    chrome.storage.local.set({
+      [AGENT_ENGINE_SECRET_STORAGE_KEY]: {
+        apiKey: normalizedConfig.apiKey
+      }
+    })
+  ]);
+
+  showToast(getMessageWithFallback('agentEngineSaveSuccess', 'Agent engine saved'));
+  return true;
+}
+
+async function initializeAgentEngineSettings() {
+  const baseUrlInput = document.getElementById('agentApiBaseUrl');
+  const apiKeyInput = document.getElementById('agentApiKey');
+  const modelInput = document.getElementById('agentApiModel');
+  const concurrencyInput = document.getElementById('agentApiConcurrency');
+  const saveButton = document.getElementById('saveAgentEngineBtn');
+  const editButton = document.getElementById('editAgentEngineBtn');
+  const closeButton = document.getElementById('agentEngineDialogClose');
+  const cancelButton = document.getElementById('cancelAgentEngine');
+  const overlay = document.getElementById('agentEngineDialogOverlay');
+
+  if (!baseUrlInput || !apiKeyInput || !modelInput || !concurrencyInput || !saveButton || !editButton || !closeButton || !cancelButton || !overlay) {
+    return;
+  }
+
+  try {
+    const config = await loadAgentEngineConfig();
+    baseUrlInput.value = config.baseUrl || '';
+    apiKeyInput.value = config.apiKey || '';
+    modelInput.value = config.model || '';
+    concurrencyInput.value = String(config.concurrency || 2);
+    renderAgentEngineCard(config);
+  } catch (error) {
+    console.error('加载智能体引擎设置失败:', error);
+    showToast(getMessageWithFallback('agentEngineLoadFailed', 'Failed to load agent engine settings'));
+  }
+
+  if (editButton.dataset.bound !== 'true') {
+    editButton.dataset.bound = 'true';
+    editButton.addEventListener('click', openAgentEngineDialog);
+  }
+
+  [closeButton, cancelButton, overlay].forEach((element) => {
+    if (!element || element.dataset.bound === 'true') {
+      return;
+    }
+    element.dataset.bound = 'true';
+    element.addEventListener('click', closeAgentEngineDialog);
+  });
+
+  if (saveButton.dataset.bound !== 'true') {
+    saveButton.dataset.bound = 'true';
+    saveButton.addEventListener('click', async () => {
+      try {
+        const saved = await saveAgentEngineConfig();
+        if (!saved) {
+          return;
+        }
+        const config = await loadAgentEngineConfig();
+        renderAgentEngineCard(config);
+        closeAgentEngineDialog();
+      } catch (error) {
+        console.error('保存智能体引擎设置失败:', error);
+        showToast(getMessageWithFallback('saveFailed', 'Save failed'));
+      }
+    });
+  }
+}
+
+async function loadAgentCatalogFromBackground() {
+  try {
+    const response = await chrome.runtime.sendMessage({ action: 'getAgentCatalog' });
+    if (response?.success) {
+      return response.result || { categories: [], agents: [] };
+    }
+  } catch (error) {
+    console.error('加载智能体目录失败:', error);
+  }
+
+  return { categories: [], agents: [] };
+}
+
+async function loadAgentCustomSettingsMap() {
+  const [{ [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }, { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }, catalog] = await Promise.all([
+    chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY),
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY),
+    loadAgentCatalogFromBackground()
+  ]);
+
+  const utils = getAgentCatalogUtils();
+  const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
+    ? utils.normalizeAgentCustomSettingsMap(storedSettings)
+    : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+  const normalizedCustomAgents = typeof utils?.migrateLegacyCustomAgentsStorage === 'function'
+    ? utils.migrateLegacyCustomAgentsStorage(syncCustomAgents, localCustomAgents)
+    : (Array.isArray(localCustomAgents) && localCustomAgents.length > 0
+      ? localCustomAgents
+      : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []));
+
+  return {
+    catalog,
+    customSettingsMap: normalizedSettings,
+    customAgents: Array.isArray(normalizedCustomAgents) ? normalizedCustomAgents : []
+  };
+}
+
+function getAgentTimestamp(agent) {
+  const value = agent?.importedAt || agent?.createdAt || agent?.updatedAt || '';
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function sortAgentsByNewestFirst(agents = []) {
+  return [...(Array.isArray(agents) ? agents : [])].sort((a, b) => {
+    const timeDelta = getAgentTimestamp(b) - getAgentTimestamp(a);
+    if (timeDelta !== 0) {
+      return timeDelta;
+    }
+    return String(a?.name || '').localeCompare(String(b?.name || ''));
+  });
+}
+
+function buildMergedAgentList(catalog, customSettingsMap = {}) {
+  const utils = getAgentCatalogUtils();
+  const categories = Array.isArray(catalog?.categories) ? catalog.categories : [];
+  const agents = Array.isArray(catalog?.agents) ? catalog.agents : [];
+
+  return {
+    categories,
+    agents: sortAgentsByNewestFirst(agents.map((agent) => {
+      if (typeof utils?.mergeAgentWithCustomSettings === 'function') {
+        return utils.mergeAgentWithCustomSettings(agent, customSettingsMap);
+      }
+      return { ...agent };
+    }))
+  };
+}
+
+async function loadAgentCustomSettingsManager() {
+  const container = document.getElementById('agentCustomSettingsList');
+  if (!container) {
+    return;
+  }
+
+  try {
+    const { catalog, customSettingsMap, customAgents } = await loadAgentCustomSettingsMap();
+    renderAgentCustomSettingsManager(buildMergedAgentList(catalog, customSettingsMap), customSettingsMap, customAgents);
+  } catch (error) {
+    console.error('加载智能体自定义设置失败:', error);
+    container.innerHTML = `
+      <div class="error-state state-panel">
+        <p>${getMessageWithFallback('agentCustomSettingsLoadFailed', 'Failed to load agent settings')}</p>
+      </div>
+    `;
+  }
+}
+
+function renderAgentCustomSettingsManager(catalog, customSettingsMap = {}, customAgents = []) {
+  const container = document.getElementById('agentCustomSettingsList');
+  if (!container) {
+    return;
+  }
+
+  const agents = Array.isArray(catalog?.agents) ? catalog.agents : [];
+  container.innerHTML = '';
+
+  if (!agents.length) {
+    container.innerHTML = `
+      <div class="state-panel">
+        <p>${getMessageWithFallback('agentCustomSettingsEmpty', 'No agents available')}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  agents.forEach((agent) => {
+    const customSettings = customSettingsMap?.[agent.id] || {};
+    const summaryParts = [];
+    if (Object.keys(customSettings).length > 0) {
+      summaryParts.push(getMessageWithFallback('agentCustomOverriddenBadge', 'Customized'));
+    }
+
+    const card = document.createElement('div');
+    card.className = 'template-item';
+    card.dataset.agentId = agent.id;
+    card.innerHTML = `
+      <div class="template-item-head">
+        <div class="template-item-body">
+          <h4 class="template-item-title">${escapeHtml(agent.name || '')}</h4>
+          <div class="custom-site-detail">${escapeHtml(agent.description || '')}</div>
+          <div class="custom-site-summary">${summaryParts.map(escapeHtml).join(' · ')}</div>
+        </div>
+        <div class="template-actions">
+          <button type="button" class="edit-agent-custom-btn icon-action-btn" data-agent-id="${escapeHtml(agent.id)}" title="${getMessageWithFallback('editButton', 'Edit')}" aria-label="${getMessageWithFallback('editButton', 'Edit')}">
+            <img src="../icons/edit.svg" alt="">
+          </button>
+          ${agent.isCustom ? `
+            <button type="button" class="delete-agent-custom-btn icon-action-btn" data-agent-id="${escapeHtml(agent.id)}" title="${getMessageWithFallback('deleteButton', 'Delete')}" aria-label="${getMessageWithFallback('deleteButton', 'Delete')}">
+              <img src="../icons/trash.svg" alt="">
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    fragment.appendChild(card);
+  });
+
+  container.appendChild(fragment);
+}
+
+function bindAgentCustomSettingsEvents() {
+  if (bindAgentCustomSettingsEvents.bound === true) {
+    return;
+  }
+  bindAgentCustomSettingsEvents.bound = true;
+  document.getElementById('agentCustomSettingsList')?.addEventListener('click', handleAgentCustomSettingsListClick);
+  document.getElementById('agentCustomDialogClose')?.addEventListener('click', closeAgentCustomDialog);
+  document.getElementById('cancelAgentCustom')?.addEventListener('click', closeAgentCustomDialog);
+  document.getElementById('saveAgentCustom')?.addEventListener('click', saveAgentCustomSettingsFromDialog);
+  document.getElementById('resetAgentCustom')?.addEventListener('click', resetAgentCustomSettingsFromDialog);
+  document.getElementById('agentCustomDialogOverlay')?.addEventListener('click', closeAgentCustomDialog);
+  document.getElementById('addAgentBtn')?.addEventListener('click', openNewAgentDialog);
+  document.getElementById('importAgentBtn')?.addEventListener('click', openAgentImportDialog);
+  document.getElementById('agentImportDialogClose')?.addEventListener('click', closeAgentImportDialog);
+  document.getElementById('cancelAgentImport')?.addEventListener('click', closeAgentImportDialog);
+  document.getElementById('saveAgentImport')?.addEventListener('click', importSkillAsCustomAgent);
+  document.getElementById('agentImportDialogOverlay')?.addEventListener('click', closeAgentImportDialog);
+  const urlInput = document.getElementById('agentSkillUrl');
+  if (urlInput && urlInput.dataset.bound !== 'true') {
+    urlInput.dataset.bound = 'true';
+    urlInput.addEventListener('input', scheduleAutoFetchAgentSkillContent);
+    urlInput.addEventListener('change', scheduleAutoFetchAgentSkillContent);
+    urlInput.addEventListener('blur', scheduleAutoFetchAgentSkillContent);
+    urlInput.addEventListener('paste', () => {
+      setTimeout(scheduleAutoFetchAgentSkillContent, 0);
+    });
+  }
+}
+
+async function handleAgentCustomSettingsListClick(event) {
+  const editButton = event.target.closest('.edit-agent-custom-btn');
+  const deleteButton = event.target.closest('.delete-agent-custom-btn');
+  if (!editButton) {
+    if (!deleteButton) {
+      return;
+    }
+    const deleteAgentId = deleteButton.dataset.agentId;
+    if (deleteAgentId) {
+      await deleteCustomAgent(deleteAgentId);
+    }
+    return;
+  }
+
+  const agentId = editButton.dataset.agentId;
+  if (!agentId) {
+    return;
+  }
+
+  await openAgentCustomDialog(agentId);
+}
+
+async function openAgentCustomDialog(agentId) {
+  const dialog = document.getElementById('agentCustomDialog');
+  const resetButton = document.getElementById('resetAgentCustom');
+  if (!dialog) {
+    return;
+  }
+
+  initializeI18nWithin(dialog);
+
+  const { catalog, customSettingsMap } = await loadAgentCustomSettingsMap();
+  const mergedCatalog = buildMergedAgentList(catalog, customSettingsMap);
+  const baseAgent = (Array.isArray(catalog?.agents) ? catalog.agents : []).find((item) => item.id === agentId);
+  const mergedAgent = (Array.isArray(mergedCatalog?.agents) ? mergedCatalog.agents : []).find((item) => item.id === agentId);
+  const customSettings = customSettingsMap?.[agentId] || {};
+
+  if (!baseAgent || !mergedAgent) {
+    return;
+  }
+
+  currentEditingAgentId = agentId;
+
+  const title = document.getElementById('agentCustomDialogTitle');
+  const agentNameInput = document.getElementById('agentCustomName');
+  const agentDescriptionInput = document.getElementById('agentCustomDescription');
+  const agentPersonaInput = document.getElementById('agentCustomPersonaPrompt');
+
+  if (title) {
+    title.textContent = getMessageWithFallback('agentCustomDialogTitle', 'Customize agent');
+  }
+  if (agentNameInput) {
+    agentNameInput.value = mergedAgent.name || '';
+  }
+  if (agentDescriptionInput) {
+    agentDescriptionInput.value = mergedAgent.description || '';
+  }
+  if (agentPersonaInput) {
+    agentPersonaInput.value = mergedAgent.personaPrompt || '';
+  }
+
+  dialog.dataset.hasCustom = Object.keys(customSettings).length > 0 ? 'true' : 'false';
+  dialog.dataset.baseName = baseAgent.name || '';
+  dialog.dataset.baseDescription = baseAgent.description || '';
+  dialog.dataset.basePersonaPrompt = baseAgent.personaPrompt || '';
+  dialog.dataset.isCustomAgent = baseAgent.isCustom ? 'true' : 'false';
+  dialog.dataset.mode = 'edit';
+  if (resetButton) {
+    resetButton.style.display = baseAgent.isCustom ? 'none' : '';
+  }
+  dialog.style.display = 'block';
+  agentNameInput?.focus();
+}
+
+async function openNewAgentDialog() {
+  const dialog = document.getElementById('agentCustomDialog');
+  const resetButton = document.getElementById('resetAgentCustom');
+  if (!dialog) {
+    return;
+  }
+
+  initializeI18nWithin(dialog);
+
+  currentEditingAgentId = `custom-${Date.now()}`;
+  dialog.dataset.baseName = '';
+  dialog.dataset.baseDescription = '';
+  dialog.dataset.basePersonaPrompt = '';
+  dialog.dataset.isCustomAgent = 'false';
+  dialog.dataset.mode = 'create';
+
+  const title = document.getElementById('agentCustomDialogTitle');
+  const agentNameInput = document.getElementById('agentCustomName');
+  const agentDescriptionInput = document.getElementById('agentCustomDescription');
+  const agentPersonaInput = document.getElementById('agentCustomPersonaPrompt');
+
+  if (title) {
+    title.textContent = getMessageWithFallback('agentCustomNewTitle', 'New agent');
+  }
+  if (agentNameInput) {
+    agentNameInput.value = '';
+  }
+  if (agentDescriptionInput) {
+    agentDescriptionInput.value = '';
+  }
+  if (agentPersonaInput) {
+    agentPersonaInput.value = '';
+  }
+  if (resetButton) {
+    resetButton.style.display = 'none';
+  }
+
+  dialog.style.display = 'block';
+  agentNameInput?.focus();
+}
+
+function openAgentImportDialog() {
+  const dialog = document.getElementById('agentImportDialog');
+  if (!dialog) {
+    return;
+  }
+
+  initializeI18nWithin(dialog);
+  dialog.style.display = 'block';
+  document.getElementById('agentSkillUrl')?.focus();
+}
+
+function closeAgentImportDialog() {
+  const dialog = document.getElementById('agentImportDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
+  }
+}
+
+function closeAgentCustomDialog() {
+  const dialog = document.getElementById('agentCustomDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
+    dialog.dataset.mode = '';
+  }
+  currentEditingAgentId = null;
+}
+
+function readAgentCustomDialogValue() {
+  const dialog = document.getElementById('agentCustomDialog');
+  if (!dialog || !currentEditingAgentId) {
+    return null;
+  }
+
+  const baseName = String(dialog.dataset.baseName || '').trim();
+  const baseDescription = String(dialog.dataset.baseDescription || '').trim();
+  const basePersonaPrompt = String(dialog.dataset.basePersonaPrompt || '').trim();
+  const isCustomAgent = dialog.dataset.isCustomAgent === 'true';
+
+  const nextName = String(document.getElementById('agentCustomName')?.value || '').trim();
+  const nextDescription = String(document.getElementById('agentCustomDescription')?.value || '').trim();
+  const nextPersonaPrompt = String(document.getElementById('agentCustomPersonaPrompt')?.value || '').trim();
+
+  if (!nextName) {
+    return {
+      error: getMessageWithFallback('agentCustomValidationFailed', 'Please fill in the agent name')
+    };
+  }
+
+  if (!nextPersonaPrompt) {
+    return {
+      error: getMessageWithFallback('agentCustomPromptRequired', 'Please fill in the persona prompt')
+    };
+  }
+
+  const patch = {};
+  if (nextName !== baseName) {
+    patch.name = nextName;
+  }
+  if (nextDescription !== baseDescription) {
+    patch.description = nextDescription;
+  }
+  if (nextPersonaPrompt !== basePersonaPrompt) {
+    patch.personaPrompt = nextPersonaPrompt;
+  }
+
+  return {
+    agentId: currentEditingAgentId,
+    patch,
+    isCustomAgent,
+    mode: dialog.dataset.mode || 'edit'
+  };
+}
+
+async function saveAgentCustomSettingsFromDialog() {
+  try {
+    const nextValue = readAgentCustomDialogValue();
+    if (!nextValue) {
+      return;
+    }
+    if (nextValue.error) {
+      showToast(nextValue.error, 3000);
+      return;
+    }
+
+    if (nextValue.mode === 'create') {
+      await saveNewCustomAgentFromDialog(nextValue);
+      showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Agent settings saved'));
+      closeAgentCustomDialog();
+      await loadAgentCustomSettingsManager();
+      return;
+    }
+
+    if (nextValue.isCustomAgent) {
+      await saveImportedAgentFromDialog(nextValue);
+      showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Agent settings saved'));
+      closeAgentCustomDialog();
+      await loadAgentCustomSettingsManager();
+      return;
+    }
+
+    const { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings } = await chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY);
+    const utils = getAgentCatalogUtils();
+    const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
+      ? utils.normalizeAgentCustomSettingsMap(storedSettings)
+      : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+
+    const nextSettings = { ...normalizedSettings };
+    if (Object.keys(nextValue.patch).length > 0) {
+      nextSettings[nextValue.agentId] = nextValue.patch;
+    } else {
+      delete nextSettings[nextValue.agentId];
+    }
+
+    await chrome.storage.sync.set({
+      [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: nextSettings
+    });
+
+    showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Agent settings saved'));
+    closeAgentCustomDialog();
+    await loadAgentCustomSettingsManager();
+  } catch (error) {
+    console.error('保存智能体自定义设置失败:', error);
+    showToast(getMessageWithFallback('saveFailed', 'Save failed'), 3000);
+  }
+}
+
+async function resetAgentCustomSettingsFromDialog() {
+  if (!currentEditingAgentId) {
+    return;
+  }
+
+  try {
+    const dialog = document.getElementById('agentCustomDialog');
+    if (dialog?.dataset.isCustomAgent === 'true') {
+      closeAgentCustomDialog();
+      await loadAgentCustomSettingsManager();
+      return;
+    }
+
+    const { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings } = await chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY);
+    const utils = getAgentCatalogUtils();
+    const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
+      ? utils.normalizeAgentCustomSettingsMap(storedSettings)
+      : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+
+    if (!normalizedSettings[currentEditingAgentId]) {
+      closeAgentCustomDialog();
+      await loadAgentCustomSettingsManager();
+      return;
+    }
+
+    delete normalizedSettings[currentEditingAgentId];
+    await chrome.storage.sync.set({
+      [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: normalizedSettings
+    });
+
+    showToast(getMessageWithFallback('agentCustomResetSuccess', 'Agent settings reset'));
+    closeAgentCustomDialog();
+    await loadAgentCustomSettingsManager();
+  } catch (error) {
+    console.error('重置智能体自定义设置失败:', error);
+    showToast(getMessageWithFallback('saveFailed', 'Save failed'), 3000);
+  }
+}
+
+async function saveNewCustomAgentFromDialog(nextValue) {
+  const name = String(document.getElementById('agentCustomName')?.value || '').trim();
+  const description = String(document.getElementById('agentCustomDescription')?.value || '').trim();
+  const personaPrompt = String(document.getElementById('agentCustomPersonaPrompt')?.value || '').trim();
+
+  if (!name) {
+    throw new Error(getMessageWithFallback('agentCustomValidationFailed', 'Please fill in the agent name'));
+  }
+  if (!personaPrompt) {
+    throw new Error(getMessageWithFallback('agentCustomPromptRequired', 'Please fill in the persona prompt'));
+  }
+
+  await saveCustomAgent({
+    id: nextValue.agentId,
+    name,
+    shortName: name.slice(0, 1),
+    description,
+    personaPrompt,
+    type: 'information',
+    color: '#4f6b95',
+    defaultEnabled: false,
+    sourceType: 'manual',
+    importedAt: new Date().toISOString()
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => {
     switch (char) {
@@ -203,6 +929,478 @@ function escapeHtml(value) {
         return char;
     }
   });
+}
+
+function slugifyAgentId(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  const slug = normalized
+    .replace(/https?:\/\/+/g, '')
+    .replace(/[^a-z0-9\u3400-\u9fff]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || `agent-${Date.now()}`;
+}
+
+function getGithubSkillCandidates(value) {
+  const input = String(value || '').trim();
+  if (!input) {
+    return [];
+  }
+
+  try {
+    const url = new URL(input);
+    if (url.hostname === 'github.com') {
+      const parts = url.pathname.split('/').filter(Boolean);
+      const markerIndex = parts.findIndex((part) => part === 'blob' || part === 'tree');
+      if (parts.length >= 4 && markerIndex >= 2) {
+        const owner = parts[0];
+        const repo = parts[1];
+        const branch = parts[markerIndex + 1];
+        const fileParts = parts.slice(markerIndex + 2);
+        const filePath = fileParts.join('/');
+        if (owner && repo && branch && filePath) {
+          const baseRaw = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`;
+          const baseRawDir = baseRaw.replace(/\/+$/, '');
+          const candidateSet = new Set([
+            baseRawDir.endsWith('/SKILL.md') || baseRawDir.endsWith('/skill.md') || baseRawDir.endsWith('/README.md')
+              ? baseRawDir
+              : `${baseRawDir}/SKILL.md`,
+            `${baseRawDir}/skill.md`,
+            `${baseRawDir}/README.md`,
+            baseRaw
+          ]);
+          return Array.from(candidateSet);
+        }
+      }
+
+      if (parts.length === 2) {
+        const owner = parts[0];
+        const repo = parts[1];
+        return [
+          `https://raw.githubusercontent.com/${owner}/${repo}/main/SKILL.md`,
+          `https://raw.githubusercontent.com/${owner}/${repo}/master/SKILL.md`,
+          input.replace(/\/+$/, '') + '/blob/main/SKILL.md'
+        ];
+      }
+
+      if (parts.length >= 3 && !markerIndex && parts[2] === 'blob') {
+        const baseInput = input.replace(/\/+$/, '');
+        return [
+          `${baseInput}/SKILL.md`,
+          `${baseInput}/skill.md`,
+          `${baseInput}/README.md`,
+          input
+        ];
+      }
+
+      if (parts.length >= 2) {
+        const owner = parts[0];
+        const repo = parts[1];
+        const baseInput = input.replace(/\/+$/, '');
+        return Array.from(new Set([
+          `${baseInput}/SKILL.md`,
+          `${baseInput}/skill.md`,
+          `${baseInput}/README.md`,
+          `https://raw.githubusercontent.com/${owner}/${repo}/main/SKILL.md`,
+          `https://raw.githubusercontent.com/${owner}/${repo}/master/SKILL.md`,
+          input
+        ]));
+      }
+    }
+
+    return [url.toString()];
+  } catch (_) {
+    return [input];
+  }
+}
+
+function normalizeGithubSkillUrl(value) {
+  const candidates = getGithubSkillCandidates(value);
+  return candidates[0] || '';
+}
+
+async function tryFetchText(url) {
+  const response = await fetch(url);
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  const text = await response.text();
+  return {
+    ok: response.ok,
+    status: response.status,
+    url,
+    contentType,
+    text
+  };
+}
+
+function looksLikeSkillMarkdown(text = '', contentType = '') {
+  const normalizedText = String(text || '').replace(/\r\n/g, '\n').trim();
+  const normalizedType = String(contentType || '').toLowerCase();
+  if (!normalizedText) {
+    return false;
+  }
+
+  if (normalizedText.startsWith('<!DOCTYPE html') || normalizedText.startsWith('<html')) {
+    return false;
+  }
+
+  if (normalizedType.includes('text/html')) {
+    return false;
+  }
+
+  if (/^---\n[\s\S]*?\n---/.test(normalizedText)) {
+    return true;
+  }
+
+  return /^#\s+/m.test(normalizedText);
+}
+
+function parseSkillFrontmatter(markdown = '') {
+  const normalizedMarkdown = String(markdown || '').replace(/\r\n/g, '\n');
+  const match = normalizedMarkdown.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
+  if (!match) {
+    return {};
+  }
+
+  const lines = match[1].split('\n');
+  const result = {};
+  let currentKey = '';
+  let currentMode = '';
+  let currentBuffer = [];
+
+  function flushCurrentField() {
+    if (!currentKey) {
+      return;
+    }
+
+    if (currentMode === 'block') {
+      result[currentKey] = currentBuffer.join('\n').trim();
+    } else if (currentBuffer.length > 0) {
+      result[currentKey] = currentBuffer.join('\n').trim();
+    }
+
+    currentKey = '';
+    currentMode = '';
+    currentBuffer = [];
+  }
+
+  for (const rawLine of lines) {
+    const keyMatch = rawLine.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (keyMatch && !rawLine.startsWith('  ')) {
+      flushCurrentField();
+      currentKey = keyMatch[1];
+      const inlineValue = keyMatch[2] || '';
+      if (inlineValue === '|' || inlineValue === '>') {
+        currentMode = 'block';
+      } else {
+        result[currentKey] = inlineValue.trim();
+        currentKey = '';
+      }
+      continue;
+    }
+
+    if (currentMode === 'block') {
+      currentBuffer.push(rawLine.replace(/^  /, ''));
+    }
+  }
+
+  flushCurrentField();
+  return result;
+}
+
+function stripSkillFrontmatter(markdown = '') {
+  return String(markdown || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/^---\n[\s\S]*?\n---(?:\n|$)/, '')
+    .trim();
+}
+
+async function fetchSkillMarkdownFromUrl(inputUrl) {
+  const input = String(inputUrl || '').trim();
+  const candidates = getGithubSkillCandidates(input);
+  let lastFailure = null;
+  const tried = new Set();
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeGithubSkillUrl(candidate);
+    if (!normalizedCandidate || tried.has(normalizedCandidate)) {
+      continue;
+    }
+    tried.add(normalizedCandidate);
+    try {
+      const result = await tryFetchText(normalizedCandidate);
+      if (result.ok && looksLikeSkillMarkdown(result.text, result.contentType)) {
+        return {
+          url: normalizedCandidate,
+          content: result.text
+        }
+      }
+      if (result.status === 404) {
+        lastFailure = new Error('HTTP 404');
+        continue;
+      }
+      lastFailure = new Error(`HTTP ${result.status}`);
+    } catch (error) {
+      lastFailure = error;
+    }
+  }
+
+  throw lastFailure || new Error('Unable to fetch a valid SKILL.md');
+}
+
+function extractSkillTitle(markdown = '', fallback = '') {
+  const normalizedMarkdown = String(markdown || '').replace(/\r\n/g, '\n');
+  const frontmatter = parseSkillFrontmatter(normalizedMarkdown);
+  if (frontmatter.name) {
+    return String(frontmatter.name).trim();
+  }
+
+  const headingMatch = normalizedMarkdown.match(/^#\s+(.+)$/m);
+  if (headingMatch?.[1]) {
+    return headingMatch[1].trim();
+  }
+  return String(fallback || '').trim() || 'Imported Skill Agent';
+}
+
+function extractSkillDescription(markdown = '') {
+  const normalizedMarkdown = String(markdown || '').replace(/\r\n/g, '\n');
+  const frontmatter = parseSkillFrontmatter(normalizedMarkdown);
+  if (frontmatter.description) {
+    return String(frontmatter.description).trim().replace(/\s+/g, ' ');
+  }
+
+  const strippedMarkdown = stripSkillFrontmatter(normalizedMarkdown);
+  const lines = strippedMarkdown.split('\n');
+  let started = false;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (started) {
+        break;
+      }
+      continue;
+    }
+    if (line.startsWith('#') || line === '---') {
+      continue;
+    }
+    started = true;
+    return line;
+  }
+  return '';
+}
+
+function detectSkillCompatibility(markdown = '') {
+  const content = String(markdown || '').toLowerCase();
+  const heavyKeywords = [
+    'apply_patch',
+    'exec_command',
+    'spawn_agent',
+    'playwright',
+    'browser',
+    'mcp',
+    'git ',
+    'npm ',
+    'pnpm ',
+    'yarn ',
+    'python ',
+    'bash ',
+    'shell '
+  ];
+  return heavyKeywords.some((keyword) => content.includes(keyword))
+    ? 'prompt_only'
+    : 'native';
+}
+
+function buildImportedAgentPersonaPrompt(markdown = '', skillUrl = '') {
+  const normalizedMarkdown = String(markdown || '').replace(/\r\n/g, '\n');
+  const strippedMarkdown = stripSkillFrontmatter(normalizedMarkdown);
+
+  if (!strippedMarkdown) {
+    return '';
+  }
+
+  return strippedMarkdown.trim();
+}
+
+async function saveCustomAgent(agent) {
+  const utils = getAgentCatalogUtils();
+  const [{ [CUSTOM_AGENTS_STORAGE_KEY]: localAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncAgents }] = await Promise.all([
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+  ]);
+  const currentAgents = Array.isArray(localAgents) && localAgents.length > 0
+    ? localAgents
+    : (Array.isArray(syncAgents) ? syncAgents : []);
+  const normalizedCandidate = typeof utils?.normalizeCustomAgent === 'function'
+    ? utils.normalizeCustomAgent(agent)
+    : agent;
+
+  if (!normalizedCandidate) {
+    throw new Error(getMessageWithFallback('agentSkillImportInvalid', 'Failed to parse the skill into an agent'));
+  }
+
+  const nextAgents = currentAgents.filter((item) => item?.id !== normalizedCandidate.id);
+  nextAgents.push(normalizedCandidate);
+  await chrome.storage.local.set({
+    [CUSTOM_AGENTS_STORAGE_KEY]: nextAgents
+  });
+}
+
+async function saveImportedAgentFromDialog(nextValue) {
+  const [{ [CUSTOM_AGENTS_STORAGE_KEY]: localAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncAgents }] = await Promise.all([
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+  ]);
+  const currentAgents = Array.isArray(localAgents) && localAgents.length > 0
+    ? localAgents
+    : (Array.isArray(syncAgents) ? syncAgents : []);
+  const targetAgent = currentAgents.find((agent) => agent?.id === nextValue.agentId);
+  if (!targetAgent) {
+    throw new Error(getMessageWithFallback('agentUnknownError', 'Unknown agent'));
+  }
+
+  await saveCustomAgent({
+    ...targetAgent,
+    ...nextValue.patch,
+    id: targetAgent.id
+  });
+}
+
+async function deleteCustomAgent(agentId) {
+  const confirmMessage = getMessageWithFallback('agentCustomDeleteConfirm', 'Delete this imported agent?');
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
+
+  const [{ [CUSTOM_AGENTS_STORAGE_KEY]: localAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncAgents }, { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }] = await Promise.all([
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY)
+  ]);
+
+  const currentAgents = Array.isArray(localAgents) && localAgents.length > 0
+    ? localAgents
+    : (Array.isArray(syncAgents) ? syncAgents : []);
+  const nextAgents = currentAgents.filter((agent) => agent?.id !== agentId);
+
+  const utils = getAgentCatalogUtils();
+  const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
+    ? utils.normalizeAgentCustomSettingsMap(storedSettings)
+    : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+  delete normalizedSettings[agentId];
+
+  await chrome.storage.local.set({
+    [CUSTOM_AGENTS_STORAGE_KEY]: nextAgents
+  });
+  await chrome.storage.sync.remove(CUSTOM_AGENTS_STORAGE_KEY);
+  await chrome.storage.sync.set({
+    [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: normalizedSettings
+  });
+
+  showToast(getMessageWithFallback('agentCustomDeleteSuccess', 'Imported agent deleted'));
+  await loadAgentCustomSettingsManager();
+}
+
+async function importSkillAsCustomAgent() {
+  const urlInput = document.getElementById('agentSkillUrl');
+  const contentInput = document.getElementById('agentSkillContent');
+
+  const rawUrl = String(urlInput?.value || '').trim();
+  const pastedContent = String(contentInput?.value || '').trim();
+
+  if (!rawUrl && !pastedContent) {
+    showToast(getMessageWithFallback('agentSkillImportValidationFailed', 'Please provide a Skill URL or Skill content'), 3000);
+    return;
+  }
+
+  try {
+    let skillUrl = '';
+    let skillMarkdown = pastedContent;
+
+    if (rawUrl) {
+      const fetched = await fetchSkillMarkdownFromUrl(rawUrl);
+      skillUrl = fetched.url;
+      skillMarkdown = String(fetched.content || '').trim();
+      if (contentInput && skillMarkdown) {
+        contentInput.value = skillMarkdown;
+      }
+    }
+
+    if (!skillMarkdown) {
+      throw new Error(getMessageWithFallback('agentSkillImportEmpty', 'The fetched Skill is empty'));
+    }
+
+    const title = extractSkillTitle(skillMarkdown, rawUrl);
+    const description = extractSkillDescription(skillMarkdown);
+    const compatibility = detectSkillCompatibility(skillMarkdown);
+    const agentId = `skill-${slugifyAgentId(skillUrl || title)}`;
+    const personaPrompt = buildImportedAgentPersonaPrompt(skillMarkdown, skillUrl);
+
+    if (!personaPrompt) {
+      throw new Error(getMessageWithFallback('agentSkillImportInvalid', 'Failed to parse this Skill into an agent'));
+    }
+
+    await saveCustomAgent({
+      id: agentId,
+      name: title,
+      shortName: title.slice(0, 1),
+      description,
+      personaPrompt,
+      type: 'information',
+      color: '#4f6b95',
+      defaultEnabled: false,
+      sourceType: 'skill',
+      sourceUrl: skillUrl,
+      sourceTitle: title,
+      importedAt: new Date().toISOString(),
+      compatibility
+    });
+
+    showToast(
+      compatibility === 'prompt_only'
+        ? getMessageWithFallback('agentSkillImportPartialSuccess', 'Skill imported as a prompt-style agent')
+        : getMessageWithFallback('agentSkillImportSuccess', 'Skill imported as an agent')
+    );
+
+    if (urlInput) urlInput.value = '';
+    if (contentInput) contentInput.value = '';
+    closeAgentImportDialog();
+    await loadAgentCustomSettingsManager();
+  } catch (error) {
+    console.error('导入 skill 失败:', error);
+    showToast(
+      getMessageWithFallback('agentSkillImportFailed', 'Skill import failed') + (error?.message ? `: ${error.message}` : ''),
+      4000
+    );
+  }
+}
+
+let agentSkillUrlAutoFetchTimer = null;
+
+async function autoFetchAgentSkillContentFromUrl() {
+  const urlInput = document.getElementById('agentSkillUrl');
+  const contentInput = document.getElementById('agentSkillContent');
+  const rawUrl = String(urlInput?.value || '').trim();
+  if (!rawUrl || !contentInput) {
+    return;
+  }
+
+  contentInput.dataset.skillContentLoading = 'true';
+  try {
+    const fetched = await fetchSkillMarkdownFromUrl(rawUrl);
+    contentInput.value = String(fetched.content || '').trim();
+  } catch (error) {
+    console.warn('自动抓取 Skill 内容失败:', error);
+  } finally {
+    delete contentInput.dataset.skillContentLoading;
+  }
+}
+
+function scheduleAutoFetchAgentSkillContent() {
+  clearTimeout(agentSkillUrlAutoFetchTimer);
+  agentSkillUrlAutoFetchTimer = setTimeout(() => {
+    autoFetchAgentSkillContentFromUrl().catch((error) => {
+      console.warn('自动抓取 Skill 内容失败:', error);
+    });
+  }, 500);
 }
 
 async function initializeLaunchSettings() {
@@ -955,7 +2153,7 @@ async function initializeDisabledSites() {
     if (disabledSites.length === 0) {
       container.innerHTML = `
         <div class="empty-state state-panel">
-          <p>${chrome.i18n.getMessage('noDisabledSites') || '暂无被禁用的网站'}</p>
+          <p>${chrome.i18n.getMessage('noDisabledSites') || 'No disabled sites'}</p>
         </div>
       `;
       return;
@@ -965,11 +2163,11 @@ async function initializeDisabledSites() {
       <div class="disabled-site-item">
         <div class="site-info">
           <span class="site-domain">${site}</span>
-          <span class="site-note">悬浮球已禁用</span>
+          <span class="site-note">${chrome.i18n.getMessage('floatButtonDisabledNote') || 'Floating button disabled'}</span>
         </div>
         <div class="site-actions">
           <button class="enable-btn btn-secondary" data-domain="${site}">
-            重新启用
+            ${chrome.i18n.getMessage('reEnableFloatButtonButton') || 'Re-enable'}
           </button>
         </div>
       </div>
@@ -982,7 +2180,7 @@ async function initializeDisabledSites() {
     console.error('加载禁用网站列表失败:', error);
     container.innerHTML = `
       <div class="error-state state-panel">
-        <p>加载失败，请刷新页面重试</p>
+        <p>${chrome.i18n.getMessage('disabledSitesLoadFailed') || 'Failed to load. Please refresh and try again.'}</p>
       </div>
     `;
   }
@@ -1022,6 +2220,7 @@ async function handleDisabledSiteAction(event) {
 let currentEditingTemplateId = null;
 let currentEditingAnalysisTemplateId = null;
 let currentEditingCustomSiteId = null;
+let currentEditingAgentId = null;
 
 // 初始化提示词模板管理
 async function initializePromptTemplates() {
@@ -1569,6 +2768,8 @@ const SYNC_KEYS = [
   'analysisPromptTemplates',
   'favoritePrompts',
   'favoriteSites',
+  CUSTOM_AGENTS_STORAGE_KEY,
+  AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
 ];
 
 function isPlainObject(value) {

@@ -44,7 +44,9 @@
                         <div class="pin-guide-title" data-i18n="pinGuideTitle">Pin the extension for quick access</div>
                         <div class="pin-guide-steps" data-i18n="pinGuideSteps">Click the puzzle icon in the toolbar → Find "AI Compare" → Click the pin icon</div>
                     </div>
+                    <!--
                     <img id="pinGuideImage" src="" data-i18n-alt="pinGuideImageAlt" alt="Pin" class="pin-guide-image">
+                    -->
                     <button id="pinGuideClose" class="pin-guide-close" data-i18n-aria-label="closeButton" aria-label="Close">×</button>
                 </div>
             </div>
@@ -84,7 +86,13 @@
                 </div>
             </div>
 
-            <div class="sites-section">
+            <!--
+            <div class="site-filter-bar">
+                <div id="siteTypeTabs" class="site-type-tabs" role="tablist" data-i18n-aria-label="siteTypeTabsAriaLabel" aria-label="Site types"></div>
+            </div>
+            -->
+
+            <div class="sites-section combined-selection-section">
                 <div class="sites-header">
                     <h3 class="sites-title" data-i18n="selectAISites">AI sites</h3>
                     <button id="saveSitesBtn" class="save-settings-btn" aria-label="">
@@ -92,45 +100,46 @@
                     </button>
                     <span class="save-btn-tooltip" data-i18n="saveFavoriteSitesTitle">保存为默认站点</span>
                 </div>
-                <div id="siteTypeTabs" class="site-type-tabs" role="tablist" data-i18n-aria-label="siteTypeTabsAriaLabel" aria-label="Site types"></div>
-                <div id="sitesList" class="sites-list sites-list-skeleton" aria-busy="true">
-                    <div class="site-item site-item-skeleton" aria-hidden="true">
-                        <span class="site-drag-handle skeleton-block"></span>
-                        <span class="site-checkbox-skeleton skeleton-block"></span>
-                        <span class="site-name-skeleton skeleton-block"></span>
-                    </div>
-                    <div class="site-item site-item-skeleton" aria-hidden="true">
-                        <span class="site-drag-handle skeleton-block"></span>
-                        <span class="site-checkbox-skeleton skeleton-block"></span>
-                        <span class="site-name-skeleton skeleton-block"></span>
-                    </div>
-                    <div class="site-item site-item-skeleton" aria-hidden="true">
-                        <span class="site-drag-handle skeleton-block"></span>
-                        <span class="site-checkbox-skeleton skeleton-block"></span>
-                        <span class="site-name-skeleton skeleton-block"></span>
-                    </div>
-                    <div class="site-item site-item-skeleton" aria-hidden="true">
-                        <span class="site-drag-handle skeleton-block"></span>
-                        <span class="site-checkbox-skeleton skeleton-block"></span>
-                        <span class="site-name-skeleton skeleton-block"></span>
-                    </div>
-                    <div class="site-item site-item-skeleton" aria-hidden="true">
-                        <span class="site-drag-handle skeleton-block"></span>
-                        <span class="site-checkbox-skeleton skeleton-block"></span>
-                        <span class="site-name-skeleton skeleton-block"></span>
-                    </div>
-                    <div class="site-item site-item-skeleton" aria-hidden="true">
-                        <span class="site-drag-handle skeleton-block"></span>
-                        <span class="site-checkbox-skeleton skeleton-block"></span>
-                        <span class="site-name-skeleton skeleton-block"></span>
+                <div class="selection-group">
+                    <div id="sitesList" class="sites-list sites-list-skeleton" aria-busy="true">
+                        <div class="site-item site-item-skeleton" aria-hidden="true">
+                            <span class="site-drag-handle skeleton-block"></span>
+                            <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-name-skeleton skeleton-block"></span>
+                        </div>
+                        <div class="site-item site-item-skeleton" aria-hidden="true">
+                            <span class="site-drag-handle skeleton-block"></span>
+                            <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-name-skeleton skeleton-block"></span>
+                        </div>
+                        <div class="site-item site-item-skeleton" aria-hidden="true">
+                            <span class="site-drag-handle skeleton-block"></span>
+                            <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-name-skeleton skeleton-block"></span>
+                        </div>
+                        <div class="site-item site-item-skeleton" aria-hidden="true">
+                            <span class="site-drag-handle skeleton-block"></span>
+                            <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-name-skeleton skeleton-block"></span>
+                        </div>
+                        <div class="site-item site-item-skeleton" aria-hidden="true">
+                            <span class="site-drag-handle skeleton-block"></span>
+                            <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-name-skeleton skeleton-block"></span>
+                        </div>
+                        <div class="site-item site-item-skeleton" aria-hidden="true">
+                            <span class="site-drag-handle skeleton-block"></span>
+                            <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-name-skeleton skeleton-block"></span>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <div id="customSitesEmptyState" class="custom-sites-empty-state" hidden>
-                <span data-i18n="homepageCustomSiteEmptyText">No custom sites yet, </span>
-                <button type="button" class="site-list-empty-action" data-i18n="homepageCustomSiteEmptyAction">add one</button>
-                <span data-i18n="homepageCustomSiteEmptySuffix">.</span>
+                <div id="agentsSection" class="selection-group agents-section">
+                    <div class="selection-group-header">
+                        <h4 class="selection-group-title" data-i18n="homepageAgentsTitle">AI agents</h4>
+                    </div>
+                    <div id="agentsList" class="sites-list"></div>
+                </div>
             </div>
 
             <div class="sites-section custom-sites-section">

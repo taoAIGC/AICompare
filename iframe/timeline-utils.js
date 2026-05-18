@@ -104,9 +104,23 @@
     return mergedEntries;
   }
 
+  function extractTimelinePromptsFromMessages(messages = []) {
+    const prompts = [];
+
+    for (const message of Array.isArray(messages) ? messages : []) {
+      if (message?.role !== 'user') continue;
+      const text = normalizeTimelineQuery(message?.content);
+      if (!text) continue;
+      prompts.push({ text });
+    }
+
+    return prompts;
+  }
+
   return {
     buildTimelineCopyText,
     buildTimelineEntry,
+    extractTimelinePromptsFromMessages,
     mergeTimelinePromptSnapshots,
     normalizeTimelineQuery
   };

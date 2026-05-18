@@ -374,8 +374,14 @@ async function loadSidebarFavorites() {
                 ...item,
                 sites: item.sites.filter(site => site.isFavorite === true)
             }));
+        const hybridFavorites = getHybridFavoritesApi();
+        const hybridFavoriteItems = typeof hybridFavorites.listFavoritedHybridSessions === 'function'
+            ? await hybridFavorites.listFavoritedHybridSessions({ limit: 200 })
+            : [];
+        const mergedFavoriteItems = [...hybridFavoriteItems, ...favoriteItems]
+            .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
         listEl.innerHTML = '';
-        if (favoriteItems.length === 0) {
+        if (mergedFavoriteItems.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'sidebar-favorites-empty';
             empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
@@ -388,8 +394,8 @@ async function loadSidebarFavorites() {
         const folderMap = {};
         folders.forEach(f => { folderMap[f.id] = f.name; });
         const grouped = {};
-        favoriteItems.forEach(item => {
-            const fid = (item.sites[0] && item.sites[0].favoriteFolder) || 'default';
+        mergedFavoriteItems.forEach(item => {
+            const fid = item.favoriteFolder || (item.sites[0] && item.sites[0].favoriteFolder) || 'default';
             if (!grouped[fid]) grouped[fid] = [];
             grouped[fid].push(item);
         });
@@ -493,23 +499,28 @@ async function openSidebarFavoriteItem(item) {
     try {
         const params = new URLSearchParams();
         params.set('query', item.query || '');
-        const siteNames = (item.sites || []).map(site => site.name).filter(Boolean);
-        if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        const isHybridItem = item.source === 'hybrid';
+        if (!isHybridItem) {
+            const siteNames = (item.sites || []).map(site => site.name).filter(Boolean);
+            if (siteNames.length > 0) params.set('sites', siteNames.join(','));
+        }
         if (item.id) params.set('historyId', item.id);
         const iframeUrl = chrome.runtime.getURL(`iframe/iframe.html?${params.toString()}`);
         await chrome.tabs.create({ url: iframeUrl, active: true });
-        setTimeout(async () => {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('iframe.html')) {
-                try {
-                    await chrome.tabs.sendMessage(tabs[0].id, {
-                        type: 'loadHistoryIframes',
-                        sites: item.sites || [],
-                        historyId: item.id
-                    });
-                } catch (err) {}
-            }
-        }, 1000);
+        if (!isHybridItem) {
+            setTimeout(async () => {
+                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('iframe.html')) {
+                    try {
+                        await chrome.tabs.sendMessage(tabs[0].id, {
+                            type: 'loadHistoryIframes',
+                            sites: item.sites || [],
+                            historyId: item.id
+                        });
+                    } catch (err) {}
+                }
+            }, 1000);
+        }
     } catch (error) {
         console.error('打开收藏记录失败:', error);
     }
@@ -519,6 +530,9 @@ function bindSidebarStorageListeners() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'local' && (changes.pkHistory || changes.favoriteFolders)) loadSidebarFavorites();
         if (areaName === 'local' && (changes.firebase_email || changes.firebase_uid)) updateSyncBar();
+    });
+    window.addEventListener('focus', () => {
+        loadSidebarFavorites();
     });
 }
 
@@ -566,3 +580,6 @@ async function initSharedSidebar() {
 document.addEventListener('DOMContentLoaded', () => {
     initSharedSidebar();
 });
+function getHybridFavoritesApi() {
+    return window.AICompareHybridFavorites || {};
+}

@@ -1419,10 +1419,10 @@
     "message": "إظهار كلمة المرور أو إخفاؤها"
   },
   "membershipPlanFree": {
-    "message": "Free"
+    "message": "مجاني"
   },
   "membershipPlanPro": {
-    "message": "Pro"
+    "message": "احترافي"
   },
   "floatButtonShortcutMac": {
     "message": "⌘+M فتح اللوحة الجانبية"
@@ -1809,5 +1809,360 @@
   },
   "favoriteItemDeleteAlt": {
     "message": "حذف الموجّه المفضل"
+  },
+  "homepageAgentsTitle": {
+    "message": "وكلاء الذكاء الاصطناعي"
+  },
+  "homepageAgentCategoriesTitle": {
+    "message": "الفئات"
+  },
+  "homepageAgentCategoryBatchHint": {
+    "message": "انقر نقراً مزدوجاً لتحديد أو إلغاء تحديد كل الوكلاء في هذه الفئة"
+  },
+  "homepageNoPanelsSelected": {
+    "message": "يرجى اختيار موقع واحد أو وكيل واحد على الأقل"
+  },
+  "historyUntitledQuery": {
+    "message": "سؤال بلا عنوان"
+  },
+  "agentEngineTitle": {
+    "message": "محرك الوكلاء"
+  },
+  "agentEngineDescription": {
+    "message": "اضبط واجهة النموذج الخلفية المشتركة التي تستخدمها لوحات الوكلاء المدمجة."
+  },
+  "agentEngineApiUrlLabel": {
+    "message": "عنوان API الأساسي"
+  },
+  "agentEngineApiUrlPlaceholder": {
+    "message": "https://api.example.com/v1"
+  },
+  "agentEngineApiKeyLabel": {
+    "message": "مفتاح API"
+  },
+  "agentEngineApiKeyPlaceholder": {
+    "message": "ألصق مفتاح API الخاص بك"
+  },
+  "agentEngineModelLabel": {
+    "message": "النموذج"
+  },
+  "agentEngineModelPlaceholder": {
+    "message": "مثال: gpt-5.4-mini"
+  },
+  "agentEngineConcurrencyLabel": {
+    "message": "عدد الطلبات المتزامنة"
+  },
+  "agentEngineConcurrencyHelp": {
+    "message": "حد عام مشترك بين جميع لوحات الوكلاء."
+  },
+  "agentEngineSystemPromptLabel": {
+    "message": "تعليمات النظام العامة"
+  },
+  "agentEngineSystemPromptPlaceholder": {
+    "message": "أضف قواعد مشتركة لكل الوكلاء، مثل مبادئ الإجابة والسلوكيات الممنوعة وأسلوب الإخراج"
+  },
+  "agentEngineSystemPromptHelp": {
+    "message": "تُضاف هذه التعليمات قبل persona prompt الخاصة بكل وكيل وتُطبق على الجميع."
+  },
+  "agentEngineSaveButton": {
+    "message": "حفظ محرك الوكلاء"
+  },
+  "agentEngineValidationFailed": {
+    "message": "يرجى ملء جميع الحقول المطلوبة لمحرك الوكلاء"
+  },
+  "agentEngineLoadFailed": {
+    "message": "تعذر تحميل إعدادات محرك الوكلاء"
+  },
+  "agentEngineSaveSuccess": {
+    "message": "تم حفظ محرك الوكلاء"
+  },
+  "agentEngineNotConfigured": {
+    "message": "لم يتم إعداد محرك الوكلاء"
+  },
+  "agentCustomSettingsTitle": {
+    "message": "إعدادات الوكيل المخصصة"
+  },
+  "agentCustomSettingsDescription": {
+    "message": "استبدل الاسم والوصف وpersona prompt الافتراضية لكل وكيل."
+  },
+  "agentCustomSettingsLoadFailed": {
+    "message": "تعذر تحميل إعدادات الوكيل"
+  },
+  "agentCustomSettingsEmpty": {
+    "message": "لا توجد وكلاء قابلة للإعداد حالياً"
+  },
+  "agentCustomOverriddenBadge": {
+    "message": "مخصص"
+  },
+  "agentCustomDialogTitle": {
+    "message": "تخصيص الوكيل"
+  },
+  "agentCustomNameLabel": {
+    "message": "اسم العرض"
+  },
+  "agentCustomNamePlaceholder": {
+    "message": "مثال: Buffett (محافظ)"
+  },
+  "agentCustomDescriptionLabel": {
+    "message": "الوصف"
+  },
+  "agentCustomDescriptionPlaceholder": {
+    "message": "صف هذا الوكيل بجملة واحدة"
+  },
+  "agentCustomPersonaPromptLabel": {
+    "message": "Persona prompt"
+  },
+  "agentCustomPersonaPromptPlaceholder": {
+    "message": "حدد كيف ينبغي لهذا الوكيل أن يفكر ويجيب"
+  },
+  "agentCustomPersonaPromptHelp": {
+    "message": "يُضاف هذا النص مباشرةً إلى system prompt الخاصة بالوكيل."
+  },
+  "agentCustomResetButton": {
+    "message": "استعادة الافتراضي"
+  },
+  "agentCustomValidationFailed": {
+    "message": "يرجى إدخال اسم الوكيل"
+  },
+  "agentCustomPromptRequired": {
+    "message": "يرجى إدخال persona prompt"
+  },
+  "agentCustomSaveSuccess": {
+    "message": "تم حفظ إعدادات الوكيل"
+  },
+  "agentCustomResetSuccess": {
+    "message": "تمت إعادة ضبط إعدادات الوكيل"
+  },
+  "agentPanelFollowUpPlaceholder": {
+    "message": "اطرح متابعة"
+  },
+  "agentPanelFollowUpPlaceholderWithName": {
+    "message": "تابع مع $AGENT_NAME$",
+    "placeholders": {
+      "agent_name": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentPanelSendButton": {
+    "message": "إرسال"
+  },
+  "agentRequestFailed": {
+    "message": "فشل طلب الوكيل"
+  },
+  "agentUnknownError": {
+    "message": "وكيل غير معروف: $AGENT_ID$",
+    "placeholders": {
+      "agent_id": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentCategoryWealthName": {
+    "message": "الثروة"
+  },
+  "agentCategoryWealthDescription": {
+    "message": "الاستثمار القيمي، التفكير طويل الأجل، الحكم التجاري"
+  },
+  "agentCategoryStartupName": {
+    "message": "الشركات الناشئة"
+  },
+  "agentCategoryStartupDescription": {
+    "message": "الشركات الناشئة، النمو، المنتج، التنفيذ"
+  },
+  "agentCategoryTechnologyName": {
+    "message": "التقنية"
+  },
+  "agentCategoryTechnologyDescription": {
+    "message": "الذكاء الاصطناعي، الهندسة، التعلم، الحكم التقني"
+  },
+  "agentBuffettName": {
+    "message": "بافيت"
+  },
+  "agentBuffettShortName": {
+    "message": "ب"
+  },
+  "agentBuffettDescription": {
+    "message": "قيمة طويلة الأجل، الخنادق التنافسية، تخصيص رأس المال"
+  },
+  "agentMungerName": {
+    "message": "مانغر"
+  },
+  "agentMungerShortName": {
+    "message": "م"
+  },
+  "agentMungerDescription": {
+    "message": "نماذج ذهنية، التفكير العكسي، تجنب الحماقة"
+  },
+  "agentDuanyongpingName": {
+    "message": "دوان يونغبينغ"
+  },
+  "agentDuanyongpingShortName": {
+    "message": "د"
+  },
+  "agentDuanyongpingDescription": {
+    "message": "المنطق السليم، جودة الأعمال، الاحتفاظ طويل الأجل"
+  },
+  "agentElonMuskName": {
+    "message": "إيلون ماسك"
+  },
+  "agentElonMuskShortName": {
+    "message": "إ"
+  },
+  "agentElonMuskDescription": {
+    "message": "المبادئ الأولى، السرعة، كثافة الهندسة، التحسين المتطرف"
+  },
+  "agentSamAltmanName": {
+    "message": "سام ألتمان"
+  },
+  "agentSamAltmanShortName": {
+    "message": "س"
+  },
+  "agentSamAltmanDescription": {
+    "message": "الشركات الناشئة، التوزيع، استراتيجية المنصة، التموضع طويل الأجل"
+  },
+  "agentKarpathyName": {
+    "message": "أندريه كارباتي"
+  },
+  "agentKarpathyShortName": {
+    "message": "ك"
+  },
+  "agentKarpathyDescription": {
+    "message": "حدس الذكاء الاصطناعي، التفكير المنظومي، التعلم، واقع الهندسة"
+  },
+  "agentBuffettPersonaPrompt": {
+    "message": "You are Warren Buffett. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: circle of competence first; long-term compounding; business economics over market excitement; moats, cash flow, and management quality matter most\n- Decision priorities: can this business be clearly understood; does it have a durable moat; will capital allocation and returns on capital stay strong; is there a margin of safety at the current price\n- Tone and habits: simple and plainspoken; restrained and direct; skeptical of forecasts and hype; comfortable using business analogies\n- Knowledge boundary: Use only widely known Buffett-style public ideas and business judgment. Do not invent private facts, exact current holdings, or unpublished views.\n- Taboos: do not chase trends; do not glorify volatility or excitement; do not pretend a business is understandable when it is not; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentMungerPersonaPrompt": {
+    "message": "You are Charlie Munger. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: invert first and avoid stupidity; use multidisciplinary mental models; study incentives, human misjudgment, and opportunity cost; prefer durable compounding over clever activity\n- Decision priorities: what can go wrong first; where incentives are distorted; whether the business and decision are understandable; whether the expected outcome is worth the risk and opportunity cost\n- Tone and habits: sharp and unsentimental; likes calling out obvious nonsense; compact but high-density; comfortable sounding blunt\n- Knowledge boundary: Use only widely known Munger-style public ideas and judgment. Do not invent private anecdotes, closed-door opinions, or exact current holdings.\n- Taboos: do not soften foolish ideas just to sound polite; do not list ten generic suggestions; do not ignore incentives, bias, or second-order effects; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentDuanyongpingPersonaPrompt": {
+    "message": "You are Duan Yongping. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: common sense first; do the right thing and stay within what you truly understand; focus on great businesses and long holding periods; care about whether you can sleep well owning it\n- Decision priorities: do I really understand this business; is it a good business run by decent people; is the price sensible relative to long-term value; is the downside tolerable and the logic simple\n- Tone and habits: plainspoken and grounded; minimal jargon; uses simple common-sense filters; calm and not showy\n- Knowledge boundary: Use only widely known Duan Yongping-style public ideas and judgment. Do not invent private portfolio details, private conversations, or unpublished views.\n- Taboos: do not pretend to understand what is not understandable; do not chase hot themes for their own sake; do not complicate a simple business judgment; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentElonMuskPersonaPrompt": {
+    "message": "You are Elon Musk. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: first principles before analogy; physical constraints and engineering reality first; push for lower cost, higher speed, and higher technical leverage; prefer systems that scale nonlinearly\n- Decision priorities: what is the real bottleneck; can this be made much cheaper or faster; does the system scale through engineering rather than labor; does this create a durable technical or manufacturing advantage\n- Tone and habits: direct and forceful; engineering-heavy; comfortable making strong calls; willing to challenge default assumptions\n- Knowledge boundary: Use only widely known Elon-style public ideas and engineering or business judgment. Do not invent private plans, inside information, or exact current intentions.\n- Taboos: do not hide behind generic middle-ground advice; do not accept industry assumptions without challenge; do not substitute soft management slogans for engineering logic; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentSamAltmanPersonaPrompt": {
+    "message": "You are Sam Altman. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: look for very large markets and long-term upside; move fast, iterate, and learn from real user feedback; care about product distribution, platform dynamics, and talent density; be willing to bet into uncertainty when the upside is asymmetric\n- Decision priorities: is this a market worth a decade of work; can we learn quickly from users and ship fast; can this become a platform or distribution advantage; do we have the people and resource path to keep compounding\n- Tone and habits: clear and startup-practical; optimistic but not dreamy; comfortable with big ambition plus concrete execution; high-signal and product-oriented\n- Knowledge boundary: Use only widely known Sam Altman-style public ideas and startup or AI strategy judgment. Do not invent private boardroom details, current confidential plans, or unpublished views.\n- Taboos: do not drift into empty visionary language; do not give advice detached from startup reality; do not ignore distribution, iteration speed, or talent constraints; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentKarpathyPersonaPrompt": {
+    "message": "You are Andrej Karpathy. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: build intuition from first-hand observation; focus on model capability boundaries and system behavior; prefer mechanism-level explanations over vague abstractions; treat learning and engineering loops as core leverage\n- Decision priorities: what is actually happening in the system; what the model can and cannot reliably do; how to improve the feedback, data, tooling, or engineering loop; how to explain the concept clearly from the ground up\n- Tone and habits: clear and engineering-oriented; curious and explanatory; uses examples and simple abstractions; avoids hype jargon when a mechanism can be described\n- Knowledge boundary: Use only widely known Karpathy-style public ideas and engineering judgment. Do not invent private research details, unpublished opinions, or false certainty.\n- Taboos: do not use empty AGI rhetoric; do not pretend certainty beyond the evidence; do not explain with buzzwords when a concrete mechanism is available; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentSocraticQuestioningName": {
+    "message": "الأسئلة السقراطية"
+  },
+  "agentSocraticQuestioningShortName": {
+    "message": "س"
+  },
+  "agentSocraticQuestioningDescription": {
+    "message": "وضّح الافتراضات والأهداف والأدلة والتناقضات عبر الأسئلة السقراطية"
+  },
+  "agentSocraticQuestioningPersonaPrompt": {
+    "message": "أنت ميسّر للأسئلة السقراطية. ساعد المستخدم على التفكير بوضوح أكبر من خلال توضيح المشكلة عبر أسئلة منضبطة ومتدرجة.\nلا تتسرع في إعطاء إجابة، ولا تقدّم حلاً عاماً مبكراً، ولا تحوّل الحوار إلى استجواب طويل ومشتت.\n\n[الدور]\n- استخدم الأسئلة السقراطية لكشف الافتراضات والتعريفات والأهداف والأدلة والبدائل والقيود والنتائج\n- اطرح أسئلة موجزة وعالية القيمة تدفع التفكير إلى الأمام\n- تكيّف مع سياق المستخدم: إذا كان كلامه غامضاً فقم بتضييق المشكلة، وإذا كان محدداً فاختبر النقاط الضعيفة\n- عندما يصبح الموقف واضحاً بما يكفي، قدّم خلاصة قصيرة بدلاً من الاستمرار في الأسئلة إلى ما لا نهاية\n\n[أولويات الأسئلة]\n1. وضّح الهدف الحقيقي أو القرار المطلوب\n2. وضّح المصطلحات الأساسية والافتراضات الخفية\n3. اختبر قوة الأدلة وحدد ما ينقصها\n4. استكشف التفسيرات أو الخيارات أو الأطر البديلة\n5. أبرز المفاضلات والنتائج والآثار من الدرجة الثانية\n\n[الأسلوب]\n- اطرح من سؤال إلى ثلاثة أسئلة في كل مرة ما لم يطلب المستخدم قائمة كاملة\n- اجعل الأسئلة عملية ومحترمة وسهلة الإجابة\n- اشرح بإيجاز لماذا يهم السؤال عندما يكون ذلك مفيداً\n- لخّص الفهم الحالي بعد عدة جولات عند الحاجة\n\nمتطلبات الإجابة:\n1. ابدأ بأهم سؤال توضيحي أو أبرز تناقض.\n2. تجنب صب إجابة كاملة قبل أن تتضح المسألة.\n3. بعد توفر السياق الكافي، قدّم خلاصة أو توصية أو إطار قرار بشكل موجز.\n4. لا تقل \"بصفتي نموذج ذكاء اصطناعي\"."
+  },
+  "agentExecutiveRoundtableName": {
+    "message": "اجتماع القيادات"
+  },
+  "agentExecutiveRoundtableShortName": {
+    "message": "ج"
+  },
+  "agentExecutiveRoundtableDescription": {
+    "message": "حلّل القضية نفسها من منظور المالية والتدقيق والتقنية والمنتج والمبيعات والعلامة التجارية والعمليات والموارد البشرية"
+  },
+  "agentExecutiveRoundtablePersonaPrompt": {
+    "message": "أنت تدير اجتماع مراجعة لقيادات متعددة حول قضية أو قرار واحد.\nحلّل القضية من منظور هذه الأدوار الثمانية:\n1. المدير المالي: الميزانية، العائد على الاستثمار، التدفق النقدي، المخاطر المالية السلبية\n2. مدير التدقيق: الامتثال، الرقابة الداخلية، قابلية التتبع، التعرض للمخاطر\n3. المدير التقني: البنية، الأمان، القابلية للتوسع، الجدوى الهندسية، الدين التقني\n4. مدير المنتج: قيمة المستخدم، تحديد الأولويات، ملاءمة خارطة الطريق، جودة التجربة\n5. مدير المبيعات: قوة الطلب، التسعير، أثر الصفقات، اعتراضات العملاء، التحويل\n6. مدير العلامة التجارية: التموضع، السمعة، السرد الخارجي، الاتساق\n7. مدير العمليات: عبء العمليات، موثوقية التنفيذ، التنسيق بين الفرق، الكفاءة\n8. مدير الموارد البشرية: التوظيف، القدرات، الحوافز، التغيير التنظيمي، العبء الإداري\n\nلا تختزل هذه الزوايا المختلفة في إجابة عامة واحدة.\n\nمتطلبات الإجابة:\n1. حلّل القضية بشكل منفصل من منظور كل دور.\n2. لكل دور، اذكر الهم الرئيسي، والموقف المحتمل، وأكبر خطر، وما الشرط الذي يجعله يدعم الخطة.\n3. أبرز أكبر نقاط التعارض والانسجام بين الأدوار.\n4. اختم بـ:\n   - توصية مركبة،\n   - المخاطر غير المحسومة،\n   - والخطوات التالية التي ينبغي على فريق القيادة اتخاذها.\n5. إذا كانت المعلومات غير كافية، فابدأ بذكر الحقائق الناقصة اللازمة لهذا الاجتماع.\n6. اجعل الإجابة عملية ومنظمة وموجهة لاتخاذ القرار.\n7. لا تقل \"بصفتي نموذج ذكاء اصطناعي\"."
+  },
+  "syncPasswordPlaceholder": {
+    "message": "••••••••"
+  },
+  "remoteSearchRelayUrlPlaceholder": {
+    "message": "http://127.0.0.1:8787"
+  },
+  "floatButtonDisabledNote": {
+    "message": "تم تعطيل الزر العائم"
+  },
+  "reEnableFloatButtonButton": {
+    "message": "إعادة التفعيل"
+  },
+  "disabledSitesLoadFailed": {
+    "message": "تعذر التحميل. يرجى إعادة التحديث والمحاولة مرة أخرى."
+  },
+  "agentCustomImportedBadge": {
+    "message": "Imported"
+  },
+  "agentCustomDeleteConfirm": {
+    "message": "Delete this imported agent?"
+  },
+  "agentCustomDeleteSuccess": {
+    "message": "Imported agent deleted"
+  },
+  "agentSkillUrlLabel": {
+    "message": "Skill URL"
+  },
+  "agentSkillUrlPlaceholder": {
+    "message": "Paste a GitHub or raw SKILL.md URL"
+  },
+  "agentSkillCategoryLabel": {
+    "message": "Category"
+  },
+  "agentSkillContentLabel": {
+    "message": "Skill content"
+  },
+  "agentSkillContentPlaceholder": {
+    "message": "Paste SKILL.md content directly. If both are provided, the URL content is used first."
+  },
+  "agentSkillContentHelp": {
+    "message": "The imported skill will be converted into a custom agent that can run inside the extension."
+  },
+  "agentSkillImportButton": {
+    "message": "Parse and create agent"
+  },
+  "agentSkillImportValidationFailed": {
+    "message": "Please provide a Skill URL or Skill content"
+  },
+  "agentSkillImportEmpty": {
+    "message": "The fetched Skill content is empty"
+  },
+  "agentSkillImportInvalid": {
+    "message": "Failed to parse this Skill into an agent"
+  },
+  "agentSkillImportSuccess": {
+    "message": "Skill imported as an agent"
+  },
+  "agentSkillImportPartialSuccess": {
+    "message": "Skill imported as a prompt-style agent"
+  },
+  "agentSkillImportFailed": {
+    "message": "Skill import failed"
+  },
+  "agentEngineEditDialogTitle": {
+    "message": "تحرير محرك الوكلاء"
+  },
+  "agentEngineStatusConfigured": {
+    "message": "تمت التهيئة"
+  },
+  "agentEngineStatusUnconfigured": {
+    "message": "غير مهيأ"
+  },
+  "agentEngineCardHintConfigured": {
+    "message": "محرك الوكلاء جاهز الآن. انقر على تحرير لتحديث الإعدادات."
+  },
+  "agentEngineCardHintUnconfigured": {
+    "message": "لم تكتمل تهيئة محرك الوكلاء بعد. انقر على تحرير لملء جميع الحقول المطلوبة."
+  },
+  "agentEngineEmptyValue": {
+    "message": "غير مهيأ"
+  },
+  "agentCustomNewTitle": {
+    "message": "وكيل جديد"
+  },
+  "agentImportButton": {
+    "message": "استيراد من URL"
+  },
+  "agentNewButton": {
+    "message": "جديد"
+  },
+  "agentImportDialogTitle": {
+    "message": "استيراد وكيل من URL"
   }
 }

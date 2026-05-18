@@ -1,5 +1,7 @@
 importScripts(
   './shared/site-launch-utils.js',
+  './config/agentCatalog.js',
+  './shared/agent-prompt-utils.js',
   './config/baseConfig.js',
   './remote/common.js',
   './remote/crypto.js',
@@ -9,6 +11,32 @@ importScripts(
 );     // 加载共享启动解析器和基础配置
 
 const SiteLaunchUtils = self.SiteLaunchUtils || {};
+const AgentCatalog = self.AICompareAgentCatalog || {};
+const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
+const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
+const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
+const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
+const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
+const DEFAULT_AGENT_ENGINE_CONFIG = Object.freeze({
+  baseUrl: AgentPromptUtils.DEFAULT_BASE_URL || 'https://ark.cn-beijing.volces.com/api/coding/v3',
+  model: AgentPromptUtils.DEFAULT_MODEL || 'glm-5.1',
+  concurrency: 2,
+  systemPrompt: ''
+});
+const agentRuntimeState = {
+  activeCount: 0,
+  queue: [],
+  jobs: new Map(),
+  panelJobMap: new Map()
+};
+
+function t(key, fallback = '', substitutions = undefined) {
+  try {
+    return chrome?.i18n?.getMessage?.(key, substitutions) || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
 
 function getExtensionActionIconPaths() {
   if (self.ExtensionEnvironment && typeof self.ExtensionEnvironment.getActionIconPaths === 'function') {
@@ -53,6 +81,314 @@ function logExtensionIdForDevelopment() {
   } catch (error) {
     console.log('无法自动复制URL，请手动复制上面的search_url');
   }
+}
+
+async function ensureDefaultAgentEngineConfig() {
+  try {
+    const [syncData, localData] = await Promise.all([
+      chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+      chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
+    ]);
+    const migratedSyncConfig = typeof AgentPromptUtils.migrateLegacyApiConfig === 'function'
+      ? AgentPromptUtils.migrateLegacyApiConfig(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {})
+      : (syncData?.[AGENT_ENGINE_STORAGE_KEY] || {});
+
+    const nextSyncConfig = {
+      ...DEFAULT_AGENT_ENGINE_CONFIG,
+      ...migratedSyncConfig
+    };
+
+    const nextSecretConfig = {
+      apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || AgentPromptUtils.DEFAULT_API_KEY || ''
+    };
+
+    await Promise.all([
+      chrome.storage.sync.set({
+        [AGENT_ENGINE_STORAGE_KEY]: nextSyncConfig
+      }),
+      chrome.storage.local.set({
+        [AGENT_ENGINE_SECRET_STORAGE_KEY]: nextSecretConfig
+      })
+    ]);
+  } catch (error) {
+    console.error('初始化默认智能体引擎配置失败:', error);
+  }
+}
+
+async function getAgentEngineConfig() {
+  const [syncData, localData] = await Promise.all([
+    chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+    chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
+  ]);
+
+  const rawConfig = {
+    ...DEFAULT_AGENT_ENGINE_CONFIG,
+    ...(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {}),
+    apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
+  };
+
+  if (typeof AgentPromptUtils.normalizeApiConfig === 'function') {
+    return AgentPromptUtils.normalizeApiConfig(rawConfig);
+  }
+
+  return {
+    apiKey: String(rawConfig.apiKey || '').trim(),
+    baseUrl: String(rawConfig.baseUrl || DEFAULT_AGENT_ENGINE_CONFIG.baseUrl).replace(/\/+$/, ''),
+    model: String(rawConfig.model || DEFAULT_AGENT_ENGINE_CONFIG.model).trim(),
+    concurrency: Math.max(1, Number(rawConfig.concurrency) || DEFAULT_AGENT_ENGINE_CONFIG.concurrency),
+    systemPrompt: String(rawConfig.systemPrompt || '').trim()
+  };
+}
+
+async function getAgentCatalogWithCustomSettings() {
+  const [
+    { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings },
+    { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
+    { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }
+  ] = await Promise.all([
+    chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY),
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+  ]);
+
+  const customAgents = Array.isArray(localCustomAgents) && localCustomAgents.length > 0
+    ? localCustomAgents
+    : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []);
+  if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
+    return AgentCatalog.buildCatalogWithCustomSettings(storedSettings, customAgents);
+  }
+
+  return typeof AgentCatalog.getCatalog === 'function'
+    ? AgentCatalog.getCatalog()
+    : { categories: [], agents: [] };
+}
+
+async function getAgentByIdWithCustomSettings(agentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  if (!normalizedAgentId) {
+    return null;
+  }
+
+  const catalog = await getAgentCatalogWithCustomSettings();
+  return (catalog?.agents || []).find((agent) => agent.id === normalizedAgentId) || null;
+}
+
+function buildAgentRequestJob(payload) {
+  return {
+    jobId: String(payload?.jobId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+    panelId: String(payload?.panelId || '').trim(),
+    agentId: String(payload?.agentId || '').trim(),
+    messages: Array.isArray(payload?.messages) ? payload.messages : [],
+    meta: payload?.meta || {},
+    createdAt: Date.now(),
+    status: 'queued',
+    abortController: null
+  };
+}
+
+function sendAgentRuntimeEvent(job, data) {
+  chrome.runtime.sendMessage({
+    type: 'agentRuntimeEvent',
+    panelId: job.panelId,
+    jobId: job.jobId,
+    agentId: job.agentId,
+    ...data
+  }).catch(() => {});
+}
+
+function removeQueuedJobsForPanel(panelId, keepJobId = '') {
+  const normalizedPanelId = String(panelId || '').trim();
+  if (!normalizedPanelId) return;
+
+  agentRuntimeState.queue = agentRuntimeState.queue.filter((job) => {
+    const shouldKeep = job.panelId !== normalizedPanelId || (keepJobId && job.jobId === keepJobId);
+    if (!shouldKeep) {
+      agentRuntimeState.jobs.delete(job.jobId);
+    }
+    return shouldKeep;
+  });
+}
+
+function cancelAgentJob(panelId, reason = 'replaced') {
+  const normalizedPanelId = String(panelId || '').trim();
+  if (!normalizedPanelId) return;
+
+  removeQueuedJobsForPanel(normalizedPanelId);
+  const activeJobId = agentRuntimeState.panelJobMap.get(normalizedPanelId);
+  if (!activeJobId) return;
+
+  const activeJob = agentRuntimeState.jobs.get(activeJobId);
+  if (activeJob?.abortController) {
+    activeJob.status = 'cancelled';
+    activeJob.abortController.abort();
+    sendAgentRuntimeEvent(activeJob, {
+      event: 'cancelled',
+      reason
+    });
+  }
+}
+
+async function consumeAgentStream(job, response) {
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    sendAgentRuntimeEvent(job, {
+      event: 'delta',
+      delta: text
+    });
+    return text;
+  }
+
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let content = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+
+      let parsed;
+      try {
+        parsed = JSON.parse(payload);
+      } catch (_) {
+        continue;
+      }
+
+      const delta = parsed?.choices?.[0]?.delta?.content || '';
+      if (!delta) continue;
+      content += delta;
+      sendAgentRuntimeEvent(job, {
+        event: 'delta',
+        delta
+      });
+    }
+  }
+
+  return content;
+}
+
+async function executeAgentJob(job) {
+  const agent = await getAgentByIdWithCustomSettings(job.agentId);
+  const config = await getAgentEngineConfig();
+
+  if (!agent) {
+    throw new Error(t('agentUnknownError', `Unknown agent: ${job.agentId}`, [job.agentId]));
+  }
+  if (!config.apiKey || !config.baseUrl || !config.model) {
+    throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
+  }
+
+  const abortController = new AbortController();
+  job.abortController = abortController;
+  job.status = 'running';
+  agentRuntimeState.activeCount += 1;
+  agentRuntimeState.panelJobMap.set(job.panelId, job.jobId);
+
+  sendAgentRuntimeEvent(job, {
+    event: 'started',
+    model: config.model
+  });
+
+  try {
+    const systemMessages = typeof AgentPromptUtils.buildChatMessages === 'function'
+      ? AgentPromptUtils.buildChatMessages(agent, job.messages, config)
+      : job.messages;
+
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: config.model,
+        stream: true,
+        thinking: {
+          type: 'disabled'
+        },
+        messages: systemMessages
+      }),
+      signal: abortController.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+    }
+
+    const content = await consumeAgentStream(job, response);
+    job.status = 'completed';
+    sendAgentRuntimeEvent(job, {
+      event: 'completed',
+      content
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      job.status = 'cancelled';
+      return;
+    }
+    job.status = 'error';
+    sendAgentRuntimeEvent(job, {
+      event: 'error',
+      error: error?.message || String(error)
+    });
+  } finally {
+    agentRuntimeState.activeCount = Math.max(0, agentRuntimeState.activeCount - 1);
+    if (agentRuntimeState.panelJobMap.get(job.panelId) === job.jobId) {
+      agentRuntimeState.panelJobMap.delete(job.panelId);
+    }
+    agentRuntimeState.jobs.delete(job.jobId);
+    flushAgentRuntimeQueue().catch((error) => {
+      console.error('刷新智能体队列失败:', error);
+    });
+  }
+}
+
+async function flushAgentRuntimeQueue() {
+  const config = await getAgentEngineConfig();
+  const maxConcurrency = Math.max(1, Number(config.concurrency) || 2);
+
+  while (agentRuntimeState.activeCount < maxConcurrency && agentRuntimeState.queue.length > 0) {
+    const nextJob = agentRuntimeState.queue.shift();
+    if (!nextJob) {
+      break;
+    }
+    executeAgentJob(nextJob).catch((error) => {
+      console.error('执行智能体任务失败:', error);
+    });
+  }
+}
+
+async function enqueueAgentJob(payload) {
+  const job = buildAgentRequestJob(payload);
+  if (!job.panelId || !job.agentId) {
+    throw new Error('panelId and agentId are required');
+  }
+
+  cancelAgentJob(job.panelId, 'replaced');
+  removeQueuedJobsForPanel(job.panelId, job.jobId);
+  agentRuntimeState.jobs.set(job.jobId, job);
+  agentRuntimeState.queue.push(job);
+
+  sendAgentRuntimeEvent(job, {
+    event: 'queued'
+  });
+
+  await flushAgentRuntimeQueue();
+  return {
+    jobId: job.jobId
+  };
 }
 
 // 从本地文件初始化配置到 Chrome Storage Local
@@ -412,6 +748,7 @@ chrome.runtime.onStartup.addListener(async () => {
     await applyExtensionActionBranding();
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
+    await ensureDefaultAgentEngineConfig();
     await initializeDefaultPromptTemplates();
     await initializeDefaultAnalysisPromptTemplates();
     
@@ -443,6 +780,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
+    await ensureDefaultAgentEngineConfig();
     
     // 初始化默认提示词模板
     await initializeDefaultPromptTemplates();
@@ -733,6 +1071,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: error.message });
     });
     return true; // 保持消息通道开放
+  }
+  else if (message.action === 'getAgentCatalog') {
+    getAgentCatalogWithCustomSettings().then((catalog) => {
+      sendResponse({
+        success: true,
+        result: catalog
+      });
+    }).catch((error) => {
+      sendResponse({ success: false, error: error.message });
+    });
+    return true;
+  }
+  else if (message.action === 'getAgentEngineConfig') {
+    getAgentEngineConfig().then((config) => {
+      sendResponse({
+        success: true,
+        result: {
+          baseUrl: config.baseUrl,
+          model: config.model,
+          concurrency: config.concurrency,
+          systemPrompt: config.systemPrompt,
+          hasApiKey: Boolean(config.apiKey)
+        }
+      });
+    }).catch((error) => {
+      sendResponse({ success: false, error: error.message });
+    });
+    return true;
+  }
+  else if (message.action === 'agentChat') {
+    enqueueAgentJob(message.payload || {}).then((result) => {
+      sendResponse({ success: true, result });
+    }).catch((error) => {
+      sendResponse({ success: false, error: error.message });
+    });
+    return true;
+  }
+  else if (message.action === 'cancelAgentChat') {
+    cancelAgentJob(message.panelId, message.reason || 'cancelled');
+    sendResponse({ success: true });
   }
   else if (message.action === 'webdavImport') {
     // 从 options 页面委托执行的 WebDAV 拉取，在 service worker 中 fetch 避免 CORS/跨域限制
@@ -1439,7 +1817,7 @@ const WEBDAV_SYNC_FILENAME = 'multiAI-settings.json';
 const WEBDAV_SYNC_KEYS = [
   'buttonConfig', 'sites', 'customSites',
   'siteSettings', 'disabledSites', 'promptTemplates', 'analysisPromptTemplates',
-  'favoritePrompts', 'favoriteSites',
+  'favoritePrompts', 'favoriteSites', AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
 ];
 const WEBDAV_LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders'];
 

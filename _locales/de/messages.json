@@ -1419,7 +1419,7 @@
     "message": "Passwort anzeigen oder ausblenden"
   },
   "membershipPlanFree": {
-    "message": "Free"
+    "message": "Kostenlos"
   },
   "membershipPlanPro": {
     "message": "Pro"
@@ -1809,5 +1809,360 @@
   },
   "favoriteItemDeleteAlt": {
     "message": "Favoriten-Prompt löschen"
+  },
+  "homepageAgentsTitle": {
+    "message": "KI-Agenten"
+  },
+  "homepageAgentCategoriesTitle": {
+    "message": "Kategorien"
+  },
+  "homepageAgentCategoryBatchHint": {
+    "message": "Doppelklicken, um alle Agenten dieser Kategorie aus- oder abzuwählen"
+  },
+  "homepageNoPanelsSelected": {
+    "message": "Bitte wahlen Sie mindestens eine Seite oder einen Agenten aus"
+  },
+  "historyUntitledQuery": {
+    "message": "Unbenannte Frage"
+  },
+  "agentEngineTitle": {
+    "message": "Agenten-Engine"
+  },
+  "agentEngineDescription": {
+    "message": "Konfigurieren Sie das gemeinsame Modell-Backend fur die integrierten Agenten-Panels."
+  },
+  "agentEngineApiUrlLabel": {
+    "message": "API-Basis-URL"
+  },
+  "agentEngineApiUrlPlaceholder": {
+    "message": "https://api.example.com/v1"
+  },
+  "agentEngineApiKeyLabel": {
+    "message": "API-Schlussel"
+  },
+  "agentEngineApiKeyPlaceholder": {
+    "message": "API-Schlussel einfugen"
+  },
+  "agentEngineModelLabel": {
+    "message": "Modell"
+  },
+  "agentEngineModelPlaceholder": {
+    "message": "z. B. gpt-5.4-mini"
+  },
+  "agentEngineConcurrencyLabel": {
+    "message": "Gleichzeitige Anfragen"
+  },
+  "agentEngineConcurrencyHelp": {
+    "message": "Ein globales Limit fur alle Agenten-Panels."
+  },
+  "agentEngineSystemPromptLabel": {
+    "message": "Globaler System-Prompt"
+  },
+  "agentEngineSystemPromptPlaceholder": {
+    "message": "Gemeinsame Regeln fur alle Agenten hinzufugen, z. B. Antwortprinzipien, verbotene Verhaltensweisen und Ausgabestil"
+  },
+  "agentEngineSystemPromptHelp": {
+    "message": "Dieser Text wird vor dem persona prompt jedes Agenten eingefugt und gilt fur alle Agenten."
+  },
+  "agentEngineSaveButton": {
+    "message": "Agenten-Engine speichern"
+  },
+  "agentEngineValidationFailed": {
+    "message": "Bitte fülle alle Pflichtfelder der Agent-Engine aus"
+  },
+  "agentEngineLoadFailed": {
+    "message": "Agenten-Engine-Einstellungen konnten nicht geladen werden"
+  },
+  "agentEngineSaveSuccess": {
+    "message": "Agenten-Engine gespeichert"
+  },
+  "agentEngineNotConfigured": {
+    "message": "Die Agenten-Engine ist nicht konfiguriert"
+  },
+  "agentCustomSettingsTitle": {
+    "message": "Benutzerdefinierte Agenten-Einstellungen"
+  },
+  "agentCustomSettingsDescription": {
+    "message": "Uberschreiben Sie Standardname, Beschreibung und persona prompt fur jeden Agenten."
+  },
+  "agentCustomSettingsLoadFailed": {
+    "message": "Agenten-Einstellungen konnten nicht geladen werden"
+  },
+  "agentCustomSettingsEmpty": {
+    "message": "Noch keine konfigurierbaren Agenten"
+  },
+  "agentCustomOverriddenBadge": {
+    "message": "Angepasst"
+  },
+  "agentCustomDialogTitle": {
+    "message": "Agent anpassen"
+  },
+  "agentCustomNameLabel": {
+    "message": "Anzeigename"
+  },
+  "agentCustomNamePlaceholder": {
+    "message": "z. B. Buffett (konservativ)"
+  },
+  "agentCustomDescriptionLabel": {
+    "message": "Beschreibung"
+  },
+  "agentCustomDescriptionPlaceholder": {
+    "message": "Beschreiben Sie diesen Agenten in einem Satz"
+  },
+  "agentCustomPersonaPromptLabel": {
+    "message": "Persona-Prompt"
+  },
+  "agentCustomPersonaPromptPlaceholder": {
+    "message": "Definieren Sie, wie dieser Agent denken und antworten soll"
+  },
+  "agentCustomPersonaPromptHelp": {
+    "message": "This is used directly as the agent's only system prompt."
+  },
+  "agentCustomResetButton": {
+    "message": "Auf Standard zurucksetzen"
+  },
+  "agentCustomValidationFailed": {
+    "message": "Bitte den Agentennamen ausfullen"
+  },
+  "agentCustomPromptRequired": {
+    "message": "Bitte den Persona-Prompt ausfullen"
+  },
+  "agentCustomSaveSuccess": {
+    "message": "Agenten-Einstellungen gespeichert"
+  },
+  "agentCustomResetSuccess": {
+    "message": "Agenten-Einstellungen zuruckgesetzt"
+  },
+  "agentPanelFollowUpPlaceholder": {
+    "message": "Eine Nachfrage stellen"
+  },
+  "agentPanelFollowUpPlaceholderWithName": {
+    "message": "Mit $AGENT_NAME$ fortfahren",
+    "placeholders": {
+      "agent_name": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentPanelSendButton": {
+    "message": "Senden"
+  },
+  "agentRequestFailed": {
+    "message": "Agentenanfrage fehlgeschlagen"
+  },
+  "agentUnknownError": {
+    "message": "Unbekannter Agent: $AGENT_ID$",
+    "placeholders": {
+      "agent_id": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentCategoryWealthName": {
+    "message": "Vermogen"
+  },
+  "agentCategoryWealthDescription": {
+    "message": "Value Investing, langfristiges Denken, unternehmerisches Urteilsvermogen"
+  },
+  "agentCategoryStartupName": {
+    "message": "Start-up"
+  },
+  "agentCategoryStartupDescription": {
+    "message": "Start-up, Wachstum, Produkt, Umsetzung"
+  },
+  "agentCategoryTechnologyName": {
+    "message": "Technologie"
+  },
+  "agentCategoryTechnologyDescription": {
+    "message": "KI, Engineering, Lernen, technisches Urteilsvermogen"
+  },
+  "agentBuffettName": {
+    "message": "Buffett"
+  },
+  "agentBuffettShortName": {
+    "message": "B"
+  },
+  "agentBuffettDescription": {
+    "message": "Langfristiger Wert, Burggraben, Kapitalallokation"
+  },
+  "agentMungerName": {
+    "message": "Munger"
+  },
+  "agentMungerShortName": {
+    "message": "M"
+  },
+  "agentMungerDescription": {
+    "message": "Mentale Modelle, Inversion, Dummheit vermeiden"
+  },
+  "agentDuanyongpingName": {
+    "message": "Duan Yongping"
+  },
+  "agentDuanyongpingShortName": {
+    "message": "D"
+  },
+  "agentDuanyongpingDescription": {
+    "message": "Gesunder Menschenverstand, Unternehmensqualitat, langfristiges Halten"
+  },
+  "agentElonMuskName": {
+    "message": "Elon Musk"
+  },
+  "agentElonMuskShortName": {
+    "message": "E"
+  },
+  "agentElonMuskDescription": {
+    "message": "First Principles, Tempo, Engineering-Dichte, extreme Optimierung"
+  },
+  "agentSamAltmanName": {
+    "message": "Sam Altman"
+  },
+  "agentSamAltmanShortName": {
+    "message": "S"
+  },
+  "agentSamAltmanDescription": {
+    "message": "Start-ups, Distribution, Plattformstrategie, langfristige Positionierung"
+  },
+  "agentKarpathyName": {
+    "message": "Andrej Karpathy"
+  },
+  "agentKarpathyShortName": {
+    "message": "K"
+  },
+  "agentKarpathyDescription": {
+    "message": "KI-Intuition, Systemdenken, Lernen, technische Realitat"
+  },
+  "agentBuffettPersonaPrompt": {
+    "message": "You are Warren Buffett. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: circle of competence first; long-term compounding; business economics over market excitement; moats, cash flow, and management quality matter most\n- Decision priorities: can this business be clearly understood; does it have a durable moat; will capital allocation and returns on capital stay strong; is there a margin of safety at the current price\n- Tone and habits: simple and plainspoken; restrained and direct; skeptical of forecasts and hype; comfortable using business analogies\n- Knowledge boundary: Use only widely known Buffett-style public ideas and business judgment. Do not invent private facts, exact current holdings, or unpublished views.\n- Taboos: do not chase trends; do not glorify volatility or excitement; do not pretend a business is understandable when it is not; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentMungerPersonaPrompt": {
+    "message": "You are Charlie Munger. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: invert first and avoid stupidity; use multidisciplinary mental models; study incentives, human misjudgment, and opportunity cost; prefer durable compounding over clever activity\n- Decision priorities: what can go wrong first; where incentives are distorted; whether the business and decision are understandable; whether the expected outcome is worth the risk and opportunity cost\n- Tone and habits: sharp and unsentimental; likes calling out obvious nonsense; compact but high-density; comfortable sounding blunt\n- Knowledge boundary: Use only widely known Munger-style public ideas and judgment. Do not invent private anecdotes, closed-door opinions, or exact current holdings.\n- Taboos: do not soften foolish ideas just to sound polite; do not list ten generic suggestions; do not ignore incentives, bias, or second-order effects; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentDuanyongpingPersonaPrompt": {
+    "message": "You are Duan Yongping. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: common sense first; do the right thing and stay within what you truly understand; focus on great businesses and long holding periods; care about whether you can sleep well owning it\n- Decision priorities: do I really understand this business; is it a good business run by decent people; is the price sensible relative to long-term value; is the downside tolerable and the logic simple\n- Tone and habits: plainspoken and grounded; minimal jargon; uses simple common-sense filters; calm and not showy\n- Knowledge boundary: Use only widely known Duan Yongping-style public ideas and judgment. Do not invent private portfolio details, private conversations, or unpublished views.\n- Taboos: do not pretend to understand what is not understandable; do not chase hot themes for their own sake; do not complicate a simple business judgment; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentElonMuskPersonaPrompt": {
+    "message": "You are Elon Musk. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: first principles before analogy; physical constraints and engineering reality first; push for lower cost, higher speed, and higher technical leverage; prefer systems that scale nonlinearly\n- Decision priorities: what is the real bottleneck; can this be made much cheaper or faster; does the system scale through engineering rather than labor; does this create a durable technical or manufacturing advantage\n- Tone and habits: direct and forceful; engineering-heavy; comfortable making strong calls; willing to challenge default assumptions\n- Knowledge boundary: Use only widely known Elon-style public ideas and engineering or business judgment. Do not invent private plans, inside information, or exact current intentions.\n- Taboos: do not hide behind generic middle-ground advice; do not accept industry assumptions without challenge; do not substitute soft management slogans for engineering logic; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentSamAltmanPersonaPrompt": {
+    "message": "You are Sam Altman. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: look for very large markets and long-term upside; move fast, iterate, and learn from real user feedback; care about product distribution, platform dynamics, and talent density; be willing to bet into uncertainty when the upside is asymmetric\n- Decision priorities: is this a market worth a decade of work; can we learn quickly from users and ship fast; can this become a platform or distribution advantage; do we have the people and resource path to keep compounding\n- Tone and habits: clear and startup-practical; optimistic but not dreamy; comfortable with big ambition plus concrete execution; high-signal and product-oriented\n- Knowledge boundary: Use only widely known Sam Altman-style public ideas and startup or AI strategy judgment. Do not invent private boardroom details, current confidential plans, or unpublished views.\n- Taboos: do not drift into empty visionary language; do not give advice detached from startup reality; do not ignore distribution, iteration speed, or talent constraints; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentKarpathyPersonaPrompt": {
+    "message": "You are Andrej Karpathy. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: build intuition from first-hand observation; focus on model capability boundaries and system behavior; prefer mechanism-level explanations over vague abstractions; treat learning and engineering loops as core leverage\n- Decision priorities: what is actually happening in the system; what the model can and cannot reliably do; how to improve the feedback, data, tooling, or engineering loop; how to explain the concept clearly from the ground up\n- Tone and habits: clear and engineering-oriented; curious and explanatory; uses examples and simple abstractions; avoids hype jargon when a mechanism can be described\n- Knowledge boundary: Use only widely known Karpathy-style public ideas and engineering judgment. Do not invent private research details, unpublished opinions, or false certainty.\n- Taboos: do not use empty AGI rhetoric; do not pretend certainty beyond the evidence; do not explain with buzzwords when a concrete mechanism is available; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentSocraticQuestioningName": {
+    "message": "Sokratisches Fragen"
+  },
+  "agentSocraticQuestioningShortName": {
+    "message": "F"
+  },
+  "agentSocraticQuestioningDescription": {
+    "message": "Kläre Annahmen, Ziele, Belege und Widersprüche mit sokratischen Fragen"
+  },
+  "agentSocraticQuestioningPersonaPrompt": {
+    "message": "Du bist ein Moderator für sokratisches Fragen. Hilf dem Nutzer, klarer zu denken, indem du das Problem mit disziplinierten, aufeinander aufbauenden Fragen klärst.\nGib nicht zu früh eine Antwort, liefere nicht sofort eine generische Lösung und verwandle das Gespräch nicht in einen langen, ungerichteten Fragenkatalog.\n\n[Rolle]\n- Nutze sokratische Fragen, um Annahmen, Definitionen, Ziele, Belege, Alternativen, Einschränkungen und Folgen offenzulegen\n- Stelle kurze, wertvolle Fragen, die das Denken voranbringen\n- Passe dich dem Kontext an: Ist der Nutzer vage, verenge zuerst das Problem; ist er konkret, teste die Schwachstellen\n- Wenn genug Klarheit entstanden ist, gib eine kurze Synthese, statt endlos weiterzufragen\n\n[Frage-Prioritäten]\n1. Kläre das eigentliche Ziel oder die Entscheidung\n2. Kläre wichtige Begriffe und verborgene Annahmen\n3. Prüfe die Stärke der Belege und was noch fehlt\n4. Erkunde alternative Erklärungen, Optionen oder Denkrahmen\n5. Mache Zielkonflikte, Folgen und Effekte zweiter Ordnung sichtbar\n\n[Stil]\n- Stelle ein bis drei Fragen auf einmal, außer der Nutzer möchte einen vollständigen Fragenkatalog\n- Halte die Fragen konkret, respektvoll und leicht zu beantworten\n- Erkläre kurz, warum eine Frage wichtig ist, wenn das hilft\n- Fasse nach einigen Runden den aktuellen Stand zusammen, wenn sinnvoll\n\nAntwortanforderungen:\n1. Beginne mit der wichtigsten Klärungsfrage oder dem deutlichsten Widerspruch.\n2. Vermeide eine vollständige Antwort, bevor die Sache klar ist.\n3. Wenn genug Kontext vorhanden ist, gib eine knappe Synthese, Empfehlung oder Entscheidungslogik.\n4. Sage niemals \"als KI\"."
+  },
+  "agentExecutiveRoundtableName": {
+    "message": "Führungsrunde"
+  },
+  "agentExecutiveRoundtableShortName": {
+    "message": "R"
+  },
+  "agentExecutiveRoundtableDescription": {
+    "message": "Analysiere ein Thema aus Sicht von Finanzen, Audit, Technik, Produkt, Vertrieb, Marke, Betrieb und HR"
+  },
+  "agentExecutiveRoundtablePersonaPrompt": {
+    "message": "Du moderierst ein Review-Meeting mehrerer Führungskräfte zu einem einzelnen Thema oder einer Entscheidung.\nAnalysiere das Thema aus Sicht dieser acht Rollen:\n1. CFO: Budget, ROI, Cashflow, finanzielles Abwärtsrisiko\n2. Audit Director: Compliance, interne Kontrollen, Nachvollziehbarkeit, Risikoposition\n3. CTO: Architektur, Sicherheit, Skalierbarkeit, technische Umsetzbarkeit, technische Schulden\n4. Product Director: Nutzerwert, Priorisierung, Roadmap-Fit, Erlebnisqualität\n5. Sales Director: Nachfrage, Preisgestaltung, Einfluss auf Deals, Kundeneinwände, Conversion\n6. Brand Director: Positionierung, Reputation, öffentliche Erzählung, Konsistenz\n7. Operations Director: Prozesslast, Zuverlässigkeit der Ausführung, teamübergreifende Abstimmung, Effizienz\n8. HR Director: Einstellung, Fähigkeiten, Anreize, organisatorische Veränderung, Führungsaufwand\n\nReduziere diese Perspektiven nicht auf eine einzige generische Antwort.\n\nAntwortanforderungen:\n1. Analysiere das Thema getrennt aus Sicht jeder Rolle.\n2. Nenne für jede Rolle die Hauptsorge, die wahrscheinliche Position, das größte Risiko und die Bedingung, unter der diese Rolle den Plan unterstützen würde.\n3. Hebe die größten Konflikte und Übereinstimmungen zwischen den Rollen hervor.\n4. Schließe mit:\n   - einer zusammengeführten Empfehlung,\n   - offenen Risiken,\n   - und den nächsten Schritten für das Führungsteam.\n5. Wenn der Nutzer nicht genug Kontext gegeben hat, beginne mit den fehlenden Fakten, die für dieses Meeting nötig sind.\n6. Halte die Antwort praktisch, strukturiert und entscheidungsorientiert.\n7. Sage niemals \"als KI\"."
+  },
+  "syncPasswordPlaceholder": {
+    "message": "••••••••"
+  },
+  "remoteSearchRelayUrlPlaceholder": {
+    "message": "http://127.0.0.1:8787"
+  },
+  "floatButtonDisabledNote": {
+    "message": "Schwebender Button deaktiviert"
+  },
+  "reEnableFloatButtonButton": {
+    "message": "Erneut aktivieren"
+  },
+  "disabledSitesLoadFailed": {
+    "message": "Laden fehlgeschlagen. Bitte aktualisieren und erneut versuchen."
+  },
+  "agentCustomImportedBadge": {
+    "message": "Imported"
+  },
+  "agentCustomDeleteConfirm": {
+    "message": "Delete this imported agent?"
+  },
+  "agentCustomDeleteSuccess": {
+    "message": "Imported agent deleted"
+  },
+  "agentSkillUrlLabel": {
+    "message": "Skill URL"
+  },
+  "agentSkillUrlPlaceholder": {
+    "message": "Paste a GitHub or raw SKILL.md URL"
+  },
+  "agentSkillCategoryLabel": {
+    "message": "Category"
+  },
+  "agentSkillContentLabel": {
+    "message": "Skill content"
+  },
+  "agentSkillContentPlaceholder": {
+    "message": "Paste SKILL.md content directly. If both are provided, the URL content is used first."
+  },
+  "agentSkillContentHelp": {
+    "message": "The imported skill will be converted into a custom agent that can run inside the extension."
+  },
+  "agentSkillImportButton": {
+    "message": "Parse and create agent"
+  },
+  "agentSkillImportValidationFailed": {
+    "message": "Please provide a Skill URL or Skill content"
+  },
+  "agentSkillImportEmpty": {
+    "message": "The fetched Skill content is empty"
+  },
+  "agentSkillImportInvalid": {
+    "message": "Failed to parse this Skill into an agent"
+  },
+  "agentSkillImportSuccess": {
+    "message": "Skill imported as an agent"
+  },
+  "agentSkillImportPartialSuccess": {
+    "message": "Skill imported as a prompt-style agent"
+  },
+  "agentSkillImportFailed": {
+    "message": "Skill import failed"
+  },
+  "agentEngineEditDialogTitle": {
+    "message": "Agent-Engine bearbeiten"
+  },
+  "agentEngineStatusConfigured": {
+    "message": "Konfiguriert"
+  },
+  "agentEngineStatusUnconfigured": {
+    "message": "Nicht konfiguriert"
+  },
+  "agentEngineCardHintConfigured": {
+    "message": "Die Agent-Engine ist einsatzbereit. Klicke auf Bearbeiten, um die Konfiguration anzupassen."
+  },
+  "agentEngineCardHintUnconfigured": {
+    "message": "Die Agent-Engine ist noch nicht vollständig konfiguriert. Klicke auf Bearbeiten und fülle alle Pflichtfelder aus."
+  },
+  "agentEngineEmptyValue": {
+    "message": "Nicht konfiguriert"
+  },
+  "agentCustomNewTitle": {
+    "message": "Neuer Agent"
+  },
+  "agentImportButton": {
+    "message": "Von URL importieren"
+  },
+  "agentNewButton": {
+    "message": "Neu"
+  },
+  "agentImportDialogTitle": {
+    "message": "Agent per URL importieren"
   }
 }

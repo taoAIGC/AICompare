@@ -9,7 +9,8 @@ body {
     background: var(--ai-page-bg);
     color: var(--ai-text);
     line-height: 1.6;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .page-layout {

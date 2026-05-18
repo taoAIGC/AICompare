@@ -728,7 +728,7 @@
       "enabled": true,
       "supportUrlQuery": false,
       "region": "US",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "searchHandler": {
         "steps": [
@@ -823,7 +823,7 @@
         "textSelector": "ms-prompt-chunk p, ms-prompt-chunk span"
       },
       "icon": "aistudio.google.com.png",
-      "type": "Agents"
+      "type": "information"
     },
     {
       "name": "DeepSeek",
@@ -3110,7 +3110,7 @@
       "enabled": true,
       "supportUrlQuery": false,
       "region": "China",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "searchHandler": {
         "steps": [
@@ -3205,7 +3205,7 @@
         "textSelector": "div.message-content, div.message-content .text-pretty, div.message-content span"
       },
       "icon": "agent.minimax.io.png",
-      "type": "Agents"
+      "type": "information"
     },
     {
       "name": "Manus",
@@ -3213,7 +3213,7 @@
       "enabled": true,
       "supportUrlQuery": false,
       "region": "Global",
-      "hidden": false,
+      "hidden": true,
       "supportIframe": true,
       "searchHandler": {
         "steps": [
@@ -3273,7 +3273,7 @@
         "textSelector": "span.whitespace-pre-wrap.u-break-words"
       },
       "icon": "manus.im.png",
-      "type": "Agents"
+      "type": "information"
     },
     {
       "name": "Bing",
@@ -3432,115 +3432,6 @@
       },
       "icon": "www.google.com.png",
       "type": "image"
-    },
-    {
-      "name": "Google Translate",
-      "url": "https://translate.google.com/?sl=auto&tl=en&op=translate",
-      "enabled": true,
-      "supportUrlQuery": false,
-      "region": "Global",
-      "hidden": false,
-      "supportIframe": true,
-      "searchHandler": {
-        "steps": [
-          {
-            "action": "focus",
-            "selector": "textarea[role=\"combobox\"]",
-            "description": "聚焦 Google Translate 源文本输入框",
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
-          },
-          {
-            "action": "setValue",
-            "selector": "textarea[role=\"combobox\"]",
-            "description": "设置 Google Translate 源文本内容",
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
-          },
-          {
-            "action": "triggerEvents",
-            "selector": "textarea[role=\"combobox\"]",
-            "events": [
-              "input",
-              "change",
-              "blur",
-              "focus"
-            ],
-            "description": "触发 Google Translate 输入事件",
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
-          }
-        ]
-      },
-      "contentExtractor": {
-        "contentSelectors": [
-          "span[lang=\"en\"]",
-          "span[jsname=\"W297wb\"]",
-          "div[aria-live=\"polite\"] span[jsname=\"W297wb\"]",
-          "div[aria-live=\"polite\"] span[lang]"
-        ]
-      },
-      "icon": "translate.google.com.png",
-      "type": "translate"
-    },
-    {
-      "name": "Bing Translate",
-      "url": "https://www.bing.com/translator",
-      "enabled": true,
-      "supportUrlQuery": false,
-      "region": "Global",
-      "hidden": false,
-      "supportIframe": true,
-      "searchHandler": {
-        "steps": [
-          {
-            "action": "focus",
-            "selector": "#tta_input_ta",
-            "description": "聚焦 Bing Translate 源文本输入框",
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
-          },
-          {
-            "action": "setValue",
-            "selector": "#tta_input_ta",
-            "inputType": "special",
-            "specialConfig": {
-              "type": "custom-element",
-              "selector": "#tta_input_ta",
-              "method": "textContent"
-            },
-            "description": "设置 Bing Translate 源文本内容（contenteditable 文本节点）",
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
-          },
-          {
-            "action": "triggerEvents",
-            "selector": "#tta_input_ta",
-            "events": [
-              "input",
-              "change",
-              "blur",
-              "focus"
-            ],
-            "description": "触发 Bing Translate 输入事件",
-            "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
-          }
-        ]
-      },
-      "contentExtractor": {
-        "contentSelectors": [
-          "#tta_output_ta"
-        ]
-      },
-      "icon": "www.bing.com.png",
-      "type": "translate"
     }
   ]
 }

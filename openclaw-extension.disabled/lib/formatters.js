@@ -2,6 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  DEFAULT_INSTALL_URL,
+  DEVELOPMENT_ENVIRONMENT,
+  DEVELOPMENT_EXTENSION_ID,
+  DEVELOPMENT_INSTALL_URL
+} from "./defaults.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SITE_HANDLERS_PATH = path.resolve(__dirname, "../../config/siteHandlers.json");
@@ -137,11 +144,10 @@ function normalizeSiteForDisplay(site) {
 function formatSiteBlock(site, maxChars) {
   const normalized = normalizeSiteForDisplay(site);
   const lines = [`## ${normalized.siteName}`];
-  lines.push(`Status: ${normalized.status || "unknown"}`);
   if (normalized.url) lines.push(`URL: ${normalized.url}`);
-  if (normalized.error) lines.push(`Error: ${normalized.error}`);
+  const displayContent = normalized.content || String(normalized.error || "").trim();
   lines.push("");
-  lines.push(truncateContent(normalized.content || "", maxChars) || "(empty)");
+  lines.push(truncateContent(displayContent, maxChars) || "(empty)");
   return lines.join("\n");
 }
 
@@ -195,14 +201,41 @@ export function buildMissingRunnerMessage(pluginDir) {
 }
 
 export function buildMissingExtensionMessage(pluginConfig = {}) {
+  const environment = String(pluginConfig.environment || "").trim().toLowerCase() === DEVELOPMENT_ENVIRONMENT
+    ? DEVELOPMENT_ENVIRONMENT
+    : "production";
+  const extensionId = typeof pluginConfig.extensionId === "string" && pluginConfig.extensionId.trim()
+    ? pluginConfig.extensionId.trim()
+    : (environment === DEVELOPMENT_ENVIRONMENT ? DEVELOPMENT_EXTENSION_ID : "");
   const installUrl = typeof pluginConfig.installUrl === "string" && pluginConfig.installUrl.trim()
     ? pluginConfig.installUrl.trim()
     : (typeof process !== "undefined" && process.env && typeof process.env.AI_COMPARE_INSTALL_URL === "string" && process.env.AI_COMPARE_INSTALL_URL.trim()
       ? process.env.AI_COMPARE_INSTALL_URL.trim()
-      : "<set AI_COMPARE_INSTALL_URL or plugins.entries.ai-compare-hard-router.config.installUrl>");
+      : (environment === DEVELOPMENT_ENVIRONMENT ? DEVELOPMENT_INSTALL_URL : DEFAULT_INSTALL_URL));
+
+  if (environment === DEVELOPMENT_ENVIRONMENT) {
+    return [
+      "这次没有通过 AI Compare 返回站点结果，因为当前 Chrome profile 里还没有可用的 AI Compare 开发版扩展。",
+      "",
+      `目标环境：${environment}`,
+      `目标扩展 ID：${extensionId || DEVELOPMENT_EXTENSION_ID}`,
+      "",
+      "请确认你加载的是本地开发版扩展：",
+      `- 打开 \`${installUrl}\``,
+      "- 开启 `Developer mode`",
+      "- 点击 `Load unpacked`",
+      "- 选择 AI Compare 仓库目录",
+      "- 如果已经加载过，点一次 `Reload`",
+      "",
+      "加载完成后告诉我，我会按开发环境扩展重新重试。"
+    ].join("\n");
+  }
 
   return [
     "这次没有通过 AI Compare 返回站点结果，因为当前 Chrome profile 里还没有可用的 AI Compare 扩展。",
+    "",
+    `目标环境：${environment}`,
+    extensionId ? `目标扩展 ID：${extensionId}` : "",
     "",
     `安装插件：${installUrl}`,
     "",
@@ -213,7 +246,7 @@ export function buildMissingExtensionMessage(pluginConfig = {}) {
     "- 选择 AI Compare 仓库目录",
     "",
     "如果扩展已经装过，再点一次 `Reload` 后告诉我，我再重试。"
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 export function formatRunnerPayload(payload, options) {
@@ -241,9 +274,20 @@ export function formatRunnerPayload(payload, options) {
   }
 
   const result = payload.result && typeof payload.result === "object" ? payload.result : null;
-  if (result && typeof result === "object") {
-    return JSON.stringify(payload, null, 2);
+  const sites = Array.isArray(result?.results)
+    ? result.results
+        .map((site) => normalizeSiteForDisplay(site))
+        .filter((site) => String(site?.siteName || "").trim())
+    : [];
+
+  if (sites.length > 0) {
+    return sites
+      .map((site) => formatSiteBlock(site, 3000))
+      .join("\n\n");
   }
 
-  return JSON.stringify(payload, null, 2);
+  return buildFailureMessage({
+    query,
+    detail: "Runner returned no site results."
+  });
 }

@@ -80,6 +80,7 @@
 
 - **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`). Changes apply to already open tabs immediately.
 - **Launch settings**: Customize official site entry URLs and manage standalone custom sites.
+- **Agent settings**: Configure the shared agent engine, then override each built-in agent's display name, description, and persona prompt.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
 - **Cloud sync**: Use WebDAV to sync settings across devices.
@@ -91,6 +92,7 @@
 
 - **History**: Full list of past comparison sessions; search and open again; clear history.
 - **Favorites**: Saved queries/sessions; search and open again; clear all.
+- **Hybrid timeline**: Mixed site + agent sessions now keep agent user turns in the compare timeline too, so reopening hybrid history can still identify each agent dialogue round for scroll/copy preview.
 
 #### 11. Remote Search v1
 
@@ -162,6 +164,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]`, and submits through the arrow-up send button.
 - Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
+- Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
+- The built-in agent-engine defaults now target the Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the Settings page pre-fills that base URL and the bundled default key unless you override them locally, and old `https://api.pptoken.org/v1` + `gpt-5.4-mini` defaults are migrated automatically.
 - The default retry ceiling for configured step retries is now 10 attempts.
 - Config-driven `sendKeys` steps now honor `waitForElement`, `maxAttempts`, and `retryInterval`, so Enter-based submits can retry like `focus` / `setValue` / `triggerEvents`.
 - Timeline copy now shows a "Copying..." toast first and falls back to `execCommand('copy')` if `navigator.clipboard.writeText` fails.
@@ -265,6 +269,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 - **快捷入口设置**：开关 悬浮球、划词搜索、AI 站内按钮、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。已打开的页面会立即同步开关状态，无需刷新。
 - **启动网址设置**：可配置官方站点入口 URL，并管理独立的自定义网站。
+- **智能体设置**：可配置共享的智能体引擎，并按智能体覆盖显示名称、简介和 persona 提示词。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
 - **云同步**：使用 WebDAV 在不同设备之间同步设置。
@@ -346,6 +351,8 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]`，发送方式为点击箭头发送按钮。
 - Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
+- 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
+- 内置的智能体引擎默认配置现已切到火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；在本地未手动覆盖时，设置页会默认带入该地址和仓库内置默认密钥，旧的 `https://api.pptoken.org/v1` + `gpt-5.4-mini` 默认配置也会自动迁移。
 - 配置步骤的默认重试上限现在是 10 次。
 - 配置驱动的 `sendKeys` 步骤现在也会遵循 `waitForElement`、`maxAttempts` 和 `retryInterval`，因此回车提交可以像 `focus` / `setValue` / `triggerEvents` 一样重试。
 - 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
@@ -381,10 +388,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-15 17:07:04 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-18 20:07:40 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.DS_Store`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -395,16 +401,62 @@ Last auto-update / 最近自动更新：2026-05-15 17:07:04 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `M` `background.js`
+- `A` `config/agentCatalog.js`
+- `M` `config/baseConfig.js`
+- `M` `config/siteHandlers.json`
+- `A` `docs/hybrid-site-agent-plan.md`
+- `A` `docs/hybrid-site-agent-test-log.md`
+- `M` `favorites/favorites.html`
+- `M` `favorites/favorites.js`
+- `M` `history/history.css`
+- `M` `history/history.html`
+- `M` `history/history.js`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `A` `iframe/agent-panel.css`
+- `A` `iframe/agent-panel.html`
+- `A` `iframe/agent-panel.js`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
+- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
+- `A` `openclaw-extension.disabled/LICENSE`
+- `A` `openclaw-extension.disabled/README.md`
+- `A` `openclaw-extension.disabled/ai-compare-hard-router-0.1.0.tgz`
+- `R100` `openclaw-extension/bin/ai-compare-openclaw-fast.cjs	openclaw-extension.disabled/bin/ai-compare-openclaw-fast.cjs`
+- `R099` `openclaw-extension/bin/ai-compare-openclaw-runner.cjs	openclaw-extension.disabled/bin/ai-compare-openclaw-runner.cjs`
+- `R100` `openclaw-extension/config/route-rules.js	openclaw-extension.disabled/config/route-rules.js`
+- `A` `openclaw-extension.disabled/docs/install-browser-extension.md`
+- `A` `openclaw-extension.disabled/index.js`
+- `R051` `openclaw-extension/lib/defaults.js	openclaw-extension.disabled/lib/defaults.js`
+- `R078` `openclaw-extension/lib/formatters.js	openclaw-extension.disabled/lib/formatters.js`
+- `R100` `openclaw-extension/lib/intent.js	openclaw-extension.disabled/lib/intent.js`
+- `R100` `openclaw-extension/lib/logging.js	openclaw-extension.disabled/lib/logging.js`
+- `R100` `openclaw-extension/lib/runner.js	openclaw-extension.disabled/lib/runner.js`
+- `R069` `openclaw-extension/openclaw.plugin.json	openclaw-extension.disabled/openclaw.plugin.json`
+- `R100` `openclaw-extension/package.json	openclaw-extension.disabled/package.json`
+- `M` `openclaw/ai-compare-openclaw-runner.js`
+- `M` `openclaw/references/install-browser-extension.md`
+- `M` `options/options.css`
+- `M` `options/options.html`
 - `M` `options/options.js`
+- `A` `shared/agent-prompt-utils.js`
+- `M` `shared/favorite-folder-modal.js`
+- `A` `shared/hybrid-favorites.js`
+- `A` `shared/hybrid-history-db.js`
+- `M` `shared/sidebar.css`
+- `M` `shared/sidebar.js`
+- `M` `tests/iframe-timeline-utils.test.js`
 
 ### Recent commits / 最近提交
+- `16923e6` 2026-05-15 V3.4.2 完善语言包
 - `52ad022` 2026-05-14 V3.4.1 修复 UI 小问题
 - `d730a72` 2026-05-12 V3.4.0 UI主题黑白色
 - `71ec1e1` 2026-05-11 V3.3.0 支持汇总答案的分析
 - `c210df9` 2026-05-11 V3.2.4 快速汇总答案
-- `fd3e99b` 2026-05-11 V3.2.3 支持导出文件
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

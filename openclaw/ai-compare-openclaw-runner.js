@@ -12,6 +12,8 @@ let chromiumInstance = null;
 const DEFAULT_GUI_WAIT_RESULTS_MS = 90000;
 const DEFAULT_COMPARISON_TIMEOUT_MS = 60000;
 const DEFAULT_SITE_TIMEOUT_MS = 60000;
+const DEFAULT_EXTENSION_ID = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+const DEFAULT_INSTALL_URL = 'https://chromewebstore.google.com/detail/dkhpgbbhlnmjbkihoeniojpkggkabbbl';
 
 function getChromium() {
   if (!chromiumInstance) {
@@ -167,6 +169,7 @@ function getExtensionCandidates(explicitExtensionId) {
   }
 
   return uniqueStrings([
+    DEFAULT_EXTENSION_ID,
     process.env.AI_COMPARE_EXTENSION_ID,
     process.env.EXTENSION_ID,
     ...parseSites(process.env.AI_COMPARE_EXTENSION_IDS || '')
@@ -218,7 +221,7 @@ function getInstallInstructions(attemptedIds, explicitExtensionId) {
     '',
     'How to fix:',
     '1. Install AI Compare in that same Chrome profile.',
-    '   Chrome Web Store: <INSTALL_URL>',
+    `   Chrome Web Store: ${DEFAULT_INSTALL_URL}`,
     '2. Or load this repository as an unpacked extension:',
     '   - Open chrome://extensions',
     '   - Enable Developer mode',
