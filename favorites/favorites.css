@@ -14,8 +14,10 @@ body {
 
 .page-layout {
     display: flex;
+    height: 100vh;
     min-height: 100vh;
     background: var(--ai-page-bg);
+    overflow: hidden;
 }
 
 .page-sidebar {
@@ -35,6 +37,11 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px 24px 32px;
+    height: 100vh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .favorites-header {
@@ -364,9 +371,14 @@ body {
 }
 
 .favorites-list {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
 }
 
 .favorite-item {
@@ -506,16 +518,18 @@ body {
 
 @media (max-width: 768px) {
     body {
-        overflow: auto;
+        overflow: hidden;
     }
 
     .page-layout {
         flex-direction: column;
+        height: 100vh;
         min-height: 100vh;
     }
 
     .favorites-container {
         padding: 16px;
+        height: 100%;
     }
 
     .favorites-header {

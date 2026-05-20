@@ -91,7 +91,7 @@
       const normalizedAgentId = normalizeString(agentId);
       if (!normalizedAgentId) return;
       siteEntries.push({
-        name: `Agent:${normalizedAgentId}`,
+        name: `Skill:${normalizedAgentId}`,
         url: '',
         isFavorite,
         favoriteFolder

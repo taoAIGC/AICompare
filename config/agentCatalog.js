@@ -11,6 +11,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = 'agentCustomSettings';
   const CUSTOM_AGENTS_STORAGE_KEY = 'customAgents';
+  const AGENT_HIDDEN_IDS_STORAGE_KEY = 'agentHiddenIds';
   const NODE_LOCALE_MESSAGES_CACHE = new Map();
   const CATEGORY_DEFINITIONS = Object.freeze([
     {
@@ -707,6 +708,25 @@
     return baseAgent;
   }
 
+  function normalizeAgentHiddenIds(hiddenIds = []) {
+    if (!Array.isArray(hiddenIds)) {
+      return [];
+    }
+
+    const seen = new Set();
+    const normalizedHiddenIds = [];
+    hiddenIds.forEach((value) => {
+      const normalizedValue = normalizeString(value);
+      if (!normalizedValue || seen.has(normalizedValue)) {
+        return;
+      }
+      seen.add(normalizedValue);
+      normalizedHiddenIds.push(normalizedValue);
+    });
+
+    return normalizedHiddenIds;
+  }
+
   function buildCatalogWithCustomSettings(customSettingsMap = {}, customAgents = [], locale) {
     const normalizedMap = normalizeAgentCustomSettingsMap(customSettingsMap);
     const builtinAgents = getAgents(locale).map((agent) => mergeAgentWithCustomSettings(agent, normalizedMap));
@@ -721,6 +741,7 @@
   return {
     AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
     CUSTOM_AGENTS_STORAGE_KEY,
+    AGENT_HIDDEN_IDS_STORAGE_KEY,
     buildCatalogWithCustomSettings,
     getCatalog,
     getAgentById,
@@ -733,6 +754,7 @@
     normalizeAgentCustomSettingsMap,
     normalizeCustomAgent,
     normalizeCustomAgents,
+    normalizeAgentHiddenIds,
     migrateLegacyCustomAgentsStorage
   };
 });

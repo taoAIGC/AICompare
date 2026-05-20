@@ -8,8 +8,26 @@ const TEMPLATE_TYPE_LABELS = {
 let configuredTemplateTypes = ['information'];
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
+const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
+const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
+const GOOGLE_DRIVE_SYNC_STORAGE_KEY = 'googleDriveSyncConfig';
+const LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders', AGENT_ENGINE_SECRET_STORAGE_KEY, CUSTOM_AGENTS_STORAGE_KEY, AGENT_HIDDEN_IDS_STORAGE_KEY];
+const SYNC_KEYS = [
+  'buttonConfig',
+  'sites',
+  'customSites',
+  'siteSettings',
+  'disabledSites',
+  'promptTemplates',
+  'analysisPromptTemplates',
+  'favoritePrompts',
+  'favoriteSites',
+  AGENT_ENGINE_STORAGE_KEY,
+  AGENT_ENGINE_SETTINGS_STORAGE_KEY,
+  AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
+];
 
 
 // 加载保存的配置
@@ -260,21 +278,35 @@ async function loadAgentEngineConfig() {
   const defaultConfig = getBundledAgentEngineDefaults();
 
   const [syncData, localData] = await Promise.all([
-    chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+    chrome.storage.sync.get([AGENT_ENGINE_STORAGE_KEY, AGENT_ENGINE_SETTINGS_STORAGE_KEY]),
     chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
   ]);
 
-  const merged = {
+  const resolvedSettings = typeof promptUtils?.resolveAgentEngineSettings === 'function'
+    ? promptUtils.resolveAgentEngineSettings(
+        syncData?.[AGENT_ENGINE_SETTINGS_STORAGE_KEY] || {},
+        localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY] || {}
+      )
+    : null;
+
+  const fallbackConfig = {
     ...(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {}),
     apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
   };
 
-  const normalizedConfig = promptUtils?.normalizeApiConfig?.(merged) || {
+  const officialConfig = resolvedSettings?.officialConfig || promptUtils?.normalizeApiConfig?.({}, { useBundledDefaults: true }) || defaultConfig;
+  const customConfig = resolvedSettings?.customConfig || promptUtils?.normalizeApiConfig?.(fallbackConfig, { useBundledDefaults: false }) || {
     ...defaultConfig,
-    ...merged
+    ...fallbackConfig
   };
+  const selectedSource = resolvedSettings?.selectedSource || (customConfig?.apiKey && customConfig?.baseUrl && customConfig?.model ? 'custom' : 'official');
 
-  return normalizedConfig;
+  return {
+    selectedSource,
+    officialConfig,
+    customConfig,
+    effectiveConfig: resolvedSettings?.effectiveConfig || (selectedSource === 'custom' ? customConfig : officialConfig)
+  };
 }
 
 function isAgentEngineConfigured(config = {}) {
@@ -286,58 +318,167 @@ function isAgentEngineConfigured(config = {}) {
   );
 }
 
-function getMaskedAgentApiKey(apiKey = '') {
-  const trimmed = String(apiKey || '').trim();
-  if (!trimmed) {
-    return getMessageWithFallback('agentEngineEmptyValue', 'Not configured');
+function getAgentEngineUpgradePriceId() {
+  const preferredPlan = String(window.AICompareAgentEngineConfig?.DEFAULT_CHECKOUT_PLAN || 'yearly').trim();
+  if (preferredPlan === 'monthly') {
+    return window.STRIPE_PRICES?.monthly || '';
   }
-  if (trimmed.length <= 8) {
-    return '••••••••';
+  return window.STRIPE_PRICES?.yearly || window.STRIPE_PRICES?.monthly || '';
+}
+
+async function getCurrentMembershipPlanInfo() {
+  try {
+    if (typeof window.getUserPlan === 'function') {
+      return await window.getUserPlan();
+    }
+  } catch (_) {
+    // Ignore plan lookup failures here and fall back to free.
   }
-  return `${trimmed.slice(0, 4)}••••••${trimmed.slice(-4)}`;
+  return { plan: 'free', planExpiresAt: null };
+}
+
+async function ensureAgentEngineCheckoutReady() {
+  const stored = await chrome.storage.local.get(['firebase_uid']);
+  if (stored?.firebase_uid) {
+    return true;
+  }
+
+  if (typeof window.firebaseSignInWithGoogle !== 'function') {
+    throw new Error(getMessageWithFallback('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
+  }
+
+  await window.firebaseSignInWithGoogle();
+  return true;
+}
+
+async function handleOfficialAgentEngineUpgrade(button) {
+  const priceId = getAgentEngineUpgradePriceId();
+  if (!priceId || priceId.startsWith('price_REPLACE')) {
+    showToast(getMessageWithFallback('membershipPriceNotConfigured', 'Stripe Price ID not configured. Please set it first.'), 3000);
+    return false;
+  }
+
+  if (button) {
+    button.disabled = true;
+  }
+
+  try {
+    await ensureAgentEngineCheckoutReady();
+    if (typeof window.startCheckout !== 'function') {
+      throw new Error(getMessageWithFallback('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'));
+    }
+    await window.startCheckout(priceId);
+    return true;
+  } catch (error) {
+    showToast(error?.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
+    return false;
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+  }
+}
+
+async function refreshOfficialAgentEngineMeta() {
+  const officialMeta = document.getElementById('officialAgentEngineMeta');
+  const upgradeButton = document.getElementById('officialAgentEngineUpgradeBtn');
+
+  if (!officialMeta || !upgradeButton) {
+    return;
+  }
+
+  const planInfo = await getCurrentMembershipPlanInfo();
+  const isPro = planInfo?.plan === 'pro';
+
+  officialMeta.textContent = isPro
+    ? getMessageWithFallback('agentEngineOfficialMetaPro', 'Current plan: PRO')
+    : getMessageWithFallback('agentEngineOfficialMetaFree', 'Use the built-in API, free 3 times per day.');
+  upgradeButton.textContent = isPro
+    ? getMessageWithFallback('agentEngineManageProButton', '管理 PRO')
+    : getMessageWithFallback('agentEngineUpgradeButton', '立即升级 PRO');
 }
 
 function renderAgentEngineCard(config = {}) {
   const card = document.getElementById('agentEngineCard');
   const statusBadge = document.getElementById('agentEngineStatusBadge');
-  const baseUrlValue = document.getElementById('agentEngineBaseUrlValue');
-  const apiKeyValue = document.getElementById('agentEngineApiKeyValue');
-  const modelValue = document.getElementById('agentEngineModelValue');
-  const concurrencyValue = document.getElementById('agentEngineConcurrencyValue');
+  const customMeta = document.getElementById('customAgentEngineMeta');
+  const editButton = document.getElementById('editAgentEngineBtn');
 
-  if (!card || !statusBadge || !baseUrlValue || !apiKeyValue || !modelValue || !concurrencyValue) {
+  if (!card || !statusBadge) {
     return;
   }
 
-  const configured = isAgentEngineConfigured(config);
-  card.dataset.status = configured ? 'configured' : 'unconfigured';
-  statusBadge.textContent = configured
+  const customCard = card;
+  const officialCard = document.getElementById('officialAgentEngineCard');
+  const selectedSource = config.selectedSource === 'custom' ? 'custom' : 'official';
+  const customConfig = config.customConfig || {};
+  const isCustomConfigured = isAgentEngineConfigured(customConfig);
+
+  if (officialCard) {
+    officialCard.dataset.selected = selectedSource === 'official' ? 'true' : 'false';
+  }
+  customCard.dataset.status = isCustomConfigured ? 'configured' : 'unconfigured';
+  customCard.dataset.selected = selectedSource === 'custom' ? 'true' : 'false';
+  statusBadge.textContent = isCustomConfigured
     ? getMessageWithFallback('agentEngineStatusConfigured', 'Configured')
     : getMessageWithFallback('agentEngineStatusUnconfigured', 'Not configured');
-  card.classList.toggle('agent-engine-card-collapsed', !configured);
-
-  const emptyValue = getMessageWithFallback('agentEngineEmptyValue', 'Not configured');
-  baseUrlValue.textContent = String(config.baseUrl || '').trim() || emptyValue;
-  apiKeyValue.textContent = getMaskedAgentApiKey(config.apiKey);
-  modelValue.textContent = String(config.model || '').trim() || emptyValue;
-  concurrencyValue.textContent = String(Math.max(1, Number(config.concurrency) || 0) || '') || emptyValue;
+  if (customMeta) {
+    customMeta.textContent = isCustomConfigured
+      ? getMessageWithFallback('agentEngineCustomConfiguredHint', 'Use your own API for free')
+      : getMessageWithFallback('agentEngineCustomCardHint', '填写自己的 API');
+  }
+  if (editButton) {
+    editButton.textContent = isCustomConfigured
+      ? getMessageWithFallback('agentEngineEditButton', '编辑自定义 API')
+      : getMessageWithFallback('agentEngineEditButtonEmpty', '填写自己的 API');
+  }
+  customCard.title = '';
+  if (officialCard) officialCard.title = '';
 }
 
-function openAgentEngineDialog() {
+function openAgentEngineDialog(options = {}) {
   const dialog = document.getElementById('agentEngineDialog');
   if (!dialog) {
     return;
   }
 
   initializeI18nWithin(dialog);
+  dialog.dataset.pendingSource = options.pendingSource === 'custom' ? 'custom' : '';
   dialog.style.display = 'block';
   document.getElementById('agentApiBaseUrl')?.focus();
+}
+
+async function setSelectedAgentEngineSource(nextSource) {
+  const normalizedSource = nextSource === 'custom' ? 'custom' : 'official';
+  const promptUtils = getAgentPromptUtils();
+  const currentConfig = await loadAgentEngineConfig();
+
+  if (normalizedSource === 'custom' && !isAgentEngineConfigured(currentConfig.customConfig || {})) {
+    showToast(getMessageWithFallback('agentEngineCustomSelectRequiresConfig', 'Configure your custom API first'));
+    return false;
+  }
+
+  const customConfig = promptUtils?.normalizeApiConfig?.(currentConfig.customConfig || {}, { useBundledDefaults: false }) || (currentConfig.customConfig || {});
+  await chrome.storage.sync.set({
+    [AGENT_ENGINE_SETTINGS_STORAGE_KEY]: {
+      selectedSource: normalizedSource,
+      customConfig: {
+        baseUrl: String(customConfig.baseUrl || '').trim(),
+        model: String(customConfig.model || '').trim(),
+        concurrency: Math.max(1, Number(customConfig.concurrency) || 2),
+        systemPrompt: String(customConfig.systemPrompt || '').trim()
+      }
+    }
+  });
+
+  return true;
 }
 
 function closeAgentEngineDialog() {
   const dialog = document.getElementById('agentEngineDialog');
   if (dialog) {
     dialog.style.display = 'none';
+    dialog.dataset.pendingSource = '';
   }
 }
 
@@ -353,7 +494,7 @@ async function saveAgentEngineConfig() {
     apiKey: apiKeyInput?.value || '',
     model: modelInput?.value || '',
     concurrency: concurrencyInput?.value || 2
-  }) || {
+  }, { useBundledDefaults: false }) || {
     baseUrl: String(baseUrlInput?.value || '').trim(),
     apiKey: String(apiKeyInput?.value || '').trim(),
     model: String(modelInput?.value || '').trim(),
@@ -365,8 +506,22 @@ async function saveAgentEngineConfig() {
     return false;
   }
 
+  const dialog = document.getElementById('agentEngineDialog');
+  const currentConfig = await loadAgentEngineConfig();
+  const nextSelectedSource = dialog?.dataset?.pendingSource === 'custom'
+    ? 'custom'
+    : (currentConfig.selectedSource === 'custom' ? 'custom' : 'official');
+
   await Promise.all([
     chrome.storage.sync.set({
+      [AGENT_ENGINE_SETTINGS_STORAGE_KEY]: {
+        selectedSource: nextSelectedSource,
+        customConfig: {
+          baseUrl: normalizedConfig.baseUrl,
+          model: normalizedConfig.model,
+          concurrency: normalizedConfig.concurrency
+        }
+      },
       [AGENT_ENGINE_STORAGE_KEY]: {
         baseUrl: normalizedConfig.baseUrl,
         model: normalizedConfig.model,
@@ -375,12 +530,13 @@ async function saveAgentEngineConfig() {
     }),
     chrome.storage.local.set({
       [AGENT_ENGINE_SECRET_STORAGE_KEY]: {
-        apiKey: normalizedConfig.apiKey
+        apiKey: normalizedConfig.apiKey,
+        customApiKey: normalizedConfig.apiKey
       }
     })
   ]);
 
-  showToast(getMessageWithFallback('agentEngineSaveSuccess', 'Agent engine saved'));
+  showToast(getMessageWithFallback('agentEngineSaveSuccess', 'Custom API saved'));
   return true;
 }
 
@@ -394,18 +550,25 @@ async function initializeAgentEngineSettings() {
   const closeButton = document.getElementById('agentEngineDialogClose');
   const cancelButton = document.getElementById('cancelAgentEngine');
   const overlay = document.getElementById('agentEngineDialogOverlay');
+  const officialCard = document.getElementById('officialAgentEngineCard');
+  const officialSelectButton = document.getElementById('officialAgentEngineSelectBtn');
+  const officialUpgradeButton = document.getElementById('officialAgentEngineUpgradeBtn');
+  const customCard = document.getElementById('agentEngineCard');
+  const customSelectButton = document.getElementById('customAgentEngineSelectBtn');
 
-  if (!baseUrlInput || !apiKeyInput || !modelInput || !concurrencyInput || !saveButton || !editButton || !closeButton || !cancelButton || !overlay) {
+  if (!baseUrlInput || !apiKeyInput || !modelInput || !concurrencyInput || !saveButton || !editButton || !closeButton || !cancelButton || !overlay || !officialCard || !officialSelectButton || !customCard || !customSelectButton || !officialUpgradeButton) {
     return;
   }
 
   try {
     const config = await loadAgentEngineConfig();
-    baseUrlInput.value = config.baseUrl || '';
-    apiKeyInput.value = config.apiKey || '';
-    modelInput.value = config.model || '';
-    concurrencyInput.value = String(config.concurrency || 2);
+    const editableConfig = config.customConfig || {};
+    baseUrlInput.value = editableConfig.baseUrl || '';
+    apiKeyInput.value = editableConfig.apiKey || '';
+    modelInput.value = editableConfig.model || '';
+    concurrencyInput.value = String(editableConfig.concurrency || 2);
     renderAgentEngineCard(config);
+    await refreshOfficialAgentEngineMeta();
   } catch (error) {
     console.error('加载智能体引擎设置失败:', error);
     showToast(getMessageWithFallback('agentEngineLoadFailed', 'Failed to load agent engine settings'));
@@ -413,7 +576,70 @@ async function initializeAgentEngineSettings() {
 
   if (editButton.dataset.bound !== 'true') {
     editButton.dataset.bound = 'true';
-    editButton.addEventListener('click', openAgentEngineDialog);
+    editButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openAgentEngineDialog({ pendingSource: 'custom' });
+    });
+  }
+
+  if (officialSelectButton.dataset.bound !== 'true') {
+    officialSelectButton.dataset.bound = 'true';
+    officialSelectButton.addEventListener('click', async () => {
+      try {
+        const changed = await setSelectedAgentEngineSource('official');
+        if (!changed) return;
+        const config = await loadAgentEngineConfig();
+        renderAgentEngineCard(config);
+        await refreshOfficialAgentEngineMeta();
+      } catch (error) {
+        console.error('切换官方 API 失败:', error);
+        showToast(getMessageWithFallback('saveFailed', 'Save failed'));
+      }
+    });
+  }
+
+  if (customSelectButton.dataset.bound !== 'true') {
+    customSelectButton.dataset.bound = 'true';
+    customSelectButton.addEventListener('click', async () => {
+      try {
+        const changed = await setSelectedAgentEngineSource('custom');
+        if (!changed) {
+          openAgentEngineDialog({ pendingSource: 'custom' });
+          return;
+        }
+        const config = await loadAgentEngineConfig();
+        renderAgentEngineCard(config);
+        await refreshOfficialAgentEngineMeta();
+      } catch (error) {
+        console.error('切换自定义 API 失败:', error);
+        showToast(getMessageWithFallback('saveFailed', 'Save failed'));
+      }
+    });
+  }
+
+  if (officialUpgradeButton.dataset.bound !== 'true') {
+    officialUpgradeButton.dataset.bound = 'true';
+    officialUpgradeButton.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const planInfo = await getCurrentMembershipPlanInfo();
+      if (planInfo?.plan === 'pro') {
+        if (typeof window.openCustomerPortal === 'function') {
+          officialUpgradeButton.disabled = true;
+          try {
+            await window.openCustomerPortal();
+          } catch (error) {
+            showToast(error?.message || getMessageWithFallback('stripePortalOpenFailed', 'Failed to open the subscription management page.'), 3000);
+          } finally {
+            officialUpgradeButton.disabled = false;
+          }
+          return;
+        }
+      }
+      const opened = await handleOfficialAgentEngineUpgrade(officialUpgradeButton);
+      if (opened) {
+        await refreshOfficialAgentEngineMeta();
+      }
+    });
   }
 
   [closeButton, cancelButton, overlay].forEach((element) => {
@@ -433,7 +659,13 @@ async function initializeAgentEngineSettings() {
           return;
         }
         const config = await loadAgentEngineConfig();
+        const effectiveConfig = config.customConfig || config.effectiveConfig || {};
+        baseUrlInput.value = effectiveConfig.baseUrl || '';
+        apiKeyInput.value = effectiveConfig.apiKey || '';
+        modelInput.value = effectiveConfig.model || '';
+        concurrencyInput.value = String(effectiveConfig.concurrency || 2);
         renderAgentEngineCard(config);
+        await refreshOfficialAgentEngineMeta();
         closeAgentEngineDialog();
       } catch (error) {
         console.error('保存智能体引擎设置失败:', error);
@@ -457,9 +689,9 @@ async function loadAgentCatalogFromBackground() {
 }
 
 async function loadAgentCustomSettingsMap() {
-  const [{ [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }, { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }, catalog] = await Promise.all([
+  const [{ [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }, { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents, [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }, catalog] = await Promise.all([
     chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY),
-    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.local.get([CUSTOM_AGENTS_STORAGE_KEY, AGENT_HIDDEN_IDS_STORAGE_KEY]),
     chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY),
     loadAgentCatalogFromBackground()
   ]);
@@ -477,7 +709,10 @@ async function loadAgentCustomSettingsMap() {
   return {
     catalog,
     customSettingsMap: normalizedSettings,
-    customAgents: Array.isArray(normalizedCustomAgents) ? normalizedCustomAgents : []
+    customAgents: Array.isArray(normalizedCustomAgents) ? normalizedCustomAgents : [],
+    hiddenAgentIds: typeof utils?.normalizeAgentHiddenIds === 'function'
+      ? utils.normalizeAgentHiddenIds(hiddenAgentIds)
+      : (Array.isArray(hiddenAgentIds) ? hiddenAgentIds.filter(Boolean) : [])
   };
 }
 
@@ -497,10 +732,15 @@ function sortAgentsByNewestFirst(agents = []) {
   });
 }
 
-function buildMergedAgentList(catalog, customSettingsMap = {}) {
+function buildMergedAgentList(catalog, customSettingsMap = {}, hiddenAgentIds = []) {
   const utils = getAgentCatalogUtils();
   const categories = Array.isArray(catalog?.categories) ? catalog.categories : [];
   const agents = Array.isArray(catalog?.agents) ? catalog.agents : [];
+  const hiddenSet = new Set(
+    (Array.isArray(hiddenAgentIds) ? hiddenAgentIds : [])
+      .map((id) => String(id || '').trim())
+      .filter(Boolean)
+  );
 
   return {
     categories,
@@ -509,7 +749,7 @@ function buildMergedAgentList(catalog, customSettingsMap = {}) {
         return utils.mergeAgentWithCustomSettings(agent, customSettingsMap);
       }
       return { ...agent };
-    }))
+    }).filter((agent) => agent && !hiddenSet.has(agent.id)))
   };
 }
 
@@ -520,8 +760,8 @@ async function loadAgentCustomSettingsManager() {
   }
 
   try {
-    const { catalog, customSettingsMap, customAgents } = await loadAgentCustomSettingsMap();
-    renderAgentCustomSettingsManager(buildMergedAgentList(catalog, customSettingsMap), customSettingsMap, customAgents);
+    const { catalog, customSettingsMap, customAgents, hiddenAgentIds } = await loadAgentCustomSettingsMap();
+    renderAgentCustomSettingsManager(buildMergedAgentList(catalog, customSettingsMap, hiddenAgentIds), customSettingsMap, customAgents, hiddenAgentIds);
   } catch (error) {
     console.error('加载智能体自定义设置失败:', error);
     container.innerHTML = `
@@ -532,7 +772,7 @@ async function loadAgentCustomSettingsManager() {
   }
 }
 
-function renderAgentCustomSettingsManager(catalog, customSettingsMap = {}, customAgents = []) {
+function renderAgentCustomSettingsManager(catalog, customSettingsMap = {}, customAgents = [], hiddenAgentIds = []) {
   const container = document.getElementById('agentCustomSettingsList');
   if (!container) {
     return;
@@ -573,11 +813,16 @@ function renderAgentCustomSettingsManager(catalog, customSettingsMap = {}, custo
           <button type="button" class="edit-agent-custom-btn icon-action-btn" data-agent-id="${escapeHtml(agent.id)}" title="${getMessageWithFallback('editButton', 'Edit')}" aria-label="${getMessageWithFallback('editButton', 'Edit')}">
             <img src="../icons/edit.svg" alt="">
           </button>
-          ${agent.isCustom ? `
-            <button type="button" class="delete-agent-custom-btn icon-action-btn" data-agent-id="${escapeHtml(agent.id)}" title="${getMessageWithFallback('deleteButton', 'Delete')}" aria-label="${getMessageWithFallback('deleteButton', 'Delete')}">
-              <img src="../icons/trash.svg" alt="">
-            </button>
-          ` : ''}
+          <button
+            type="button"
+            class="delete-agent-custom-btn icon-action-btn"
+            data-agent-id="${escapeHtml(agent.id)}"
+            data-agent-source="${agent.isCustom ? 'custom' : 'builtin'}"
+            title="${getMessageWithFallback('deleteButton', 'Delete')}"
+            aria-label="${getMessageWithFallback('deleteButton', 'Delete')}"
+          >
+            <img src="../icons/trash.svg" alt="">
+          </button>
         </div>
       </div>
     `;
@@ -625,8 +870,13 @@ async function handleAgentCustomSettingsListClick(event) {
       return;
     }
     const deleteAgentId = deleteButton.dataset.agentId;
+    const deleteAgentSource = String(deleteButton.dataset.agentSource || '').trim();
     if (deleteAgentId) {
-      await deleteCustomAgent(deleteAgentId);
+      if (deleteAgentSource === 'builtin') {
+        await hideBuiltinAgent(deleteAgentId);
+      } else {
+        await deleteCustomAgent(deleteAgentId);
+      }
     }
     return;
   }
@@ -648,8 +898,8 @@ async function openAgentCustomDialog(agentId) {
 
   initializeI18nWithin(dialog);
 
-  const { catalog, customSettingsMap } = await loadAgentCustomSettingsMap();
-  const mergedCatalog = buildMergedAgentList(catalog, customSettingsMap);
+  const { catalog, customSettingsMap, hiddenAgentIds } = await loadAgentCustomSettingsMap();
+  const mergedCatalog = buildMergedAgentList(catalog, customSettingsMap, hiddenAgentIds);
   const baseAgent = (Array.isArray(catalog?.agents) ? catalog.agents : []).find((item) => item.id === agentId);
   const mergedAgent = (Array.isArray(mergedCatalog?.agents) ? mergedCatalog.agents : []).find((item) => item.id === agentId);
   const customSettings = customSettingsMap?.[agentId] || {};
@@ -666,7 +916,7 @@ async function openAgentCustomDialog(agentId) {
   const agentPersonaInput = document.getElementById('agentCustomPersonaPrompt');
 
   if (title) {
-    title.textContent = getMessageWithFallback('agentCustomDialogTitle', 'Customize agent');
+    title.textContent = getMessageWithFallback('agentCustomDialogTitle', 'Customize skill');
   }
   if (agentNameInput) {
     agentNameInput.value = mergedAgent.name || '';
@@ -713,7 +963,7 @@ async function openNewAgentDialog() {
   const agentPersonaInput = document.getElementById('agentCustomPersonaPrompt');
 
   if (title) {
-    title.textContent = getMessageWithFallback('agentCustomNewTitle', 'New agent');
+    title.textContent = getMessageWithFallback('agentCustomNewTitle', 'New skill');
   }
   if (agentNameInput) {
     agentNameInput.value = '';
@@ -818,7 +1068,7 @@ async function saveAgentCustomSettingsFromDialog() {
 
     if (nextValue.mode === 'create') {
       await saveNewCustomAgentFromDialog(nextValue);
-      showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Agent settings saved'));
+      showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Skill settings saved'));
       closeAgentCustomDialog();
       await loadAgentCustomSettingsManager();
       return;
@@ -826,7 +1076,7 @@ async function saveAgentCustomSettingsFromDialog() {
 
     if (nextValue.isCustomAgent) {
       await saveImportedAgentFromDialog(nextValue);
-      showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Agent settings saved'));
+      showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Skill settings saved'));
       closeAgentCustomDialog();
       await loadAgentCustomSettingsManager();
       return;
@@ -849,7 +1099,7 @@ async function saveAgentCustomSettingsFromDialog() {
       [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: nextSettings
     });
 
-    showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Agent settings saved'));
+    showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Skill settings saved'));
     closeAgentCustomDialog();
     await loadAgentCustomSettingsManager();
   } catch (error) {
@@ -888,7 +1138,7 @@ async function resetAgentCustomSettingsFromDialog() {
       [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: normalizedSettings
     });
 
-    showToast(getMessageWithFallback('agentCustomResetSuccess', 'Agent settings reset'));
+    showToast(getMessageWithFallback('agentCustomResetSuccess', 'Skill settings reset'));
     closeAgentCustomDialog();
     await loadAgentCustomSettingsManager();
   } catch (error) {
@@ -1275,7 +1525,7 @@ async function saveImportedAgentFromDialog(nextValue) {
     : (Array.isArray(syncAgents) ? syncAgents : []);
   const targetAgent = currentAgents.find((agent) => agent?.id === nextValue.agentId);
   if (!targetAgent) {
-    throw new Error(getMessageWithFallback('agentUnknownError', 'Unknown agent'));
+    throw new Error(getMessageWithFallback('agentUnknownError', 'Unknown skill'));
   }
 
   await saveCustomAgent({
@@ -1286,7 +1536,7 @@ async function saveImportedAgentFromDialog(nextValue) {
 }
 
 async function deleteCustomAgent(agentId) {
-  const confirmMessage = getMessageWithFallback('agentCustomDeleteConfirm', 'Delete this imported agent?');
+  const confirmMessage = getMessageWithFallback('agentCustomDeleteConfirm', 'Delete this imported skill?');
   if (!window.confirm(confirmMessage)) {
     return;
   }
@@ -1316,7 +1566,47 @@ async function deleteCustomAgent(agentId) {
     [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: normalizedSettings
   });
 
-  showToast(getMessageWithFallback('agentCustomDeleteSuccess', 'Imported agent deleted'));
+  showToast(getMessageWithFallback('agentCustomDeleteSuccess', 'Imported skill deleted'));
+  await loadAgentCustomSettingsManager();
+}
+
+async function hideBuiltinAgent(agentId) {
+  const confirmMessage = getMessageWithFallback('agentBuiltinDeleteConfirm', 'Delete this built-in skill? It will be hidden on this device.');
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
+
+  const utils = getAgentCatalogUtils();
+  const [
+    { [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds },
+    { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }
+  ] = await Promise.all([
+    chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY),
+    chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY)
+  ]);
+
+  const normalizedHiddenIds = typeof utils?.normalizeAgentHiddenIds === 'function'
+    ? utils.normalizeAgentHiddenIds(hiddenAgentIds)
+    : (Array.isArray(hiddenAgentIds) ? hiddenAgentIds.filter(Boolean) : []);
+  const nextHiddenIds = Array.from(new Set([...normalizedHiddenIds, agentId]));
+
+  const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
+    ? utils.normalizeAgentCustomSettingsMap(storedSettings)
+    : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+  if (normalizedSettings[agentId]) {
+    delete normalizedSettings[agentId];
+  }
+
+  await Promise.all([
+    chrome.storage.local.set({
+      [AGENT_HIDDEN_IDS_STORAGE_KEY]: nextHiddenIds
+    }),
+    chrome.storage.sync.set({
+      [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: normalizedSettings
+    })
+  ]);
+
+  showToast(getMessageWithFallback('agentBuiltinDeleteSuccess', 'Built-in skill deleted'));
   await loadAgentCustomSettingsManager();
 }
 
@@ -1356,7 +1646,7 @@ async function importSkillAsCustomAgent() {
     const personaPrompt = buildImportedAgentPersonaPrompt(skillMarkdown, skillUrl);
 
     if (!personaPrompt) {
-      throw new Error(getMessageWithFallback('agentSkillImportInvalid', 'Failed to parse this Skill into an agent'));
+      throw new Error(getMessageWithFallback('agentSkillImportInvalid', 'Failed to parse this Skill into a skill'));
     }
 
     await saveCustomAgent({
@@ -1377,8 +1667,8 @@ async function importSkillAsCustomAgent() {
 
     showToast(
       compatibility === 'prompt_only'
-        ? getMessageWithFallback('agentSkillImportPartialSuccess', 'Skill imported as a prompt-style agent')
-        : getMessageWithFallback('agentSkillImportSuccess', 'Skill imported as an agent')
+        ? getMessageWithFallback('agentSkillImportPartialSuccess', 'Skill imported as a prompt-style skill')
+        : getMessageWithFallback('agentSkillImportSuccess', 'Skill imported successfully')
     );
 
     if (urlInput) urlInput.value = '';
@@ -2775,23 +3065,7 @@ async function handleAnalysisTemplateListClick(event) {
 
 const SYNC_STORAGE_KEY = 'webdavSyncConfig';
 const SYNC_DATA_FILENAME = 'multiAI-settings.json';
-const LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders'];
 const LOCAL_SYNC_FILE_PREFIX = 'multiAI-settings-backup';
-
-// 需要同步的 chrome.storage.sync 数据键
-const SYNC_KEYS = [
-  'buttonConfig',
-  'sites',
-  'customSites',
-  'siteSettings',
-  'disabledSites',
-  'promptTemplates',
-  'analysisPromptTemplates',
-  'favoritePrompts',
-  'favoriteSites',
-  CUSTOM_AGENTS_STORAGE_KEY,
-  AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
-];
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -2879,6 +3153,103 @@ function showSyncStatus(message, type = 'info') {
   el.style.display = 'block';
   if (type === 'success') {
     setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+}
+
+function formatGoogleDriveSyncAccountText(status = {}) {
+  if (status?.email) {
+    return status.accountName ? `${status.accountName} · ${status.email}` : status.email;
+  }
+  return chrome.i18n.getMessage('googleDriveSyncNotConnected') || 'Not connected yet';
+}
+
+async function refreshGoogleDriveSyncStatus() {
+  const accountEl = document.getElementById('googleDriveSyncAccount');
+  const connectBtn = document.getElementById('connectGoogleDriveSync');
+  const restoreBtn = document.getElementById('restoreFromGoogleDriveSync');
+  const disconnectBtn = document.getElementById('disconnectGoogleDriveSync');
+
+  if (!accountEl) {
+    return null;
+  }
+
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'googleDriveGetStatus' });
+    const status = resp?.success ? (resp.result || {}) : {};
+    const connected = status.enabled === true && Boolean(status.email);
+
+    accountEl.textContent = formatGoogleDriveSyncAccountText(status);
+    if (restoreBtn) restoreBtn.disabled = !connected;
+    if (disconnectBtn) disconnectBtn.disabled = !connected;
+    if (connectBtn) {
+      const label = connected
+        ? (chrome.i18n.getMessage('googleDriveSyncReconnectButton') || 'Reconnect Google Drive')
+        : (chrome.i18n.getMessage('googleDriveSyncConnectButton') || 'Sign in with Google');
+      const textNode = connectBtn.querySelector('[data-i18n="googleDriveSyncConnectButton"], [data-i18n="googleDriveSyncReconnectButton"]');
+      if (textNode) {
+        textNode.textContent = label;
+        textNode.setAttribute('data-i18n', connected ? 'googleDriveSyncReconnectButton' : 'googleDriveSyncConnectButton');
+      }
+    }
+
+    return status;
+  } catch (error) {
+    accountEl.textContent = chrome.i18n.getMessage('googleDriveSyncStatusLoadFailed') || 'Failed to load Drive connection status';
+    if (restoreBtn) restoreBtn.disabled = true;
+    if (disconnectBtn) disconnectBtn.disabled = true;
+    return null;
+  }
+}
+
+async function connectGoogleDriveSync() {
+  const connectBtn = document.getElementById('connectGoogleDriveSync');
+  if (connectBtn) connectBtn.disabled = true;
+  showSyncStatus(chrome.i18n.getMessage('googleDriveSyncConnecting') || 'Opening Google authorization…', 'loading');
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'googleDriveConnect' });
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Google Drive connection failed');
+    }
+    showSyncStatus(chrome.i18n.getMessage('googleDriveSyncConnected') || 'Google Drive connected', 'success');
+    await refreshGoogleDriveSyncStatus();
+  } catch (error) {
+    showSyncStatus(`${chrome.i18n.getMessage('googleDriveSyncConnectFailed') || 'Failed to connect Google Drive'}: ${error.message}`, 'error');
+  } finally {
+    if (connectBtn) connectBtn.disabled = false;
+  }
+}
+
+async function restoreFromGoogleDriveSync() {
+  showSyncStatus(chrome.i18n.getMessage('googleDriveSyncRestoring') || 'Restoring data from Google Drive…', 'loading');
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'googleDriveImport' });
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Drive restore failed');
+    }
+    showSyncStatus(chrome.i18n.getMessage('googleDriveSyncRestoreSuccess') || 'Drive backup restored. Refresh the page to use the latest data.', 'success');
+    await refreshGoogleDriveSyncStatus();
+  } catch (error) {
+    showSyncStatus(`${chrome.i18n.getMessage('googleDriveSyncRestoreFailed') || 'Failed to restore from Google Drive'}: ${error.message}`, 'error');
+  }
+}
+
+async function disconnectGoogleDriveSync() {
+  const confirmMessage = chrome.i18n.getMessage('googleDriveSyncDisconnectConfirm')
+    || 'Disconnect Google Drive sync on this device?';
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
+
+  showSyncStatus(chrome.i18n.getMessage('googleDriveSyncDisconnecting') || 'Disconnecting Google Drive…', 'loading');
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: 'googleDriveDisconnect' });
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Google Drive disconnect failed');
+    }
+    showSyncStatus(chrome.i18n.getMessage('googleDriveSyncDisconnected') || 'Google Drive disconnected', 'success');
+    await refreshGoogleDriveSyncStatus();
+  } catch (error) {
+    showSyncStatus(`${chrome.i18n.getMessage('googleDriveSyncDisconnectFailed') || 'Failed to disconnect Google Drive'}: ${error.message}`, 'error');
   }
 }
 
@@ -3017,12 +3388,24 @@ async function getSyncConfig() {
 }
 
 async function exportAllSettings() {
-  const syncData  = await chrome.storage.sync.get(SYNC_KEYS);
-  const localData = await chrome.storage.local.get(LOCAL_SYNC_KEYS);
+  const [syncData, localData, legacySyncCustomAgents] = await Promise.all([
+    chrome.storage.sync.get(SYNC_KEYS),
+    chrome.storage.local.get(LOCAL_SYNC_KEYS),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+  ]);
+  const localCustomAgents = Array.isArray(localData?.[CUSTOM_AGENTS_STORAGE_KEY]) ? localData[CUSTOM_AGENTS_STORAGE_KEY] : [];
+  const syncCustomAgents = Array.isArray(legacySyncCustomAgents?.[CUSTOM_AGENTS_STORAGE_KEY])
+    ? legacySyncCustomAgents[CUSTOM_AGENTS_STORAGE_KEY]
+    : [];
   return {
     ...syncData,
+    [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents.length > 0 ? localCustomAgents : syncCustomAgents,
     pkHistory: (localData.pkHistory || []).slice(0, 500),
     favoriteFolders: localData.favoriteFolders || [],
+    [AGENT_ENGINE_SECRET_STORAGE_KEY]: localData[AGENT_ENGINE_SECRET_STORAGE_KEY] || '',
+    [AGENT_HIDDEN_IDS_STORAGE_KEY]: Array.isArray(localData?.[AGENT_HIDDEN_IDS_STORAGE_KEY])
+      ? localData[AGENT_HIDDEN_IDS_STORAGE_KEY]
+      : [],
     _syncVersion: 1,
     _exportedAt: new Date().toISOString(),
   };
@@ -3067,6 +3450,9 @@ async function importLocalSyncBackupFromFile(file) {
     }
     if (Object.keys(localPatch).length > 0) {
       writeTasks.push(chrome.storage.local.set(localPatch));
+    }
+    if (Object.prototype.hasOwnProperty.call(localPatch, CUSTOM_AGENTS_STORAGE_KEY)) {
+      writeTasks.push(chrome.storage.sync.remove(CUSTOM_AGENTS_STORAGE_KEY));
     }
 
     await Promise.all(writeTasks);
@@ -3171,6 +3557,7 @@ async function importFromSync() {
 
 function initializeDataSync() {
   loadSyncConfig();
+  refreshGoogleDriveSyncStatus();
 
   document.getElementById('syncEnabled')?.addEventListener('change', (e) => {
     updateConnectionTableState(e.target.checked);
@@ -3185,6 +3572,9 @@ function initializeDataSync() {
   document.getElementById('exportLocalSync')?.addEventListener('click', exportLocalSyncBackup);
   document.getElementById('importLocalSync')?.addEventListener('click', handleLocalSyncImportClick);
   document.getElementById('localSyncFileInput')?.addEventListener('change', handleLocalSyncFileSelection);
+  document.getElementById('connectGoogleDriveSync')?.addEventListener('click', connectGoogleDriveSync);
+  document.getElementById('restoreFromGoogleDriveSync')?.addEventListener('click', restoreFromGoogleDriveSync);
+  document.getElementById('disconnectGoogleDriveSync')?.addEventListener('click', disconnectGoogleDriveSync);
 
   document.getElementById('togglePassword')?.addEventListener('click', () => {
     const input = document.getElementById('syncPassword');
@@ -3584,6 +3974,7 @@ function initializeRemoteSearchSettings() {
 async function initializeMembership() {
   const loadingEl = document.getElementById('membershipLoadingMsg');
   const loginHintEl = document.getElementById('membershipLoginHint');
+  const loginActionsEl = document.getElementById('membershipLoginActions');
   const plansEl = document.getElementById('membershipPlans');
   const proActionsEl = document.getElementById('membershipProActions');
   const badgeEl = document.getElementById('membershipBadge');
@@ -3593,6 +3984,25 @@ async function initializeMembership() {
 
   function setLoading(show) {
     if (loadingEl) loadingEl.style.display = show ? 'block' : 'none';
+  }
+
+  const loginBtn = document.getElementById('membershipGoogleLoginBtn');
+  if (loginBtn && !loginBtn.dataset.bound) {
+    loginBtn.dataset.bound = 'true';
+    loginBtn.addEventListener('click', async () => {
+      loginBtn.disabled = true;
+      try {
+        if (typeof window.firebaseSignInWithGoogle !== 'function') {
+          throw new Error(getMessageWithFallback('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
+        }
+        await window.firebaseSignInWithGoogle();
+        await initializeMembership();
+      } catch (error) {
+        showToast(error.message || getMessageWithFallback('membershipGoogleLoginFailed', 'Failed to sign in with Google.'), 3000);
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
   }
 
   setLoading(true);
@@ -3605,9 +4015,12 @@ async function initializeMembership() {
   if (!uid) {
     setLoading(false);
     if (loginHintEl) loginHintEl.style.display = 'block';
+    if (loginActionsEl) loginActionsEl.style.display = 'block';
     return;
   }
 
+  if (loginHintEl) loginHintEl.style.display = 'none';
+  if (loginActionsEl) loginActionsEl.style.display = 'none';
   if (emailEl) emailEl.textContent = email;
 
   // 读取 plan
@@ -3704,6 +4117,7 @@ async function initializeMembership() {
       }
     });
   }
+
 }
 
 // 页面初始化
@@ -3732,8 +4146,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     // 初始化远程搜索
     initializeRemoteSearchSettings();
 
-    // Pro 会员功能暂时隐藏，下版本恢复后再启用
-    // initializeMembership();
+    initializeMembership();
   });
 }
 

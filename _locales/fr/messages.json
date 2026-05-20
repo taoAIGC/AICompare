@@ -132,6 +132,54 @@
   "launchSettingsTitle": {
     "message": "Sites personnalisés"
   },
+  "agentSettingsTitle": {
+    "message": "Paramètres de skills"
+  },
+  "agentEngineTitle": {
+    "message": "Paramètres API"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "Raccourcis"
+  },
+  "settingsNavSitesTitle": {
+    "message": "Sites"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "Skills"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "Sync"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineCardTitle": {
+    "message": "Custom API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "Official API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "API personnalisée"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "API officielle"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "Default"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "Select the official API card to use the bundled defaults"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "Select the custom API card to use your saved API settings"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "Configure your custom API first"
+  },
   "launchSettingsDescription": {
     "message": "Set a default opening URL for official sites or add standalone custom sites."
   },
@@ -472,7 +520,7 @@
     "message": "Comparez les reponses de plusieurs plateformes IA avec AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Prompt de chat"
   },
   "promptTemplatesLabel": {
     "message": "Modele :"
@@ -1341,7 +1389,7 @@
     "message": "Les suggestions de la page d’accueil et de l’iframe sont filtrées selon le type de site actuel."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Prompt d’analyse"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Customize the prompt templates used to analyze copied summaries"
@@ -1451,6 +1499,9 @@
   "timelinePanelTitle": {
     "message": "Chronologie du chat"
   },
+  "timelineSharePickerHint": {
+    "message": "Choisissez un prompt à partager"
+  },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
@@ -1494,6 +1545,9 @@
         "content": "$2"
       }
     }
+  },
+  "timelineCopyPreviewShare": {
+    "message": "Partager"
   },
   "timelineCopyPreviewEmpty": {
     "message": "No copyable responses were found in the current sub-pages."
@@ -1769,6 +1823,18 @@
   "timelineCopyPreviewRefreshing": {
     "message": "Refreshing..."
   },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "Le lien de partage a été copié"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "La copie automatique a échoué. Veuillez copier manuellement le lien suivant :"
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "Impossible de générer le lien de partage. Veuillez réessayer."
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "Aucune adresse relay disponible n’a été trouvée. Veuillez d’abord la renseigner dans les paramètres."
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -1824,9 +1890,6 @@
   },
   "historyUntitledQuery": {
     "message": "Question sans titre"
-  },
-  "agentEngineTitle": {
-    "message": "Moteur d’agents"
   },
   "agentEngineDescription": {
     "message": "Configurez le backend de modèle partagé utilisé par les panneaux d’agents intégrés."

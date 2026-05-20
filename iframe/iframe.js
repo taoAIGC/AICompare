@@ -27,7 +27,9 @@ const IFRAME_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
 );
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
+const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
+const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
 
 // 全局文件粘贴检测和处理
 let filePasteHandlerAdded = false;
@@ -61,6 +63,11 @@ function applyIframeSubmitShortcutMode(buttonConfig = {}) {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && changes.buttonConfig) {
     applyIframeSubmitShortcutMode(changes.buttonConfig.newValue || {});
+  }
+  if (namespace === 'local' && changes[AGENT_HIDDEN_IDS_STORAGE_KEY]) {
+    renderSideNav().catch((error) => {
+      console.warn('Failed to refresh side nav after hidden agent update:', error);
+    });
   }
 });
 
@@ -128,6 +135,22 @@ const analysisBuildPayload = typeof AnalysisUtils.buildTimelineAnalysisPayload =
       analysisPrompt: '',
       displayText: ''
     }));
+const analysisBuildSharePayload = typeof AnalysisUtils.buildTimelineAnalysisSharePayload === 'function'
+  ? AnalysisUtils.buildTimelineAnalysisSharePayload
+  : ((payload = {}) => ({
+      version: Number(payload.version) || 1,
+      entry: payload.entry || null,
+      question: String(payload.question || payload.entry?.query || '').trim(),
+      summaryText: String(payload.summaryText || payload.copyText || '').trim(),
+      responses: Array.isArray(payload.responses) ? payload.responses : [],
+      compareSites: Array.isArray(payload.compareSites) ? payload.compareSites : [],
+      successCount: Math.max(0, Number(payload.successCount) || 0),
+      totalCount: Math.max(0, Number(payload.totalCount) || 0),
+      analysisTemplateId: String(payload.analysisTemplateId || '').trim(),
+      analysisTemplateName: String(payload.analysisTemplateName || '').trim(),
+      analysisTemplateQuery: String(payload.analysisTemplateQuery || '').trim(),
+      createdAt: String(payload.createdAt || new Date().toISOString()).trim()
+    }));
 const analysisSavePayload = typeof AnalysisUtils.saveTimelineAnalysisPayload === 'function'
   ? AnalysisUtils.saveTimelineAnalysisPayload
   : async (payload) => ({
@@ -140,11 +163,22 @@ const analysisBuildCompareUrl = typeof AnalysisUtils.buildTimelineAnalysisCompar
       if (!token || !chrome?.runtime?.getURL) return '';
       return chrome.runtime.getURL(`iframe/iframe.html?analysisToken=${encodeURIComponent(token)}&analysisMode=1`);
     });
+const DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL = 'http://64.188.6.42:8789';
+async function getRemoteSearchRelayBaseUrl() {
+  try {
+    const settings = await chrome.storage.sync.get('remoteSearchSettings');
+    const configuredBaseUrl = String(settings?.remoteSearchSettings?.relayBaseUrl || '').trim().replace(/\/+$/, '');
+    return configuredBaseUrl || DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL;
+  } catch (_) {
+    return DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL;
+  }
+}
 const timelineState = {
   entries: [],
   isOpen: false,
   isPinned: false,
   openMode: null,
+  sharePickerActive: false,
   activeTimelineId: null,
   promptSnapshotsBySite: new Map(),
   favoriteEntryKeys: new Set()
@@ -622,8 +656,10 @@ function escapeAttr(value) {
 function getTimelineElements() {
   return {
     panel: document.getElementById('timelinePanel'),
+    hint: document.getElementById('timelinePanelHint'),
     list: document.getElementById('timelineList'),
     toggleButton: document.getElementById('timelineToggleButton'),
+    shareButton: document.getElementById('shareTimelineButton'),
     closeButton: document.getElementById('timelineCloseButton'),
     edgeTrigger: document.getElementById(TIMELINE_EDGE_TRIGGER_ID)
   };
@@ -750,7 +786,17 @@ function ensureTimelineCopyPreviewModal() {
           <select class="timeline-copy-preview-analysis-select" aria-label="${escapeHtml(t('analysisPromptTemplateSelectLabel', '分析提示词选择'))}"></select>
           <button class="timeline-copy-preview-analyze" type="button">${escapeHtml(t('timelineCopyPreviewAnalyze', '分析'))}</button>
         </div>
-        <button class="timeline-copy-preview-confirm" type="button">${escapeHtml(t('timelineCopyPreviewConfirm', '确认复制'))}</button>
+        <div class="timeline-copy-preview-export-actions">
+          <button class="timeline-copy-preview-share" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}" title="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}">
+            <img src="../icons/link.svg" alt="" aria-hidden="true">
+          </button>
+          <button class="timeline-copy-preview-download" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}" title="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}">
+            <img src="../icons/download.svg" alt="" aria-hidden="true">
+          </button>
+          <button class="timeline-copy-preview-confirm" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}" title="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}">
+            <span aria-hidden="true">⧉</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -779,6 +825,81 @@ function ensureTimelineCopyPreviewModal() {
     } catch (error) {
       console.error('复制时间线回答失败:', error);
       showToast(t('timelineCopyFailed', '复制失败，请重试'));
+    }
+  });
+
+  overlay.querySelector('.timeline-copy-preview-download')?.addEventListener('click', async () => {
+    const downloadBtn = overlay.querySelector('.timeline-copy-preview-download');
+    if (!(downloadBtn instanceof HTMLButtonElement)) return;
+
+    const markdownContent = getTimelineCopyPreviewMarkdownContent(overlay);
+    if (!markdownContent) return;
+
+    try {
+      downloadBtn.disabled = true;
+      const filename = sanitizeTimelineExportFileName(overlay.__timelineCopyPreviewEntry || null);
+      downloadTimelineMarkdownFile(markdownContent, filename);
+      showToast(t('timelineCopyPreviewDownloadSuccess', 'MD 文件已下载'));
+    } catch (error) {
+      console.error('下载时间线回答失败:', error);
+      showToast(t('timelineCopyPreviewDownloadFailed', '下载失败，请重试'));
+    } finally {
+      downloadBtn.disabled = false;
+    }
+  });
+
+  overlay.querySelector('.timeline-copy-preview-share')?.addEventListener('click', async () => {
+    const shareBtn = overlay.querySelector('.timeline-copy-preview-share');
+    const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+    if (!(shareBtn instanceof HTMLButtonElement) || !(confirmBtn instanceof HTMLButtonElement)) return;
+
+    const rawPayload = analysisBuildSharePayload({
+      entry: overlay.__timelineCopyPreviewEntry || null,
+      summaryText: overlay.__timelineCopyPreviewCopyText || confirmBtn.dataset.copyText || '',
+      responses: Array.isArray(overlay.__timelineCopyPreviewResponses) ? overlay.__timelineCopyPreviewResponses : [],
+      question: overlay.__timelineCopyPreviewEntry?.query || '',
+      successCount: Number(confirmBtn.dataset.successCount || '0') || 0,
+      totalCount: Number(confirmBtn.dataset.totalCount || '0') || 0,
+      analysisTemplateId: overlay.__timelineSelectedAnalysisTemplateId || '',
+      analysisTemplateName: '',
+      analysisTemplateQuery: ''
+    });
+
+    if (!rawPayload) {
+      showToast(t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'));
+      return;
+    }
+
+    const relayBaseUrl = await getRemoteSearchRelayBaseUrl();
+    if (!relayBaseUrl) {
+      showToast(t('timelineCopyPreviewShareNoRelay', '请先在设置中填写 relay 地址'));
+      return;
+    }
+
+    shareBtn.disabled = true;
+    try {
+      const response = await fetch(`${relayBaseUrl.replace(/\/+$/, '')}/shares`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(rawPayload)
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok || !data?.shareId) {
+        throw new Error(data?.error || `share_http_${response.status}`);
+      }
+
+      const shareUrl = String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim().startsWith('http')
+        ? String(data.publicUrl || data.shareUrl).trim()
+        : `${relayBaseUrl.replace(/\/+$/, '')}${String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim()}`;
+      await copyTextToClipboard(shareUrl);
+      showToast(t('timelineCopyPreviewShareSuccess', '分享链接已复制'));
+    } catch (error) {
+      console.error('生成分享链接失败:', error);
+      showToast(t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'));
+    } finally {
+      shareBtn.disabled = false;
     }
   });
 
@@ -908,14 +1029,21 @@ async function showTimelineCopyPreviewModal(entry) {
 }
 
 function syncTimelinePanelUi() {
-  const { panel, toggleButton, edgeTrigger } = getTimelineElements();
+  const { panel, hint, toggleButton, shareButton, edgeTrigger } = getTimelineElements();
   if (panel) {
     panel.hidden = !timelineState.isOpen;
     panel.classList.toggle('is-edge-preview', timelineState.isOpen && timelineState.openMode === 'hover');
+    panel.classList.toggle('is-share-picker-active', timelineState.isOpen && timelineState.sharePickerActive);
+  }
+  if (hint) {
+    hint.hidden = !(timelineState.isOpen && timelineState.sharePickerActive);
   }
   if (toggleButton) {
     toggleButton.classList.toggle('is-active', timelineState.isOpen);
     toggleButton.setAttribute('aria-expanded', timelineState.isOpen ? 'true' : 'false');
+  }
+  if (shareButton) {
+    shareButton.setAttribute('aria-expanded', timelineState.isOpen && timelineState.sharePickerActive ? 'true' : 'false');
   }
   if (edgeTrigger) {
     edgeTrigger.classList.toggle('is-active', timelineState.isOpen);
@@ -927,6 +1055,11 @@ function setTimelinePanelOpen(isOpen, options = {}) {
   timelineState.isOpen = Boolean(isOpen);
   timelineState.isPinned = timelineState.isOpen ? options.pinned === true : false;
   timelineState.openMode = timelineState.isOpen ? (options.mode || (timelineState.isPinned ? 'toggle' : 'hover')) : null;
+  syncTimelinePanelUi();
+}
+
+function setTimelineSharePickerActive(isActive) {
+  timelineState.sharePickerActive = Boolean(isActive);
   syncTimelinePanelUi();
 }
 
@@ -958,7 +1091,40 @@ function openTimelinePanel(options = {}) {
 
 function closeTimelinePanel() {
   clearTimelineHideTimer();
+  setTimelineSharePickerActive(false);
   setTimelinePanelOpen(false);
+}
+
+async function openTopLevelShareFlow() {
+  if (timelineState.isOpen && timelineState.isPinned && timelineState.sharePickerActive) {
+    closeTimelinePanel();
+    return;
+  }
+
+  if (!isReadonlyHistoryMode) {
+    try {
+      await syncTimelineFromIframes();
+    } catch (error) {
+      console.warn('打开分享入口前同步时间线失败:', error);
+    }
+  }
+
+  if (!timelineState.entries.length) {
+    showToast(t('timelineEmpty', '还没有提问记录，发送问题后会显示在这里。'));
+    return;
+  }
+
+  if (timelineState.entries.length === 1) {
+    setTimelineSharePickerActive(false);
+    await copyTimelineEntryResponses(timelineState.entries[0]);
+    return;
+  }
+
+  openTimelinePanel({
+    pinned: true,
+    mode: 'hover'
+  });
+  setTimelineSharePickerActive(true);
 }
 
 function scheduleHideTimelinePanel() {
@@ -1147,7 +1313,6 @@ async function favoriteTimelineEntry(entry) {
         });
       }
       await chrome.storage.local.set({ pkHistory });
-      if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     }
 
     timelineState.favoriteEntryKeys.delete(favoriteKey);
@@ -1203,7 +1368,6 @@ async function favoriteTimelineEntry(entry) {
   nextHistory = nextHistory.slice(0, maxHistory);
 
   await chrome.storage.local.set({ pkHistory: nextHistory });
-  if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
 
   timelineState.favoriteEntryKeys.add(favoriteKey);
   renderTimeline();
@@ -1243,13 +1407,10 @@ function renderTimeline() {
         <button
           class="timeline-item-copy"
           type="button"
-          title="${escapeHtml(t('timelineCopyButton', '复制'))}"
-          aria-label="${escapeHtml(t('timelineCopyButton', '复制'))}"
+          title="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}"
+          aria-label="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}"
         >
-          <svg class="timeline-item-copy-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M9 9.75A2.25 2.25 0 0 1 11.25 7.5h7.5A2.25 2.25 0 0 1 21 9.75v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 9 17.25z"></path>
-            <path d="M5.25 15.75A2.25 2.25 0 0 1 3 13.5V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 15 6v.75h-3.75A3.75 3.75 0 0 0 7.5 10.5v5.25z"></path>
-          </svg>
+          <img class="timeline-item-copy-icon" src="../icons/share.svg" alt="" aria-hidden="true">
         </button>
         <button
           class="timeline-item-favorite"
@@ -1270,6 +1431,11 @@ function renderTimeline() {
     item.querySelector('.timeline-item-main')?.addEventListener('click', async () => {
       timelineState.activeTimelineId = entry.timelineId;
       renderTimeline();
+      if (timelineState.sharePickerActive) {
+        closeTimelinePanel();
+        await copyTimelineEntryResponses(entry);
+        return;
+      }
       await scrollToTimelineEntry(entry);
     });
 
@@ -1426,11 +1592,12 @@ function initializeTimelinePanel() {
 
   document.addEventListener('click', (event) => {
     if (!timelineState.isOpen) return;
-    const { panel: timelinePanel, toggleButton: timelineToggleButton } = getTimelineElements();
+    const { panel: timelinePanel, toggleButton: timelineToggleButton, shareButton: timelineShareButton } = getTimelineElements();
     if (!timelinePanel || timelinePanel.hidden) return;
     if (
       timelinePanel.contains(event.target) ||
       timelineToggleButton?.contains(event.target) ||
+      timelineShareButton?.contains(event.target) ||
       edgeTrigger?.contains(event.target)
     ) return;
     closeTimelinePanel();
@@ -1653,7 +1820,7 @@ function initializeTimelineMessageBridge() {
       updateAgentLoadingState(agentId, false, message.error || '');
       appendAgentMessage(agentId, {
         role: 'assistant',
-        content: message.error || t('agentRequestFailed', 'Agent request failed'),
+        content: message.error || t('agentRequestFailed', 'Skill request failed'),
         isError: true
       });
       return;
@@ -1667,7 +1834,8 @@ function initializeTimelineMessageBridge() {
 
 async function syncTimelineFromIframes() {
   const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
-  if (!iframes.length) {
+  const hasAgentPanels = getOpenedAgentIds().length > 0;
+  if (!iframes.length && !hasAgentPanels) {
     resetTimelinePromptSnapshots();
     return;
   }
@@ -1955,17 +2123,28 @@ async function scrollToTimelineEntry(entry, options = {}) {
 }
 
 async function copyTextToClipboard(text) {
+  const normalizedText = String(text ?? '');
+
   const copyWithExecCommand = () => {
     const textarea = document.createElement('textarea');
-    textarea.value = text;
+    textarea.value = normalizedText;
     textarea.setAttribute('readonly', 'true');
     textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '0';
+    textarea.style.inset = '0 auto auto 0';
+    textarea.style.width = '1px';
+    textarea.style.height = '1px';
+    textarea.style.padding = '0';
+    textarea.style.border = '0';
+    textarea.style.outline = '0';
+    textarea.style.boxShadow = 'none';
+    textarea.style.background = 'transparent';
+    textarea.style.opacity = '0.01';
+    textarea.style.pointerEvents = 'none';
+    textarea.style.zIndex = '-1';
     document.body.appendChild(textarea);
     textarea.focus();
     textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
 
     const succeeded = document.execCommand('copy');
     textarea.remove();
@@ -1976,16 +2155,28 @@ async function copyTextToClipboard(text) {
 
   if (navigator?.clipboard?.writeText) {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(normalizedText);
       return;
     } catch (error) {
       console.warn('navigator.clipboard.writeText failed, falling back to execCommand:', error);
-      copyWithExecCommand();
-      return;
     }
   }
 
-  copyWithExecCommand();
+  try {
+    copyWithExecCommand();
+    return;
+  } catch (error) {
+    console.warn('execCommand copy failed, falling back to prompt:', error);
+  }
+
+  const manualText = window.prompt(
+    t('timelineCopyPreviewShareManualPrompt', '自动复制失败，请手动复制下面的链接：'),
+    normalizedText
+  );
+
+  if (manualText === null) {
+    throw new Error('manual_copy_cancelled');
+  }
 }
 
 function sortAnalysisPromptTemplates(templates = []) {
@@ -2227,6 +2418,16 @@ function sanitizeTimelineExportFileName(entry) {
   const safeQuery = queryPart || 'chat-timeline';
   const safeDate = datePart || fallbackDate;
   return `${safeQuery}-${safeDate}.md`;
+}
+
+function getTimelineCopyPreviewMarkdownContent(overlay) {
+  const directText = String(overlay?.__timelineCopyPreviewCopyText || '').trim();
+  if (directText) {
+    return directText;
+  }
+
+  const confirmBtn = overlay?.querySelector?.('.timeline-copy-preview-confirm');
+  return String(confirmBtn?.dataset?.copyText || '').trim();
 }
 
 function downloadTimelineMarkdownFile(content, filename) {
@@ -2718,6 +2919,18 @@ async function getAgentCustomSettingsMapForIframe() {
   return storedSettings && typeof storedSettings === 'object' ? storedSettings : {};
 }
 
+async function getHiddenAgentIdSetForIframe() {
+  const { [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds } = await chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY);
+  const normalizedHiddenIds = typeof AgentCatalog.normalizeAgentHiddenIds === 'function'
+    ? AgentCatalog.normalizeAgentHiddenIds(hiddenAgentIds)
+    : (Array.isArray(hiddenAgentIds) ? hiddenAgentIds.filter(Boolean) : []);
+  return new Set(
+    normalizedHiddenIds
+      .map((id) => String(id || '').trim())
+      .filter(Boolean)
+  );
+}
+
 async function getCustomAgentsForIframe() {
   const [
     { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
@@ -2730,6 +2943,13 @@ async function getCustomAgentsForIframe() {
   return Array.isArray(localCustomAgents) && localCustomAgents.length > 0
     ? localCustomAgents
     : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []);
+}
+
+function filterHiddenAgentsForIframe(agents, hiddenAgentIdSet = new Set()) {
+  const visibleSet = hiddenAgentIdSet instanceof Set ? hiddenAgentIdSet : new Set();
+  return Array.isArray(agents)
+    ? agents.filter((agent) => agent && !visibleSet.has(String(agent.id || '').trim()))
+    : [];
 }
 
 async function getMergedAgentByIdForIframe(agentId) {
@@ -2757,9 +2977,22 @@ function setAgentState(agentId, nextState) {
 
 async function getAgentEngineConfigForIframe() {
   const [syncData, localData] = await Promise.all([
-    chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+    chrome.storage.sync.get([AGENT_ENGINE_STORAGE_KEY, AGENT_ENGINE_SETTINGS_STORAGE_KEY]),
     chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
   ]);
+  const resolvedSettings = typeof AgentPromptUtils.resolveAgentEngineSettings === 'function'
+    ? AgentPromptUtils.resolveAgentEngineSettings(
+        syncData?.[AGENT_ENGINE_SETTINGS_STORAGE_KEY] || syncData?.[AGENT_ENGINE_STORAGE_KEY] || {},
+        localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY] || {}
+      )
+    : null;
+
+  if (resolvedSettings?.effectiveConfig) {
+    return {
+      ...resolvedSettings.effectiveConfig,
+      selectedSource: resolvedSettings.selectedSource || 'official'
+    };
+  }
 
   const rawConfig = {
     ...(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {}),
@@ -2779,7 +3012,8 @@ async function getAgentEngineConfigForIframe() {
     baseUrl: String(rawConfig.baseUrl || bundledDefaults.baseUrl || '').replace(/\/+$/, ''),
     model: String(rawConfig.model || bundledDefaults.model || '').trim(),
     concurrency: Math.max(1, Number(rawConfig.concurrency) || Number(bundledDefaults.concurrency) || 2),
-    systemPrompt: String(rawConfig.systemPrompt || bundledDefaults.systemPrompt || '').trim()
+    systemPrompt: String(rawConfig.systemPrompt || bundledDefaults.systemPrompt || '').trim(),
+    selectedSource: 'official'
   };
 }
 
@@ -2790,10 +3024,16 @@ function getAgentAbortController(agentId) {
 
 function cancelInFlightAgentRequest(agentId) {
   const controller = getAgentAbortController(agentId);
-  if (!controller) return;
-  try {
-    controller.abort();
-  } catch (_) {}
+  const state = getAgentState(agentId);
+  if (controller) {
+    try {
+      controller.abort();
+    } catch (_) {}
+  }
+  chrome.runtime.sendMessage({
+    action: 'cancelAgentChat',
+    panelId: state?.panelId || `agent:${String(agentId || '').trim()}`
+  }).catch(() => {});
 }
 
 async function parseAgentCompletionError(response) {
@@ -3186,11 +3426,10 @@ async function runAgentPrompt(agentId, content, source = 'global') {
     source: message.source
   }));
 
-  const config = await getAgentEngineConfigForIframe().catch(() => null);
   const agent = await getMergedAgentByIdForIframe(agentId);
 
   if (!agent) {
-    const unknownAgentError = chrome?.i18n?.getMessage?.('agentUnknownError', [agentId]) || `Unknown agent: ${agentId}`;
+    const unknownAgentError = chrome?.i18n?.getMessage?.('agentUnknownError', [agentId]) || `Unknown skill: ${agentId}`;
     updateAgentLoadingState(agentId, false, unknownAgentError);
     appendAgentMessage(agentId, {
       role: 'assistant',
@@ -3200,8 +3439,13 @@ async function runAgentPrompt(agentId, content, source = 'global') {
     return false;
   }
 
-  if (!config?.apiKey || !config?.baseUrl || !config?.model) {
-    const agentConfigError = chrome?.i18n?.getMessage?.('agentEngineNotConfigured') || 'Agent engine is not configured';
+  const backgroundConfigResponse = await chrome.runtime.sendMessage({
+    action: 'getAgentEngineConfig'
+  }).catch(() => null);
+  const runtimeConfig = backgroundConfigResponse?.success ? backgroundConfigResponse.result : null;
+
+  if (!runtimeConfig?.hasApiKey || !runtimeConfig?.baseUrl || !runtimeConfig?.model) {
+    const agentConfigError = chrome?.i18n?.getMessage?.('agentEngineNotConfigured') || 'Skill engine is not configured';
     updateAgentLoadingState(agentId, false, agentConfigError);
     appendAgentMessage(agentId, {
       role: 'assistant',
@@ -3211,11 +3455,10 @@ async function runAgentPrompt(agentId, content, source = 'global') {
     return false;
   }
 
-  const abortController = new AbortController();
   const existingAssistantState = getAgentState(agentId);
   const nextState = {
     ...existingAssistantState,
-    abortController,
+    abortController: null,
     messages: [
       ...existingAssistantState.messages,
       {
@@ -3231,101 +3474,23 @@ async function runAgentPrompt(agentId, content, source = 'global') {
   }
 
   try {
-    const requestMessages = typeof AgentPromptUtils.buildChatMessages === 'function'
-      ? AgentPromptUtils.buildChatMessages(agent, messages, config)
-      : messages;
-
-    const completionResponse = await fetch(`${String(config.baseUrl).replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`
-      },
-      body: JSON.stringify({
-        model: config.model,
-        stream: true,
-        thinking: {
-          type: 'disabled'
-        },
-        messages: requestMessages
-      }),
-      signal: abortController.signal
+    const response = await chrome.runtime.sendMessage({
+      action: 'agentChat',
+      payload: {
+        panelId: existingState.panelId || `agent:${agentId}`,
+        agentId,
+        messages
+      }
     });
 
-    if (!completionResponse.ok) {
-      throw new Error(await parseAgentCompletionError(completionResponse));
+    if (!response?.success) {
+      throw new Error(response?.error || t('agentRequestFailed', 'Skill request failed'));
     }
-
-    const reader = completionResponse.body?.getReader?.();
-    if (!reader) {
-      const data = await completionResponse.json();
-      const text = data?.choices?.[0]?.message?.content || '';
-      const stateAfterText = getAgentState(agentId);
-      if (stateAfterText) {
-        const messagesWithReply = [...stateAfterText.messages];
-        const lastAssistant = messagesWithReply[messagesWithReply.length - 1];
-        if (lastAssistant?.role === 'assistant') {
-          lastAssistant.content = text;
-        }
-        setAgentState(agentId, {
-          ...stateAfterText,
-          messages: messagesWithReply
-        });
-      }
-    } else {
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const rawLine of lines) {
-          const line = rawLine.trim();
-          if (!line.startsWith('data:')) continue;
-          const payload = line.slice(5).trim();
-          if (!payload || payload === '[DONE]') continue;
-          let parsed;
-          try {
-            parsed = JSON.parse(payload);
-          } catch (_) {
-            continue;
-          }
-          const delta = parsed?.choices?.[0]?.delta?.content || '';
-          if (!delta) continue;
-          const latestState = getAgentState(agentId);
-          if (!latestState) continue;
-          const nextMessages = [...latestState.messages];
-          const lastAssistant = nextMessages[nextMessages.length - 1];
-          if (lastAssistant?.role === 'assistant') {
-            lastAssistant.content = `${lastAssistant.content || ''}${delta}`;
-          } else {
-            nextMessages.push({ role: 'assistant', content: delta });
-          }
-          const streamedState = {
-            ...latestState,
-            messages: nextMessages
-          };
-          setAgentState(agentId, streamedState);
-          if (iframe) {
-            syncAgentPanelStateToFrame(iframe, streamedState);
-          }
-          await waitForNextFrame();
-        }
-      }
-    }
-    updateAgentLoadingState(agentId, false);
   } catch (error) {
-    if (error?.name === 'AbortError') {
-      updateAgentLoadingState(agentId, false);
-      return false;
-    }
-    updateAgentLoadingState(agentId, false, error?.message || t('agentRequestFailed', 'Agent request failed'));
+    updateAgentLoadingState(agentId, false, error?.message || t('agentRequestFailed', 'Skill request failed'));
     appendAgentMessage(agentId, {
       role: 'assistant',
-      content: error?.message || t('agentRequestFailed', 'Agent request failed'),
+      content: error?.message || t('agentRequestFailed', 'Skill request failed'),
       isError: true
     });
     return false;
@@ -5071,12 +5236,17 @@ function buildSiteUrlForQuery(site, query) {
 }
 
 async function getAvailableAgentCatalog() {
+  const hiddenAgentIdSet = await getHiddenAgentIdSetForIframe().catch(() => new Set());
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'getAgentCatalog'
     });
     if (response?.success) {
-      return response.result || { categories: [], agents: [] };
+      const catalog = response.result || { categories: [], agents: [] };
+      return {
+        ...catalog,
+        agents: filterHiddenAgentsForIframe(catalog?.agents, hiddenAgentIdSet)
+      };
     }
   } catch (error) {
     console.warn('获取智能体目录失败:', error);
@@ -5084,12 +5254,20 @@ async function getAvailableAgentCatalog() {
 
   const customSettingsMap = await getAgentCustomSettingsMapForIframe().catch(() => ({}));
   if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
-    return AgentCatalog.buildCatalogWithCustomSettings(customSettingsMap);
+    const catalog = AgentCatalog.buildCatalogWithCustomSettings(customSettingsMap);
+    return {
+      ...catalog,
+      agents: filterHiddenAgentsForIframe(catalog?.agents, hiddenAgentIdSet)
+    };
   }
 
-  return typeof AgentCatalog.getCatalog === 'function'
+  const catalog = typeof AgentCatalog.getCatalog === 'function'
     ? AgentCatalog.getCatalog()
     : { categories: [], agents: [] };
+  return {
+    ...catalog,
+    agents: filterHiddenAgentsForIframe(catalog?.agents, hiddenAgentIdSet)
+  };
 }
 
 function buildAgentPanelUrl(agentId) {
@@ -5393,6 +5571,7 @@ async function renderSideNav() {
 
   const sites = await getAvailableIframeSites();
   const agentCatalog = await getAvailableAgentCatalog();
+  const visibleAgents = filterHiddenAgentsForIframe(agentCatalog?.agents);
 
   const navControls = nav.querySelector('.nav-controls');
   if (navControls) {
@@ -5431,17 +5610,16 @@ async function renderSideNav() {
     siteGroupList.appendChild(navItem);
   });
 
-  const agents = Array.isArray(agentCatalog?.agents) ? agentCatalog.agents : [];
-  if (agents.length > 0) {
+  if (visibleAgents.length > 0) {
     const agentGroup = document.createElement('li');
     agentGroup.className = 'nav-group';
-    agentGroup.innerHTML = `<div class="nav-group-title">Agents</div>`;
+    agentGroup.innerHTML = `<div class="nav-group-title">Skills</div>`;
     const agentGroupList = document.createElement('ul');
     agentGroupList.className = 'nav-list';
     agentGroup.appendChild(agentGroupList);
     navList.appendChild(agentGroup);
 
-    agents.forEach((agent) => {
+    visibleAgents.forEach((agent) => {
       agentGroupList.appendChild(createNavAgentItemElement(agent, container));
     });
   }
@@ -5799,6 +5977,19 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
   let clickHandlerAdded = false;
   
   iframe.addEventListener('load', () => {
+    const historyId = window._currentHistoryId || null;
+    if (historyId) {
+      try {
+        iframe.contentWindow?.postMessage({
+          type: 'SET_HISTORY_CONTEXT',
+          historyId,
+          siteName
+        }, '*');
+      } catch (error) {
+        console.warn('iframe load 时设置历史上下文失败:', error);
+      }
+    }
+
     const currentInputQuery = document.getElementById('searchInput')?.value || '';
     const launchTarget = launchInfo.launchTarget || null;
     const loadBehavior = getIframeLoadBehavior({
@@ -5866,7 +6057,19 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
           const handler = await getIframeHandler(url, site.name);
           if (handler) {
             console.log('执行动态 iframe 处理函数:', site.name);
-            await handler(iframe, latestQuery);
+            const historyId = window._currentHistoryId || null;
+            if (historyId) {
+              try {
+                iframe.contentWindow?.postMessage({
+                  type: 'SET_HISTORY_CONTEXT',
+                  historyId,
+                  siteName
+                }, '*');
+              } catch (error) {
+                console.warn('首屏自动执行时设置历史上下文失败:', error);
+              }
+            }
+            await handler(iframe, latestQuery, historyId);
           } else {
             console.log('未找到对应的处理函数', site.name);
           }
@@ -6376,7 +6579,6 @@ async function favoriteAllIframes() {
         
         // 保存更新后的历史记录
         await chrome.storage.local.set({ pkHistory: pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         
         // 更新 UI 中的收藏按钮状态
         updateAllIframeFavoriteButtons(!isRemove);
@@ -6500,7 +6702,6 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
 
         // 保存更新后的历史记录
         await chrome.storage.local.set({ pkHistory: pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         
         // 更新当前站点所有收藏按钮状态
         const favoriteButtons = document.querySelectorAll('.iframe-favorite-btn');
@@ -7179,6 +7380,19 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
 
       iframe.addEventListener('load', () => {
+        const historyId = window._currentHistoryId || null;
+        if (historyId) {
+          try {
+            iframe.contentWindow?.postMessage({
+              type: 'SET_HISTORY_CONTEXT',
+              historyId,
+              siteName
+            }, '*');
+          } catch (error) {
+            console.warn('历史 iframe load 时设置历史上下文失败:', error);
+          }
+        }
+
         setIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoaded', '页面已加载'));
         scheduleTimelineSync(900);
       });
@@ -7609,7 +7823,6 @@ async function savePKHistory(query) {
     
     // 保存到存储
     await chrome.storage.local.set({ pkHistory: limitedHistory });
-    if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     
     // 将历史记录 ID 存储到全局变量，供 iframe 内部脚本更新 URL 时使用
     window._currentHistoryId = historyId;
@@ -7749,14 +7962,12 @@ async function updateHistorySiteUrl(siteName, url, historyId) {
         pkHistory.splice(historyIndex, 1);
         console.log(`🗑️ 历史记录 ${historyId} 的所有站点 URL 都不包含 urlFeature，删除整条记录`);
         await chrome.storage.local.set({ pkHistory: pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         return;
       }
     }
     
     // 保存更新后的历史记录
     await chrome.storage.local.set({ pkHistory: pkHistory });
-    if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     
     console.log(`✅ 更新历史记录 ${historyId} 中 ${siteName} 的 URL:`, url);
   } catch (error) {
@@ -7825,6 +8036,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (resetIframePageButton) {
     resetIframePageButton.addEventListener('click', () => {
       resetIframePageToDefaultType();
+    });
+  }
+  const shareTimelineButton = document.getElementById('shareTimelineButton');
+  if (shareTimelineButton) {
+    shareTimelineButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      void openTopLevelShareFlow();
     });
   }
   await initializeFavorites();
@@ -8444,7 +8662,6 @@ async function toggleFavorite() {
     // 保存到存储
     await chrome.storage.sync.set({ favoritePrompts: favoritePrompts });
     console.log('收藏列表已更新:', favoritePrompts);
-    if (typeof window.firebaseSyncUploadFavoritesIfLoggedIn === 'function') window.firebaseSyncUploadFavoritesIfLoggedIn();
   } catch (error) {
     console.error('保存收藏失败:', error);
   }
@@ -8569,7 +8786,6 @@ async function deleteFavoriteItem(item) {
       
       // 保存到存储
       await chrome.storage.sync.set({ favoritePrompts: favoritePrompts });
-      if (typeof window.firebaseSyncUploadFavoritesIfLoggedIn === 'function') window.firebaseSyncUploadFavoritesIfLoggedIn();
       // 重新显示收藏夹
       showFavorites();
       

@@ -395,7 +395,6 @@ async function deleteFavoriteItem(id) {
                     preserveUpdatedAt: true
                 });
             }
-            if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
             return;
         }
 
@@ -421,7 +420,6 @@ async function deleteFavoriteItem(id) {
         }
 
         await chrome.storage.local.set({ pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     } catch (error) {
         console.error('删除收藏记录失败:', error);
     }
@@ -440,7 +438,6 @@ async function moveFavoriteItemToFolder(id, folderId) {
                     preserveUpdatedAt: true
                 });
             }
-            if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
             return;
         }
 
@@ -453,7 +450,6 @@ async function moveFavoriteItemToFolder(id, folderId) {
             }
         });
         await chrome.storage.local.set({ pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     } catch (error) {
         console.error('移动收藏记录失败:', error);
     }
@@ -480,7 +476,6 @@ async function clearAllFavorites() {
             });
         });
         await chrome.storage.local.set({ pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         await renderFolderTabs();
     } catch (error) {
         console.error('清空收藏记录失败:', error);
@@ -638,7 +633,6 @@ async function deleteFolder(folderId) {
     await window.saveFavoriteFolders(folders);
 
     if (currentFolderId === folderId) currentFolderId = null;
-    if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
 }
 
 function formatDate(timestamp) {

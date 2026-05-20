@@ -132,6 +132,54 @@
   "launchSettingsTitle": {
     "message": "カスタムサイト"
   },
+  "agentSettingsTitle": {
+    "message": "スキル設定"
+  },
+  "agentEngineTitle": {
+    "message": "API設定"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "ショートカット"
+  },
+  "settingsNavSitesTitle": {
+    "message": "サイト"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "スキル"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "同期"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineCardTitle": {
+    "message": "Custom API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "Official API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "カスタム API"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "公式 API"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "Default"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "Select the official API card to use the bundled defaults"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "Select the custom API card to use your saved API settings"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "Configure your custom API first"
+  },
   "launchSettingsDescription": {
     "message": "Set a default opening URL for official sites or add standalone custom sites."
   },
@@ -472,7 +520,7 @@
     "message": "AI Compare で複数の AI プラットフォームの回答を比較します"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "チャットプロンプト"
   },
   "promptTemplatesLabel": {
     "message": "テンプレート:"
@@ -1341,7 +1389,7 @@
     "message": "ホームページと iframe の候補は、現在のサイト種別に応じて絞り込まれます。"
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "分析プロンプト"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Customize the prompt templates used to analyze copied summaries"
@@ -1451,6 +1499,9 @@
   "timelinePanelTitle": {
     "message": "チャットのタイムライン"
   },
+  "timelineSharePickerHint": {
+    "message": "共有するプロンプトを選択"
+  },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
@@ -1494,6 +1545,9 @@
         "content": "$2"
       }
     }
+  },
+  "timelineCopyPreviewShare": {
+    "message": "共有"
   },
   "timelineCopyPreviewEmpty": {
     "message": "No copyable responses were found in the current sub-pages."
@@ -1769,6 +1823,18 @@
   "timelineCopyPreviewRefreshing": {
     "message": "Refreshing..."
   },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "共有リンクをコピーしました"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "自動コピーに失敗しました。次のリンクを手動でコピーしてください:"
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "共有リンクの生成に失敗しました。もう一度お試しください。"
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "利用可能な relay アドレスが見つかりません。先に設定で入力してください。"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -1824,9 +1890,6 @@
   },
   "historyUntitledQuery": {
     "message": "無題の質問"
-  },
-  "agentEngineTitle": {
-    "message": "エージェントエンジン"
   },
   "agentEngineDescription": {
     "message": "内蔵エージェントパネルが共通で使うモデルバックエンドを設定します。"

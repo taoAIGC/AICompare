@@ -127,11 +127,80 @@
   "launchSettingsTitle": {
     "message": "自定义站点"
   },
+  "agentSettingsTitle": {
+    "message": "技能设置"
+  },
   "agentEngineTitle": {
-    "message": "智能体设置"
+    "message": "API 设置"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "快捷"
+  },
+  "settingsNavSitesTitle": {
+    "message": "站点"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "技能"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "同步"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineDescription": {
+    "message": "智能体功能只能二选一使用官方 API 或自定义 API。"
   },
   "agentEngineCardTitle": {
-    "message": "API 设置"
+    "message": "自定义 API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "官方 API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "自定义 API"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "官方 API"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "默认"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "选择官方 API 卡片后，将使用内置默认配置"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "填写自己的 API"
+  },
+  "agentEngineOfficialFreeHint": {
+    "message": "免费每天用 3 次"
+  },
+  "agentEngineUpgradeButton": {
+    "message": "立即升级 PRO"
+  },
+  "agentEngineManageProButton": {
+    "message": "管理 PRO"
+  },
+  "agentEngineEditButton": {
+    "message": "编辑自定义 API"
+  },
+  "agentEngineEditButtonEmpty": {
+    "message": "填写自己的 API"
+  },
+  "agentEngineCustomConfiguredHint": {
+    "message": "填写自己的 API，智能体将使用你的额度"
+  },
+  "agentEngineOfficialMetaFree": {
+    "message": "使用内置 API，每天免费 3 次。"
+  },
+  "agentEngineOfficialMetaPro": {
+    "message": "当前套餐：PRO"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "请先配置自定义 API"
   },
   "agentEngineApiUrlLabel": {
     "message": "API 地址"
@@ -158,28 +227,28 @@
     "message": "这是所有智能体面板共享的全局并发上限。"
   },
   "agentEngineSaveButton": {
-    "message": "保存智能体引擎"
+    "message": "保存自定义 API"
   },
   "agentEngineValidationFailed": {
-    "message": "请填写智能体引擎的所有必填项"
+    "message": "请填写自定义 API 的所有必填项"
   },
   "agentEngineLoadFailed": {
-    "message": "加载智能体引擎配置失败"
+    "message": "加载 API 设置失败"
   },
   "agentEngineSaveSuccess": {
-    "message": "智能体引擎已保存"
+    "message": "自定义 API 已保存"
   },
   "agentCustomSettingsTitle": {
-    "message": "智能体自定义设置"
+    "message": "Skill 自定义设置"
   },
   "agentCustomSettingsDescription": {
-    "message": "按智能体覆盖默认名称、简介和 persona 提示词。"
+    "message": "按 Skill 覆盖默认名称、简介和 persona 提示词。"
   },
   "agentCustomSettingsLoadFailed": {
-    "message": "加载智能体设置失败"
+    "message": "加载 Skill 设置失败"
   },
   "agentCustomSettingsEmpty": {
-    "message": "暂无可配置的智能体"
+    "message": "暂无可配置的 Skill"
   },
   "agentCustomOverriddenBadge": {
     "message": "已自定义"
@@ -188,10 +257,10 @@
     "message": "已导入"
   },
   "agentCustomDialogTitle": {
-    "message": "自定义智能体"
+    "message": "自定义 Skill"
   },
   "agentCustomNewTitle": {
-    "message": "新建智能体"
+    "message": "新建 Skill"
   },
   "agentCustomNameLabel": {
     "message": "显示名称"
@@ -203,37 +272,43 @@
     "message": "简介"
   },
   "agentCustomDescriptionPlaceholder": {
-    "message": "一句话说明这个智能体的定位"
+    "message": "一句话说明这个 Skill 的定位"
   },
   "agentCustomPersonaPromptLabel": {
     "message": "Persona 提示词"
   },
   "agentCustomPersonaPromptPlaceholder": {
-    "message": "定义这个智能体的思考风格和输出要求"
+    "message": "定义这个 Skill 的思考风格和输出要求"
   },
   "agentCustomPersonaPromptHelp": {
-    "message": "这里会直接作为这个智能体唯一的系统提示词参与回答。"
+    "message": "这里会直接作为这个 Skill 唯一的系统提示词参与回答。"
   },
   "agentCustomResetButton": {
     "message": "恢复默认"
   },
   "agentCustomValidationFailed": {
-    "message": "请填写智能体名称"
+    "message": "请填写 Skill 名称"
   },
   "agentCustomPromptRequired": {
     "message": "请填写 persona 提示词"
   },
   "agentCustomSaveSuccess": {
-    "message": "智能体设置已保存"
+    "message": "Skill 设置已保存"
   },
   "agentCustomResetSuccess": {
-    "message": "智能体设置已恢复默认"
+    "message": "Skill 设置已恢复默认"
   },
   "agentCustomDeleteConfirm": {
-    "message": "确定要删除这个导入的智能体吗？"
+    "message": "确定要删除这个导入的 Skill 吗？"
   },
   "agentCustomDeleteSuccess": {
-    "message": "导入的智能体已删除"
+    "message": "导入的 Skill 已删除"
+  },
+  "agentBuiltinDeleteConfirm": {
+    "message": "确定要删除这个系统自带的 Skill 吗？这会在当前设备上隐藏它。"
+  },
+  "agentBuiltinDeleteSuccess": {
+    "message": "系统自带的 Skill 已删除"
   },
   "agentSkillUrlLabel": {
     "message": "Skill URL"
@@ -248,10 +323,10 @@
     "message": "可直接粘贴 SKILL.md 内容；如果填写了 URL，会优先抓取 URL 内容"
   },
   "agentSkillContentHelp": {
-    "message": "导入后会转换为插件内可直接使用的自定义智能体。"
+    "message": "导入后会转换为插件内可直接使用的自定义 Skill。"
   },
   "agentSkillImportButton": {
-    "message": "创建智能体"
+    "message": "导入 Skill"
   },
   "agentImportButton": {
     "message": "从 URL 导入"
@@ -260,7 +335,7 @@
     "message": "新建"
   },
   "agentImportDialogTitle": {
-    "message": "从 URL 导入智能体"
+    "message": "从 URL 导入 Skill"
   },
   "agentSkillImportValidationFailed": {
     "message": "请填写 Skill URL 或粘贴 Skill 内容"
@@ -269,19 +344,19 @@
     "message": "抓取到的 Skill 内容为空"
   },
   "agentSkillImportInvalid": {
-    "message": "无法将这个 Skill 解析为智能体"
+    "message": "无法将这个 Skill 解析为 Skill"
   },
   "agentSkillImportSuccess": {
-    "message": "Skill 已导入为智能体"
+    "message": "Skill 已成功导入"
   },
   "agentSkillImportPartialSuccess": {
-    "message": "Skill 已按提示词模式导入为智能体"
+    "message": "Skill 已按提示词模式导入"
   },
   "agentSkillImportFailed": {
     "message": "导入 Skill 失败"
   },
   "agentEngineNotConfigured": {
-    "message": "智能体引擎未配置"
+    "message": "API 设置未配置"
   },
   "launchSettingsDescription": {
     "message": "为官方站点设置默认打开地址，或添加只打开页面的自定义网站。"
@@ -314,16 +389,16 @@
     "message": "自定义网站"
   },
   "homepageAgentsTitle": {
-    "message": "AI 智能体"
+    "message": "AI Skills"
   },
   "homepageAgentCategoriesTitle": {
     "message": "分类"
   },
   "homepageAgentCategoryBatchHint": {
-    "message": "双击可全选或取消本分类智能体"
+    "message": "双击可全选或取消本分类 Skill"
   },
   "homepageNoPanelsSelected": {
-    "message": "请至少选择一个站点或智能体"
+    "message": "请至少选择一个站点或 Skill"
   },
   "customSitesDescription": {
     "message": "只负责打开页面，不做自动输入。选中后不会注入提示词或执行自动化。"
@@ -481,9 +556,9 @@
     "message": "提示词收藏夹",
     "description": "收藏夹部分的标题"
   },
-  "enableSync": {
-    "message": "开启同步",
-    "description": "同步栏默认文案，点击后跳转登录"
+  "logIn": {
+    "message": "登录",
+    "description": "侧栏登录入口文案"
   },
   "logout": {
     "message": "退出登录",
@@ -638,7 +713,7 @@
     "message": "使用AI比一比进行多AI对比搜索"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "聊天提示词"
   },
   "promptTemplatesLabel": {
     "message": "模板："
@@ -817,7 +892,7 @@
     "message": "保存"
   },
   "saveFavoriteSitesTitle": {
-    "message": "保存为默认站点和智能体"
+    "message": "保存为默认站点和 Skill"
   },
   "favoriteSitesSaved": {
     "message": "常用站点已保存"
@@ -1348,7 +1423,7 @@
     "message": "正在加载会员状态…"
   },
   "membershipLoginHint": {
-    "message": "请先在「数据同步」页面登录谷歌账号后查看会员状态"
+    "message": "请先使用谷歌账号登录后查看会员状态"
   },
   "membershipExpiresOn": {
     "message": "到期时间："
@@ -1373,6 +1448,87 @@
   },
   "syncSyncingFromCloud": {
     "message": "正在同步云端数据..."
+  },
+  "googleDriveSyncTitle": {
+    "message": "谷歌网盘同步"
+  },
+  "googleDriveSyncDescription": {
+    "message": "点击后会打开谷歌登录并授权 Drive 访问，备份数据会存到你的 Google Drive 应用数据空间中。"
+  },
+  "googleDriveSyncBadge": {
+    "message": "Google Drive"
+  },
+  "googleDriveSyncNotConnected": {
+    "message": "尚未连接"
+  },
+  "googleDriveSyncConnectButton": {
+    "message": "使用 Google 登录"
+  },
+  "googleDriveSyncReconnectButton": {
+    "message": "重新连接 Google Drive"
+  },
+  "googleDriveSyncRestoreButton": {
+    "message": "从 Drive 恢复"
+  },
+  "googleDriveSyncDisconnectButton": {
+    "message": "断开连接"
+  },
+  "googleDriveSyncConnecting": {
+    "message": "正在打开谷歌授权..."
+  },
+  "googleDriveSyncConnected": {
+    "message": "Google Drive 已连接"
+  },
+  "googleDriveSyncConnectFailed": {
+    "message": "连接 Google Drive 失败"
+  },
+  "googleDriveSyncRestoring": {
+    "message": "正在从 Google Drive 恢复数据..."
+  },
+  "googleDriveSyncRestoreSuccess": {
+    "message": "Drive 备份已恢复，请刷新页面以使用最新数据"
+  },
+  "googleDriveSyncRestoreFailed": {
+    "message": "从 Google Drive 恢复失败"
+  },
+  "googleDriveSyncDisconnectConfirm": {
+    "message": "确定要在本设备上断开 Google Drive 同步吗？"
+  },
+  "googleDriveSyncDisconnecting": {
+    "message": "正在断开 Google Drive..."
+  },
+  "googleDriveSyncDisconnected": {
+    "message": "Google Drive 已断开"
+  },
+  "googleDriveSyncDisconnectFailed": {
+    "message": "断开 Google Drive 失败"
+  },
+  "googleDriveSyncStatusLoadFailed": {
+    "message": "加载 Drive 连接状态失败"
+  },
+  "googleDriveSyncInvalidRedirect": {
+    "message": "Google 授权返回的重定向无效"
+  },
+  "googleDriveSyncAuthorizationFailed": {
+    "message": "Google 授权失败"
+  },
+  "googleDriveSyncMissingAccessToken": {
+    "message": "未收到 Google Drive 访问令牌"
+  },
+  "googleDriveSyncMissingClientId": {
+    "message": "缺少 Google Drive 同步所需的客户端 ID"
+  },
+  "googleDriveSyncBrowserUnsupported": {
+    "message": "当前浏览器不支持 Google 授权"
+  },
+  "membershipGoogleLoginButton": {
+    "message": "使用 Google 登录"
+  },
+  "membershipGoogleLoginUnavailable": {
+    "message": "当前暂时无法使用谷歌登录"
+  },
+  "membershipGoogleLoginFailed": {
+    "message": "谷歌登录失败"
   },
   "clearHistoryButton": {
     "message": "清空历史"
@@ -1459,7 +1615,7 @@
     "message": "音频"
   },
   "homepageTypeAgents": {
-    "message": "智能体"
+    "message": "Skills"
   },
   "homepageTypeTranslate": {
     "message": "翻译"
@@ -1510,7 +1666,7 @@
     "message": "homepage 和 iframe 会按当前站点类型过滤提示词模板"
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "分析提示词"
   },
   "analysisPromptTemplatesDescription": {
     "message": "自定义分析汇总结果时使用的提示词模板"
@@ -1620,6 +1776,9 @@
   "timelinePanelTitle": {
     "message": "Chat timeline"
   },
+  "timelineSharePickerHint": {
+    "message": "选择要分享的提问记录"
+  },
   "timelineEmpty": {
     "message": "当前对话里还没有识别到提问。"
   },
@@ -1677,7 +1836,7 @@
     "message": "加载回答失败，请稍后重试。"
   },
   "timelineCopyPreviewConfirm": {
-    "message": "确认复制"
+    "message": "复制"
   },
   "timelineCopyPreviewAnalyze": {
     "message": "分析"
@@ -1997,10 +2156,10 @@
     "message": "思考中..."
   },
   "agentRequestFailed": {
-    "message": "智能体请求失败"
+    "message": "Skill 请求失败"
   },
   "agentUnknownError": {
-    "message": "未知智能体：$AGENT_ID$",
+    "message": "未知 Skill：$AGENT_ID$",
     "placeholders": {
       "agent_id": {
         "content": "$1"
@@ -2137,7 +2296,7 @@
     "message": "加载失败，请刷新页面重试"
   },
   "agentEngineEditDialogTitle": {
-    "message": "编辑智能体引擎"
+    "message": "填写自己的 API"
   },
   "agentEngineStatusConfigured": {
     "message": "已配置"
@@ -2147,5 +2306,29 @@
   },
   "agentEngineEmptyValue": {
     "message": "未配置"
+  },
+  "timelineCopyPreviewDownload": {
+    "message": "下载 MD"
+  },
+  "timelineCopyPreviewDownloadSuccess": {
+    "message": "MD 文件已下载"
+  },
+  "timelineCopyPreviewDownloadFailed": {
+    "message": "下载失败，请重试"
+  },
+  "timelineCopyPreviewShare": {
+    "message": "分享"
+  },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "分享链接已复制"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "自动复制失败，请手动复制下面的链接："
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "生成分享链接失败，请重试"
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "未找到可用的 relay 地址，请先在设置中填写"
   }
 }

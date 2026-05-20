@@ -1,4 +1,9 @@
+const fs = require('node:fs');
+const path = require('node:path');
+
 const { nowIso } = require('../../remote/common.js');
+
+const DEFAULT_SHARE_STORE_FILE = path.join(process.cwd(), 'data', 'shares.json');
 
 function createMapBackedSnapshot(collection) {
   return Array.from(collection.values()).map((item) => ({
@@ -43,11 +48,60 @@ class MetadataStore {
     this.devices = new Map();
     this.pairingTickets = new Map();
     this.pairRecords = new Map();
+    this.shareRecords = new Map();
+    this.persistShares = options.persistShares !== false;
+    this.shareStoreFile = String(options.shareStoreFile || process.env.SHARE_STORE_FILE || DEFAULT_SHARE_STORE_FILE).trim() || DEFAULT_SHARE_STORE_FILE;
     this.firestore = new FirestoreMirror({
       enabled: options.useFirestore !== false,
       logger: this.logger,
       projectId: options.projectId
     });
+    this.loadShareRecordsFromDisk();
+  }
+
+  loadShareRecordsFromDisk() {
+    if (!this.persistShares) {
+      return;
+    }
+
+    try {
+      if (!fs.existsSync(this.shareStoreFile)) {
+        return;
+      }
+
+      const parsed = JSON.parse(fs.readFileSync(this.shareStoreFile, 'utf8'));
+      const records = Array.isArray(parsed?.shareRecords)
+        ? parsed.shareRecords
+        : (Array.isArray(parsed) ? parsed : []);
+
+      for (const record of records) {
+        const shareId = String(record?.shareId || '').trim();
+        if (!shareId) {
+          continue;
+        }
+        this.shareRecords.set(shareId, {
+          ...record
+        });
+      }
+    } catch (error) {
+      this.logger.warn('Failed to load persisted share records, continuing with empty share store:', error.message);
+    }
+  }
+
+  async persistShareRecordsToDisk() {
+    if (!this.persistShares) {
+      return;
+    }
+
+    const directory = path.dirname(this.shareStoreFile);
+    const tempFile = `${this.shareStoreFile}.tmp`;
+    const payload = JSON.stringify({
+      shareRecords: Array.from(this.shareRecords.values())
+    }, null, 2);
+
+    await fs.promises.mkdir(directory, { recursive: true });
+    await fs.promises.writeFile(tempFile, payload, 'utf8');
+    await fs.promises.rename(tempFile, this.shareStoreFile);
   }
 
   async upsertDevice(device) {
@@ -146,11 +200,55 @@ class MetadataStore {
     });
   }
 
+  async createShareRecord(record) {
+    const nextRecord = {
+      ...record,
+      createdAt: record.createdAt || nowIso(),
+      updatedAt: nowIso()
+    };
+    this.shareRecords.set(record.shareId, nextRecord);
+    await this.persistShareRecordsToDisk();
+    await this.firestore.set('remoteShares', record.shareId, nextRecord);
+    return {
+      ...nextRecord
+    };
+  }
+
+  async getShareRecord(shareId) {
+    const record = this.shareRecords.get(shareId);
+    return record ? { ...record } : null;
+  }
+
+  async updateShareRecord(shareId, patch = {}) {
+    const existing = this.shareRecords.get(shareId);
+    if (!existing) {
+      return null;
+    }
+    const nextRecord = {
+      ...existing,
+      ...patch,
+      updatedAt: nowIso()
+    };
+    this.shareRecords.set(shareId, nextRecord);
+    await this.persistShareRecordsToDisk();
+    await this.firestore.set('remoteShares', shareId, nextRecord);
+    return {
+      ...nextRecord
+    };
+  }
+
+  async listShareRecords(limit = 100) {
+    return Array.from(this.shareRecords.values())
+      .slice(-Math.max(1, Number(limit) || 100))
+      .map((item) => ({ ...item }));
+  }
+
   getDebugSnapshot() {
     return {
       devices: createMapBackedSnapshot(this.devices),
       pairingTickets: createMapBackedSnapshot(this.pairingTickets),
-      pairRecords: createMapBackedSnapshot(this.pairRecords)
+      pairRecords: createMapBackedSnapshot(this.pairRecords),
+      shareRecords: createMapBackedSnapshot(this.shareRecords)
     };
   }
 }

@@ -132,6 +132,54 @@
   "launchSettingsTitle": {
     "message": "المواقع المخصصة"
   },
+  "agentSettingsTitle": {
+    "message": "إعدادات المهارات"
+  },
+  "agentEngineTitle": {
+    "message": "إعدادات API"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "اختصارات"
+  },
+  "settingsNavSitesTitle": {
+    "message": "المواقع"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "المهارات"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "المزامنة"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineCardTitle": {
+    "message": "Custom API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "Official API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "واجهة API مخصصة"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "واجهة API الرسمية"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "Default"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "Select the official API card to use the bundled defaults"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "Select the custom API card to use your saved API settings"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "Configure your custom API first"
+  },
   "launchSettingsDescription": {
     "message": "Set a default opening URL for official sites or add standalone custom sites."
   },
@@ -472,7 +520,7 @@
     "message": "قارن الردود من منصات ذكاء اصطناعي متعددة باستخدام AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "موجه الدردشة"
   },
   "promptTemplatesLabel": {
     "message": "القالب:"
@@ -1341,7 +1389,7 @@
     "message": "يتم تصفية اقتراحات الصفحة الرئيسية وiframe حسب نوع الموقع الحالي."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "موجه التحليل"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Customize the prompt templates used to analyze copied summaries"
@@ -1451,6 +1499,9 @@
   "timelinePanelTitle": {
     "message": "الخط الزمني للدردشة"
   },
+  "timelineSharePickerHint": {
+    "message": "اختر المطالبة التي تريد مشاركتها"
+  },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
@@ -1494,6 +1545,9 @@
         "content": "$2"
       }
     }
+  },
+  "timelineCopyPreviewShare": {
+    "message": "مشاركة"
   },
   "timelineCopyPreviewEmpty": {
     "message": "No copyable responses were found in the current sub-pages."
@@ -1769,6 +1823,18 @@
   "timelineCopyPreviewRefreshing": {
     "message": "Refreshing..."
   },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "تم نسخ رابط المشاركة"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "تعذّر النسخ التلقائي. انسخ الرابط التالي يدويًا:"
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "تعذّر إنشاء رابط المشاركة. حاول مرة أخرى."
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "لم يتم العثور على عنوان relay متاح. يرجى إضافته في الإعدادات أولاً."
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -1824,9 +1890,6 @@
   },
   "historyUntitledQuery": {
     "message": "سؤال بلا عنوان"
-  },
-  "agentEngineTitle": {
-    "message": "محرك الوكلاء"
   },
   "agentEngineDescription": {
     "message": "اضبط واجهة النموذج الخلفية المشتركة التي تستخدمها لوحات الوكلاء المدمجة."

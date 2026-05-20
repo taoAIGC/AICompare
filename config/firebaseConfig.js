@@ -23,7 +23,7 @@ function isFirebaseConfigured() {
   return !!(FirebaseConfig.apiKey && FirebaseConfig.projectId);
 }
 
-if (typeof window !== 'undefined') {
-  window.FirebaseConfig = FirebaseConfig;
-  window.isFirebaseConfigured = isFirebaseConfigured;
+if (typeof globalThis !== 'undefined') {
+  globalThis.FirebaseConfig = FirebaseConfig;
+  globalThis.isFirebaseConfigured = isFirebaseConfigured;
 }

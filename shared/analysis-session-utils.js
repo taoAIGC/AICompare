@@ -218,6 +218,39 @@
     return payload;
   }
 
+  function buildTimelineAnalysisSharePayload(payload = {}) {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    return {
+      version: Number(payload.version) || 1,
+      entry: buildAnalysisEntry(payload.entry),
+      question: normalizeString(payload.question || payload.entry?.query),
+      summaryText: normalizeString(payload.summaryText || payload.copyText),
+      responses: normalizeResponses(payload.responses),
+      compareSites: deriveCompareSites({ responses: normalizeResponses(payload.responses), compareSites: payload.compareSites }),
+      successCount: Math.max(0, Number(payload.successCount) || 0),
+      totalCount: Math.max(0, Number(payload.totalCount) || 0),
+      analysisTemplateId: normalizeString(payload.analysisTemplateId),
+      analysisTemplateName: normalizeString(payload.analysisTemplateName),
+      analysisTemplateQuery: normalizeString(payload.analysisTemplateQuery),
+      createdAt: normalizeString(payload.createdAt || new Date().toISOString())
+    };
+  }
+
+  function getAnalysisStorageArea() {
+    if (chrome?.storage?.session) {
+      return chrome.storage.session;
+    }
+
+    if (chrome?.storage?.local) {
+      return chrome.storage.local;
+    }
+
+    return null;
+  }
+
   async function saveTimelineAnalysisPayload(payload, token = '') {
     if (!payload || typeof payload !== 'object') {
       throw new Error('Invalid analysis payload');
@@ -234,7 +267,12 @@
       token: normalizedToken
     };
 
-    await chrome.storage.session.set({
+    const storageArea = getAnalysisStorageArea();
+    if (!storageArea) {
+      throw new Error('No available chrome.storage area');
+    }
+
+    await storageArea.set({
       [storageKey]: storedPayload
     });
 
@@ -249,7 +287,12 @@
     const storageKey = getAnalysisStorageKey(token);
     if (!storageKey) return null;
 
-    const result = await chrome.storage.session.get(storageKey);
+    const storageArea = getAnalysisStorageArea();
+    if (!storageArea) {
+      return null;
+    }
+
+    const result = await storageArea.get(storageKey);
     return result?.[storageKey] || null;
   }
 
@@ -273,6 +316,7 @@
     buildTimelineAnalysisCompareUrl,
     buildTimelineAnalysisPageUrl,
     buildTimelineAnalysisPayload,
+    buildTimelineAnalysisSharePayload,
     createAnalysisToken,
     deriveCompareSites,
     getAnalysisStorageKey,

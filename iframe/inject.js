@@ -4336,7 +4336,6 @@ async function saveFavoritePromptToHistory(text, siteName, folderId, remove) {
     return;
   }
   await safeStorageSet({ pkHistory: updated });
-  if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
 }
 
 function showAiFavToast(msg) {

@@ -4,6 +4,7 @@ importScripts(
   './config/agentEngineConfig.js',
   './shared/agent-prompt-utils.js',
   './config/baseConfig.js',
+  './config/firebaseConfig.js',
   './remote/common.js',
   './remote/crypto.js',
   './remote/state.js',
@@ -17,8 +18,15 @@ const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
+const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
+const AGENT_ENGINE_USAGE_STORAGE_KEY = 'agentOfficialUsage';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
+const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
+const DRIVE_SYNC_CONFIG_KEY = 'googleDriveSyncConfig';
+const DRIVE_SYNC_FILENAME = 'multiAI-settings.json';
+const DRIVE_SYNC_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const OFFICIAL_AGENT_DAILY_FREE_LIMIT = Math.max(0, Number(AgentEngineConfig.DEFAULT_DAILY_FREE_LIMIT) || 3);
 
 function getDefaultAgentEngineConfig() {
   const bundledDefaults = typeof AgentEngineConfig.getDefaults === 'function'
@@ -100,44 +108,44 @@ function logExtensionIdForDevelopment() {
 async function ensureDefaultAgentEngineConfig() {
   try {
     const [syncData, localData] = await Promise.all([
-      chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+      chrome.storage.sync.get([AGENT_ENGINE_STORAGE_KEY, AGENT_ENGINE_SETTINGS_STORAGE_KEY]),
       chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
     ]);
-    const migratedSyncConfig = typeof AgentPromptUtils.migrateLegacyApiConfig === 'function'
+    const legacySyncConfig = typeof AgentPromptUtils.migrateLegacyApiConfig === 'function'
       ? AgentPromptUtils.migrateLegacyApiConfig(syncData?.[AGENT_ENGINE_STORAGE_KEY] || {})
       : (syncData?.[AGENT_ENGINE_STORAGE_KEY] || {});
-
-    const nextSyncConfig = {
-      ...DEFAULT_AGENT_ENGINE_CONFIG,
-      ...migratedSyncConfig
-    };
-
-    const nextSecretConfig = {
-      apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
-    };
-
-    const normalizedCombinedConfig = typeof AgentPromptUtils.normalizeApiConfig === 'function'
-      ? AgentPromptUtils.normalizeApiConfig({
-          ...nextSyncConfig,
-          apiKey: nextSecretConfig.apiKey
-        })
-      : {
-          ...nextSyncConfig,
-          apiKey: nextSecretConfig.apiKey
-        };
+    const resolvedSettings = typeof AgentPromptUtils.resolveAgentEngineSettings === 'function'
+      ? AgentPromptUtils.resolveAgentEngineSettings(
+          syncData?.[AGENT_ENGINE_SETTINGS_STORAGE_KEY] || legacySyncConfig,
+          localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY] || {}
+        )
+      : null;
+    const officialConfig = resolvedSettings?.officialConfig || DEFAULT_AGENT_ENGINE_CONFIG;
+    const customConfig = resolvedSettings?.customConfig || {};
+    const selectedSource = resolvedSettings?.selectedSource === 'custom' ? 'custom' : 'official';
 
     await Promise.all([
       chrome.storage.sync.set({
+        [AGENT_ENGINE_SETTINGS_STORAGE_KEY]: {
+          selectedSource,
+          customConfig: {
+            baseUrl: String(customConfig.baseUrl || '').trim(),
+            model: String(customConfig.model || '').trim(),
+            concurrency: Math.max(1, Number(customConfig.concurrency) || 2),
+            systemPrompt: String(customConfig.systemPrompt || '').trim()
+          }
+        },
         [AGENT_ENGINE_STORAGE_KEY]: {
-          baseUrl: normalizedCombinedConfig.baseUrl,
-          model: normalizedCombinedConfig.model,
-          concurrency: normalizedCombinedConfig.concurrency,
-          systemPrompt: normalizedCombinedConfig.systemPrompt
+          baseUrl: String(customConfig.baseUrl || '').trim(),
+          model: String(customConfig.model || '').trim(),
+          concurrency: Math.max(1, Number(customConfig.concurrency) || 2),
+          systemPrompt: String(customConfig.systemPrompt || '').trim()
         }
       }),
       chrome.storage.local.set({
         [AGENT_ENGINE_SECRET_STORAGE_KEY]: {
-          apiKey: normalizedCombinedConfig.apiKey || ''
+          apiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || '',
+          customApiKey: localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.customApiKey || localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY]?.apiKey || ''
         }
       })
     ]);
@@ -148,9 +156,22 @@ async function ensureDefaultAgentEngineConfig() {
 
 async function getAgentEngineConfig() {
   const [syncData, localData] = await Promise.all([
-    chrome.storage.sync.get(AGENT_ENGINE_STORAGE_KEY),
+    chrome.storage.sync.get([AGENT_ENGINE_STORAGE_KEY, AGENT_ENGINE_SETTINGS_STORAGE_KEY]),
     chrome.storage.local.get(AGENT_ENGINE_SECRET_STORAGE_KEY)
   ]);
+  const resolvedSettings = typeof AgentPromptUtils.resolveAgentEngineSettings === 'function'
+    ? AgentPromptUtils.resolveAgentEngineSettings(
+        syncData?.[AGENT_ENGINE_SETTINGS_STORAGE_KEY] || syncData?.[AGENT_ENGINE_STORAGE_KEY] || {},
+        localData?.[AGENT_ENGINE_SECRET_STORAGE_KEY] || {}
+      )
+    : null;
+
+  if (resolvedSettings?.effectiveConfig) {
+    return {
+      ...resolvedSettings.effectiveConfig,
+      selectedSource: resolvedSettings.selectedSource || 'official'
+    };
+  }
 
   const rawConfig = {
     ...DEFAULT_AGENT_ENGINE_CONFIG,
@@ -171,27 +192,170 @@ async function getAgentEngineConfig() {
   };
 }
 
+function getOfficialUsageDateKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+async function getCachedBackgroundPlan() {
+  try {
+    const stored = await chrome.storage.local.get(['_planCache', '_planCacheAt']);
+    const cacheAge = Date.now() - (stored._planCacheAt || 0);
+    if (stored._planCache && cacheAge < 5 * 60 * 1000) {
+      return JSON.parse(stored._planCache);
+    }
+  } catch (_) {
+    // ignore cache parse errors
+  }
+  return { plan: 'free', planExpiresAt: null };
+}
+
+async function getBackgroundFirebaseAuth() {
+  const stored = await chrome.storage.local.get([
+    'firebase_uid',
+    'firebase_idToken',
+    'firebase_expiresAt',
+    'firebase_refreshToken'
+  ]);
+  return {
+    uid: stored.firebase_uid || null,
+    idToken: stored.firebase_idToken || null,
+    expiresAt: stored.firebase_expiresAt || 0,
+    refreshToken: stored.firebase_refreshToken || null
+  };
+}
+
+async function getBackgroundUserPlan() {
+  try {
+    const auth = await getBackgroundFirebaseAuth();
+    if (!auth.uid || !auth.idToken || auth.expiresAt <= Date.now() + 60000) {
+      return getCachedBackgroundPlan();
+    }
+
+    if (!FirebaseConfig?.projectId || !FirebaseConfig?.apiKey) {
+      return getCachedBackgroundPlan();
+    }
+
+    const url = `https://firestore.googleapis.com/v1/projects/${FirebaseConfig.projectId}/databases/(default)/documents/users/${auth.uid}?key=${FirebaseConfig.apiKey}`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${auth.idToken}`
+      }
+    });
+
+    if (!res.ok) {
+      return getCachedBackgroundPlan();
+    }
+
+    const doc = await res.json();
+    const fields = doc.fields || {};
+    const plan = fields.plan?.stringValue || 'free';
+    const planExpiresAt = fields.planExpiresAt?.timestampValue || null;
+    const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
+    const effectivePlan = (plan === 'pro' && !isExpired) ? 'pro' : 'free';
+
+    await chrome.storage.local.set({
+      _planCache: JSON.stringify({ plan: effectivePlan, planExpiresAt }),
+      _planCacheAt: Date.now()
+    });
+
+    return { plan: effectivePlan, planExpiresAt };
+  } catch (_) {
+    return getCachedBackgroundPlan();
+  }
+}
+
+async function getOfficialUsageStatus() {
+  const planInfo = await getBackgroundUserPlan();
+  if (planInfo?.plan === 'pro') {
+    return {
+      plan: 'pro',
+      limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
+      used: 0,
+      remaining: Infinity
+    };
+  }
+
+  const stored = await chrome.storage.local.get(AGENT_ENGINE_USAGE_STORAGE_KEY);
+  const usage = stored?.[AGENT_ENGINE_USAGE_STORAGE_KEY] || {};
+  const today = getOfficialUsageDateKey();
+  const used = usage.date === today ? Math.max(0, Number(usage.count) || 0) : 0;
+
+  return {
+    plan: 'free',
+    limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
+    used,
+    remaining: Math.max(0, OFFICIAL_AGENT_DAILY_FREE_LIMIT - used)
+  };
+}
+
+async function consumeOfficialUsageQuota() {
+  const status = await getOfficialUsageStatus();
+  if (status.plan === 'pro') {
+    return status;
+  }
+
+  if (status.used >= status.limit) {
+    throw new Error(t('agentEngineOfficialQuotaExceeded', 'Official API free quota reached for today. Upgrade to PRO or switch to custom API.'));
+  }
+
+  const nextStatus = {
+    ...status,
+    used: status.used + 1,
+    remaining: Math.max(0, status.limit - status.used - 1)
+  };
+  await chrome.storage.local.set({
+    [AGENT_ENGINE_USAGE_STORAGE_KEY]: {
+      date: getOfficialUsageDateKey(),
+      count: nextStatus.used
+    }
+  });
+  return nextStatus;
+}
+
 async function getAgentCatalogWithCustomSettings() {
   const [
     { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings },
     { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
-    { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }
+    { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents },
+    { [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds }
   ] = await Promise.all([
     chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY),
     chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
-    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY)
   ]);
 
   const customAgents = Array.isArray(localCustomAgents) && localCustomAgents.length > 0
     ? localCustomAgents
     : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []);
+  const hiddenSet = new Set(
+    typeof AgentCatalog.normalizeAgentHiddenIds === 'function'
+      ? AgentCatalog.normalizeAgentHiddenIds(hiddenAgentIds)
+      : (Array.isArray(hiddenAgentIds) ? hiddenAgentIds.filter(Boolean) : [])
+  );
   if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
-    return AgentCatalog.buildCatalogWithCustomSettings(storedSettings, customAgents);
+    const catalog = AgentCatalog.buildCatalogWithCustomSettings(storedSettings, customAgents);
+    return {
+      ...catalog,
+      agents: Array.isArray(catalog?.agents)
+        ? catalog.agents.filter((agent) => agent && !hiddenSet.has(agent.id))
+        : []
+    };
   }
 
-  return typeof AgentCatalog.getCatalog === 'function'
+  const fallbackCatalog = typeof AgentCatalog.getCatalog === 'function'
     ? AgentCatalog.getCatalog()
     : { categories: [], agents: [] };
+  return {
+    ...fallbackCatalog,
+    agents: Array.isArray(fallbackCatalog?.agents)
+      ? fallbackCatalog.agents.filter((agent) => agent && !hiddenSet.has(agent.id))
+      : []
+  };
 }
 
 async function getAgentByIdWithCustomSettings(agentId) {
@@ -348,6 +512,9 @@ async function executeAgentJob(job) {
   }
   if (!config.apiKey || !config.baseUrl || !config.model) {
     throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
+  }
+  if ((config.selectedSource || 'official') === 'official') {
+    await consumeOfficialUsageQuota();
   }
 
   const abortController = new AbortController();
@@ -955,62 +1122,53 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
-// 在扩展启动时检查规则
-chrome.declarativeNetRequest.getSessionRules().then(rules => {
-  console.log('当前生效的规则:', rules);
-});
+async function syncCompatibilitySessionRules() {
+  if (!chrome?.declarativeNetRequest?.getSessionRules || !chrome?.declarativeNetRequest?.updateSessionRules) {
+    console.warn('declarativeNetRequest session rules are unavailable in this browser');
+    return;
+  }
 
+  try {
+    const rules = await chrome.declarativeNetRequest.getSessionRules();
+    console.log('当前生效的规则:', rules);
+  } catch (error) {
+    console.warn('读取 session rules 失败:', error);
+  }
 
-// 如果规则为空，尝试动态添加规则
-chrome.declarativeNetRequest.updateSessionRules({
-  removeRuleIds: [999], // 先清除可能存在的规则 999
-  addRules: [{
-    "id": 999,
-    "priority": 1,
-    "action": {
-      "type": "modifyHeaders",
-      "responseHeaders": [
-        {
-          "header": "Sec-Fetch-Dest",
-          "operation": "set",
-          "value": "document"
+  try {
+    await chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: [999],
+      addRules: [{
+        id: 999,
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          responseHeaders: [
+            {
+              header: 'content-security-policy',
+              operation: 'remove'
+            },
+            {
+              header: 'x-frame-options',
+              operation: 'remove'
+            }
+          ]
         },
-        {
-          "header": "Sec-Fetch-Site",
-          "operation": "set",
-          "value": "same-origin"
-        },
-        {
-          "header": "Sec-Fetch-Mode",
-          "operation": "set",
-          "value": "navigate"
-        },
-        {
-          "header": "Sec-Fetch-User",
-          "operation": "set",
-          "value": "?1"
-        },
-        {
-          "header": "content-security-policy",
-          "operation": "remove"
-        },
-        {
-          "header": "x-frame-options",
-          "operation": "remove"
+        condition: {
+          urlFilter: '*://*/*',
+          resourceTypes: ['main_frame', 'sub_frame']
         }
-      ]
-    },
-    "condition": {
-      "urlFilter": "*://*/*",
-      "resourceTypes": ["main_frame", "sub_frame"]
-    }
-  }]
-}).then(() => {
-  // 再次检查规则
-  return chrome.declarativeNetRequest.getSessionRules();
-}).then(rules => {
-  console.log('更新后的规则:', rules);
-});
+      }]
+    });
+
+    const updatedRules = await chrome.declarativeNetRequest.getSessionRules();
+    console.log('更新后的规则:', updatedRules);
+  } catch (error) {
+    console.warn('更新 session rules 失败，继续使用静态规则:', error);
+  }
+}
+
+syncCompatibilitySessionRules();
 
 
 
@@ -1148,6 +1306,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({
         success: true,
         result: {
+          selectedSource: config.selectedSource || 'official',
           baseUrl: config.baseUrl,
           model: config.model,
           concurrency: config.concurrency,
@@ -1169,8 +1328,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   else if (message.action === 'cancelAgentChat') {
-    cancelAgentJob(message.panelId, message.reason || 'cancelled');
-    sendResponse({ success: true });
+    try {
+      cancelAgentJob(String(message.panelId || '').trim(), 'cancelled');
+      sendResponse({ success: true });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
   }
   else if (message.action === 'webdavImport') {
     // 从 options 页面委托执行的 WebDAV 拉取，在 service worker 中 fetch 避免 CORS/跨域限制
@@ -1185,6 +1349,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(() => sendResponse({ success: true }))
       .catch(e => sendResponse({ success: false, error: e.message }));
     return true; // 保持消息通道开放
+  }
+  else if (message.action === 'googleDriveConnect') {
+    googleDriveConnect()
+      .then((result) => sendResponse({ success: true, result }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  else if (message.action === 'googleDriveDisconnect') {
+    googleDriveDisconnect()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  else if (message.action === 'googleDriveGetStatus') {
+    getGoogleDriveStatus()
+      .then((result) => sendResponse({ success: true, result }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  else if (message.action === 'googleDriveImport') {
+    googleDriveDownload()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+  else if (message.action === 'googleDriveAutoDownload') {
+    googleDriveDownload({ silent: true })
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
   }
   else if (message.type === 'TOGGLE_SIDE_PANEL') {
     // 处理侧边栏切换消息
@@ -1877,9 +2071,403 @@ const WEBDAV_SYNC_FILENAME = 'multiAI-settings.json';
 const WEBDAV_SYNC_KEYS = [
   'buttonConfig', 'sites', 'customSites',
   'siteSettings', 'disabledSites', 'promptTemplates', 'analysisPromptTemplates',
-  'favoritePrompts', 'favoriteSites', AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
+  'favoritePrompts', 'favoriteSites', AGENT_ENGINE_STORAGE_KEY, AGENT_ENGINE_SETTINGS_STORAGE_KEY, AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
 ];
-const WEBDAV_LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders'];
+const WEBDAV_LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders', AGENT_ENGINE_SECRET_STORAGE_KEY, CUSTOM_AGENTS_STORAGE_KEY, AGENT_HIDDEN_IDS_STORAGE_KEY];
+
+function getGoogleDriveClientId() {
+  const firebaseValue = String(globalThis.FirebaseConfig?.googleClientId || '').trim();
+  if (firebaseValue) {
+    return firebaseValue;
+  }
+
+  const manifestValue = String(
+    chrome?.runtime?.getManifest?.()?.oauth2?.client_id || ''
+  ).trim();
+  return manifestValue || '';
+}
+
+async function getGoogleDriveConfig() {
+  const { [DRIVE_SYNC_CONFIG_KEY]: cfg = {} } = await chrome.storage.local.get(DRIVE_SYNC_CONFIG_KEY);
+  return cfg;
+}
+
+async function setGoogleDriveConfig(patch = {}) {
+  const current = await getGoogleDriveConfig();
+  const next = { ...current, ...patch };
+  await chrome.storage.local.set({ [DRIVE_SYNC_CONFIG_KEY]: next });
+  return next;
+}
+
+async function clearGoogleDriveConfig() {
+  await chrome.storage.local.remove(DRIVE_SYNC_CONFIG_KEY);
+}
+
+function launchWebAuthFlowAsync(url) {
+  return new Promise((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow({ url, interactive: true }, (redirectedTo) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message || 'Google authorization failed'));
+        return;
+      }
+      resolve(redirectedTo || '');
+    });
+  });
+}
+
+function parseGoogleDriveOAuthCallback(callbackUrl, redirectUri) {
+  if (!callbackUrl.startsWith(redirectUri)) {
+    throw new Error(
+      t(
+        'googleDriveSyncInvalidRedirect',
+        'Google authorization did not return a valid redirect'
+      )
+    );
+  }
+  const url = new URL(callbackUrl);
+  const hash = url.hash ? url.hash.slice(1) : '';
+  const hashParams = new URLSearchParams(hash);
+  const queryParams = url.search ? new URLSearchParams(url.search.slice(1)) : new URLSearchParams();
+  const params = hashParams.toString() ? hashParams : queryParams;
+  const oauthError = params.get('error');
+  const oauthErrorDescription = params.get('error_description');
+  const oauthErrorSubtype = params.get('error_subtype');
+
+  if (oauthError) {
+    const detailParts = [oauthError, oauthErrorDescription, oauthErrorSubtype].filter(Boolean);
+    throw new Error(
+      t('googleDriveSyncAuthorizationFailed', 'Google authorization failed')
+      + (detailParts.length ? `: ${detailParts.join(' | ')}` : '')
+    );
+  }
+
+  const accessToken = params.get('access_token');
+  const expiresIn = Math.max(300, Number(params.get('expires_in')) || 3600);
+  if (!accessToken) {
+    throw new Error(
+      t(
+        'googleDriveSyncMissingAccessToken',
+        'No Google Drive access token was returned'
+      )
+    );
+  }
+  return { accessToken, expiresIn };
+}
+
+async function fetchGoogleProfile(accessToken) {
+  const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load Google account: HTTP ${res.status}`);
+  }
+  const profile = await res.json();
+  return {
+    email: String(profile.email || '').trim(),
+    name: String(profile.name || '').trim(),
+    picture: String(profile.picture || '').trim()
+  };
+}
+
+async function googleDriveConnect() {
+  const clientId = getGoogleDriveClientId();
+  if (!clientId) {
+    throw new Error(
+      t(
+        'googleDriveSyncMissingClientId',
+        'Missing Google client ID for Drive sync'
+      )
+    );
+  }
+
+  if (!chrome.identity?.launchWebAuthFlow) {
+    throw new Error(
+      t(
+        'googleDriveSyncBrowserUnsupported',
+        'This browser does not support Google authorization'
+      )
+    );
+  }
+
+  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  authUrl.searchParams.set('client_id', clientId);
+  authUrl.searchParams.set('redirect_uri', redirectUri);
+  authUrl.searchParams.set('response_type', 'token');
+  authUrl.searchParams.set('scope', `${DRIVE_SYNC_SCOPE} openid email profile`);
+  authUrl.searchParams.set('prompt', 'consent');
+
+  const callbackUrl = await launchWebAuthFlowAsync(authUrl.toString());
+  const { accessToken, expiresIn } = parseGoogleDriveOAuthCallback(callbackUrl, redirectUri);
+
+  const profile = await fetchGoogleProfile(accessToken);
+  const config = await setGoogleDriveConfig({
+    enabled: true,
+    accessToken,
+    expiresAt: Date.now() + expiresIn * 1000,
+    email: profile.email || '',
+    accountName: profile.name || profile.email || '',
+    avatarUrl: profile.picture || '',
+    lastConnectedAt: new Date().toISOString()
+  });
+
+  try {
+    await googleDriveUpload({ interactive: false });
+  } catch (error) {
+    console.warn('[Google Drive Sync] initial upload failed:', error.message);
+  }
+
+  return {
+    enabled: true,
+    email: config.email || '',
+    accountName: config.accountName || '',
+    expiresAt: config.expiresAt || 0
+  };
+}
+
+async function googleDriveDisconnect() {
+  const cfg = await getGoogleDriveConfig();
+  const token = String(cfg.accessToken || '').trim();
+  if (token) {
+    try {
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+    } catch (error) {
+      console.warn('[Google Drive Sync] revoke token failed:', error.message);
+    }
+  }
+  await clearGoogleDriveConfig();
+}
+
+async function getGoogleDriveStatus() {
+  const cfg = await getGoogleDriveConfig();
+  return {
+    enabled: cfg.enabled === true,
+    email: String(cfg.email || '').trim(),
+    accountName: String(cfg.accountName || '').trim(),
+    expiresAt: Number(cfg.expiresAt) || 0,
+    lastSyncedAt: String(cfg.lastSyncedAt || '').trim()
+  };
+}
+
+async function getGoogleDriveAccessToken({ interactive = false } = {}) {
+  const cfg = await getGoogleDriveConfig();
+  const token = String(cfg.accessToken || '').trim();
+  const expiresAt = Number(cfg.expiresAt) || 0;
+
+  if (token && expiresAt > Date.now() + 60 * 1000) {
+    return token;
+  }
+
+  const clientId = getGoogleDriveClientId();
+  if (token && clientId && chrome.identity?.launchWebAuthFlow) {
+    try {
+      const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
+      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      authUrl.searchParams.set('client_id', clientId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('scope', `${DRIVE_SYNC_SCOPE} openid email profile`);
+      authUrl.searchParams.set('prompt', 'none');
+      const callbackUrl = await new Promise((resolve, reject) => {
+        chrome.identity.launchWebAuthFlow({ url: authUrl.toString(), interactive: false }, (redirectedTo) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message || 'Silent Google authorization failed'));
+            return;
+          }
+          resolve(redirectedTo || '');
+        });
+      });
+      const renewed = parseGoogleDriveOAuthCallback(callbackUrl, redirectUri);
+      await setGoogleDriveConfig({
+        accessToken: renewed.accessToken,
+        expiresAt: Date.now() + renewed.expiresIn * 1000,
+        enabled: true
+      });
+      return renewed.accessToken;
+    } catch (error) {
+      console.warn('[Google Drive Sync] silent token refresh failed:', error.message);
+    }
+  }
+
+  if (!interactive) {
+    throw new Error('Google Drive sync is not connected');
+  }
+
+  const connected = await googleDriveConnect();
+  const nextCfg = await getGoogleDriveConfig();
+  const nextToken = String(nextCfg.accessToken || '').trim();
+  if (!nextToken) {
+    throw new Error('Google Drive authorization failed');
+  }
+  return nextToken;
+}
+
+async function buildUnifiedSyncPayload() {
+  const syncData = await chrome.storage.sync.get(WEBDAV_SYNC_KEYS);
+  const localData = await chrome.storage.local.get(WEBDAV_LOCAL_SYNC_KEYS);
+  return {
+    ...syncData,
+    pkHistory: Array.isArray(localData.pkHistory) ? localData.pkHistory.slice(0, 500) : [],
+    favoriteFolders: Array.isArray(localData.favoriteFolders) ? localData.favoriteFolders : [],
+    [AGENT_ENGINE_SECRET_STORAGE_KEY]: localData[AGENT_ENGINE_SECRET_STORAGE_KEY] || {},
+    [CUSTOM_AGENTS_STORAGE_KEY]: Array.isArray(localData[CUSTOM_AGENTS_STORAGE_KEY])
+      ? localData[CUSTOM_AGENTS_STORAGE_KEY]
+      : [],
+    [AGENT_HIDDEN_IDS_STORAGE_KEY]: Array.isArray(localData[AGENT_HIDDEN_IDS_STORAGE_KEY])
+      ? localData[AGENT_HIDDEN_IDS_STORAGE_KEY]
+      : [],
+    _syncVersion: 1,
+    _exportedAt: new Date().toISOString(),
+  };
+}
+
+async function applyUnifiedSyncPayload(data = {}) {
+  const {
+    _syncVersion,
+    _exportedAt,
+    pkHistory,
+    favoriteFolders,
+    [AGENT_ENGINE_SECRET_STORAGE_KEY]: agentEngineSecret,
+    [CUSTOM_AGENTS_STORAGE_KEY]: customAgents,
+    [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds,
+    ...rest
+  } = data || {};
+
+  const filteredSync = {};
+  for (const key of WEBDAV_SYNC_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(rest, key)) {
+      filteredSync[key] = rest[key];
+    }
+  }
+  if (Object.keys(filteredSync).length > 0) {
+    await chrome.storage.sync.set(filteredSync);
+  }
+
+  const localPatch = {};
+  if (Array.isArray(pkHistory)) {
+    localPatch.pkHistory = pkHistory;
+  }
+  if (Array.isArray(favoriteFolders)) {
+    localPatch.favoriteFolders = favoriteFolders;
+  }
+  if (agentEngineSecret && typeof agentEngineSecret === 'object') {
+    localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY] = agentEngineSecret;
+  }
+  if (Array.isArray(customAgents)) {
+    localPatch[CUSTOM_AGENTS_STORAGE_KEY] = customAgents;
+  }
+  if (Array.isArray(hiddenAgentIds)) {
+    localPatch[AGENT_HIDDEN_IDS_STORAGE_KEY] = hiddenAgentIds;
+  }
+  if (Object.keys(localPatch).length > 0) {
+    await chrome.storage.local.set(localPatch);
+  }
+}
+
+async function googleDriveRequest(path, options = {}, { interactive = false } = {}) {
+  const token = await getGoogleDriveAccessToken({ interactive });
+  const res = await fetch(`https://www.googleapis.com${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {})
+    }
+  });
+  return res;
+}
+
+async function findGoogleDriveSyncFileId({ interactive = false } = {}) {
+  const query = encodeURIComponent(`name='${DRIVE_SYNC_FILENAME}' and 'appDataFolder' in parents and trashed=false`);
+  const res = await googleDriveRequest(
+    `/drive/v3/files?q=${query}&spaces=appDataFolder&fields=files(id%2Cname%2CmodifiedTime)&pageSize=1`,
+    {},
+    { interactive }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to query Drive sync file: HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  return json.files?.[0] || null;
+}
+
+async function googleDriveUpload({ interactive = false } = {}) {
+  const cfg = await getGoogleDriveConfig();
+  if (!cfg.enabled) {
+    return;
+  }
+  const payload = await buildUnifiedSyncPayload();
+  const existingFile = await findGoogleDriveSyncFileId({ interactive });
+  const boundary = `----multi-ai-sync-${Date.now()}`;
+  const metadata = {
+    name: DRIVE_SYNC_FILENAME,
+    parents: ['appDataFolder']
+  };
+  const multipartBody = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(payload, null, 2),
+    `--${boundary}--`
+  ].join('\r\n');
+
+  const method = existingFile?.id ? 'PATCH' : 'POST';
+  const path = existingFile?.id
+    ? `/upload/drive/v3/files/${encodeURIComponent(existingFile.id)}?uploadType=multipart`
+    : '/upload/drive/v3/files?uploadType=multipart';
+  const res = await googleDriveRequest(path, {
+    method,
+    headers: {
+      'Content-Type': `multipart/related; boundary=${boundary}`
+    },
+    body: multipartBody
+  }, { interactive });
+
+  if (!res.ok) {
+    throw new Error(`Failed to upload Drive sync data: HTTP ${res.status}`);
+  }
+
+  await setGoogleDriveConfig({
+    enabled: true,
+    lastSyncedAt: new Date().toISOString()
+  });
+}
+
+async function googleDriveDownload(options = {}) {
+  const { silent = false, interactive = false } = options;
+  const cfg = await getGoogleDriveConfig();
+  if (!cfg.enabled) {
+    if (silent) return;
+    throw new Error('Google Drive sync is not connected');
+  }
+
+  const existingFile = await findGoogleDriveSyncFileId({ interactive });
+  if (!existingFile?.id) {
+    if (silent) return;
+    throw new Error('No Google Drive backup was found');
+  }
+
+  const res = await googleDriveRequest(
+    `/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`,
+    {},
+    { interactive }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to download Drive sync data: HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  await applyUnifiedSyncPayload(data);
+  await setGoogleDriveConfig({
+    enabled: true,
+    lastSyncedAt: new Date().toISOString()
+  });
+}
 
 async function getWebDAVConfig() {
   const { [WEBDAV_SYNC_KEY]: cfg = {} } = await chrome.storage.local.get(WEBDAV_SYNC_KEY);
@@ -1906,17 +2494,7 @@ async function webdavUpload() {
   const cfg = await getWebDAVConfig();
   if (!cfg.enabled || !cfg.url) return;
   try {
-    const syncData  = await chrome.storage.sync.get(WEBDAV_SYNC_KEYS);
-    const localData = await chrome.storage.local.get(['pkHistory', 'favoriteFolders']);
-    const pkHistory = (localData.pkHistory || []).slice(0, 500);
-    const favoriteFolders = localData.favoriteFolders || [];
-    const data = {
-      ...syncData,
-      pkHistory,
-      favoriteFolders,
-      _syncVersion: 1,
-      _exportedAt: new Date().toISOString(),
-    };
+    const data = await buildUnifiedSyncPayload();
     await fetch(getWebDAVFileURL(cfg), {
       method: 'PUT',
       headers: buildWebDAVHeaders(cfg),
@@ -1941,28 +2519,7 @@ async function webdavDownload() {
     throw new Error(`HTTP ${res.status}`);
   }
   const data = await res.json();
-  const { _syncVersion, _exportedAt, pkHistory, favoriteFolders, ...rest } = data;
-
-  // 恢复 chrome.storage.sync 的设置
-  const filteredSync = {};
-  for (const key of WEBDAV_SYNC_KEYS) {
-    if (key in rest) filteredSync[key] = rest[key];
-  }
-  if (Object.keys(filteredSync).length > 0) {
-    await chrome.storage.sync.set(filteredSync);
-  }
-
-  // 恢复 pkHistory 到 chrome.storage.local
-  const localPatch = {};
-  if (Array.isArray(pkHistory) && pkHistory.length > 0) {
-    localPatch.pkHistory = pkHistory;
-  }
-  if (Array.isArray(favoriteFolders)) {
-    localPatch.favoriteFolders = favoriteFolders;
-  }
-  if (Object.keys(localPatch).length > 0) {
-    await chrome.storage.local.set(localPatch);
-  }
+  await applyUnifiedSyncPayload(data);
 
   console.log('[WebDAV Sync] 下载并恢复成功');
 }
@@ -1978,6 +2535,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   clearTimeout(syncDebounceTimer);
   syncDebounceTimer = setTimeout(() => {
     webdavUpload();
+    googleDriveUpload().catch((error) => {
+      console.warn('[Google Drive Sync] 自动上传失败:', error.message);
+    });
   }, 500);
 });
 

@@ -51,6 +51,8 @@
   const DEFAULT_SYSTEM_PROMPT = normalizeMultilineString(AGENT_ENGINE_DEFAULTS.systemPrompt);
   const LEGACY_AUTO_MIGRATED_MODEL = 'glm-5.1';
   const LEGACY_AUTO_MIGRATED_BASE_URL = 'https://ark.cn-beijing.volces.com/api/coding/v3';
+  const AGENT_ENGINE_SOURCE_OFFICIAL = 'official';
+  const AGENT_ENGINE_SOURCE_CUSTOM = 'custom';
 
   function migrateLegacyApiConfig(config = {}) {
     return config && typeof config === 'object'
@@ -63,13 +65,19 @@
     return personaPrompt;
   }
 
-  function normalizeApiConfig(config = {}) {
+  function normalizeApiConfig(config = {}, options = {}) {
     const migratedConfig = migrateLegacyApiConfig(config);
-    const apiKey = normalizeString(migratedConfig.apiKey) || DEFAULT_API_KEY;
-    let baseUrl = normalizeString(migratedConfig.baseUrl).replace(/\/+$/, '') || DEFAULT_BASE_URL;
-    let model = normalizeString(migratedConfig.model) || DEFAULT_MODEL;
-    const concurrency = Math.max(1, Number(migratedConfig.concurrency) || DEFAULT_CONCURRENCY);
-    const systemPrompt = normalizeMultilineString(migratedConfig.systemPrompt) || DEFAULT_SYSTEM_PROMPT;
+    const useBundledDefaults = options?.useBundledDefaults !== false;
+    const defaultApiKey = useBundledDefaults ? DEFAULT_API_KEY : '';
+    const defaultBaseUrl = useBundledDefaults ? DEFAULT_BASE_URL : '';
+    const defaultModel = useBundledDefaults ? DEFAULT_MODEL : '';
+    const defaultConcurrency = useBundledDefaults ? DEFAULT_CONCURRENCY : 2;
+    const defaultSystemPrompt = useBundledDefaults ? DEFAULT_SYSTEM_PROMPT : '';
+    const apiKey = normalizeString(migratedConfig.apiKey) || defaultApiKey;
+    let baseUrl = normalizeString(migratedConfig.baseUrl).replace(/\/+$/, '') || defaultBaseUrl;
+    let model = normalizeString(migratedConfig.model) || defaultModel;
+    const concurrency = Math.max(1, Number(migratedConfig.concurrency) || defaultConcurrency);
+    const systemPrompt = normalizeMultilineString(migratedConfig.systemPrompt) || defaultSystemPrompt;
 
     // Older builds forcibly rewrote the pptoken defaults to Ark defaults.
     // If the saved key is still an `sk-*` style key, restore the expected
@@ -89,6 +97,88 @@
       model,
       concurrency,
       systemPrompt
+    };
+  }
+
+  function isApiConfigConfigured(config = {}) {
+    return Boolean(
+      normalizeString(config.apiKey) &&
+      normalizeString(config.baseUrl) &&
+      normalizeString(config.model) &&
+      Math.max(1, Number(config.concurrency) || 0) >= 1
+    );
+  }
+
+  function areApiConfigsEquivalent(leftConfig = {}, rightConfig = {}) {
+    const left = normalizeApiConfig(leftConfig, { useBundledDefaults: false });
+    const right = normalizeApiConfig(rightConfig, { useBundledDefaults: false });
+
+    return (
+      left.apiKey === right.apiKey &&
+      left.baseUrl === right.baseUrl &&
+      left.model === right.model &&
+      left.concurrency === right.concurrency &&
+      left.systemPrompt === right.systemPrompt
+    );
+  }
+
+  function getEmptyCustomApiConfig() {
+    return normalizeApiConfig({}, { useBundledDefaults: false });
+  }
+
+  function resolveAgentEngineSettings(syncConfig = {}, localSecret = {}) {
+    const normalizedSyncConfig = syncConfig && typeof syncConfig === 'object'
+      ? syncConfig
+      : {};
+    const normalizedLocalSecret = localSecret && typeof localSecret === 'object'
+      ? localSecret
+      : {};
+    const officialConfig = normalizeApiConfig({}, { useBundledDefaults: true });
+    const hasStructuredSettings = (
+      Object.prototype.hasOwnProperty.call(normalizedSyncConfig, 'selectedSource') ||
+      Object.prototype.hasOwnProperty.call(normalizedSyncConfig, 'customConfig')
+    );
+
+    if (hasStructuredSettings) {
+      const customRawConfig = normalizedSyncConfig.customConfig && typeof normalizedSyncConfig.customConfig === 'object'
+        ? normalizedSyncConfig.customConfig
+        : {};
+      const customConfig = normalizeApiConfig({
+        ...customRawConfig,
+        apiKey: normalizedLocalSecret.customApiKey || normalizedLocalSecret.apiKey || ''
+      }, { useBundledDefaults: false });
+      const selectedSource = normalizedSyncConfig.selectedSource === AGENT_ENGINE_SOURCE_CUSTOM
+        ? AGENT_ENGINE_SOURCE_CUSTOM
+        : AGENT_ENGINE_SOURCE_OFFICIAL;
+
+      return {
+        selectedSource,
+        officialConfig,
+        customConfig,
+        effectiveConfig: selectedSource === AGENT_ENGINE_SOURCE_CUSTOM ? customConfig : officialConfig
+      };
+    }
+
+    const legacyCustomConfig = normalizeApiConfig({
+      ...normalizedSyncConfig,
+      apiKey: normalizedLocalSecret.apiKey || ''
+    }, { useBundledDefaults: false });
+    const shouldUseLegacyCustomConfig = (
+      isApiConfigConfigured(legacyCustomConfig) &&
+      !areApiConfigsEquivalent(legacyCustomConfig, officialConfig)
+    );
+    const selectedSource = shouldUseLegacyCustomConfig
+      ? AGENT_ENGINE_SOURCE_CUSTOM
+      : AGENT_ENGINE_SOURCE_OFFICIAL;
+    const customConfig = shouldUseLegacyCustomConfig
+      ? legacyCustomConfig
+      : getEmptyCustomApiConfig();
+
+    return {
+      selectedSource,
+      officialConfig,
+      customConfig,
+      effectiveConfig: selectedSource === AGENT_ENGINE_SOURCE_CUSTOM ? customConfig : officialConfig
     };
   }
 
@@ -120,9 +210,15 @@
     DEFAULT_API_KEY,
     DEFAULT_MODEL,
     DEFAULT_CONCURRENCY,
+    AGENT_ENGINE_SOURCE_OFFICIAL,
+    AGENT_ENGINE_SOURCE_CUSTOM,
+    areApiConfigsEquivalent,
     buildChatMessages,
     buildSystemPrompt,
+    getEmptyCustomApiConfig,
+    isApiConfigConfigured,
     migrateLegacyApiConfig,
-    normalizeApiConfig
+    normalizeApiConfig,
+    resolveAgentEngineSettings
   };
 });

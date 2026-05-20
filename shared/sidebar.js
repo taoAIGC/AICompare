@@ -251,110 +251,23 @@ function bindWechatLink() {
 async function updateSyncBar() {
     const syncBar = document.getElementById('syncBar');
     const syncBarText = document.getElementById('syncBarText');
-    const syncBarIcon = syncBar?.querySelector('.sync-bar-icon');
     if (!syncBar || !syncBarText) return;
-    try {
-        const { firebase_uid, firebase_email, firebase_refreshToken } = await chrome.storage.local.get([
-            'firebase_uid', 'firebase_email', 'firebase_refreshToken'
-        ]);
-        const loggedIn = !!(firebase_uid && firebase_refreshToken);
-        if (loggedIn) {
-            syncBar.classList.add('sync-bar--logged-in');
-            syncBarText.textContent = firebase_email || firebase_uid || '';
-            if (syncBarIcon) syncBarIcon.textContent = '\u{1F464}';
-        } else {
-            syncBar.classList.remove('sync-bar--logged-in');
-            syncBarText.textContent = chrome.i18n.getMessage('enableSync') ||
-                (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
-            if (syncBarIcon) syncBarIcon.textContent = '';
-        }
-    } catch (e) {
-        syncBar.classList.remove('sync-bar--logged-in');
-        syncBarText.textContent = chrome.i18n.getMessage('enableSync') ||
-            (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '开启同步' : 'Enable Sync');
-        if (syncBarIcon) syncBarIcon.textContent = '';
-    }
+    syncBar.classList.remove('sync-bar--logged-in');
+    syncBarText.textContent = chrome.i18n.getMessage('logIn') ||
+        (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '登录' : 'log In');
 }
 
 function bindSyncBar() {
     const syncBar = document.getElementById('syncBar');
-    const dropdown = document.getElementById('syncAccountDropdown');
-    const logoutBtn = document.getElementById('syncLogoutBtn');
     if (!syncBar) return;
-
-    function closeAccountDropdown() {
-        if (dropdown) {
-            dropdown.classList.remove('is-open');
-            dropdown.setAttribute('aria-hidden', 'true');
-        }
-    }
-
-    function openAccountDropdown() {
-        if (dropdown) {
-            dropdown.classList.add('is-open');
-            dropdown.setAttribute('aria-hidden', 'false');
-        }
-    }
 
     syncBar.addEventListener('click', async (e) => {
         e.stopPropagation();
-        safeTrackEvent('sidebar_sync_bar_click');
-        const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
-        if (loggedIn) {
-            const isOpen = dropdown && dropdown.classList.contains('is-open');
-            if (isOpen) {
-                closeAccountDropdown();
-            } else {
-                openAccountDropdown();
-            }
-            return;
-        }
-        closeAccountDropdown();
-        if (!window.firebaseSignInWithGoogle || !window.firebaseSyncMergeAndUpload) {
-            return;
-        }
-        const textEl = document.getElementById('syncBarText');
+        safeTrackEvent('sidebar_membership_click');
         try {
-            if (textEl) {
-                textEl.textContent = chrome.i18n.getMessage('syncOpeningGoogleSignIn') || 'Opening Google sign-in…';
-            }
-            await window.firebaseSignInWithGoogle();
-            if (textEl) {
-                textEl.textContent = chrome.i18n.getMessage('syncSyncingFromCloud') || 'Syncing from cloud…';
-            }
-            await window.firebaseSyncMergeAndUpload();
-            await updateSyncBar();
-            if (typeof loadSidebarFavorites === 'function') await loadSidebarFavorites();
-        } catch (e) {
-            if (textEl) {
-                textEl.textContent = (e && e.message) || (chrome.i18n.getMessage('syncDownloadFailed') || '同步失败，请重试');
-            }
-            console.warn('Sync sign-in or merge failed', e);
-        }
-    });
-
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            closeAccountDropdown();
-            if (window.firebaseSignOut) {
-                try {
-                    await window.firebaseSignOut();
-                    await updateSyncBar();
-                } catch (err) {
-                    console.warn('Logout failed', err);
-                }
-            }
-        });
-    }
-
-    document.addEventListener('click', (e) => {
-        if (dropdown && dropdown.classList.contains('is-open')) {
-            const wrap = syncBar?.closest('.sync-bar-wrap');
-            if (wrap && !wrap.contains(e.target)) {
-                closeAccountDropdown();
-            }
+            window.location.href = chrome.runtime.getURL('options/options.html#membership');
+        } catch (error) {
+            console.warn('Open membership page failed', error);
         }
     });
 }
@@ -529,7 +442,6 @@ async function openSidebarFavoriteItem(item) {
 function bindSidebarStorageListeners() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'local' && (changes.pkHistory || changes.favoriteFolders)) loadSidebarFavorites();
-        if (areaName === 'local' && (changes.firebase_email || changes.firebase_uid)) updateSyncBar();
     });
     window.addEventListener('focus', () => {
         loadSidebarFavorites();
@@ -566,15 +478,6 @@ async function initSharedSidebar() {
         updateSyncBar(),
         loadSidebarFavorites()
     ]);
-
-    const loggedIn = window.firebaseIsLoggedIn ? await window.firebaseIsLoggedIn() : false;
-    if (loggedIn && typeof window.firebaseSyncMergeAndUpload === 'function') {
-        const { firebase_lastSyncAt } = await chrome.storage.local.get('firebase_lastSyncAt');
-        const throttleMs = 2 * 60 * 1000;
-        if (!firebase_lastSyncAt || Date.now() - firebase_lastSyncAt > throttleMs) {
-            window.firebaseSyncMergeAndUpload().then(() => loadSidebarFavorites()).catch(() => {});
-        }
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -132,11 +132,80 @@
   "launchSettingsTitle": {
     "message": "Custom sites"
   },
+  "agentSettingsTitle": {
+    "message": "Skills Settings"
+  },
   "agentEngineTitle": {
-    "message": "Agent settings"
+    "message": "API settings"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "Shortcuts"
+  },
+  "settingsNavSitesTitle": {
+    "message": "Sites"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "Skills"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "Sync"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineDescription": {
+    "message": "Agent mode can use either the official API or your custom API."
   },
   "agentEngineCardTitle": {
-    "message": "API settings"
+    "message": "Custom API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "Official API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "Custom API"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "Official API"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "Default"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "Select the official API card to use the bundled defaults"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "Use your own API"
+  },
+  "agentEngineOfficialFreeHint": {
+    "message": "Free 3 times per day"
+  },
+  "agentEngineUpgradeButton": {
+    "message": "Upgrade to PRO"
+  },
+  "agentEngineManageProButton": {
+    "message": "Manage PRO"
+  },
+  "agentEngineEditButton": {
+    "message": "Edit custom API"
+  },
+  "agentEngineEditButtonEmpty": {
+    "message": "Use your own API"
+  },
+  "agentEngineCustomConfiguredHint": {
+    "message": "Use your own API and your own quota"
+  },
+  "agentEngineOfficialMetaFree": {
+    "message": "Use the built-in API, free 3 times per day."
+  },
+  "agentEngineOfficialMetaPro": {
+    "message": "Current plan: PRO"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "Configure your custom API first"
   },
   "agentEngineApiUrlLabel": {
     "message": "API base URL"
@@ -163,28 +232,28 @@
     "message": "A global limit shared by all agent panels."
   },
   "agentEngineSaveButton": {
-    "message": "Save agent engine"
+    "message": "Save custom API"
   },
   "agentEngineValidationFailed": {
-    "message": "Please fill in all required agent engine fields"
+    "message": "Please fill in all required custom API fields"
   },
   "agentEngineLoadFailed": {
-    "message": "Failed to load agent engine settings"
+    "message": "Failed to load API settings"
   },
   "agentEngineSaveSuccess": {
-    "message": "Agent engine saved"
+    "message": "Custom API saved"
   },
   "agentCustomSettingsTitle": {
-    "message": "Agent custom settings"
+    "message": "Skill custom settings"
   },
   "agentCustomSettingsDescription": {
-    "message": "Override the default name, description, and persona prompt for each agent."
+    "message": "Override the default name, description, and persona prompt for each skill."
   },
   "agentCustomSettingsLoadFailed": {
-    "message": "Failed to load agent settings"
+    "message": "Failed to load skill settings"
   },
   "agentCustomSettingsEmpty": {
-    "message": "No configurable agents yet"
+    "message": "No configurable skills yet"
   },
   "agentCustomOverriddenBadge": {
     "message": "Customized"
@@ -193,10 +262,10 @@
     "message": "Imported"
   },
   "agentCustomDialogTitle": {
-    "message": "Customize agent"
+    "message": "Customize skill"
   },
   "agentCustomNewTitle": {
-    "message": "New agent"
+    "message": "New skill"
   },
   "agentCustomNameLabel": {
     "message": "Display name"
@@ -208,34 +277,40 @@
     "message": "Description"
   },
   "agentCustomDescriptionPlaceholder": {
-    "message": "Describe this agent in one sentence"
+    "message": "Describe this skill in one sentence"
   },
   "agentCustomPersonaPromptLabel": {
     "message": "Persona prompt"
   },
   "agentCustomPersonaPromptPlaceholder": {
-    "message": "Define how this agent should think and respond"
+    "message": "Define how this skill should think and respond"
   },
   "agentCustomPersonaPromptHelp": {
-    "message": "This is used directly as the agent's only system prompt."
+    "message": "This is used directly as the skill's only system prompt."
   },
   "agentCustomResetButton": {
     "message": "Reset to default"
   },
   "agentCustomValidationFailed": {
-    "message": "Please fill in the agent name"
+    "message": "Please fill in the skill name"
   },
   "agentCustomPromptRequired": {
     "message": "Please fill in the persona prompt"
   },
   "agentCustomSaveSuccess": {
-    "message": "Agent settings saved"
+    "message": "Skill settings saved"
   },
   "agentCustomDeleteConfirm": {
-    "message": "Delete this imported agent?"
+    "message": "Delete this imported skill?"
   },
   "agentCustomDeleteSuccess": {
-    "message": "Imported agent deleted"
+    "message": "Imported skill deleted"
+  },
+  "agentBuiltinDeleteConfirm": {
+    "message": "Delete this built-in skill? It will be hidden on this device."
+  },
+  "agentBuiltinDeleteSuccess": {
+    "message": "Built-in skill deleted"
   },
   "agentSkillUrlLabel": {
     "message": "Skill URL"
@@ -250,10 +325,10 @@
     "message": "Paste SKILL.md content directly. If both are provided, the URL content is used first."
   },
   "agentSkillContentHelp": {
-    "message": "The imported skill will be converted into a custom agent that can run inside the extension."
+    "message": "The imported skill will be converted into a custom skill that can run inside the extension."
   },
   "agentSkillImportButton": {
-    "message": "Import Agent"
+    "message": "Import Skill"
   },
   "agentImportButton": {
     "message": "Import from URL"
@@ -262,7 +337,7 @@
     "message": "New"
   },
   "agentImportDialogTitle": {
-    "message": "Import agent from URL"
+    "message": "Import skill from URL"
   },
   "agentSkillImportValidationFailed": {
     "message": "Please provide a Skill URL or Skill content"
@@ -271,22 +346,22 @@
     "message": "The fetched Skill content is empty"
   },
   "agentSkillImportInvalid": {
-    "message": "Failed to parse this Skill into an agent"
+    "message": "Failed to parse this Skill into a skill"
   },
   "agentSkillImportSuccess": {
-    "message": "Skill imported as an agent"
+    "message": "Skill imported successfully"
   },
   "agentSkillImportPartialSuccess": {
-    "message": "Skill imported as a prompt-style agent"
+    "message": "Skill imported as a prompt-style skill"
   },
   "agentSkillImportFailed": {
     "message": "Skill import failed"
   },
   "agentCustomResetSuccess": {
-    "message": "Agent settings reset"
+    "message": "Skill settings reset"
   },
   "agentEngineNotConfigured": {
-    "message": "Agent engine is not configured"
+    "message": "API settings are not configured"
   },
   "launchSettingsDescription": {
     "message": "Set a default opening URL for official sites or add standalone custom sites."
@@ -319,16 +394,16 @@
     "message": "Custom sites"
   },
   "homepageAgentsTitle": {
-    "message": "AI agents"
+    "message": "AI skills"
   },
   "homepageAgentCategoriesTitle": {
     "message": "Categories"
   },
   "homepageAgentCategoryBatchHint": {
-    "message": "Double-click to toggle all agents in this category"
+    "message": "Double-click to toggle all skills in this category"
   },
   "homepageNoPanelsSelected": {
-    "message": "Select at least one site or agent"
+    "message": "Select at least one site or skill"
   },
   "customSitesDescription": {
     "message": "Open a page only. Selected custom sites do not inject text or run automation."
@@ -486,9 +561,9 @@
     "message": "Prompt Favorites",
     "description": "Title for the favorites section"
   },
-  "enableSync": {
-    "message": "Enable Sync",
-    "description": "Sync bar default text, click to go to login"
+  "logIn": {
+    "message": "log In",
+    "description": "Sidebar login CTA text"
   },
   "logout": {
     "message": "Log out",
@@ -822,7 +897,7 @@
     "message": "Save"
   },
   "saveFavoriteSitesTitle": {
-    "message": "Save as default sites and agents"
+    "message": "Save as default sites and skills"
   },
   "favoriteSitesSaved": {
     "message": "Favorite sites saved"
@@ -1353,7 +1428,7 @@
     "message": "Loading membership status…"
   },
   "membershipLoginHint": {
-    "message": "Please sign in with Google (Data Sync) to view your membership status."
+    "message": "Please sign in with Google to view your membership status."
   },
   "membershipExpiresOn": {
     "message": "Renews on: "
@@ -1378,6 +1453,87 @@
   },
   "syncSyncingFromCloud": {
     "message": "Syncing from cloud..."
+  },
+  "googleDriveSyncTitle": {
+    "message": "Google Drive sync"
+  },
+  "googleDriveSyncDescription": {
+    "message": "Sign in with Google once, authorize Drive access, and sync the same backup data through your Google Drive app data space."
+  },
+  "googleDriveSyncBadge": {
+    "message": "Google Drive"
+  },
+  "googleDriveSyncNotConnected": {
+    "message": "Not connected yet"
+  },
+  "googleDriveSyncConnectButton": {
+    "message": "Sign in with Google"
+  },
+  "googleDriveSyncReconnectButton": {
+    "message": "Reconnect Google Drive"
+  },
+  "googleDriveSyncRestoreButton": {
+    "message": "Restore from Drive"
+  },
+  "googleDriveSyncDisconnectButton": {
+    "message": "Disconnect"
+  },
+  "googleDriveSyncConnecting": {
+    "message": "Opening Google authorization..."
+  },
+  "googleDriveSyncConnected": {
+    "message": "Google Drive connected"
+  },
+  "googleDriveSyncConnectFailed": {
+    "message": "Failed to connect Google Drive"
+  },
+  "googleDriveSyncRestoring": {
+    "message": "Restoring data from Google Drive..."
+  },
+  "googleDriveSyncRestoreSuccess": {
+    "message": "Drive backup restored. Refresh the page to use the latest data."
+  },
+  "googleDriveSyncRestoreFailed": {
+    "message": "Failed to restore from Google Drive"
+  },
+  "googleDriveSyncDisconnectConfirm": {
+    "message": "Disconnect Google Drive sync on this device?"
+  },
+  "googleDriveSyncDisconnecting": {
+    "message": "Disconnecting Google Drive..."
+  },
+  "googleDriveSyncDisconnected": {
+    "message": "Google Drive disconnected"
+  },
+  "googleDriveSyncDisconnectFailed": {
+    "message": "Failed to disconnect Google Drive"
+  },
+  "googleDriveSyncStatusLoadFailed": {
+    "message": "Failed to load Drive connection status"
+  },
+  "googleDriveSyncInvalidRedirect": {
+    "message": "Google authorization did not return a valid redirect"
+  },
+  "googleDriveSyncAuthorizationFailed": {
+    "message": "Google authorization failed"
+  },
+  "googleDriveSyncMissingAccessToken": {
+    "message": "No Google Drive access token was returned"
+  },
+  "googleDriveSyncMissingClientId": {
+    "message": "Missing Google client ID for Drive sync"
+  },
+  "googleDriveSyncBrowserUnsupported": {
+    "message": "This browser does not support Google authorization"
+  },
+  "membershipGoogleLoginButton": {
+    "message": "Sign in with Google"
+  },
+  "membershipGoogleLoginUnavailable": {
+    "message": "Google sign-in is unavailable right now."
+  },
+  "membershipGoogleLoginFailed": {
+    "message": "Failed to sign in with Google."
   },
   "clearHistoryButton": {
     "message": "Clear History"
@@ -1464,7 +1620,7 @@
     "message": "Audio"
   },
   "homepageTypeAgents": {
-    "message": "Agents"
+    "message": "Skills"
   },
   "homepageTypeTranslate": {
     "message": "Translation"
@@ -1625,6 +1781,9 @@
   "timelinePanelTitle": {
     "message": "Chat timeline"
   },
+  "timelineSharePickerHint": {
+    "message": "Choose a prompt to share"
+  },
   "timelineEmpty": {
     "message": "No prompts detected in this chat yet."
   },
@@ -1682,7 +1841,7 @@
     "message": "Failed to load responses. Please try again."
   },
   "timelineCopyPreviewConfirm": {
-    "message": "Confirm copy"
+    "message": "Copy"
   },
   "timelineCopyPreviewAnalyze": {
     "message": "Analyze"
@@ -2002,10 +2161,10 @@
     "message": "Thinking..."
   },
   "agentRequestFailed": {
-    "message": "Agent request failed"
+    "message": "Skill request failed"
   },
   "agentUnknownError": {
-    "message": "Unknown agent: $AGENT_ID$",
+    "message": "Unknown skill: $AGENT_ID$",
     "placeholders": {
       "agent_id": {
         "content": "$1"
@@ -2142,7 +2301,7 @@
     "message": "Failed to load. Please refresh and try again."
   },
   "agentEngineEditDialogTitle": {
-    "message": "Edit agent engine"
+    "message": "Use your own API"
   },
   "agentEngineStatusConfigured": {
     "message": "Configured"
@@ -2152,5 +2311,29 @@
   },
   "agentEngineEmptyValue": {
     "message": "Not configured"
+  },
+  "timelineCopyPreviewDownload": {
+    "message": "Download MD"
+  },
+  "timelineCopyPreviewDownloadSuccess": {
+    "message": "MD file downloaded"
+  },
+  "timelineCopyPreviewDownloadFailed": {
+    "message": "Download failed. Please try again."
+  },
+  "timelineCopyPreviewShare": {
+    "message": "Share"
+  },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "Share link copied"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "Automatic copy failed. Please copy the link below manually:"
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "Failed to create share link. Please try again."
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "No available relay URL was found. Please set one in Settings first"
   }
 }

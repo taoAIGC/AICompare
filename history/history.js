@@ -93,7 +93,7 @@ async function loadHistory() {
                 ? HybridFavorites.buildSessionFavoriteSites(session)
                 : [
                     ...(Array.isArray(session.openSiteNames) ? session.openSiteNames.map((name) => ({ name })) : []),
-                    ...(Array.isArray(session.openAgentIds) ? session.openAgentIds.map((agentId) => ({ name: `Agent:${agentId}` })) : [])
+                    ...(Array.isArray(session.openAgentIds) ? session.openAgentIds.map((agentId) => ({ name: `Skill:${agentId}` })) : [])
                 ],
             favoriteFolder: session.favoriteFolder || '',
             source: 'hybrid'
@@ -432,7 +432,6 @@ async function deleteHistoryItem(id) {
         const { pkHistory = [] } = await chrome.storage.local.get('pkHistory');
         const updatedHistory = pkHistory.filter(item => item.id !== id);
         await chrome.storage.local.set({ pkHistory: updatedHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         // 更新存储的所有历史记录
         allHistoryItems = updatedHistory;
     } catch (error) {
@@ -454,7 +453,6 @@ async function toggleHistoryItemFavorite(id, shouldFavorite, folderId) {
                     preserveUpdatedAt: true
                 })
                 : null;
-            if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
             return updatedSession
                 ? {
                     ...itemFromHybridSession(updatedSession),
@@ -483,7 +481,6 @@ async function toggleHistoryItemFavorite(id, shouldFavorite, folderId) {
             });
         }
         await chrome.storage.local.set({ pkHistory: pkHistory });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
         const localIndex = allHistoryItems.findIndex(item => item.id === id);
         if (localIndex !== -1) {
             allHistoryItems[localIndex] = historyItem;
@@ -515,7 +512,6 @@ async function clearHistory() {
             await HybridHistoryDB.clearAllSessions();
         }
         await chrome.storage.local.set({ pkHistory: [] });
-        if (typeof window.firebaseSyncUploadIfLoggedIn === 'function') window.firebaseSyncUploadIfLoggedIn();
     } catch (error) {
         console.error('清空历史记录失败:', error);
     }

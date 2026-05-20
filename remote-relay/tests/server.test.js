@@ -1,11 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const os = require('node:os');
+const path = require('node:path');
+const fs = require('node:fs');
 
 const WebSocket = require('ws');
 
 const remoteCommon = require('../../remote/common.js');
 const remoteCrypto = require('../../remote/crypto.js');
 const { createRelayServer } = require('../src/server.js');
+const { createMetadataStore } = require('../src/store.js');
 
 function createLogger() {
   return {
@@ -223,6 +227,77 @@ test('pair revoke endpoint marks the pair as revoked', async () => {
     assert.equal(pairRecord.status, 'revoked');
     assert.equal(pairRecord.revokedByDeviceId, desktop.deviceId);
   });
+});
+
+test('share lifecycle supports create and fetch', async () => {
+  await withRelayServer(async (relayServer) => {
+    const createResponse = await fetch(`${relayServer.getAddress()}/shares`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        question: 'What is the best model?',
+        summaryText: 'Summary text',
+        responses: [
+          {
+            siteName: 'Qwen',
+            content: 'Answer content'
+          }
+        ],
+        compareSites: ['Qwen'],
+        successCount: 1,
+        totalCount: 1
+      })
+    });
+
+    assert.equal(createResponse.status, 201);
+    const createPayload = await createResponse.json();
+    assert.equal(createPayload.ok, true);
+    assert.match(createPayload.shareId, /^share-/);
+
+    const fetchResponse = await fetch(`${relayServer.getAddress()}/shares/${encodeURIComponent(createPayload.shareId)}`);
+    assert.equal(fetchResponse.status, 200);
+    const fetchPayload = await fetchResponse.json();
+    assert.equal(fetchPayload.ok, true);
+    assert.equal(fetchPayload.payload.question, 'What is the best model?');
+  });
+});
+
+test('share records persist across store restarts', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-compare-share-store-'));
+  const shareStoreFile = path.join(tempRoot, 'shares.json');
+
+  try {
+    const firstStore = createMetadataStore({
+      logger: createLogger(),
+      useFirestore: false,
+      shareStoreFile
+    });
+
+    await firstStore.createShareRecord({
+      shareId: 'share-persist-1',
+      status: 'active',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payload: {
+        question: 'Persisted question',
+        summaryText: 'Persisted summary',
+        responses: []
+      }
+    });
+
+    const secondStore = createMetadataStore({
+      logger: createLogger(),
+      useFirestore: false,
+      shareStoreFile
+    });
+
+    const record = await secondStore.getShareRecord('share-persist-1');
+    assert.equal(record?.payload?.question, 'Persisted question');
+    assert.equal(record?.status, 'active');
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
 });
 
 test('relay routes encrypted search frames end-to-end without reading payloads', async () => {

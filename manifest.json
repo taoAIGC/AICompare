@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_extDescription__",
   "permissions": [
@@ -38,6 +38,12 @@
   "options_page": "options/options.html",
   "background": {
     "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "741697777320-9op5n3for8vl4jl8lgcd16cficu8927o.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata"
+    ]
   },
 
   "content_scripts": [

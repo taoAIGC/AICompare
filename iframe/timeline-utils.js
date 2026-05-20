@@ -15,6 +15,16 @@
       .trim();
   }
 
+  function normalizeTimelineMultilineText(text) {
+    return String(text || '')
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
   function buildTimelineEntry(entry, existingEntries = []) {
     const normalizedQuery = normalizeTimelineQuery(entry?.query);
     const occurrenceIndex = (Array.isArray(existingEntries) ? existingEntries : []).filter((item) => {
@@ -41,7 +51,7 @@
     const query = normalizeTimelineQuery(entry?.query);
     const dateLabel = String(entry?.dateLabel || '').trim();
 
-    lines.push(`问题：${query || '未命名提问'}`);
+    lines.push(query || '未命名提问');
     if (dateLabel) {
       lines.push(`时间：${dateLabel}`);
     }
@@ -49,16 +59,15 @@
     for (const response of Array.isArray(responses) ? responses : []) {
       const siteName = String(response?.siteName || 'Unknown');
       const answers = (Array.isArray(response?.answers) ? response.answers : [])
-        .map((answer) => normalizeTimelineQuery(answer))
+        .map((answer) => normalizeTimelineMultilineText(answer))
         .filter(Boolean);
-      const content = normalizeTimelineQuery(response?.content);
-      const error = normalizeTimelineQuery(response?.error);
+      const content = normalizeTimelineMultilineText(response?.content);
+      const error = normalizeTimelineMultilineText(response?.error);
       let bodyText = '未提取到回答';
 
       if (error) {
         bodyText = `提取失败：${error}`;
       } else if (content) {
-        // Keep a single site-level answer block; paragraph breaks stay inside content.
         bodyText = content;
       } else if (answers.length) {
         bodyText = answers.join('\n\n');

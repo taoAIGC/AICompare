@@ -54,6 +54,9 @@
             <button id="resetIframePageButton" class="timeline-toggle-btn" type="button" data-i18n-title="resetIframePageTitle" data-i18n-aria-label="resetIframePageTitle" title="" aria-label="">
                 <img src="../icons/refresh-cw.svg" data-i18n-alt="resetIframePageTitle" alt="">
             </button>
+            <button id="shareTimelineButton" class="timeline-toggle-btn" type="button" data-i18n-title="timelineCopyPreviewShare" data-i18n-aria-label="timelineCopyPreviewShare" title="" aria-label="">
+                <img src="../icons/share.svg" data-i18n-alt="timelineCopyPreviewShare" alt="">
+            </button>
         
             <!-- 隐藏的文件选择input -->
             <input type="file" id="fileInput" style="display: none;" multiple 
@@ -74,7 +77,10 @@
     </div>
     <div id="timelinePanel" class="timeline-panel" hidden>
         <div class="timeline-panel-header">
-            <div class="timeline-panel-title" data-i18n="timelinePanelTitle">Chat timeline</div>
+            <div class="timeline-panel-heading">
+                <div class="timeline-panel-title" data-i18n="timelinePanelTitle">Chat timeline</div>
+                <div id="timelinePanelHint" class="timeline-panel-hint" data-i18n="timelineSharePickerHint" hidden>选择要分享的提问记录</div>
+            </div>
             <button id="timelineCloseButton" class="timeline-close-btn" type="button" data-i18n-title="closeButton" data-i18n-aria-label="closeButton" title="" aria-label="">×</button>
         </div>
         <div id="timelineList" class="timeline-list"></div>
@@ -83,9 +89,6 @@
     <script src="../shared/site-launch-utils.js"></script>
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
-    <script src="../config/firebaseConfig.js"></script>
-    <script src="../firebase/firebase-auth.js"></script>
-    <script src="../firebase/firebase-sync.js"></script>
     <script src="../shared/prompt-template-utils.js"></script>
     <script src="../shared/submit-shortcut-utils.js"></script>
     <script src="../shared/textarea-resize-utils.js"></script>

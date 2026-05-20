@@ -421,6 +421,10 @@
     return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
   }
 
+  function normalizeTimelineDisplayText(text) {
+    return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).trim();
+  }
+
   function normalizeTimelineMatchText(text) {
     return normalizeTimelineComparableText(text)
       .normalize('NFKC')
@@ -610,10 +614,12 @@
 
     for (const node of nodes || []) {
       await waitForContentLoad(node, 300);
-      const text = normalizeTimelineComparableText(await extractElementContent(node));
-      if (!text || seenText.has(text)) continue;
-      seenText.add(text);
-      segments.push(text);
+      const rawText = await extractElementContent(node);
+      const comparableText = normalizeTimelineComparableText(rawText);
+      const displayText = normalizeTimelineDisplayText(rawText);
+      if (!comparableText || !displayText || seenText.has(comparableText)) continue;
+      seenText.add(comparableText);
+      segments.push(displayText);
     }
 
     return segments;
@@ -625,7 +631,7 @@
 
     if (contentExtractor.latestVisibleResponse) {
       const visibleResponseResult = extractLatestVisibleResponse(doc, contentExtractor);
-      const visibleContent = normalizeTimelineComparableText(visibleResponseResult?.content || '');
+      const visibleContent = normalizeTimelineDisplayText(visibleResponseResult?.content || '');
       if (visibleContent && visibleResponseResult?.pending !== true) {
         return {
           found: true,

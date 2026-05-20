@@ -1,4 +1,4 @@
-# Hybrid Site + Agent Compare Plan
+# Hybrid Site + Skill Compare Plan
 
 Date: 2026-05-16
 
@@ -7,14 +7,14 @@ Date: 2026-05-16
 Upgrade the current compare experience so one compare session can contain:
 
 - N external AI site panels
-- M internal agent panels powered by a shared LLM API
+- M internal skill panels powered by a shared LLM API
 
 The core product shape is:
 
-- Homepage `information` tab allows selecting both sites and agents
-- Compare page renders sites and agents as peer top-level panels
+- Homepage `information` tab allows selecting both sites and skills
+- Compare page renders sites and skills as peer top-level panels
 - Site panels remain external webpage iframes
-- Agent panels are internal extension-powered conversation panels
+- Skill panels are internal extension-powered conversation panels
 
 ## Locked Product Decisions
 
@@ -24,26 +24,26 @@ The core product shape is:
 - No extra top-level mode switcher is added.
 - Homepage has two lightweight sections:
   - `AI Sites`
-  - `AI Agents`
+  - `AI Skills`
 - Users may select:
   - only sites
-  - only agents
+  - only skills
   - both
 - PK requires at least one selected panel.
-- Agent list:
+- Skill list:
   - grouped by static categories
   - category supports batch selection
   - no search in V1
-- Site order and agent order are managed separately.
+- Site order and skill order are managed separately.
 
 ### Compare Page
 
 - The compare page becomes a unified `panel` system.
-- `site panel` and `agent panel` are peer top-level items in the main grid.
+- `site panel` and `skill panel` are peer top-level items in the main grid.
 - No nested agent tabs container is used.
 - Left nav is grouped into:
   - `Sites`
-  - `Agents`
+  - `Skills`
 - Closing a panel means:
   - remove it from the current compare view
   - it does not receive future global questions
@@ -54,9 +54,9 @@ The core product shape is:
 ### Input Model
 
 - Global top search box broadcasts to currently enabled panels.
-- Agent panels also support local single-panel input.
+- Skill panels also support local single-panel input.
 - Local panel input:
-  - only affects that agent thread
+  - only affects that skill thread
   - does not auto-enable the panel for future global broadcasts
   - does not sync with the top input box
 - UI does not visibly label messages as global or local.
@@ -64,27 +64,27 @@ The core product shape is:
   - `global`
   - `local`
 
-### Agent Behavior
+### Skill Behavior
 
 - V1 uses a single shared OpenAI-compatible API backend.
-- All agents share the same global model configuration.
+- All skills share the same global model configuration.
 - Agent output language follows the user input language.
-- Agent persona definitions are authored in Chinese first.
-- Agent output has a shared structure:
+- Skill persona definitions are authored in Chinese first.
+- Skill output has a shared structure:
   - conclusion
   - key reasons
   - risks / opposing view
   - action suggestion
-- Agent panels show:
+- Skill panels show:
   - user / assistant message stream
   - structured answer inside assistant replies
   - collapsible reasoning summary
-- Agent attachments are not supported in V1.
-- Agent auto-judging / ranking is not part of V1.
-- Each agent panel allows only one active request at a time.
-- Newer requests interrupt older in-flight requests for the same agent.
+- Skill attachments are not supported in V1.
+- Skill auto-judging / ranking is not part of V1.
+- Each skill panel allows only one active request at a time.
+- Newer requests interrupt older in-flight requests for the same skill.
 - Newer queued requests take priority over stale queued requests.
-- Global concurrency limit is shared across all agent requests.
+- Global concurrency limit is shared across all skill requests.
 
 ### History
 
@@ -221,8 +221,8 @@ The implementation should store this in extension settings, with the secret held
 
 The implementation is not done until these flows work cleanly:
 
-1. Homepage can select sites and agents together.
-2. Compare page opens with mixed site and agent panels.
+1. Homepage can select sites and skills together.
+2. Compare page opens with mixed site and skill panels.
 3. Global question reaches all currently enabled panels.
 4. Agent panel local input only affects that agent.
 5. Closing and reopening a panel creates a fresh empty conversation.

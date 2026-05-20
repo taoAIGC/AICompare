@@ -19,36 +19,40 @@
       <div class="action-links">
         <a href="#quick-entry" class="action-link nav-link active" data-section="quick-entry">
           <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
-          <span data-i18n="configButtonTitle">入口</span>
+          <span data-i18n="settingsNavShortcutsTitle">快捷</span>
         </a>
         <a href="#launch-settings" class="action-link nav-link" data-section="launch-settings">
           <img class="action-link-icon" src="../icons/layout-grid.svg" alt="" aria-hidden="true">
-          <span data-i18n="launchSettingsTitle">自定义站点</span>
+          <span data-i18n="settingsNavSitesTitle">站点</span>
+        </a>
+        <a href="#agent-settings" class="action-link nav-link" data-section="agent-settings">
+          <img class="action-link-icon" src="../icons/brain.svg" alt="" aria-hidden="true">
+          <span data-i18n="settingsNavSkillsTitle">技能</span>
         </a>
         <a href="#agent-engine" class="action-link nav-link" data-section="agent-engine">
-          <img class="action-link-icon" src="../icons/icon16.png" alt="" aria-hidden="true">
-          <span data-i18n="agentEngineTitle">智能体设置</span>
+          <img class="action-link-icon" src="../icons/move-3d.svg" alt="" aria-hidden="true">
+          <span data-i18n="settingsNavApiTitle">API</span>
         </a>
         <a href="#prompt-templates" class="action-link nav-link" data-section="prompt-templates">
-          <img class="action-link-icon" src="../icons/edit.svg" alt="" aria-hidden="true">
+          <img class="action-link-icon" src="../icons/message-square-share.svg" alt="" aria-hidden="true">
           <span data-i18n="promptTemplatesTitle">Chat Prompt</span>
         </a>
         <a href="#analysis-prompt-templates" class="action-link nav-link" data-section="analysis-prompt-templates">
-          <img class="action-link-icon" src="../icons/edit.svg" alt="" aria-hidden="true">
+          <img class="action-link-icon" src="../icons/file-chart-column.svg" alt="" aria-hidden="true">
           <span data-i18n="analysisPromptTemplatesTitle">Analysis Prompt</span>
         </a>
         <a href="#data-sync" class="action-link nav-link" data-section="data-sync">
           <img class="action-link-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
-          <span data-i18n="dataSyncTitle">数据同步</span>
+          <span data-i18n="settingsNavSyncTitle">同步</span>
+        </a>
+        <!-- 暂时隐藏 Pro 与 Remote Search 导航入口
+        <a href="#membership" class="action-link nav-link" data-section="membership">
+          <img class="action-link-icon" src="../icons/gem.svg" alt="" aria-hidden="true">
+          <span data-i18n="settingsNavProTitle">Pro</span>
         </a>
         <a href="#remote-search" class="action-link nav-link" data-section="remote-search">
           <img class="action-link-icon" src="../icons/smartphone.svg" alt="" aria-hidden="true">
           <span data-i18n="remoteSearchTitle">手机搜索（开发中）</span>
-        </a>
-        <!-- Pro 会员入口暂时隐藏，下版本恢复
-        <a href="#membership" class="action-link nav-link" data-section="membership">
-          <img class="action-link-icon" src="../icons/icon16.png" alt="" aria-hidden="true">
-          <span data-i18n="membershipTitle">Pro 会员</span>
         </a>
         -->
       </div>
@@ -79,7 +83,6 @@
         <!-- 启动网址设置 -->
         <section id="launch-settings" class="settings-section">
           <h1 data-i18n="launchSettingsTitle">自定义站点</h1>
-          <p class="section-description" data-i18n="launchSettingsDescription">为官方站点设置默认打开地址，或添加只打开页面的自定义网站。</p>
 
           <div class="site-section">
             <h2 data-i18n="officialEntryUrlTitle">官方站点入口 URL</h2>
@@ -100,56 +103,48 @@
           </div>
         </section>
 
-        <section id="agent-engine" class="settings-section">
-          <h1 data-i18n="agentEngineTitle">智能体设置</h1>
-
-          <div class="site-section unified-settings-panel">
-            <div id="agentEngineCard" class="agent-engine-card" data-status="unconfigured">
-              <div class="agent-engine-card-head">
-                <div class="agent-engine-card-heading">
-                  <div class="agent-engine-card-title-row">
-                    <h2 class="agent-engine-card-title" data-i18n="agentEngineCardTitle">API settings</h2>
-                    <span id="agentEngineStatusBadge" class="agent-engine-status-badge" data-i18n="agentEngineStatusUnconfigured">未配置</span>
-                  </div>
-                </div>
-                <button id="editAgentEngineBtn" class="icon-action-btn agent-engine-edit-btn" type="button" data-i18n-title="editButton" data-i18n-aria-label="editButton" title="Edit" aria-label="Edit">
-                  <img src="../icons/edit.svg" alt="">
-                </button>
-              </div>
-
-              <div class="agent-engine-summary-grid">
-                <div class="agent-engine-summary-item">
-                  <div class="agent-engine-summary-label" data-i18n="agentEngineApiUrlLabel">API 地址</div>
-                  <div id="agentEngineBaseUrlValue" class="agent-engine-summary-value"></div>
-                </div>
-
-                <div class="agent-engine-summary-item">
-                  <div class="agent-engine-summary-label" data-i18n="agentEngineApiKeyLabel">API Key</div>
-                  <div id="agentEngineApiKeyValue" class="agent-engine-summary-value"></div>
-                </div>
-
-                <div class="agent-engine-summary-item">
-                  <div class="agent-engine-summary-label" data-i18n="agentEngineModelLabel">模型</div>
-                  <div id="agentEngineModelValue" class="agent-engine-summary-value"></div>
-                </div>
-
-                <div class="agent-engine-summary-item">
-                  <div class="agent-engine-summary-label" data-i18n="agentEngineConcurrencyLabel">并发请求数</div>
-                  <div id="agentEngineConcurrencyValue" class="agent-engine-summary-value"></div>
-                </div>
-              </div>
+        <section id="agent-settings" class="settings-section">
+          <div class="settings-section-header agent-settings-section-header">
+            <h1 data-i18n="agentSettingsTitle">智能体设置</h1>
+            <div class="agent-actions-group">
+              <button id="addAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentNewButton">新建</button>
+              <button id="importAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentImportButton">从 URL 导入</button>
             </div>
           </div>
 
-          <div id="agent-custom-settings" class="site-section site-section-spaced unified-settings-panel">
-            <div class="agent-custom-settings-header">
-              <h2 data-i18n="agentCustomSettingsTitle">智能体自定义设置</h2>
-              <div class="template-header agent-actions-header">
-                <button id="addAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentNewButton">新建</button>
-                <button id="importAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentImportButton">从 URL 导入</button>
+          <div id="agent-custom-settings" class="site-section unified-settings-panel">
+            <div id="agentCustomSettingsList" class="templates-list"></div>
+          </div>
+        </section>
+
+        <section id="agent-engine" class="settings-section">
+          <h1 data-i18n="agentEngineTitle">API 设置</h1>
+
+          <div class="site-section unified-settings-panel">
+            <div class="agent-engine-list" role="list">
+              <div id="officialAgentEngineCard" class="agent-engine-row agent-engine-option-card" data-source="official" data-selected="true">
+                <button id="officialAgentEngineSelectBtn" class="agent-engine-row-main" type="button">
+                  <span class="agent-engine-select-indicator" aria-hidden="true"></span>
+                  <span class="agent-engine-row-copy">
+                    <span class="agent-engine-row-title" data-i18n="agentEngineOfficialOptionTitle">官方 API</span>
+                    <span id="officialAgentEngineMeta" class="agent-engine-row-meta"></span>
+                  </span>
+                </button>
+                <button id="officialAgentEngineUpgradeBtn" class="btn-secondary agent-engine-inline-btn" type="button" data-i18n="agentEngineUpgradeButton">立即升级 PRO</button>
+              </div>
+
+              <div id="agentEngineCard" class="agent-engine-row agent-engine-option-card" data-source="custom" data-status="unconfigured" data-selected="false">
+                <button id="customAgentEngineSelectBtn" class="agent-engine-row-main" type="button">
+                  <span class="agent-engine-select-indicator" aria-hidden="true"></span>
+                  <span class="agent-engine-row-copy">
+                    <span class="agent-engine-row-title" data-i18n="agentEngineCustomOptionTitle">自定义 API</span>
+                    <span id="customAgentEngineMeta" class="agent-engine-row-hint" data-i18n="agentEngineCustomCardHint">填写自己的 API</span>
+                  </span>
+                  <span id="agentEngineStatusBadge" class="agent-engine-status-badge" data-i18n="agentEngineStatusUnconfigured">未配置</span>
+                </button>
+                <button id="editAgentEngineBtn" class="btn-secondary agent-engine-inline-btn" type="button" data-i18n="agentEngineEditButton">填写自己的 API</button>
               </div>
             </div>
-            <div id="agentCustomSettingsList" class="templates-list"></div>
           </div>
         </section>
 
@@ -266,6 +261,30 @@
           <h1 data-i18n="dataSyncTitle">Sync &amp; backup</h1>
           <p class="section-description" data-i18n="dataSyncDescription">Choose cloud sync or a local backup. The two flows are separate.</p>
 
+          <div class="sync-card sync-drive-card">
+            <div class="sync-card-header">
+              <div class="sync-card-heading">
+                <img class="sync-card-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
+                <div>
+                  <h2 data-i18n="googleDriveSyncTitle">Google Drive sync</h2>
+                  <p class="sync-card-description" data-i18n="googleDriveSyncDescription">Sign in with Google once, authorize Drive access, and sync the same backup data through your Google Drive app data space.</p>
+                </div>
+              </div>
+              <span class="sync-badge" data-i18n="googleDriveSyncBadge">Google Drive</span>
+            </div>
+            <div class="sync-account-row">
+              <div id="googleDriveSyncAccount" class="sync-account-text" data-i18n="googleDriveSyncNotConnected">Not connected yet</div>
+            </div>
+            <div class="sync-actions">
+              <button id="connectGoogleDriveSync" class="btn-primary btn-google" type="button">
+                <span class="btn-google-icon" aria-hidden="true"></span>
+                <span data-i18n="googleDriveSyncConnectButton">Sign in with Google</span>
+              </button>
+              <button id="restoreFromGoogleDriveSync" class="btn-secondary" type="button" data-i18n="googleDriveSyncRestoreButton">Restore from Drive</button>
+              <button id="disconnectGoogleDriveSync" class="btn-secondary" type="button" data-i18n="googleDriveSyncDisconnectButton">Disconnect</button>
+            </div>
+          </div>
+
           <!-- 云同步（WebDAV） -->
           <div class="sync-card sync-cloud-card">
             <div class="sync-card-header">
@@ -329,7 +348,7 @@
                 <img class="sync-card-icon" src="../icons/download.svg" alt="" aria-hidden="true">
                 <div>
                   <h2 data-i18n="localSyncTitle">Local backup</h2>
-                  <p class="sync-card-description" data-i18n="localSyncDescription">Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. WebDAV credentials are not included.</p>
+                  <p class="sync-card-description" data-i18n="localSyncDescription">Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. This includes skill engine settings, custom skills, favorites, and history. WebDAV credentials are not included.</p>
                 </div>
               </div>
               <span class="sync-badge sync-badge-muted" data-i18n="localSyncBadge">JSON file</span>
@@ -344,6 +363,7 @@
           <div id="syncStatus" class="sync-status" style="display:none;"></div>
         </section>
 
+        <!-- 暂时隐藏 Remote Search 设置页
         <section id="remote-search" class="settings-section">
           <h1 data-i18n="remoteSearchTitle">手机搜索（开发中）</h1>
           <p class="section-description" data-i18n="remoteSearchDescription">让手机连接到当前 Chrome 会话，远程发起搜索并查看流式结果。</p>
@@ -452,8 +472,9 @@
             </div>
           </div>
         </section>
+        -->
 
-        <!-- Pro 会员配置暂时隐藏，下版本恢复
+        <!-- 暂时隐藏 Pro Membership 设置页
         <section id="membership" class="settings-section">
           <h1 data-i18n="membershipTitle">Pro 会员</h1>
           <p class="section-description" data-i18n="membershipDescription">解锁全部功能，畅享 AI 比较体验</p>
@@ -517,6 +538,12 @@
           <div id="membershipLoginHint" class="membership-login-hint" style="display:none;" data-i18n="membershipLoginHint">
             请先在「数据同步」页面登录谷歌账号后查看会员状态
           </div>
+          <div id="membershipLoginActions" class="membership-pro-actions" style="display:none;">
+            <button class="btn-primary btn-google" id="membershipGoogleLoginBtn" type="button">
+              <span class="btn-google-icon" aria-hidden="true"></span>
+              <span data-i18n="membershipGoogleLoginButton">使用 Google 登录</span>
+            </button>
+          </div>
         </section>
         -->
       </div>
@@ -567,7 +594,7 @@
     <div class="dialog-overlay" id="agentCustomDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="agentCustomDialogTitle" data-i18n="agentCustomDialogTitle" class="dialog-title">自定义智能体</h3>
+        <h3 id="agentCustomDialogTitle" data-i18n="agentCustomDialogTitle" class="dialog-title">自定义 Skill</h3>
         <button class="dialog-close" id="agentCustomDialogClose">×</button>
       </div>
       <div class="dialog-body">
@@ -578,13 +605,13 @@
 
         <div class="form-group">
           <label for="agentCustomDescription" class="form-label" data-i18n="agentCustomDescriptionLabel">简介</label>
-          <input type="text" id="agentCustomDescription" class="dialog-field" data-i18n-placeholder="agentCustomDescriptionPlaceholder" placeholder="一句话说明这个智能体的定位">
+          <input type="text" id="agentCustomDescription" class="dialog-field" data-i18n-placeholder="agentCustomDescriptionPlaceholder" placeholder="一句话说明这个 Skill 的定位">
         </div>
 
         <div class="form-group">
           <label for="agentCustomPersonaPrompt" class="form-label" data-i18n="agentCustomPersonaPromptLabel">Persona 提示词</label>
-          <textarea id="agentCustomPersonaPrompt" class="dialog-field" data-i18n-placeholder="agentCustomPersonaPromptPlaceholder" placeholder="定义这个智能体的思考风格和输出要求" rows="10"></textarea>
-          <div class="help-text" data-i18n="agentCustomPersonaPromptHelp">这里会直接作为系统提示词的一部分参与智能体回答。</div>
+          <textarea id="agentCustomPersonaPrompt" class="dialog-field" data-i18n-placeholder="agentCustomPersonaPromptPlaceholder" placeholder="定义这个 Skill 的思考风格和输出要求" rows="10"></textarea>
+          <div class="help-text" data-i18n="agentCustomPersonaPromptHelp">这里会直接作为系统提示词的一部分参与 Skill 回答。</div>
         </div>
       </div>
       <div class="dialog-footer">
@@ -599,7 +626,7 @@
     <div class="dialog-overlay" id="agentEngineDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="agentEngineDialogTitle" data-i18n="agentEngineEditDialogTitle" class="dialog-title">编辑智能体引擎</h3>
+        <h3 id="agentEngineDialogTitle" data-i18n="agentEngineEditDialogTitle" class="dialog-title">填写自己的 API</h3>
         <button class="dialog-close" id="agentEngineDialogClose">×</button>
       </div>
       <div class="dialog-body">
@@ -626,7 +653,7 @@
       </div>
       <div class="dialog-footer">
         <button id="cancelAgentEngine" class="btn-secondary" data-i18n="cancelButton">取消</button>
-        <button id="saveAgentEngineBtn" class="btn-primary" type="button" data-i18n="agentEngineSaveButton">保存智能体引擎</button>
+        <button id="saveAgentEngineBtn" class="btn-primary" type="button" data-i18n="agentEngineSaveButton">保存自定义 API</button>
       </div>
     </div>
   </div>
@@ -635,7 +662,7 @@
     <div class="dialog-overlay" id="agentImportDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="agentImportDialogTitle" data-i18n="agentImportDialogTitle" class="dialog-title">从 URL 导入智能体</h3>
+        <h3 id="agentImportDialogTitle" data-i18n="agentImportDialogTitle" class="dialog-title">从 URL 导入 Skill</h3>
         <button class="dialog-close" id="agentImportDialogClose">×</button>
       </div>
       <div class="dialog-body">
@@ -647,12 +674,12 @@
         <div class="form-group">
           <label for="agentSkillContent" class="form-label" data-i18n="agentSkillContentLabel">Skill 内容</label>
           <textarea id="agentSkillContent" class="dialog-field" data-i18n-placeholder="agentSkillContentPlaceholder" placeholder="可直接粘贴 SKILL.md 内容；如果填写了 URL，会优先抓取 URL 内容" rows="10"></textarea>
-          <div class="help-text" data-i18n="agentSkillContentHelp">导入后会转换为插件内可直接使用的自定义智能体。</div>
+          <div class="help-text" data-i18n="agentSkillContentHelp">导入后会转换为插件内可直接使用的自定义 Skill。</div>
         </div>
       </div>
       <div class="dialog-footer">
         <button id="cancelAgentImport" class="btn-secondary" data-i18n="cancelButton">取消</button>
-        <button id="saveAgentImport" class="btn-primary" data-i18n="agentSkillImportButton">Import Agent</button>
+        <button id="saveAgentImport" class="btn-primary" data-i18n="agentSkillImportButton">Import Skill</button>
       </div>
     </div>
   </div>
@@ -668,8 +695,7 @@
   <script src="../config/baseConfig.js"></script>
   <script src="../firebase/firebase-auth.js"></script>
   <script src="../shared/prompt-template-utils.js"></script>
-  <!-- Pro 会员功能暂时隐藏，下版本恢复 -->
-  <!-- <script src="../firebase/stripe-payment.js"></script> -->
+  <script src="../firebase/stripe-payment.js"></script>
   <script src="options.js"></script>
 </body>
 </html> 

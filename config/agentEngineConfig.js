@@ -10,6 +10,12 @@
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   const KEY_MASK = 'AICompare::AgentEngine::2026';
+  const PROVIDER_TYPES = Object.freeze({
+    OFFICIAL: 'official',
+    CUSTOM: 'custom'
+  });
+  const DEFAULT_DAILY_FREE_LIMIT = 3;
+  const DEFAULT_CHECKOUT_PLAN = 'yearly';
 
   function xorTransform(input, key) {
     const normalizedInput = String(input || '');
@@ -69,24 +75,64 @@
   }
 
   const DEFAULTS = Object.freeze({
+    providerType: PROVIDER_TYPES.OFFICIAL,
     baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
     encryptedApiKey: 'IDsoQglEAxdVCQMiSlJYTHZDUwhfARdYUwYAG3F9JVlaQAURVwkNJ0oAWEVyXQ==',
     model: 'glm-5.1',
     concurrency: 2,
+    systemPrompt: '',
+    officialDailyFreeLimit: DEFAULT_DAILY_FREE_LIMIT,
+    defaultCheckoutPlan: DEFAULT_CHECKOUT_PLAN
+  });
+
+  const CUSTOM_DEFAULTS = Object.freeze({
+    baseUrl: '',
+    apiKey: '',
+    model: '',
+    concurrency: 2,
     systemPrompt: ''
   });
 
-  function getDefaults() {
+  function getOfficialDefaults() {
     return {
-      ...DEFAULTS,
-      apiKey: decryptApiKey(DEFAULTS.encryptedApiKey)
+      providerType: PROVIDER_TYPES.OFFICIAL,
+      baseUrl: DEFAULTS.baseUrl,
+      apiKey: decryptApiKey(DEFAULTS.encryptedApiKey),
+      model: DEFAULTS.model,
+      concurrency: DEFAULTS.concurrency,
+      systemPrompt: DEFAULTS.systemPrompt,
+      officialDailyFreeLimit: DEFAULTS.officialDailyFreeLimit,
+      defaultCheckoutPlan: DEFAULTS.defaultCheckoutPlan
+    };
+  }
+
+  function getDefaults() {
+    const official = getOfficialDefaults();
+    return {
+      providerType: PROVIDER_TYPES.OFFICIAL,
+      official,
+      custom: {
+        ...CUSTOM_DEFAULTS
+      },
+      officialDailyFreeLimit: DEFAULTS.officialDailyFreeLimit,
+      defaultCheckoutPlan: DEFAULTS.defaultCheckoutPlan,
+      baseUrl: official.baseUrl,
+      apiKey: official.apiKey,
+      model: official.model,
+      concurrency: official.concurrency,
+      systemPrompt: official.systemPrompt
     };
   }
 
   return {
     DEFAULTS,
+    CUSTOM_DEFAULTS,
+    PROVIDER_TYPES,
+    DEFAULT_DAILY_FREE_LIMIT,
+    DEFAULT_CHECKOUT_PLAN,
     decryptApiKey,
     encryptApiKey,
+    getOfficialDefaults,
     getDefaults
   };
 });

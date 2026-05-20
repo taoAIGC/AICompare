@@ -80,19 +80,20 @@
 
 - **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`). Changes apply to already open tabs immediately.
 - **Launch settings**: Customize official site entry URLs and manage standalone custom sites.
-- **Agent settings**: Configure the shared agent engine, then override each built-in agent's display name, description, and persona prompt.
+- **Agent settings**: Override each built-in skill's display name, description, and persona prompt.
+- **API settings**: Configure the shared skill engine used by the built-in skills.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
-- **Cloud sync**: Use WebDAV to sync settings across devices.
+- **Cloud sync**: Use WebDAV or Google Drive to sync settings across devices.
 - **Prompt templates**: Add / edit / delete templates (name, query text with `{query}`, type, display order). Template type uses the same candidate set as site config types.
-- **Local backup**: Export the current sync data to a JSON file and restore it later without including WebDAV credentials. History records in backups are capped at the first 500 items.
+- **Local backup**: Export the current sync data to a JSON file and restore it later without including cloud credentials. History records in backups are capped at the first 500 items.
 - **Links**: Open History page, Favorites page.
 
 #### 10. History & Favorites pages
 
 - **History**: Full list of past comparison sessions; search and open again; clear history.
 - **Favorites**: Saved queries/sessions; search and open again; clear all.
-- **Hybrid timeline**: Mixed site + agent sessions now keep agent user turns in the compare timeline too, so reopening hybrid history can still identify each agent dialogue round for scroll/copy preview.
+- **Hybrid timeline**: Mixed site + skill sessions now keep skill user turns in the compare timeline too, so reopening hybrid history can still identify each skill dialogue round for scroll/copy preview.
 
 #### 11. Remote Search v1
 
@@ -149,8 +150,11 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Relay tests: `cd remote-relay && npm test`
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
+- Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
+- The relay's share endpoints are `POST /shares`, `GET /shares/:shareId`, and `GET /share/:shareId`. For public links, set `PUBLIC_BASE_URL` before starting `remote-relay` so returned `publicUrl` values point at the externally reachable host.
+- Share records are now persisted on disk. Set `SHARE_STORE_FILE` for `remote-relay` if you want the share data file in a stable external path; otherwise it defaults to `remote-relay/data/shares.json`.
 - The DevTools-based verifier expects a real Chrome profile with the extension installed and a reachable endpoint from `DevToolsActivePort`. If that port points to a stale or non-debuggable browser session, it will fail before the extension flow starts. The Playwright verifier launches its own persistent Chromium profile and does not need `DevToolsActivePort`.
-- The packaged MV3 extension no longer includes any Firebase JS SDK CDN imports; sync/auth use local extension code plus Firebase REST endpoints so store builds avoid Blue Argon remote-hosted-code violations.
+- The packaged MV3 extension no longer includes any Firebase JS SDK CDN imports; membership uses local extension code plus Firebase REST endpoints, while cloud sync now supports WebDAV and Google Drive.
 - Site handler synchronization now fetches `config/siteHandlers.json` from GitHub raw at runtime and falls back to the bundled copy if the remote check fails.
 - The site-handler update prompt now uses a localized card-style notification plus a details dialog instead of the old plain toast.
 - Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
@@ -165,8 +169,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
 - Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
-- The built-in agent-engine defaults are now centralized in `config/agentEngineConfig.js`, currently targeting Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the bundled API key is stored there as ciphertext and decrypted at runtime, user-saved values still override them, and each agent uses only its own persona prompt as the system prompt.
-- Imported GitHub `SKILL.md` entries can be converted into custom agents through `Settings -> Agent settings -> Import from URL`, and the dedicated verifier is `node debug/verify-agent-import-runtime-playwright.js`.
+- The built-in skill-engine defaults are now centralized in `config/agentEngineConfig.js`, currently targeting Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the bundled API key is stored there as ciphertext and decrypted at runtime, user-saved values still override them, and each skill uses only its own persona prompt as the system prompt.
+- Imported GitHub `SKILL.md` entries can be converted into custom skills through `Settings -> Agent settings -> Import from URL`, and the dedicated verifier is `node debug/verify-agent-import-runtime-playwright.js`.
+- Built-in skills now support deletion from Settings too. For bundled skills this is implemented as a per-device hidden list stored in local storage, so deleted built-ins disappear from Settings, homepage, and iframe agent selection without mutating the bundled catalog.
 - The default retry ceiling for configured step retries is now 10 attempts.
 - Config-driven `sendKeys` steps now honor `waitForElement`, `maxAttempts`, and `retryInterval`, so Enter-based submits can retry like `focus` / `setValue` / `triggerEvents`.
 - Timeline copy now shows a "Copying..." toast first and falls back to `execCommand('copy')` if `navigator.clipboard.writeText` fails.
@@ -270,12 +275,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 - **快捷入口设置**：开关 悬浮球、划词搜索、AI 站内按钮、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。已打开的页面会立即同步开关状态，无需刷新。
 - **启动网址设置**：可配置官方站点入口 URL，并管理独立的自定义网站。
-- **智能体设置**：可配置共享的智能体引擎，并按智能体覆盖显示名称、简介和 persona 提示词。
+- **智能体设置**：按 Skill 覆盖显示名称、简介和 persona 提示词。
+- **API 设置**：配置内置 Skill 共用的引擎参数。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
-- **云同步**：使用 WebDAV 在不同设备之间同步设置。
+- **云同步**：使用 WebDAV 或 Google Drive 在不同设备之间同步设置。
 - **提示词模板**：增删改模板（名称、带 `{query}` 的查询模板、类型、排序）。模板类型与站点配置里的 `type` 候选项保持一致。
-- **本地备份**：可将当前同步数据导出为 JSON 文件并随后恢复，且不会包含 WebDAV 凭据。备份中的历史记录最多保留前 500 条。
+- **本地备份**：可将当前同步数据导出为 JSON 文件并随后恢复，且不会包含云端凭据。备份中的历史记录最多保留前 500 条。
 - **入口**：历史记录页、收藏记录页。
 
 #### 10. 历史记录与收藏记录页
@@ -340,7 +346,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
   - 本地远程搜索 verifier：`node debug/verify-remote-search-local.js`
   - Playwright 远程搜索 verifier：`node debug/verify-remote-search-playwright.js`
 - 基于 DevTools 的本地 verifier 依赖真实 Chrome 用户态、已安装扩展，以及 `DevToolsActivePort` 指向一个可连接的调试端口；如果该端口指向的是过期或不可调试的会话，脚本会在进入扩展链路前失败。Playwright 版本会自己拉起持久化 Chromium 用户态，不需要 `DevToolsActivePort`。
-- 打包后的 MV3 扩展不再包含 Firebase JS SDK 的 CDN `import`；同步/登录走扩展内本地代码配合 Firebase REST 接口，以避免 Blue Argon 的远程托管代码拦截。
+- 打包后的 MV3 扩展不再包含 Firebase JS SDK 的 CDN `import`；会员登录走扩展内本地代码配合 Firebase REST 接口，云同步则支持 WebDAV 和 Google Drive。
 - 站点处理器同步现在会在运行时从 GitHub raw 拉取 `config/siteHandlers.json`，失败时回退到扩展包内的内置副本。
 - 站点处理器更新提示现在改成了支持国际化的卡片式通知加详情弹窗，不再是旧的纯文本 toast。
 - 目前 core 端到端验证已覆盖 ChatGPT、Gemini、DeepSeek、Grok、Claude、MiniMax、Manus、点点、Nano Banana、Google Translate、Bing Translate。
@@ -353,8 +359,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
 - 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
-- 内置的智能体引擎默认配置现已统一收口到 `config/agentEngineConfig.js`，当前默认值为火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；其中内置 API Key 在配置文件中以密文形式保存、运行时再解密，用户在设置页手动保存后的值仍然优先覆盖，并且每个智能体只使用自己配置的 persona 提示词作为 system prompt。
-- 现在可以通过“设置 -> 智能体设置 -> 从 URL 导入”把 GitHub 上的 `SKILL.md` 转成自定义智能体；对应的专项验证脚本为 `node debug/verify-agent-import-runtime-playwright.js`。
+- 内置的 Skill 引擎默认配置现已统一收口到 `config/agentEngineConfig.js`，当前默认值为火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；其中内置 API Key 在配置文件中以密文形式保存、运行时再解密，用户在设置页手动保存后的值仍然优先覆盖，并且每个 Skill 只使用自己配置的 persona 提示词作为 system prompt。
+- 现在可以通过“设置 -> Skill 设置 -> 从 URL 导入”把 GitHub 上的 `SKILL.md` 转成自定义 Skill；对应的专项验证脚本为 `node debug/verify-agent-import-runtime-playwright.js`。
+- 系统自带的 Skill 现在也支持在设置页删除。对内置 Skill 来说，这个“删除”实现为当前设备本地隐藏，因此它会同时从设置页、homepage 和 iframe 的 Skill 选择里消失，但不会改写扩展内置目录。
 - 配置步骤的默认重试上限现在是 10 次。
 - 配置驱动的 `sendKeys` 步骤现在也会遵循 `waitForElement`、`maxAttempts` 和 `retryInterval`，因此回车提交可以像 `focus` / `setValue` / `triggerEvents` 一样重试。
 - 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
@@ -390,33 +397,68 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-18 22:25:55 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-21 00:08:03 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `.gitignore`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
 - `M` `config/agentCatalog.js`
-- `A` `config/agentEngineConfig.js`
+- `M` `config/agentEngineConfig.js`
+- `M` `config/firebaseConfig.js`
+- `M` `docs/hybrid-site-agent-plan.md`
 - `M` `docs/hybrid-site-agent-test-log.md`
-- `M` `homepage/homepage.css`
-- `M` `iframe/agent-panel.css`
-- `M` `iframe/agent-panel.js`
+- `M` `favorites/favorites.css`
+- `M` `favorites/favorites.html`
+- `M` `favorites/favorites.js`
+- `M` `history/history.css`
+- `M` `history/history.html`
+- `M` `history/history.js`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `A` `icons/brain.svg`
+- `A` `icons/file-chart-column.svg`
+- `A` `icons/gem.svg`
+- `A` `icons/link.svg`
+- `A` `icons/message-square-share.svg`
+- `A` `icons/move-3d.svg`
+- `A` `icons/share.svg`
+- `A` `icons/user.svg`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
+- `M` `iframe/inject.js`
+- `M` `iframe/timeline-utils.js`
+- `M` `manifest.json`
 - `M` `options/options.css`
 - `M` `options/options.html`
 - `M` `options/options.js`
+- `A` `remote-relay/data/shares.json`
+- `M` `remote-relay/src/server.js`
+- `M` `remote-relay/src/store.js`
+- `M` `remote-relay/tests/server.test.js`
 - `M` `shared/agent-prompt-utils.js`
+- `M` `shared/analysis-session-utils.js`
+- `M` `shared/extraction-core.js`
+- `M` `shared/hybrid-favorites.js`
+- `M` `shared/sidebar.html`
+- `M` `shared/sidebar.js`
 
 ### Recent commits / 最近提交
+- `f79a148` 2026-05-18 V4.0.1 修复小 bug
 - `63e4f41` 2026-05-18 V4.0.0 支持智能体
 - `16923e6` 2026-05-15 V3.4.2 完善语言包
 - `52ad022` 2026-05-14 V3.4.1 修复 UI 小问题
 - `d730a72` 2026-05-12 V3.4.0 UI主题黑白色
-- `71ec1e1` 2026-05-11 V3.3.0 支持汇总答案的分析
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

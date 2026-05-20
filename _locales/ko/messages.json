@@ -132,6 +132,54 @@
   "launchSettingsTitle": {
     "message": "사용자 지정 사이트"
   },
+  "agentSettingsTitle": {
+    "message": "스킬 설정"
+  },
+  "agentEngineTitle": {
+    "message": "API 설정"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "바로가기"
+  },
+  "settingsNavSitesTitle": {
+    "message": "사이트"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "스킬"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "동기화"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineCardTitle": {
+    "message": "Custom API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "Official API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "사용자 정의 API"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "공식 API"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "Default"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "Select the official API card to use the bundled defaults"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "Select the custom API card to use your saved API settings"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "Configure your custom API first"
+  },
   "launchSettingsDescription": {
     "message": "Set a default opening URL for official sites or add standalone custom sites."
   },
@@ -472,7 +520,7 @@
     "message": "AI Compare로 여러 AI 플랫폼의 응답을 비교하세요"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "채팅 프롬프트"
   },
   "promptTemplatesLabel": {
     "message": "템플릿:"
@@ -1341,7 +1389,7 @@
     "message": "홈페이지와 iframe 추천은 현재 사이트 유형에 따라 필터링됩니다."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "분석 프롬프트"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Customize the prompt templates used to analyze copied summaries"
@@ -1451,6 +1499,9 @@
   "timelinePanelTitle": {
     "message": "채팅 타임라인"
   },
+  "timelineSharePickerHint": {
+    "message": "공유할 프롬프트를 선택하세요"
+  },
   "timelineEmpty": {
     "message": "No prompts detected in this conversation yet."
   },
@@ -1494,6 +1545,9 @@
         "content": "$2"
       }
     }
+  },
+  "timelineCopyPreviewShare": {
+    "message": "공유"
   },
   "timelineCopyPreviewEmpty": {
     "message": "No copyable responses were found in the current sub-pages."
@@ -1769,6 +1823,18 @@
   "timelineCopyPreviewRefreshing": {
     "message": "Refreshing..."
   },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "공유 링크를 복사했습니다"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "자동 복사에 실패했습니다. 아래 링크를 수동으로 복사해 주세요:"
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "공유 링크 생성에 실패했습니다. 다시 시도해 주세요."
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "사용 가능한 relay 주소를 찾지 못했습니다. 먼저 설정에서 입력해 주세요."
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -1824,9 +1890,6 @@
   },
   "historyUntitledQuery": {
     "message": "제목 없는 질문"
-  },
-  "agentEngineTitle": {
-    "message": "에이전트 엔진"
   },
   "agentEngineDescription": {
     "message": "내장 에이전트 패널이 공용으로 사용하는 모델 백엔드를 설정합니다."

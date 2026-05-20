@@ -132,8 +132,53 @@
   "launchSettingsTitle": {
     "message": "自訂站點"
   },
+  "agentSettingsTitle": {
+    "message": "技能設定"
+  },
   "agentEngineTitle": {
     "message": "API 設定"
+  },
+  "settingsNavShortcutsTitle": {
+    "message": "快捷"
+  },
+  "settingsNavSitesTitle": {
+    "message": "站點"
+  },
+  "settingsNavSkillsTitle": {
+    "message": "技能"
+  },
+  "settingsNavApiTitle": {
+    "message": "API"
+  },
+  "settingsNavSyncTitle": {
+    "message": "同步"
+  },
+  "settingsNavProTitle": {
+    "message": "Pro"
+  },
+  "agentEngineCardTitle": {
+    "message": "自訂 API"
+  },
+  "agentEngineOfficialCardTitle": {
+    "message": "官方 API"
+  },
+  "agentEngineCustomOptionTitle": {
+    "message": "自訂 API"
+  },
+  "agentEngineOfficialOptionTitle": {
+    "message": "官方 API"
+  },
+  "agentEngineDefaultBadge": {
+    "message": "預設"
+  },
+  "agentEngineOfficialCardHint": {
+    "message": "選擇官方 API 卡片後，將使用內建預設設定"
+  },
+  "agentEngineCustomCardHint": {
+    "message": "選擇自訂 API 卡片後，將使用你儲存的 API 設定"
+  },
+  "agentEngineCustomSelectRequiresConfig": {
+    "message": "請先設定自訂 API"
   },
   "agentEngineApiUrlLabel": {
     "message": "API 位址"
@@ -157,31 +202,31 @@
     "message": "例如：gpt-5.4-mini"
   },
   "agentEngineConcurrencyHelp": {
-    "message": "這是所有智能體面板共用的全域並發上限。"
+    "message": "這是所有 Skill 面板共用的全域並發上限。"
   },
   "agentEngineSaveButton": {
-    "message": "儲存智能體引擎"
+    "message": "儲存 Skill 引擎"
   },
   "agentEngineValidationFailed": {
-    "message": "請填寫智能體引擎的所有必填項"
+    "message": "請填寫 Skill 引擎的所有必填項"
   },
   "agentEngineLoadFailed": {
-    "message": "載入智能體引擎設定失敗"
+    "message": "載入 Skill 引擎設定失敗"
   },
   "agentEngineSaveSuccess": {
-    "message": "智能體引擎已儲存"
+    "message": "Skill 引擎已儲存"
   },
   "agentCustomSettingsTitle": {
-    "message": "智能體自訂設定"
+    "message": "Skill 自訂設定"
   },
   "agentCustomSettingsDescription": {
-    "message": "依智能體覆蓋預設名稱、簡介和 persona 提示詞。"
+    "message": "依 Skill 覆蓋預設名稱、簡介和 persona 提示詞。"
   },
   "agentCustomSettingsLoadFailed": {
-    "message": "載入智能體設定失敗"
+    "message": "載入 Skill 設定失敗"
   },
   "agentCustomSettingsEmpty": {
-    "message": "暫無可設定的智能體"
+    "message": "暫無可設定的 Skill"
   },
   "agentCustomOverriddenBadge": {
     "message": "已自訂"
@@ -190,10 +235,10 @@
     "message": "已導入"
   },
   "agentCustomDialogTitle": {
-    "message": "自訂智能體"
+    "message": "自訂 Skill"
   },
   "agentCustomNewTitle": {
-    "message": "新建智能體"
+    "message": "新建 Skill"
   },
   "agentCustomNameLabel": {
     "message": "顯示名稱"
@@ -205,37 +250,37 @@
     "message": "簡介"
   },
   "agentCustomDescriptionPlaceholder": {
-    "message": "一句話說明這個智能體的定位"
+    "message": "一句話說明這個 Skill 的定位"
   },
   "agentCustomPersonaPromptLabel": {
     "message": "Persona 提示詞"
   },
   "agentCustomPersonaPromptPlaceholder": {
-    "message": "定義這個智能體的思考風格與輸出要求"
+    "message": "定義這個 Skill 的思考風格與輸出要求"
   },
   "agentCustomPersonaPromptHelp": {
-    "message": "這裡會直接作為這個智能體唯一的系統提示詞參與回答。"
+    "message": "這裡會直接作為這個 Skill 唯一的系統提示詞參與回答。"
   },
   "agentCustomResetButton": {
     "message": "恢復預設"
   },
   "agentCustomValidationFailed": {
-    "message": "請填寫智能體名稱"
+    "message": "請填寫 Skill 名稱"
   },
   "agentCustomPromptRequired": {
     "message": "請填寫 persona 提示詞"
   },
   "agentCustomSaveSuccess": {
-    "message": "智能體設定已儲存"
+    "message": "Skill 設定已儲存"
   },
   "agentCustomResetSuccess": {
-    "message": "智能體設定已恢復預設"
+    "message": "Skill 設定已恢復預設"
   },
   "agentCustomDeleteConfirm": {
-    "message": "確定要刪除這個已導入的智能體嗎？"
+    "message": "確定要刪除這個已導入的 Skill 嗎？"
   },
   "agentCustomDeleteSuccess": {
-    "message": "已導入的智能體已刪除"
+    "message": "已導入的 Skill 已刪除"
   },
   "agentSkillUrlLabel": {
     "message": "Skill URL"
@@ -250,10 +295,10 @@
     "message": "可直接貼上 SKILL.md 內容；如果填了 URL，會優先抓取 URL 內容"
   },
   "agentSkillContentHelp": {
-    "message": "導入後會轉換為插件內可直接使用的自訂智能體。"
+    "message": "導入後會轉換為插件內可直接使用的自訂 Skill。"
   },
   "agentSkillImportButton": {
-    "message": "建立智能體"
+    "message": "導入 Skill"
   },
   "agentImportButton": {
     "message": "從 URL 導入"
@@ -262,7 +307,7 @@
     "message": "新建"
   },
   "agentImportDialogTitle": {
-    "message": "從 URL 導入智能體"
+    "message": "從 URL 導入 Skill"
   },
   "agentSkillImportValidationFailed": {
     "message": "請填寫 Skill URL 或貼上 Skill 內容"
@@ -271,19 +316,19 @@
     "message": "抓取到的 Skill 內容為空"
   },
   "agentSkillImportInvalid": {
-    "message": "無法將這個 Skill 解析為智能體"
+    "message": "無法將這個 Skill 解析為 Skill"
   },
   "agentSkillImportSuccess": {
-    "message": "Skill 已導入為智能體"
+    "message": "Skill 已成功導入"
   },
   "agentSkillImportPartialSuccess": {
-    "message": "Skill 已按提示詞模式導入為智能體"
+    "message": "Skill 已按提示詞模式導入"
   },
   "agentSkillImportFailed": {
     "message": "導入 Skill 失敗"
   },
   "agentEngineNotConfigured": {
-    "message": "智能體引擎未配置"
+    "message": "Skill 引擎未配置"
   },
   "launchSettingsDescription": {
     "message": "為官方站點設定預設開啟網址，或新增只開啟頁面的自訂網站。"
@@ -316,16 +361,16 @@
     "message": "自訂網站"
   },
   "homepageAgentsTitle": {
-    "message": "AI 智能體"
+    "message": "AI Skills"
   },
   "homepageAgentCategoriesTitle": {
     "message": "分類"
   },
   "homepageAgentCategoryBatchHint": {
-    "message": "雙擊可全選或取消本分類智能體"
+    "message": "雙擊可全選或取消本分類 Skill"
   },
   "homepageNoPanelsSelected": {
-    "message": "請至少選擇一個站點或智能體"
+    "message": "請至少選擇一個站點或 Skill"
   },
   "customSitesDescription": {
     "message": "只負責開啟頁面，不做自動輸入。選中後不會注入提示詞或執行自動化。"
@@ -640,7 +685,7 @@
     "message": "使用AI 比一比进行多AI對比搜尋"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "聊天提示詞"
   },
   "promptTemplatesLabel": {
     "message": "範本："
@@ -1458,7 +1503,7 @@
     "message": "音訊"
   },
   "homepageTypeAgents": {
-    "message": "智能體"
+    "message": "Skills"
   },
   "homepageTypeTranslate": {
     "message": "翻譯"
@@ -1509,7 +1554,7 @@
     "message": "首頁與 iframe 建議會依目前網站類型進行篩選。"
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "分析提示詞"
   },
   "analysisPromptTemplatesDescription": {
     "message": "自訂分析彙總結果時使用的提示詞範本"
@@ -1619,6 +1664,9 @@
   "timelinePanelTitle": {
     "message": "對話時間線"
   },
+  "timelineSharePickerHint": {
+    "message": "選擇要分享的提問記錄"
+  },
   "timelineEmpty": {
     "message": "目前對話裡還沒有識別到提問。"
   },
@@ -1662,6 +1710,9 @@
         "content": "$2"
       }
     }
+  },
+  "timelineCopyPreviewShare": {
+    "message": "分享"
   },
   "timelineCopyPreviewEmpty": {
     "message": "目前沒有可複製的回答內容。"
@@ -1975,6 +2026,18 @@
   "timelineCopyPreviewRefreshing": {
     "message": "重新整理中..."
   },
+  "timelineCopyPreviewShareSuccess": {
+    "message": "分享連結已複製"
+  },
+  "timelineCopyPreviewShareManualPrompt": {
+    "message": "自動複製失敗，請手動複製下面的連結："
+  },
+  "timelineCopyPreviewShareFailed": {
+    "message": "產生分享連結失敗，請重試"
+  },
+  "timelineCopyPreviewShareNoRelay": {
+    "message": "未找到可用的 relay 位址，請先在設定中填寫"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "遠端中繼服務離線。"
   },
@@ -2136,7 +2199,7 @@
     "message": "載入失敗，請重新整理後再試"
   },
   "agentEngineEditDialogTitle": {
-    "message": "編輯智能體引擎"
+    "message": "編輯 Skill 引擎"
   },
   "agentEngineStatusConfigured": {
     "message": "已配置"

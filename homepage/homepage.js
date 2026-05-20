@@ -22,6 +22,7 @@ const HOMEPAGE_DEFAULT_SEND_SHORTCUT = 'enter';
 const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
     navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
 );
+const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
 const SITE_GROUP_LABELS = {
     information: 'homepageTypeInformation',
     translate: 'homepageTypeTranslate'
@@ -550,13 +551,22 @@ function renderAgentsList() {
 
 async function initializeAgentsList() {
     try {
-        const response = await chrome.runtime.sendMessage({
-            action: 'getAgentCatalog'
-        });
+        const [response, localStorageData] = await Promise.all([
+            chrome.runtime.sendMessage({
+                action: 'getAgentCatalog'
+            }),
+            chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY)
+        ]);
+        const hiddenAgentIds = typeof window.AICompareAgentCatalog?.normalizeAgentHiddenIds === 'function'
+            ? window.AICompareAgentCatalog.normalizeAgentHiddenIds(localStorageData?.[AGENT_HIDDEN_IDS_STORAGE_KEY])
+            : (Array.isArray(localStorageData?.[AGENT_HIDDEN_IDS_STORAGE_KEY]) ? localStorageData[AGENT_HIDDEN_IDS_STORAGE_KEY].filter(Boolean) : []);
+        const hiddenAgentIdSet = new Set(hiddenAgentIds.map(id => String(id || '').trim()).filter(Boolean));
         const catalog = response?.success ? response.result : { categories: [], agents: [] };
         homepageSitesState.agentCatalog = {
             categories: Array.isArray(catalog?.categories) ? catalog.categories : [],
-            agents: Array.isArray(catalog?.agents) ? catalog.agents : []
+            agents: Array.isArray(catalog?.agents)
+                ? catalog.agents.filter(agent => agent && !hiddenAgentIdSet.has(String(agent.id || '').trim()))
+                : []
         };
         homepageSitesState.selectedAgents = new Map(
             (homepageSitesState.agentCatalog.agents || []).map(agent => [agent.id, agent.defaultEnabled === true])
@@ -851,11 +861,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             try {
                 await chrome.runtime.sendMessage({ action: 'webdavAutoDownload' });
             } catch (_) {}
-
-            const { firebase_uid } = await chrome.storage.local.get('firebase_uid');
-            if (firebase_uid && typeof window.firebaseSyncMergeAndUpload === 'function') {
-                await window.firebaseSyncMergeAndUpload();
-            }
+            try {
+                await chrome.runtime.sendMessage({ action: 'googleDriveAutoDownload' });
+            } catch (_) {}
         } catch (e) {
             console.warn('Homepage auto sync failed', e);
         } finally {

@@ -25,6 +25,7 @@
 # Archives and ad-hoc exports
 *.zip
 zi*
+.codex-video/
 
 # Local secrets / env files
 .env
