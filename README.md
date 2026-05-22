@@ -151,6 +151,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
 - Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
+- The timeline copy preview's copy button now keeps the Responses summary modal open after copying.
+- The preview body now only shows copyable site responses; failed sites stay in the summary header.
+- Copy/share actions in the Responses summary modal now show feedback next to the clicked button instead of using the top toast.
 - The relay's share endpoints are `POST /shares`, `GET /shares/:shareId`, and `GET /share/:shareId`. For public links, set `PUBLIC_BASE_URL` before starting `remote-relay` so returned `publicUrl` values point at the externally reachable host.
 - Share records are now persisted on disk. Set `SHARE_STORE_FILE` for `remote-relay` if you want the share data file in a stable external path; otherwise it defaults to `remote-relay/data/shares.json`.
 - The DevTools-based verifier expects a real Chrome profile with the extension installed and a reachable endpoint from `DevToolsActivePort`. If that port points to a stale or non-debuggable browser session, it will fail before the extension flow starts. The Playwright verifier launches its own persistent Chromium profile and does not need `DevToolsActivePort`.
@@ -160,6 +163,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow. `node debug/inspect-claude-response.js` prints the outer shell versus the `main .font-claude-response` answer body.
 - Timeline copy now keeps each site response as one block, so multi-paragraph answers stay together instead of being split into numbered sub-answers.
+- Timeline copy preview now preserves list markers like `•` when the source answer contains bullet lists.
 - The timeline copy preview now has a new-tab analysis path: the preview modal can open the default extension compare page, pass the question/summary/raw answers through `chrome.storage.session`, and reuse the existing compare flow without going through OpenClaw.
 - The timeline copy preview also supports selectable analysis prompt templates, and the Settings page includes a matching analysis prompt template manager with default presets.
 - ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
@@ -198,6 +202,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - `ok=false` responses should stop at install / reload guidance; they must not fall back to `web_search` or other search tools.
 - The extension page now exposes `window.aiCompareOpenClaw.run(options)` for automation.
 - OpenClaw TUI smoke test: `openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` returned raw ChatGPT and Gemini plugin content.
+- GitHub packaging now maintains two release-note docs before producing the zip artifact:
+  `docs/release-notes/latest.md` stores the running user-facing improvement request log, and `docs/release-notes/history.md` appends one user-facing version summary per packaged build.
+- Local git commits now auto-refresh the release-note docs in `.githooks/pre-commit`, and `.githooks/post-commit` pushes the committed branch to `origin` so updated `README.md`, privacy docs, and `history.md` sync to GitHub immediately.
 
 ---
 
@@ -397,10 +404,13 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-21 00:08:03 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-22 17:59:46 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.gitignore`
+- `A` `.githooks/post-commit`
+- `M` `.githooks/pre-commit`
+- `A` `.github/workflows/package-extension.yml`
+- `M` `AGENTS.md`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -413,52 +423,40 @@ Last auto-update / 最近自动更新：2026-05-21 00:08:03 UTC+08:00
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
 - `M` `config/agentCatalog.js`
-- `M` `config/agentEngineConfig.js`
-- `M` `config/firebaseConfig.js`
-- `M` `docs/hybrid-site-agent-plan.md`
-- `M` `docs/hybrid-site-agent-test-log.md`
-- `M` `favorites/favorites.css`
+- `A` `config/agentCatalogData.js`
+- `M` `config/appConfig.json`
+- `M` `config/siteHandlers.json`
+- `M` `contact/contact.css`
+- `M` `contact/contact.html`
+- `M` `contact/contact.js`
+- `A` `docs/release-notes/history.md`
+- `A` `docs/release-notes/latest.md`
 - `M` `favorites/favorites.html`
 - `M` `favorites/favorites.js`
-- `M` `history/history.css`
 - `M` `history/history.html`
 - `M` `history/history.js`
 - `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
-- `A` `icons/brain.svg`
-- `A` `icons/file-chart-column.svg`
-- `A` `icons/gem.svg`
-- `A` `icons/link.svg`
-- `A` `icons/message-square-share.svg`
-- `A` `icons/move-3d.svg`
-- `A` `icons/share.svg`
-- `A` `icons/user.svg`
+- `M` `iframe/agent-panel.html`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
-- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
-- `M` `options/options.css`
 - `M` `options/options.html`
 - `M` `options/options.js`
-- `A` `remote-relay/data/shares.json`
 - `M` `remote-relay/src/server.js`
-- `M` `remote-relay/src/store.js`
-- `M` `remote-relay/tests/server.test.js`
-- `M` `shared/agent-prompt-utils.js`
-- `M` `shared/analysis-session-utils.js`
+- `A` `scripts/generate-release-notes.js`
 - `M` `shared/extraction-core.js`
-- `M` `shared/hybrid-favorites.js`
-- `M` `shared/sidebar.html`
+- `A` `shared/runtime-i18n.js`
 - `M` `shared/sidebar.js`
+- `M` `tests/extraction-core.test.js`
 
 ### Recent commits / 最近提交
+- `2a720e3` 2026-05-21 V4.1.0 支持分享到链接
 - `f79a148` 2026-05-18 V4.0.1 修复小 bug
 - `63e4f41` 2026-05-18 V4.0.0 支持智能体
 - `16923e6` 2026-05-15 V3.4.2 完善语言包
 - `52ad022` 2026-05-14 V3.4.1 修复 UI 小问题
-- `d730a72` 2026-05-12 V3.4.0 UI主题黑白色
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

@@ -153,8 +153,56 @@
   "settingsNavSyncTitle": {
     "message": "Sync"
   },
+  "settingsNavLanguageTitle": {
+    "message": "Language"
+  },
   "settingsNavProTitle": {
     "message": "Pro"
+  },
+  "languageSettingsTitle": {
+    "message": "Language settings"
+  },
+  "languageSettingsDescription": {
+    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+  },
+  "languageSettingsHelp": {
+    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+  },
+  "languageSettingsCurrentLocale": {
+    "message": "Current display language"
+  },
+  "languageOptionAuto": {
+    "message": "Follow browser language"
+  },
+  "languageOptionEn": {
+    "message": "English"
+  },
+  "languageOptionZhCn": {
+    "message": "Simplified Chinese"
+  },
+  "languageOptionZhTw": {
+    "message": "Traditional Chinese"
+  },
+  "languageOptionJa": {
+    "message": "Japanese"
+  },
+  "languageOptionKo": {
+    "message": "Korean"
+  },
+  "languageOptionFr": {
+    "message": "French"
+  },
+  "languageOptionDe": {
+    "message": "German"
+  },
+  "languageOptionEs": {
+    "message": "Spanish"
+  },
+  "languageOptionPtBr": {
+    "message": "Portuguese (Brazil)"
+  },
+  "languageOptionAr": {
+    "message": "Arabic"
   },
   "agentEngineDescription": {
     "message": "Agent mode can use either the official API or your custom API."
@@ -726,6 +774,12 @@
   "promptTemplatesDescription": {
     "message": "Customize prompt templates for AI comparison search"
   },
+  "promptTemplatesEmpty": {
+    "message": "No prompt templates yet"
+  },
+  "promptTemplatesEmptyHint": {
+    "message": "Click the add button above to create one"
+  },
   "addTemplateButton": {
     "message": "Add New Template"
   },
@@ -1287,7 +1341,7 @@
     "message": "Local backup"
   },
   "localSyncDescription": {
-    "message": "Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. WebDAV credentials are not included."
+    "message": "Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items."
   },
   "localSyncBadge": {
     "message": "JSON file"
@@ -1472,9 +1526,6 @@
   "googleDriveSyncReconnectButton": {
     "message": "Reconnect Google Drive"
   },
-  "googleDriveSyncRestoreButton": {
-    "message": "Restore from Drive"
-  },
   "googleDriveSyncDisconnectButton": {
     "message": "Disconnect"
   },
@@ -1486,15 +1537,6 @@
   },
   "googleDriveSyncConnectFailed": {
     "message": "Failed to connect Google Drive"
-  },
-  "googleDriveSyncRestoring": {
-    "message": "Restoring data from Google Drive..."
-  },
-  "googleDriveSyncRestoreSuccess": {
-    "message": "Drive backup restored. Refresh the page to use the latest data."
-  },
-  "googleDriveSyncRestoreFailed": {
-    "message": "Failed to restore from Google Drive"
   },
   "googleDriveSyncDisconnectConfirm": {
     "message": "Disconnect Google Drive sync on this device?"
@@ -1510,6 +1552,12 @@
   },
   "googleDriveSyncStatusLoadFailed": {
     "message": "Failed to load Drive connection status"
+  },
+  "googleDriveSyncLastSynced": {
+    "message": "Last synced"
+  },
+  "googleDriveSyncLastError": {
+    "message": "Last error"
   },
   "googleDriveSyncInvalidRedirect": {
     "message": "Google authorization did not return a valid redirect"
@@ -1585,6 +1633,21 @@
   },
   "contactLoadFailed": {
     "message": "Failed to load contact information. Please check appConfig.json."
+  },
+  "contactChangelogTitle": {
+    "message": "What's New"
+  },
+  "contactChangelogDescription": {
+    "message": "Recent updates are shown here so users can quickly understand what changed and how it helps."
+  },
+  "contactChangelogLoading": {
+    "message": "Loading latest updates..."
+  },
+  "contactChangelogEmpty": {
+    "message": "No update notes are available yet."
+  },
+  "contactChangelogLoadFailed": {
+    "message": "Failed to load the latest updates."
   },
   "selectAISites": {
     "message": "AI sites"
@@ -1733,6 +1796,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "Turn this material into a one-page decision memo: start with the recommendation, then explain why it is the best choice, what the risks are, and what to do next. Keep the tone direct and decision-oriented.\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "Risk Analysis"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "Root cause of the failure:「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "Best Practice"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "Write a success retrospective report on this project:「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "Translate to Chinese"
   },
@@ -1824,12 +1899,12 @@
     "message": "Refreshing..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "Successful sites: $1\nFailed sites: $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

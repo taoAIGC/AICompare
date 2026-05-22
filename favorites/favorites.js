@@ -4,7 +4,7 @@ let siteUrlFallbackMap = new Map();
 const HybridFavorites = window.AICompareHybridFavorites || {};
 
 function t(key, fallback = '') {
-    return chrome?.i18n?.getMessage?.(key) || fallback;
+    return window.RuntimeI18n?.getMessage?.(key) || chrome?.i18n?.getMessage?.(key) || fallback;
 }
 
 function initializeI18n() {
@@ -28,6 +28,10 @@ function initializeI18n() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.RuntimeI18n?.initializeRuntimeI18n) {
+        await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+
     initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
     siteUrlFallbackMap = await loadSiteUrlFallbackMap();
@@ -88,7 +92,7 @@ async function renderFolderTabs() {
     container.innerHTML = '';
 
     // "All" tab
-    const allTab = createTabEl(null, chrome.i18n.getMessage('favFolderAll') || '全部', totalCount);
+    const allTab = createTabEl(null, t('favFolderAll', '全部'), totalCount);
     container.appendChild(allTab);
 
     // Per-folder tabs
@@ -101,7 +105,7 @@ async function renderFolderTabs() {
     // Manage button
     const manageBtn = document.createElement('button');
     manageBtn.className = 'folder-manage-btn';
-    manageBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.8 1.3l-.6 1.2-.3.1-1.2-.4-.9.9.4 1.2-.1.3-1.2.6v1.3l1.2.6.1.3-.4 1.2.9.9 1.2-.4.3.1.6 1.2h1.3l.6-1.2.3-.1 1.2.4.9-.9-.4-1.2.1-.3 1.2-.6V5.5l-1.2-.6-.1-.3.4-1.2-.9-.9-1.2.4-.3-.1-.6-1.2H5.8z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="6.5" cy="6.2" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg> ${chrome.i18n.getMessage('favFolderManage') || '管理文件夹'}`;
+    manageBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.8 1.3l-.6 1.2-.3.1-1.2-.4-.9.9.4 1.2-.1.3-1.2.6v1.3l1.2.6.1.3-.4 1.2.9.9 1.2-.4.3.1.6 1.2h1.3l.6-1.2.3-.1 1.2.4.9-.9-.4-1.2.1-.3 1.2-.6V5.5l-1.2-.6-.1-.3.4-1.2-.9-.9-1.2.4-.3-.1-.6-1.2H5.8z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="6.5" cy="6.2" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg> ${t('favFolderManage', '管理文件夹')}`;
     manageBtn.addEventListener('click', () => showFolderManageModal());
     container.appendChild(manageBtn);
 }
@@ -498,7 +502,7 @@ async function showFolderManageModal() {
     const header = document.createElement('div');
     header.className = 'folder-manage-header';
     const title = document.createElement('h3');
-    title.textContent = chrome.i18n.getMessage('favFolderManage') || '管理文件夹';
+    title.textContent = t('favFolderManage', '管理文件夹');
     const closeBtn = document.createElement('button');
     closeBtn.className = 'folder-manage-close';
     closeBtn.innerHTML = '&#x2715;';
@@ -525,7 +529,7 @@ async function showFolderManageModal() {
 
             // Rename (all folders including default)
             const renameBtn = document.createElement('button');
-            renameBtn.title = chrome.i18n.getMessage('editButton') || '编辑';
+            renameBtn.title = t('editButton', '编辑');
             renameBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 2.5l3 3M1.5 9.5l6-6 3 3-6 6H1.5v-3z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
             renameBtn.addEventListener('click', () => startRename(row, folder));
             actions.appendChild(renameBtn);
@@ -533,16 +537,16 @@ async function showFolderManageModal() {
             if (folder.id === 'default') {
                 const badge = document.createElement('span');
                 badge.className = 'folder-manage-default-badge';
-                badge.textContent = chrome.i18n.getMessage('favFolderDefaultLabel') || '默认';
+                badge.textContent = t('favFolderDefaultLabel', '默认');
                 actions.appendChild(badge);
             } else {
                 // Delete (non-default only)
                 const delBtn = document.createElement('button');
                 delBtn.className = 'danger';
-                delBtn.title = chrome.i18n.getMessage('deleteButton') || '删除';
+                delBtn.title = t('deleteButton', '删除');
                 delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2.5h4V4M3.5 4v7.5a1 1 0 001 1h5a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
                 delBtn.addEventListener('click', async () => {
-                    if (!confirm((chrome.i18n.getMessage('favFolderDeleteConfirm') || '删除此文件夹？其中的收藏将移至默认文件夹。'))) return;
+                    if (!confirm((t('favFolderDeleteConfirm', '删除此文件夹？其中的收藏将移至默认文件夹。')))) return;
                     await deleteFolder(folder.id);
                     folders = await window.getFavoriteFolders();
                     render();
@@ -643,5 +647,13 @@ function formatDate(timestamp) {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit'
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('runtime-language-changed', async () => {
+        initializeI18n();
+        await renderFolderTabs();
+        await loadFavorites();
     });
 }

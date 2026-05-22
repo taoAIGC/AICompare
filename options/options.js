@@ -28,6 +28,8 @@ const SYNC_KEYS = [
   AGENT_ENGINE_SETTINGS_STORAGE_KEY,
   AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
 ];
+const RuntimeI18n = window.RuntimeI18n || null;
+const UI_LANGUAGE_STORAGE_KEY = RuntimeI18n?.STORAGE_KEY || 'uiLanguage';
 
 
 // 加载保存的配置
@@ -45,7 +47,7 @@ async function loadConfig() {
 
 // 获取翻译文本
 function getMessage(key, substitutions = null) {
-  return chrome.i18n.getMessage(key, substitutions);
+  return RuntimeI18n?.getMessage?.(key, substitutions) || chrome.i18n.getMessage(key, substitutions);
 }
 
 function getMessageWithFallback(key, fallback = '', substitutions = null) {
@@ -115,12 +117,12 @@ function showToast(message, duration = 2000) {
 // 初始化页面文本
 function initializeI18n() {
   // 更新页面标题
-  document.title = chrome.i18n.getMessage("appName");
+  document.title = getMessage("appName") || document.title;
 
   // 更新所有带有 data-i18n 属性的元素
   document.querySelectorAll('[data-i18n]').forEach(element => {
     const key = element.getAttribute('data-i18n');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.textContent = message;
     }
@@ -128,7 +130,7 @@ function initializeI18n() {
 
   document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
     const key = element.getAttribute('data-i18n-placeholder');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.placeholder = message;
     }
@@ -136,7 +138,7 @@ function initializeI18n() {
 
   document.querySelectorAll('[data-i18n-title]').forEach(element => {
     const key = element.getAttribute('data-i18n-title');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.title = message;
     }
@@ -144,7 +146,7 @@ function initializeI18n() {
 
   document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
     const key = element.getAttribute('data-i18n-aria-label');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.setAttribute('aria-label', message);
     }
@@ -158,7 +160,7 @@ function initializeI18nWithin(root) {
 
   root.querySelectorAll('[data-i18n]').forEach(element => {
     const key = element.getAttribute('data-i18n');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.textContent = message;
     }
@@ -166,7 +168,7 @@ function initializeI18nWithin(root) {
 
   root.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
     const key = element.getAttribute('data-i18n-placeholder');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.placeholder = message;
     }
@@ -174,7 +176,7 @@ function initializeI18nWithin(root) {
 
   root.querySelectorAll('[data-i18n-title]').forEach(element => {
     const key = element.getAttribute('data-i18n-title');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.title = message;
     }
@@ -182,24 +184,78 @@ function initializeI18nWithin(root) {
 
   root.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
     const key = element.getAttribute('data-i18n-aria-label');
-    const message = chrome.i18n.getMessage(key);
+    const message = getMessage(key);
     if (message) {
       element.setAttribute('aria-label', message);
     }
   });
 }
 
-// 等待 DOM 加载完成后初始化
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM 加载完成');
-    initializeI18n();
-    initializeRuleInfo();
-    initializePromptTemplates();
-    initializeAnalysisPromptTemplates();
-    initializeAgentEngineSettings();
-    loadAgentCustomSettingsManager();
-    bindAgentCustomSettingsEvents();
+function getCurrentRuntimeLocale() {
+  return RuntimeI18n?.getCurrentLocale?.() || chrome?.i18n?.getUILanguage?.() || 'en';
+}
+
+function getAgentCatalogRuntimeLocale() {
+  const utils = getAgentCatalogUtils();
+  if (typeof RuntimeI18n?.getCurrentLocale === 'function') {
+    return RuntimeI18n.getCurrentLocale();
+  }
+  if (typeof utils?.getRuntimeLocale === 'function') {
+    return utils.getRuntimeLocale('');
+  }
+  return '';
+}
+
+function buildLanguageSettingsMarkup(selectedLocale) {
+  const options = RuntimeI18n?.getLanguageOptions?.() || [
+    { value: 'auto', labelKey: 'languageOptionAuto', fallback: 'Follow browser language' },
+    { value: 'en', labelKey: 'languageOptionEn', fallback: 'English' },
+    { value: 'zh_CN', labelKey: 'languageOptionZhCn', fallback: '简体中文' },
+    { value: 'zh_TW', labelKey: 'languageOptionZhTw', fallback: '繁體中文' }
+  ];
+
+  const optionHtml = options.map((option) => {
+    const label = getMessage(option.labelKey) || option.fallback;
+    const selected = option.value === selectedLocale ? 'selected' : '';
+    return `<option value="${option.value}" ${selected}>${label}</option>`;
+  }).join('');
+
+  return `
+    <div class="site-config">
+      <div class="site-setting-row">
+        <select id="uiLanguageSelect" class="site-setting-select">${optionHtml}</select>
+      </div>
+    </div>
+  `;
+}
+
+async function initializeLanguageSettings() {
+  const container = document.getElementById('languageSettingsContainer');
+  if (!container) {
+    return;
+  }
+
+  const selectedLocale = await (RuntimeI18n?.getStoredLocalePreference?.() || Promise.resolve('auto'));
+  container.innerHTML = buildLanguageSettingsMarkup(selectedLocale);
+
+  const select = container.querySelector('#uiLanguageSelect');
+  if (!select) {
+    return;
+  }
+
+  select.addEventListener('change', async (event) => {
+    const nextLocale = String(event.target.value || 'auto');
+    try {
+      if (RuntimeI18n?.setLocalePreference) {
+        await RuntimeI18n.setLocalePreference(nextLocale);
+      } else {
+        await chrome.storage.sync.set({ [UI_LANGUAGE_STORAGE_KEY]: nextLocale });
+      }
+      showToast(getMessage('saveSuccess') || 'Saved');
+    } catch (error) {
+      console.error('Failed to update UI language:', error);
+      showToast(getMessage('saveFailed') || 'Save failed');
+    }
   });
 }
 
@@ -246,7 +302,7 @@ function normalizeCustomSiteUrlValue(value) {
 }
 
 function getLaunchMessage(key, fallback = '') {
-  return chrome.i18n.getMessage(key) || fallback;
+  return getMessage(key) || fallback;
 }
 
 function getAgentPromptUtils() {
@@ -689,7 +745,7 @@ async function loadAgentCatalogFromBackground() {
 }
 
 async function loadAgentCustomSettingsMap() {
-  const [{ [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }, { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents, [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }, catalog] = await Promise.all([
+  const [{ [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings }, { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents, [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }, fallbackCatalog] = await Promise.all([
     chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY),
     chrome.storage.local.get([CUSTOM_AGENTS_STORAGE_KEY, AGENT_HIDDEN_IDS_STORAGE_KEY]),
     chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY),
@@ -697,6 +753,7 @@ async function loadAgentCustomSettingsMap() {
   ]);
 
   const utils = getAgentCatalogUtils();
+  const runtimeLocale = getAgentCatalogRuntimeLocale();
   const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
     ? utils.normalizeAgentCustomSettingsMap(storedSettings)
     : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
@@ -705,6 +762,9 @@ async function loadAgentCustomSettingsMap() {
     : (Array.isArray(localCustomAgents) && localCustomAgents.length > 0
       ? localCustomAgents
       : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []));
+  const catalog = typeof utils?.buildCatalogWithCustomSettings === 'function'
+    ? utils.buildCatalogWithCustomSettings(normalizedSettings, normalizedCustomAgents, runtimeLocale)
+    : (typeof utils?.getCatalog === 'function' ? utils.getCatalog(runtimeLocale) : fallbackCatalog);
 
   return {
     catalog,
@@ -1933,6 +1993,11 @@ function renderCustomSitesManager(customSites = []) {
 }
 
 function bindCustomSiteManagerEvents() {
+  if (bindCustomSiteManagerEvents.bound === true) {
+    return;
+  }
+  bindCustomSiteManagerEvents.bound = true;
+
   document.getElementById('addCustomSiteBtn')?.addEventListener('click', () => {
     openCustomSiteDialog();
   });
@@ -2126,12 +2191,12 @@ async function initializeButtonConfigs() {
 
     // 配置项定义
     const configItems = [
-      { id: 'floatButtonSwitch', configKey: 'floatButton', name: chrome.i18n.getMessage("floatButton") },
-      { id: 'selectionQuickSearchSwitch', configKey: 'selectionQuickSearch', name: chrome.i18n.getMessage("selectionQuickSearch") },
-      { id: 'selectionCompareButtonSwitch', configKey: 'selectionCompareButton', name: chrome.i18n.getMessage("selectionCompareButton") },
-      { id: 'aiSiteUserPromptButtonsSwitch', configKey: 'aiSiteUserPromptButtons', name: chrome.i18n.getMessage("aiSiteUserPromptButtons") || 'AI site buttons (compare/favorite)' },
-      { id: 'contextMenuSwitch', configKey: 'contextMenu', name: chrome.i18n.getMessage("contextMenu") },
-      { id: 'searchEngineSwitch', configKey: 'searchEngine', name: chrome.i18n.getMessage("searchEngine") }
+      { id: 'floatButtonSwitch', configKey: 'floatButton', name: getMessage("floatButton") },
+      { id: 'selectionQuickSearchSwitch', configKey: 'selectionQuickSearch', name: getMessage("selectionQuickSearch") },
+      { id: 'selectionCompareButtonSwitch', configKey: 'selectionCompareButton', name: getMessage("selectionCompareButton") },
+      { id: 'aiSiteUserPromptButtonsSwitch', configKey: 'aiSiteUserPromptButtons', name: getMessage("aiSiteUserPromptButtons") || 'AI site buttons (compare/favorite)' },
+      { id: 'contextMenuSwitch', configKey: 'contextMenu', name: getMessage("contextMenu") },
+      { id: 'searchEngineSwitch', configKey: 'searchEngine', name: getMessage("searchEngine") }
     ];
 
     const buttonContainer = document.getElementById('buttonSiteConfigs');
@@ -2169,25 +2234,25 @@ async function initializeButtonConfigs() {
         currentConfig = updatedConfig;
         console.log(`已更新${item.name}配置:`, updatedConfig);
         if (chrome.runtime.lastError) {
-          showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
+          showToast(getMessage("saveFailed", [chrome.runtime.lastError.message]));
           return;
         }
-        showToast(chrome.i18n.getMessage("saveSuccess"));
+        showToast(getMessage("saveSuccess"));
         
       });
     });
 
     const sendShortcutContainer = document.getElementById('sendShortcutConfig');
     if (sendShortcutContainer) {
-      const enterLabel = chrome.i18n.getMessage('sendShortcutOptionEnter') || 'Send with Enter';
-      const modifierLabel = chrome.i18n.getMessage('sendShortcutOptionModifierEnter') || 'Send with Ctrl+Enter / ⌘+Enter';
+      const enterLabel = getMessage('sendShortcutOptionEnter') || 'Send with Enter';
+      const modifierLabel = getMessage('sendShortcutOptionModifierEnter') || 'Send with Ctrl+Enter / ⌘+Enter';
 
       sendShortcutContainer.innerHTML = `
         <div class="site-config">
           <div class="site-header site-setting-row">
             <div class="site-setting-meta">
-              <span class="site-setting-title">${chrome.i18n.getMessage('sendShortcutTitle') || 'Submit Shortcut'}</span>
-              <div class="site-config-help">${chrome.i18n.getMessage('sendShortcutHelp') || 'Shift+Enter always inserts a newline.'}</div>
+              <span class="site-setting-title">${getMessage('sendShortcutTitle') || 'Submit Shortcut'}</span>
+              <div class="site-config-help">${getMessage('sendShortcutHelp') || 'Shift+Enter always inserts a newline.'}</div>
             </div>
             <select id="sendShortcutSelect" class="site-setting-select">
               <option value="enter">${enterLabel}</option>
@@ -2211,10 +2276,10 @@ async function initializeButtonConfigs() {
           await chrome.storage.sync.set({ buttonConfig: updatedConfig });
           currentConfig = updatedConfig;
           if (chrome.runtime.lastError) {
-            showToast(chrome.i18n.getMessage("saveFailed", [chrome.runtime.lastError.message]));
+            showToast(getMessage("saveFailed", [chrome.runtime.lastError.message]));
             return;
           }
-          showToast(chrome.i18n.getMessage("saveSuccess"));
+          showToast(getMessage("saveSuccess"));
         });
       }
     }
@@ -2222,17 +2287,6 @@ async function initializeButtonConfigs() {
   } catch (error) {
     console.error('初始化按钮配置失败:', error);
   }
-}
-
-// 在页面加载时初始化
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-  document.addEventListener('DOMContentLoaded', function() {
-    initializeI18n();
-    loadConfig();
-    initializeLaunchSettings();
-    initializeNavigation();
-    initializeDisabledSites();
-  });
 }
 
 const DEFAULT_SETTINGS_SECTION = 'quick-entry';
@@ -2370,7 +2424,7 @@ function initializeNavigation() {
 // 初始化规则信息
 async function initializeRuleInfo() {
   try {
-    let timeDisplay = chrome.i18n.getMessage('ruleUpdateTimePrefix');
+    let timeDisplay = getMessage('ruleUpdateTimePrefix');
     
     // 获取存储中的版本时间
     let storageTime = null;
@@ -2421,9 +2475,9 @@ async function initializeRuleInfo() {
       const hours = String(latestTime.getHours()).padStart(2, '0');
       const minutes = String(latestTime.getMinutes()).padStart(2, '0');
       const seconds = String(latestTime.getSeconds()).padStart(2, '0');
-      timeDisplay = `${chrome.i18n.getMessage('ruleUpdateTimePrefix')}${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      timeDisplay = `${getMessage('ruleUpdateTimePrefix')}${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     } else {
-      timeDisplay = chrome.i18n.getMessage('ruleUpdateTimeNotAvailable');
+      timeDisplay = getMessage('ruleUpdateTimeNotAvailable');
     }
     
     // 更新显示
@@ -2435,11 +2489,11 @@ async function initializeRuleInfo() {
     // 添加参与规则开发按钮的点击事件
     const devButton = document.getElementById('participateRuleDev');
     if (devButton) {
-      devButton.addEventListener('click', () => {
+      devButton.onclick = () => {
         chrome.tabs.create({
           url: 'https://github.com/taoAIGC/AI-Shortcuts/blob/main/config/siteHandlers.json'
         });
-      });
+      };
     }
     
   } catch (error) {
@@ -2448,7 +2502,7 @@ async function initializeRuleInfo() {
     // 显示错误信息
     const timeElement = document.getElementById('ruleUpdateTime');
     if (timeElement) {
-      timeElement.textContent = chrome.i18n.getMessage('ruleUpdateTimeError');
+      timeElement.textContent = getMessage('ruleUpdateTimeError');
     }
   }
 }
@@ -2464,7 +2518,7 @@ async function initializeDisabledSites() {
     if (disabledSites.length === 0) {
       container.innerHTML = `
         <div class="empty-state state-panel">
-          <p>${chrome.i18n.getMessage('noDisabledSites') || 'No disabled sites'}</p>
+          <p>${getMessage('noDisabledSites') || 'No disabled sites'}</p>
         </div>
       `;
       return;
@@ -2474,24 +2528,26 @@ async function initializeDisabledSites() {
       <div class="disabled-site-item">
         <div class="site-info">
           <span class="site-domain">${site}</span>
-          <span class="site-note">${chrome.i18n.getMessage('floatButtonDisabledNote') || 'Floating button disabled'}</span>
+          <span class="site-note">${getMessage('floatButtonDisabledNote') || 'Floating button disabled'}</span>
         </div>
         <div class="site-actions">
           <button class="enable-btn btn-secondary" data-domain="${site}">
-            ${chrome.i18n.getMessage('reEnableFloatButtonButton') || 'Re-enable'}
+            ${getMessage('reEnableFloatButtonButton') || 'Re-enable'}
           </button>
         </div>
       </div>
     `).join('');
 
-    // 添加事件监听器
-    container.addEventListener('click', handleDisabledSiteAction);
+    if (container.dataset.bound !== 'true') {
+      container.dataset.bound = 'true';
+      container.addEventListener('click', handleDisabledSiteAction);
+    }
     
   } catch (error) {
     console.error('加载禁用网站列表失败:', error);
     container.innerHTML = `
       <div class="error-state state-panel">
-        <p>${chrome.i18n.getMessage('disabledSitesLoadFailed') || 'Failed to load. Please refresh and try again.'}</p>
+        <p>${getMessage('disabledSitesLoadFailed') || 'Failed to load. Please refresh and try again.'}</p>
       </div>
     `;
   }
@@ -2532,6 +2588,116 @@ let currentEditingTemplateId = null;
 let currentEditingAnalysisTemplateId = null;
 let currentEditingCustomSiteId = null;
 let currentEditingAgentId = null;
+const PROMPT_TEMPLATE_LOCALE_DIRS = ['ar', 'de', 'en', 'es', 'fr', 'ja', 'ko', 'pt_BR', 'zh_CN', 'zh_TW'];
+const PROMPT_TEMPLATE_DEFAULT_DEFINITIONS = [
+  {
+    id: 'risk_analysis',
+    nameKey: 'defaultTemplateRiskAnalysisName',
+    queryKey: 'defaultTemplateRiskAnalysisQuery',
+    fallbackName: 'RiskAnalysis',
+    fallbackQuery: 'Root cause of the failure:「{query}」',
+    type: 'information',
+    order: 1
+  },
+  {
+    id: 'best_practice',
+    nameKey: 'defaultTemplateBestPracticeName',
+    queryKey: 'defaultTemplateBestPracticeQuery',
+    fallbackName: 'BestPractice',
+    fallbackQuery: 'Write a success retrospective report on this project:「{query}」',
+    type: 'information',
+    order: 2
+  },
+  {
+    id: 'translate_to_chinese',
+    nameKey: 'defaultTemplateTranslateToChineseName',
+    queryKey: 'defaultTemplateTranslateToChineseQuery',
+    fallbackName: 'Translate to Chinese',
+    fallbackQuery: 'Translate the following content into Chinese:\n\n{query}',
+    type: 'information',
+    order: 3
+  }
+];
+const LEGACY_PROMPT_TEMPLATE_SIGNATURES = {
+  risk_analysis: [
+    {
+      name: 'RiskAnalysis',
+      query: 'Root cause of the failure:「{query}」'
+    }
+  ],
+  best_practice: [
+    {
+      name: 'BestPractice',
+      query: 'Write a success retrospective report on this project:「{query}」'
+    }
+  ],
+  translate_to_chinese: []
+};
+let promptTemplateSignatureMapPromise = null;
+const ANALYSIS_TEMPLATE_LOCALE_DIRS = ['ar', 'de', 'en', 'es', 'fr', 'ja', 'ko', 'pt_BR', 'zh_CN', 'zh_TW'];
+const ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS = [
+  {
+    id: 'analysis_conclusion_first',
+    nameKey: 'defaultAnalysisTemplateConclusionName',
+    queryKey: 'defaultAnalysisTemplateConclusionQuery',
+    fallbackName: '结论先行',
+    fallbackQuery: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}',
+    order: 1
+  },
+  {
+    id: 'analysis_difference_focus',
+    nameKey: 'defaultAnalysisTemplateDifferenceName',
+    queryKey: 'defaultAnalysisTemplateDifferenceQuery',
+    fallbackName: '对比拆解',
+    fallbackQuery: '请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}',
+    order: 2
+  },
+  {
+    id: 'analysis_report',
+    nameKey: 'defaultAnalysisTemplateReportName',
+    queryKey: 'defaultAnalysisTemplateReportQuery',
+    fallbackName: '决策备忘录',
+    fallbackQuery: '请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}',
+    order: 3
+  }
+];
+const LEGACY_ANALYSIS_TEMPLATE_SIGNATURES = {
+  analysis_conclusion_first: [
+    {
+      name: 'Conclusion First',
+      query: 'Please give the conclusion first, then explain the reasons.\n\nQuestion: {question}\n\nSummary:\n{summary}\n\nRaw Answers:\n{rawAnswers}'
+    },
+    {
+      name: '结论优先',
+      query: '请先给出结论，再说明理由。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
+    },
+    {
+      name: '结论先行',
+      query: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n问题：{question}\n\n汇总结果：\n{summary}\n\n各站原始答案：\n{rawAnswers}'
+    }
+  ],
+  analysis_difference_focus: [
+    {
+      name: 'Difference Analysis',
+      query: 'Focus on the shared points, differences, and conflicts across the answers, and give the most credible conclusion.\n\n{analysisInput}'
+    },
+    {
+      name: '差异分析',
+      query: '请重点比较各站回答的共同点、差异点和冲突点，并给出更可信的结论。\n\n{analysisInput}'
+    }
+  ],
+  analysis_report: [
+    {
+      name: 'Structured Report',
+      query: 'Please write a structured analysis report with conclusion, reasons, differences, and recommendations.\n\n{analysisInput}'
+    },
+    {
+      name: '结构化报告',
+      query: '请输出一份结构化分析报告，包含：结论、理由、差异点、建议。\n\n{analysisInput}'
+    }
+  ]
+};
+let analysisTemplateSignatureMapPromise = null;
 
 // 初始化提示词模板管理
 async function initializePromptTemplates() {
@@ -2540,6 +2706,7 @@ async function initializePromptTemplates() {
 
     // 确保有默认模板
     await ensureDefaultTemplates();
+    await syncDefaultPromptTemplatesToRuntimeLanguage();
     
     // 加载并显示模板列表
     await loadTemplatesList();
@@ -2553,15 +2720,240 @@ async function initializePromptTemplates() {
   }
 }
 
+function buildRuntimeDefaultPromptTemplates() {
+  return PROMPT_TEMPLATE_DEFAULT_DEFINITIONS.map((definition) => ({
+    id: definition.id,
+    name: getMessage(definition.nameKey) || definition.fallbackName,
+    query: getMessage(definition.queryKey) || definition.fallbackQuery,
+    type: definition.type,
+    order: definition.order,
+    isDefault: true
+  }));
+}
+
+async function getPromptTemplateSignatureMap() {
+  if (promptTemplateSignatureMapPromise) {
+    return promptTemplateSignatureMapPromise;
+  }
+
+  promptTemplateSignatureMapPromise = (async () => {
+    const signatureMap = {};
+
+    PROMPT_TEMPLATE_DEFAULT_DEFINITIONS.forEach(({ id }) => {
+      signatureMap[id] = [...(LEGACY_PROMPT_TEMPLATE_SIGNATURES[id] || [])];
+    });
+
+    for (const localeDir of PROMPT_TEMPLATE_LOCALE_DIRS) {
+      try {
+        const response = await fetch(chrome.runtime.getURL(`_locales/${localeDir}/messages.json`));
+        if (!response.ok) {
+          continue;
+        }
+
+        const localeMessages = await response.json();
+        PROMPT_TEMPLATE_DEFAULT_DEFINITIONS.forEach(({ id, nameKey, queryKey }) => {
+          const name = String(localeMessages?.[nameKey]?.message || '').trim();
+          const query = String(localeMessages?.[queryKey]?.message || '').trim();
+          if (!name || !query) {
+            return;
+          }
+
+          const alreadyExists = signatureMap[id].some((signature) => (
+            signature.name === name && signature.query === query
+          ));
+          if (!alreadyExists) {
+            signatureMap[id].push({ name, query });
+          }
+        });
+      } catch (error) {
+        console.warn(`读取聊天提示词 locale 失败: ${localeDir}`, error);
+      }
+    }
+
+    return signatureMap;
+  })();
+
+  return promptTemplateSignatureMapPromise;
+}
+
+async function syncDefaultPromptTemplatesToRuntimeLanguage() {
+  const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
+  const existingTemplates = Array.isArray(promptTemplates) ? promptTemplates : [];
+  if (existingTemplates.length === 0) {
+    return false;
+  }
+
+  const desiredTemplates = buildRuntimeDefaultPromptTemplates();
+  const desiredById = new Map(desiredTemplates.map((template) => [template.id, template]));
+  const signaturesById = await getPromptTemplateSignatureMap();
+
+  let changed = false;
+  const nextTemplates = existingTemplates.map((template) => {
+    const desired = desiredById.get(template?.id);
+    if (!desired) {
+      return template;
+    }
+
+    const signatures = signaturesById[template.id] || [];
+    const matchesKnownDefault = signatures.some((signature) => (
+      String(signature?.name || '').trim() === String(template?.name || '').trim()
+      && String(signature?.query || '').trim() === String(template?.query || '').trim()
+    ));
+
+    if (!matchesKnownDefault) {
+      return template;
+    }
+
+    const needsUpdate = (
+      String(template?.name || '').trim() !== desired.name
+      || String(template?.query || '').trim() !== desired.query
+      || String(template?.type || '').trim() !== desired.type
+      || Number(template?.order || 0) !== desired.order
+      || template?.isDefault !== true
+    );
+
+    if (!needsUpdate) {
+      return template;
+    }
+
+    changed = true;
+    return {
+      ...template,
+      name: desired.name,
+      query: desired.query,
+      type: desired.type,
+      order: desired.order,
+      isDefault: true
+    };
+  });
+
+  if (changed) {
+    await chrome.storage.sync.set({ promptTemplates: nextTemplates });
+  }
+
+  return changed;
+}
+
 async function initializeAnalysisPromptTemplates() {
   try {
     await ensureDefaultAnalysisTemplates();
+    await syncDefaultAnalysisPromptTemplatesToRuntimeLanguage();
     await loadAnalysisTemplatesList();
     bindAnalysisTemplateEvents();
     console.log('分析提示词模板管理初始化完成');
   } catch (error) {
     console.error('初始化分析提示词模板失败:', error);
   }
+}
+
+function buildRuntimeDefaultAnalysisTemplates() {
+  return ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS.map((definition) => ({
+    id: definition.id,
+    name: getMessage(definition.nameKey) || definition.fallbackName,
+    query: getMessage(definition.queryKey) || definition.fallbackQuery,
+    order: definition.order,
+    isDefault: true
+  }));
+}
+
+async function getAnalysisTemplateSignatureMap() {
+  if (analysisTemplateSignatureMapPromise) {
+    return analysisTemplateSignatureMapPromise;
+  }
+
+  analysisTemplateSignatureMapPromise = (async () => {
+    const signatureMap = {};
+
+    ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS.forEach(({ id }) => {
+      signatureMap[id] = [...(LEGACY_ANALYSIS_TEMPLATE_SIGNATURES[id] || [])];
+    });
+
+    for (const localeDir of ANALYSIS_TEMPLATE_LOCALE_DIRS) {
+      try {
+        const response = await fetch(chrome.runtime.getURL(`_locales/${localeDir}/messages.json`));
+        if (!response.ok) {
+          continue;
+        }
+
+        const localeMessages = await response.json();
+        ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS.forEach(({ id, nameKey, queryKey }) => {
+          const name = String(localeMessages?.[nameKey]?.message || '').trim();
+          const query = String(localeMessages?.[queryKey]?.message || '').trim();
+          if (!name || !query) {
+            return;
+          }
+
+          const alreadyExists = signatureMap[id].some((signature) => (
+            signature.name === name && signature.query === query
+          ));
+          if (!alreadyExists) {
+            signatureMap[id].push({ name, query });
+          }
+        });
+      } catch (error) {
+        console.warn(`读取分析提示词 locale 失败: ${localeDir}`, error);
+      }
+    }
+
+    return signatureMap;
+  })();
+
+  return analysisTemplateSignatureMapPromise;
+}
+
+async function syncDefaultAnalysisPromptTemplatesToRuntimeLanguage() {
+  const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+  const existingTemplates = Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [];
+  if (existingTemplates.length === 0) {
+    return false;
+  }
+
+  const desiredTemplates = buildRuntimeDefaultAnalysisTemplates();
+  const desiredById = new Map(desiredTemplates.map((template) => [template.id, template]));
+  const signaturesById = await getAnalysisTemplateSignatureMap();
+
+  let changed = false;
+  const nextTemplates = existingTemplates.map((template) => {
+    const desired = desiredById.get(template?.id);
+    if (!desired || template?.isDefault !== true) {
+      return template;
+    }
+
+    const signatures = signaturesById[template.id] || [];
+    const matchesKnownDefault = signatures.some((signature) => (
+      String(signature?.name || '').trim() === String(template?.name || '').trim()
+      && String(signature?.query || '').trim() === String(template?.query || '').trim()
+    ));
+
+    if (!matchesKnownDefault) {
+      return template;
+    }
+
+    const needsUpdate = (
+      String(template?.name || '').trim() !== desired.name
+      || String(template?.query || '').trim() !== desired.query
+      || Number(template?.order || 0) !== desired.order
+    );
+
+    if (!needsUpdate) {
+      return template;
+    }
+
+    changed = true;
+    return {
+      ...template,
+      name: desired.name,
+      query: desired.query,
+      order: desired.order,
+      isDefault: true
+    };
+  });
+
+  if (changed) {
+    await chrome.storage.sync.set({ analysisPromptTemplates: nextTemplates });
+  }
+
+  return changed;
 }
 
 // 确保存在默认模板
@@ -2592,8 +2984,8 @@ async function loadTemplatesList() {
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
         <div class="state-panel">
-          <p>暂无提示词模板</p>
-          <p class="state-message">点击上方"添加新模板"按钮开始创建</p>
+          <p>${getMessageWithFallback('promptTemplatesEmpty', 'No prompt templates yet')}</p>
+          <p class="state-message">${getMessageWithFallback('promptTemplatesEmptyHint', 'Click the add button above to create one')}</p>
         </div>
       `;
       return;
@@ -2605,12 +2997,12 @@ async function loadTemplatesList() {
           <div class="template-item-body">
             <h4 class="template-item-title">${template.name}</h4>
             <div class="template-meta">
-              <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
+              <span>${getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
               <span class="template-badge">${getPromptTemplateTypeLabel(template.type)}</span>
             </div>
           </div>
           <div class="template-actions">
-            <button class="edit-template-btn icon-action-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}">
+            <button class="edit-template-btn icon-action-btn" data-template-id="${template.id}" title="${getMessage('editButton')}" aria-label="${getMessage('editButton')}">
               <img src="../icons/edit.svg" alt="">
             </button>
             ${!template.isDefault ? `<button class="delete-template-btn danger-btn" data-template-id="${template.id}" data-i18n="deleteButton">删除</button>` : ''}
@@ -2627,6 +3019,11 @@ async function loadTemplatesList() {
 
 // 绑定模板相关事件
 function bindTemplateEvents() {
+  if (bindTemplateEvents.bound === true) {
+    return;
+  }
+  bindTemplateEvents.bound = true;
+
   // 添加模板按钮
   const addBtn = document.getElementById('addTemplateBtn');
   if (addBtn) {
@@ -2688,14 +3085,14 @@ async function showTemplateDialog(template = null) {
   
   if (template) {
     // 编辑模式
-    title.textContent = chrome.i18n.getMessage('editTemplateTitle');
+    title.textContent = getMessage('editTemplateTitle');
     nameInput.value = template.name;
     queryInput.value = template.query;
     populateTemplateTypeOptions(template.type);
     orderInput.value = template.order || 1;
   } else {
     // 添加模式
-    title.textContent = chrome.i18n.getMessage('addTemplateTitle');
+    title.textContent = getMessage('addTemplateTitle');
     nameInput.value = '';
     queryInput.value = '';
     populateTemplateTypeOptions('information');
@@ -2745,13 +3142,13 @@ async function saveTemplate() {
   
   // 验证
   if (!name) {
-    showToast(chrome.i18n.getMessage('templateNameRequired'));
+    showToast(getMessage('templateNameRequired'));
     nameInput.focus();
     return;
   }
   
   if (!query) {
-    showToast(chrome.i18n.getMessage('templateQueryRequired'));
+    showToast(getMessage('templateQueryRequired'));
     queryInput.focus();
     return;
   }
@@ -2787,7 +3184,7 @@ async function saveTemplate() {
     await chrome.storage.sync.set({ promptTemplates });
     hideTemplateDialog();
     await loadTemplatesList();
-    showToast(chrome.i18n.getMessage('templateSavedSuccess'));
+    showToast(getMessage('templateSavedSuccess'));
     
   } catch (error) {
     console.error('保存模板失败:', error);
@@ -2812,7 +3209,7 @@ async function editTemplate(templateId) {
 
 // 删除模板
 async function deleteTemplate(templateId) {
-  const confirmMessage = chrome.i18n.getMessage('confirmDeleteTemplate');
+  const confirmMessage = getMessage('confirmDeleteTemplate');
   if (!confirm(confirmMessage)) {
     return;
   }
@@ -2823,7 +3220,7 @@ async function deleteTemplate(templateId) {
     
     await chrome.storage.sync.set({ promptTemplates: filteredTemplates });
     await loadTemplatesList();
-    showToast(chrome.i18n.getMessage('templateDeletedSuccess'));
+    showToast(getMessage('templateDeletedSuccess'));
     
   } catch (error) {
     console.error('删除模板失败:', error);
@@ -2872,8 +3269,8 @@ async function loadAnalysisTemplatesList() {
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
         <div class="state-panel">
-          <p>${chrome.i18n.getMessage('analysisTemplateListEmpty') || '暂无分析提示词模板'}</p>
-          <p class="state-message">${chrome.i18n.getMessage('analysisTemplateListHint') || '点击上方“添加分析提示词”按钮开始创建'}</p>
+          <p>${getMessage('analysisTemplateListEmpty') || '暂无分析提示词模板'}</p>
+          <p class="state-message">${getMessage('analysisTemplateListHint') || '点击上方“添加分析提示词”按钮开始创建'}</p>
         </div>
       `;
       return;
@@ -2885,15 +3282,15 @@ async function loadAnalysisTemplatesList() {
           <div class="template-item-body">
             <h4 class="template-item-title">${template.name}</h4>
             <div class="template-meta">
-              <span>${chrome.i18n.getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
-              <span class="template-badge">${chrome.i18n.getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
+              <span>${getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
+              <span class="template-badge">${getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
             </div>
           </div>
           <div class="template-actions">
-            <button class="edit-analysis-template-btn icon-action-btn" data-template-id="${template.id}" title="${chrome.i18n.getMessage('editButton')}" aria-label="${chrome.i18n.getMessage('editButton')}">
+            <button class="edit-analysis-template-btn icon-action-btn" data-template-id="${template.id}" title="${getMessage('editButton')}" aria-label="${getMessage('editButton')}">
               <img src="../icons/edit.svg" alt="">
             </button>
-            ${!template.isDefault ? `<button class="delete-analysis-template-btn danger-btn" data-template-id="${template.id}">${chrome.i18n.getMessage('deleteButton') || 'Delete'}</button>` : ''}
+            ${!template.isDefault ? `<button class="delete-analysis-template-btn danger-btn" data-template-id="${template.id}">${getMessage('deleteButton') || 'Delete'}</button>` : ''}
           </div>
         </div>
         <div class="template-code preserve-lines">${template.query}</div>
@@ -2905,6 +3302,11 @@ async function loadAnalysisTemplatesList() {
 }
 
 function bindAnalysisTemplateEvents() {
+  if (bindAnalysisTemplateEvents.bound === true) {
+    return;
+  }
+  bindAnalysisTemplateEvents.bound = true;
+
   const addBtn = document.getElementById('addAnalysisTemplateBtn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
@@ -2937,12 +3339,12 @@ async function showAnalysisTemplateDialog(template = null) {
   if (!dialog) return;
 
   if (template) {
-    title.textContent = chrome.i18n.getMessage('editAnalysisTemplateTitle') || 'Edit analysis prompt';
+    title.textContent = getMessage('editAnalysisTemplateTitle') || 'Edit analysis prompt';
     nameInput.value = template.name;
     queryInput.value = template.query;
     orderInput.value = template.order || 1;
   } else {
-    title.textContent = chrome.i18n.getMessage('addAnalysisTemplateTitle') || 'Add analysis prompt';
+    title.textContent = getMessage('addAnalysisTemplateTitle') || 'Add analysis prompt';
     nameInput.value = '';
     queryInput.value = '';
     orderInput.value = 1;
@@ -2973,13 +3375,13 @@ async function saveAnalysisTemplate() {
   const order = parseInt(orderInput.value) || 1;
 
   if (!name) {
-    showToast(chrome.i18n.getMessage('templateNameRequired'));
+    showToast(getMessage('templateNameRequired'));
     nameInput.focus();
     return;
   }
 
   if (!query) {
-    showToast(chrome.i18n.getMessage('templateQueryRequired'));
+    showToast(getMessage('templateQueryRequired'));
     queryInput.focus();
     return;
   }
@@ -3010,7 +3412,7 @@ async function saveAnalysisTemplate() {
     await chrome.storage.sync.set({ analysisPromptTemplates });
     hideAnalysisTemplateDialog();
     await loadAnalysisTemplatesList();
-    showToast(chrome.i18n.getMessage('templateSavedSuccess'));
+    showToast(getMessage('templateSavedSuccess'));
   } catch (error) {
     console.error('保存分析提示词失败:', error);
     showToast(getMessageWithFallback('saveFailedGeneric', 'Save failed. Please try again.'));
@@ -3031,7 +3433,7 @@ async function editAnalysisTemplate(templateId) {
 }
 
 async function deleteAnalysisTemplate(templateId) {
-  const confirmMessage = chrome.i18n.getMessage('confirmDeleteTemplate');
+  const confirmMessage = getMessage('confirmDeleteTemplate');
   if (!confirm(confirmMessage)) {
     return;
   }
@@ -3041,7 +3443,7 @@ async function deleteAnalysisTemplate(templateId) {
     const filteredTemplates = analysisPromptTemplates.filter(t => t.id !== templateId);
     await chrome.storage.sync.set({ analysisPromptTemplates: filteredTemplates });
     await loadAnalysisTemplatesList();
-    showToast(chrome.i18n.getMessage('templateDeletedSuccess'));
+    showToast(getMessage('templateDeletedSuccess'));
   } catch (error) {
     console.error('删除分析提示词失败:', error);
     showToast(getMessageWithFallback('deleteFailed', 'Delete failed. Please try again.'));
@@ -3132,14 +3534,14 @@ function getLocalSyncImportSource(rawPayload) {
 function getLocalSyncImportPayload(rawPayload) {
   const source = getLocalSyncImportSource(rawPayload);
   if (!source) {
-    throw new Error(chrome.i18n.getMessage('localSyncInvalidFile') || 'Invalid backup file');
+    throw new Error(getMessage('localSyncInvalidFile') || 'Invalid backup file');
   }
 
   const syncPatch = pickSyncPayload(source, SYNC_KEYS);
   const localPatch = pickSyncPayload(source, LOCAL_SYNC_KEYS);
 
   if (!Object.keys(syncPatch).length && !Object.keys(localPatch).length) {
-    throw new Error(chrome.i18n.getMessage('localSyncInvalidFile') || 'Invalid backup file');
+    throw new Error(getMessage('localSyncInvalidFile') || 'Invalid backup file');
   }
 
   return { syncPatch, localPatch };
@@ -3158,15 +3560,21 @@ function showSyncStatus(message, type = 'info') {
 
 function formatGoogleDriveSyncAccountText(status = {}) {
   if (status?.email) {
-    return status.accountName ? `${status.accountName} · ${status.email}` : status.email;
+    let summary = status.accountName ? `${status.accountName} · ${status.email}` : status.email;
+    if (status?.lastSyncedAt) {
+      summary += ` · ${getMessage('googleDriveSyncLastSynced') || 'Last synced'}: ${status.lastSyncedAt}`;
+    }
+    if (status?.lastError) {
+      summary += ` · ${getMessage('googleDriveSyncLastError') || 'Last error'}: ${status.lastError}`;
+    }
+    return summary;
   }
-  return chrome.i18n.getMessage('googleDriveSyncNotConnected') || 'Not connected yet';
+  return getMessage('googleDriveSyncNotConnected') || 'Not connected yet';
 }
 
 async function refreshGoogleDriveSyncStatus() {
   const accountEl = document.getElementById('googleDriveSyncAccount');
   const connectBtn = document.getElementById('connectGoogleDriveSync');
-  const restoreBtn = document.getElementById('restoreFromGoogleDriveSync');
   const disconnectBtn = document.getElementById('disconnectGoogleDriveSync');
 
   if (!accountEl) {
@@ -3179,12 +3587,11 @@ async function refreshGoogleDriveSyncStatus() {
     const connected = status.enabled === true && Boolean(status.email);
 
     accountEl.textContent = formatGoogleDriveSyncAccountText(status);
-    if (restoreBtn) restoreBtn.disabled = !connected;
     if (disconnectBtn) disconnectBtn.disabled = !connected;
     if (connectBtn) {
       const label = connected
-        ? (chrome.i18n.getMessage('googleDriveSyncReconnectButton') || 'Reconnect Google Drive')
-        : (chrome.i18n.getMessage('googleDriveSyncConnectButton') || 'Sign in with Google');
+        ? (getMessage('googleDriveSyncReconnectButton') || 'Reconnect Google Drive')
+        : (getMessage('googleDriveSyncConnectButton') || 'Sign in with Google');
       const textNode = connectBtn.querySelector('[data-i18n="googleDriveSyncConnectButton"], [data-i18n="googleDriveSyncReconnectButton"]');
       if (textNode) {
         textNode.textContent = label;
@@ -3194,8 +3601,7 @@ async function refreshGoogleDriveSyncStatus() {
 
     return status;
   } catch (error) {
-    accountEl.textContent = chrome.i18n.getMessage('googleDriveSyncStatusLoadFailed') || 'Failed to load Drive connection status';
-    if (restoreBtn) restoreBtn.disabled = true;
+    accountEl.textContent = getMessage('googleDriveSyncStatusLoadFailed') || 'Failed to load Drive connection status';
     if (disconnectBtn) disconnectBtn.disabled = true;
     return null;
   }
@@ -3204,52 +3610,41 @@ async function refreshGoogleDriveSyncStatus() {
 async function connectGoogleDriveSync() {
   const connectBtn = document.getElementById('connectGoogleDriveSync');
   if (connectBtn) connectBtn.disabled = true;
-  showSyncStatus(chrome.i18n.getMessage('googleDriveSyncConnecting') || 'Opening Google authorization…', 'loading');
+  showSyncStatus(getMessage('googleDriveSyncConnecting') || 'Opening Google authorization…', 'loading');
   try {
     const resp = await chrome.runtime.sendMessage({ action: 'googleDriveConnect' });
     if (!resp?.success) {
       throw new Error(resp?.error || 'Google Drive connection failed');
     }
-    showSyncStatus(chrome.i18n.getMessage('googleDriveSyncConnected') || 'Google Drive connected', 'success');
-    await refreshGoogleDriveSyncStatus();
+    showSyncStatus(getMessage('googleDriveSyncConnected') || 'Google Drive connected', 'success');
+    const status = await refreshGoogleDriveSyncStatus();
+    if (status?.lastError) {
+      showSyncStatus(`${getMessage('googleDriveSyncConnectFailed') || 'Failed to connect Google Drive'}: ${status.lastError}`, 'error');
+    }
   } catch (error) {
-    showSyncStatus(`${chrome.i18n.getMessage('googleDriveSyncConnectFailed') || 'Failed to connect Google Drive'}: ${error.message}`, 'error');
+    showSyncStatus(`${getMessage('googleDriveSyncConnectFailed') || 'Failed to connect Google Drive'}: ${error.message}`, 'error');
   } finally {
     if (connectBtn) connectBtn.disabled = false;
   }
 }
 
-async function restoreFromGoogleDriveSync() {
-  showSyncStatus(chrome.i18n.getMessage('googleDriveSyncRestoring') || 'Restoring data from Google Drive…', 'loading');
-  try {
-    const resp = await chrome.runtime.sendMessage({ action: 'googleDriveImport' });
-    if (!resp?.success) {
-      throw new Error(resp?.error || 'Drive restore failed');
-    }
-    showSyncStatus(chrome.i18n.getMessage('googleDriveSyncRestoreSuccess') || 'Drive backup restored. Refresh the page to use the latest data.', 'success');
-    await refreshGoogleDriveSyncStatus();
-  } catch (error) {
-    showSyncStatus(`${chrome.i18n.getMessage('googleDriveSyncRestoreFailed') || 'Failed to restore from Google Drive'}: ${error.message}`, 'error');
-  }
-}
-
 async function disconnectGoogleDriveSync() {
-  const confirmMessage = chrome.i18n.getMessage('googleDriveSyncDisconnectConfirm')
+  const confirmMessage = getMessage('googleDriveSyncDisconnectConfirm')
     || 'Disconnect Google Drive sync on this device?';
   if (!window.confirm(confirmMessage)) {
     return;
   }
 
-  showSyncStatus(chrome.i18n.getMessage('googleDriveSyncDisconnecting') || 'Disconnecting Google Drive…', 'loading');
+  showSyncStatus(getMessage('googleDriveSyncDisconnecting') || 'Disconnecting Google Drive…', 'loading');
   try {
     const resp = await chrome.runtime.sendMessage({ action: 'googleDriveDisconnect' });
     if (!resp?.success) {
       throw new Error(resp?.error || 'Google Drive disconnect failed');
     }
-    showSyncStatus(chrome.i18n.getMessage('googleDriveSyncDisconnected') || 'Google Drive disconnected', 'success');
+    showSyncStatus(getMessage('googleDriveSyncDisconnected') || 'Google Drive disconnected', 'success');
     await refreshGoogleDriveSyncStatus();
   } catch (error) {
-    showSyncStatus(`${chrome.i18n.getMessage('googleDriveSyncDisconnectFailed') || 'Failed to disconnect Google Drive'}: ${error.message}`, 'error');
+    showSyncStatus(`${getMessage('googleDriveSyncDisconnectFailed') || 'Failed to disconnect Google Drive'}: ${error.message}`, 'error');
   }
 }
 
@@ -3278,14 +3673,14 @@ function updateAuthTypeUI(authType) {
 
   if (authType === 'token') {
     table?.classList.add('token-mode');
-    if (passwordHeader) passwordHeader.textContent  = chrome.i18n.getMessage('syncAuthToken') || 'Token';
+    if (passwordHeader) passwordHeader.textContent  = getMessage('syncAuthToken') || 'Token';
     if (passwordInput) {
-      passwordInput.placeholder  = chrome.i18n.getMessage('syncTokenPlaceholder') || '输入 Token';
+      passwordInput.placeholder  = getMessage('syncTokenPlaceholder') || '输入 Token';
       passwordInput.autocomplete = 'off';
     }
   } else {
     table?.classList.remove('token-mode');
-    if (passwordHeader) passwordHeader.textContent  = chrome.i18n.getMessage('syncPassword') || '密码';
+    if (passwordHeader) passwordHeader.textContent  = getMessage('syncPassword') || '密码';
     if (passwordInput) {
       passwordInput.placeholder  = '••••••••';
       passwordInput.autocomplete = 'current-password';
@@ -3313,20 +3708,20 @@ async function saveSyncConfig() {
   };
 
   if (!cfg.url) {
-    showSyncStatus(chrome.i18n.getMessage('syncErrorNoUrl') || '请填写 WebDAV 地址', 'error');
+    showSyncStatus(getMessage('syncErrorNoUrl') || '请填写 WebDAV 地址', 'error');
     document.getElementById('syncUrl')?.focus();
     return;
   }
   if (cfg.authType !== 'token' && !cfg.username) {
-    showSyncStatus(chrome.i18n.getMessage('syncErrorNoUsername') || '请填写用户名', 'error');
+    showSyncStatus(getMessage('syncErrorNoUsername') || '请填写用户名', 'error');
     document.getElementById('syncUsername')?.focus();
     return;
   }
   if (!cfg.password) {
     showSyncStatus(
       cfg.authType === 'token'
-        ? (chrome.i18n.getMessage('syncErrorNoToken') || '请填写 Token')
-        : (chrome.i18n.getMessage('syncErrorNoPassword') || '请填写密码'),
+        ? (getMessage('syncErrorNoToken') || '请填写 Token')
+        : (getMessage('syncErrorNoPassword') || '请填写密码'),
       'error'
     );
     document.getElementById('syncPassword')?.focus();
@@ -3334,7 +3729,7 @@ async function saveSyncConfig() {
   }
 
   await chrome.storage.local.set({ [SYNC_STORAGE_KEY]: cfg });
-  showSyncStatus(chrome.i18n.getMessage('saveSuccess') || '已保存', 'success');
+  showSyncStatus(getMessage('saveSuccess') || '已保存', 'success');
   updateConnectionTableState(cfg.enabled);
 }
 
@@ -3357,26 +3752,26 @@ function getWebDAVFileURL(cfg) {
 async function testSyncConnection() {
   const cfg = await getSyncConfig();
   if (!cfg || !cfg.url) {
-    showSyncStatus(chrome.i18n.getMessage('syncErrorNoUrl') || '请先填写 WebDAV 地址', 'error');
+    showSyncStatus(getMessage('syncErrorNoUrl') || '请先填写 WebDAV 地址', 'error');
     return;
   }
-  showSyncStatus(chrome.i18n.getMessage('syncTesting') || '正在测试连接…', 'loading');
+  showSyncStatus(getMessage('syncTesting') || '正在测试连接…', 'loading');
   try {
     const res = await fetch(cfg.url, {
       method: 'PROPFIND',
       headers: { ...buildWebDAVHeaders(cfg), 'Depth': '0' },
     });
     if (res.ok || res.status === 207) {
-      showSyncStatus(chrome.i18n.getMessage('syncTestSuccess') || '连接成功！', 'success');
+      showSyncStatus(getMessage('syncTestSuccess') || '连接成功！', 'success');
     } else {
       showSyncStatus(
-        (chrome.i18n.getMessage('syncTestFailed') || '连接失败') + `: HTTP ${res.status}`,
+        (getMessage('syncTestFailed') || '连接失败') + `: HTTP ${res.status}`,
         'error'
       );
     }
   } catch (e) {
     showSyncStatus(
-      (chrome.i18n.getMessage('syncTestFailed') || '连接失败') + `: ${e.message}`,
+      (getMessage('syncTestFailed') || '连接失败') + `: ${e.message}`,
       'error'
     );
   }
@@ -3415,11 +3810,11 @@ async function exportLocalSyncBackup() {
   try {
     const payload = await exportAllSettings();
     downloadJsonFile(createLocalSyncFileName(), payload);
-    showSyncStatus(chrome.i18n.getMessage('localSyncExportSuccess') || '备份已下载', 'success');
+    showSyncStatus(getMessage('localSyncExportSuccess') || '备份已下载', 'success');
   } catch (error) {
     console.error('导出本地备份失败:', error);
     showSyncStatus(
-      `${chrome.i18n.getMessage('localSyncExportFailed') || '导出失败'}: ${error.message}`,
+      `${getMessage('localSyncExportFailed') || '导出失败'}: ${error.message}`,
       'error'
     );
   }
@@ -3433,7 +3828,7 @@ async function importLocalSyncBackupFromFile(file) {
   try {
     const text = await file.text();
     const rawPayload = JSON.parse(text.replace(/^\uFEFF/, '').trim());
-    const confirmMessage = chrome.i18n.getMessage('localSyncImportConfirm')
+    const confirmMessage = getMessage('localSyncImportConfirm')
       || 'Import this backup and overwrite the current sync data?';
 
     if (!window.confirm(confirmMessage)) {
@@ -3442,7 +3837,7 @@ async function importLocalSyncBackupFromFile(file) {
 
     const { syncPatch, localPatch } = getLocalSyncImportPayload(rawPayload);
 
-    showSyncStatus(chrome.i18n.getMessage('localSyncImporting') || '正在恢复本地备份…', 'loading');
+    showSyncStatus(getMessage('localSyncImporting') || '正在恢复本地备份…', 'loading');
 
     const writeTasks = [];
     if (Object.keys(syncPatch).length > 0) {
@@ -3458,15 +3853,15 @@ async function importLocalSyncBackupFromFile(file) {
     await Promise.all(writeTasks);
 
     showSyncStatus(
-      chrome.i18n.getMessage('localSyncImportSuccess') || '本地备份已恢复，请刷新页面生效',
+      getMessage('localSyncImportSuccess') || '本地备份已恢复，请刷新页面生效',
       'success'
     );
   } catch (error) {
     console.error('导入本地备份失败:', error);
-    const invalidMessage = chrome.i18n.getMessage('localSyncInvalidFile') || 'This file is not a valid AI Compare backup';
+    const invalidMessage = getMessage('localSyncInvalidFile') || 'This file is not a valid AI Compare backup';
     const detail = error instanceof SyntaxError ? invalidMessage : (error.message || invalidMessage);
     showSyncStatus(
-      `${chrome.i18n.getMessage('localSyncImportFailed') || '恢复失败'}: ${detail}`,
+      `${getMessage('localSyncImportFailed') || '恢复失败'}: ${detail}`,
       'error'
     );
   } finally {
@@ -3495,10 +3890,10 @@ async function handleLocalSyncFileSelection(event) {
 async function syncNow() {
   const cfg = await getSyncConfig();
   if (!cfg.enabled || !cfg.url) {
-    showSyncStatus(chrome.i18n.getMessage('syncErrorNotConfigured') || '请先启用同步并填写 WebDAV 配置', 'error');
+    showSyncStatus(getMessage('syncErrorNotConfigured') || '请先启用同步并填写 WebDAV 配置', 'error');
     return;
   }
-  showSyncStatus(chrome.i18n.getMessage('syncUploading') || '正在上传数据…', 'loading');
+  showSyncStatus(getMessage('syncUploading') || '正在上传数据…', 'loading');
   try {
     const payload = await exportAllSettings();
     const fileURL  = getWebDAVFileURL(cfg);
@@ -3510,18 +3905,18 @@ async function syncNow() {
     if (res.ok || res.status === 201 || res.status === 204) {
       const timeStr = new Date().toLocaleTimeString();
       showSyncStatus(
-        (chrome.i18n.getMessage('syncSuccess') || '同步成功') + ' · ' + timeStr,
+        (getMessage('syncSuccess') || '同步成功') + ' · ' + timeStr,
         'success'
       );
     } else {
       showSyncStatus(
-        (chrome.i18n.getMessage('syncFailed') || '同步失败') + `: HTTP ${res.status}`,
+        (getMessage('syncFailed') || '同步失败') + `: HTTP ${res.status}`,
         'error'
       );
     }
   } catch (e) {
     showSyncStatus(
-      (chrome.i18n.getMessage('syncFailed') || '同步失败') + `: ${e.message}`,
+      (getMessage('syncFailed') || '同步失败') + `: ${e.message}`,
       'error'
     );
   }
@@ -3530,26 +3925,26 @@ async function syncNow() {
 async function importFromSync() {
   const cfg = await getSyncConfig();
   if (!cfg.enabled || !cfg.url) {
-    showSyncStatus(chrome.i18n.getMessage('syncErrorNotConfigured') || '请先启用同步并填写 WebDAV 配置', 'error');
+    showSyncStatus(getMessage('syncErrorNotConfigured') || '请先启用同步并填写 WebDAV 配置', 'error');
     return;
   }
-  showSyncStatus(chrome.i18n.getMessage('syncDownloading') || '正在从云端下载数据…', 'loading');
+  showSyncStatus(getMessage('syncDownloading') || '正在从云端下载数据…', 'loading');
   try {
     // 委托 background service worker 执行 fetch，避免 options 页面跨域/CORS 限制
     const resp = await chrome.runtime.sendMessage({ action: 'webdavImport' });
     if (resp && resp.success) {
       showSyncStatus(
-        (chrome.i18n.getMessage('syncImportSuccess') || '云端数据已恢复，请刷新页面生效'),
+        (getMessage('syncImportSuccess') || '云端数据已恢复，请刷新页面生效'),
         'success'
       );
     } else {
-      const errMsg = (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') +
+      const errMsg = (getMessage('syncImportFailed') || '恢复失败') +
         (resp?.error ? `: ${resp.error}` : '');
       showSyncStatus(errMsg, 'error');
     }
   } catch (e) {
     showSyncStatus(
-      (chrome.i18n.getMessage('syncImportFailed') || '恢复失败') + `: ${e.message}`,
+      (getMessage('syncImportFailed') || '恢复失败') + `: ${e.message}`,
       'error'
     );
   }
@@ -3567,20 +3962,57 @@ function initializeDataSync() {
     updateAuthTypeUI(e.target.value);
   });
 
-  document.getElementById('saveSyncConfig')?.addEventListener('click', saveSyncConfig);
-  document.getElementById('importFromSync')?.addEventListener('click', importFromSync);
-  document.getElementById('exportLocalSync')?.addEventListener('click', exportLocalSyncBackup);
-  document.getElementById('importLocalSync')?.addEventListener('click', handleLocalSyncImportClick);
-  document.getElementById('localSyncFileInput')?.addEventListener('change', handleLocalSyncFileSelection);
-  document.getElementById('connectGoogleDriveSync')?.addEventListener('click', connectGoogleDriveSync);
-  document.getElementById('restoreFromGoogleDriveSync')?.addEventListener('click', restoreFromGoogleDriveSync);
-  document.getElementById('disconnectGoogleDriveSync')?.addEventListener('click', disconnectGoogleDriveSync);
+  const saveSyncBtn = document.getElementById('saveSyncConfig');
+  if (saveSyncBtn && saveSyncBtn.dataset.bound !== 'true') {
+    saveSyncBtn.dataset.bound = 'true';
+    saveSyncBtn.addEventListener('click', saveSyncConfig);
+  }
 
-  document.getElementById('togglePassword')?.addEventListener('click', () => {
+  const importSyncBtn = document.getElementById('importFromSync');
+  if (importSyncBtn && importSyncBtn.dataset.bound !== 'true') {
+    importSyncBtn.dataset.bound = 'true';
+    importSyncBtn.addEventListener('click', importFromSync);
+  }
+
+  const exportLocalBtn = document.getElementById('exportLocalSync');
+  if (exportLocalBtn && exportLocalBtn.dataset.bound !== 'true') {
+    exportLocalBtn.dataset.bound = 'true';
+    exportLocalBtn.addEventListener('click', exportLocalSyncBackup);
+  }
+
+  const importLocalBtn = document.getElementById('importLocalSync');
+  if (importLocalBtn && importLocalBtn.dataset.bound !== 'true') {
+    importLocalBtn.dataset.bound = 'true';
+    importLocalBtn.addEventListener('click', handleLocalSyncImportClick);
+  }
+
+  const localSyncFileInput = document.getElementById('localSyncFileInput');
+  if (localSyncFileInput && localSyncFileInput.dataset.bound !== 'true') {
+    localSyncFileInput.dataset.bound = 'true';
+    localSyncFileInput.addEventListener('change', handleLocalSyncFileSelection);
+  }
+
+  const connectGoogleDriveBtn = document.getElementById('connectGoogleDriveSync');
+  if (connectGoogleDriveBtn && connectGoogleDriveBtn.dataset.bound !== 'true') {
+    connectGoogleDriveBtn.dataset.bound = 'true';
+    connectGoogleDriveBtn.addEventListener('click', connectGoogleDriveSync);
+  }
+
+  const disconnectGoogleDriveBtn = document.getElementById('disconnectGoogleDriveSync');
+  if (disconnectGoogleDriveBtn && disconnectGoogleDriveBtn.dataset.bound !== 'true') {
+    disconnectGoogleDriveBtn.dataset.bound = 'true';
+    disconnectGoogleDriveBtn.addEventListener('click', disconnectGoogleDriveSync);
+  }
+
+  const togglePasswordBtn = document.getElementById('togglePassword');
+  if (togglePasswordBtn && togglePasswordBtn.dataset.bound !== 'true') {
+    togglePasswordBtn.dataset.bound = 'true';
+    togglePasswordBtn.addEventListener('click', () => {
     const input = document.getElementById('syncPassword');
     if (!input) return;
     input.type = input.type === 'password' ? 'text' : 'password';
-  });
+    });
+  }
 }
 
 let remoteSearchUiInitialized = false;
@@ -4042,14 +4474,14 @@ async function initializeMembership() {
   }
   if (planLabelEl) {
     planLabelEl.textContent = isPro
-      ? (chrome.i18n.getMessage('membershipPlanPro') || 'Pro')
-      : (chrome.i18n.getMessage('membershipPlanFree') || 'Free');
+      ? (getMessage('membershipPlanPro') || 'Pro')
+      : (getMessage('membershipPlanFree') || 'Free');
   }
 
   if (isPro && planInfo.planExpiresAt && expiryEl) {
     const expiryDate = new Date(planInfo.planExpiresAt);
     const dateStr = expiryDate.toLocaleDateString();
-    const expiryLabel = chrome.i18n.getMessage('membershipExpiresOn') || '到期时间：';
+    const expiryLabel = getMessage('membershipExpiresOn') || '到期时间：';
     expiryEl.textContent = `${expiryLabel}${dateStr}`;
     expiryEl.style.display = 'block';
   }
@@ -4068,7 +4500,7 @@ async function initializeMembership() {
 
   async function handleUpgrade(priceId, btn) {
     if (!priceId || priceId.startsWith('price_REPLACE')) {
-      showToast(chrome.i18n.getMessage('membershipPriceNotConfigured') || 'Stripe Price ID not configured. Please set it first.', 3000);
+      showToast(getMessage('membershipPriceNotConfigured') || 'Stripe Price ID not configured. Please set it first.', 3000);
       return;
     }
     if (btn) btn.disabled = true;
@@ -4086,22 +4518,29 @@ async function initializeMembership() {
   }
 
   if (btnMonthly) {
-    btnMonthly.addEventListener('click', () => {
-      const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.monthly) || '';
-      handleUpgrade(priceId, btnMonthly);
-    });
+    if (btnMonthly.dataset.bound !== 'true') {
+      btnMonthly.dataset.bound = 'true';
+      btnMonthly.addEventListener('click', () => {
+        const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.monthly) || '';
+        handleUpgrade(priceId, btnMonthly);
+      });
+    }
   }
 
   if (btnYearly) {
-    btnYearly.addEventListener('click', () => {
-      const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.yearly) || '';
-      handleUpgrade(priceId, btnYearly);
-    });
+    if (btnYearly.dataset.bound !== 'true') {
+      btnYearly.dataset.bound = 'true';
+      btnYearly.addEventListener('click', () => {
+        const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.yearly) || '';
+        handleUpgrade(priceId, btnYearly);
+      });
+    }
   }
 
   // 管理订阅按钮
   const btnManage = document.getElementById('btnManageSubscription');
-  if (btnManage) {
+  if (btnManage && btnManage.dataset.bound !== 'true') {
+    btnManage.dataset.bound = 'true';
     btnManage.addEventListener('click', async () => {
       btnManage.disabled = true;
       try {
@@ -4120,33 +4559,57 @@ async function initializeMembership() {
 
 }
 
-// 页面初始化
+async function initializeOptionsPage() {
+  console.log('Options page loaded');
+
+  if (RuntimeI18n?.initializeRuntimeI18n) {
+    await RuntimeI18n.initializeRuntimeI18n();
+  }
+
+  initializeI18n();
+  await initializeLanguageSettings();
+
+  loadConfig();
+  await initializeLaunchSettings();
+  initializeNavigation();
+  initializeDisabledSites();
+  initializeRuleInfo();
+  await initializePromptTemplates();
+  await initializeAnalysisPromptTemplates();
+  initializeAgentEngineSettings();
+  loadAgentCustomSettingsManager();
+  bindAgentCustomSettingsEvents();
+  handleHashNavigation();
+  window.addEventListener('hashchange', handleHashNavigation);
+  initializeDataSync();
+  initializeRemoteSearchSettings();
+  initializeMembership();
+}
+
+async function refreshOptionsPageForLanguageChange() {
+  initializeI18n();
+  await initializeLanguageSettings();
+  await initializeButtonConfigs();
+  await initializeLaunchSettings();
+  initializeDisabledSites();
+  initializeRuleInfo();
+  await initializePromptTemplates();
+  await initializeAnalysisPromptTemplates();
+  await initializeAgentEngineSettings();
+  await loadAgentCustomSettingsManager();
+  await refreshGoogleDriveSyncStatus();
+  await initializeMembership();
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('runtime-language-changed', async () => {
+    await refreshOptionsPageForLanguageChange();
+  });
+}
+
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('Options page loaded');
-    
-    // 初始化国际化
-    initializeI18n();
-    
-    // 加载配置
-    loadConfig();
-    
-    // 初始化导航
-    initializeNavigation();
-    
-    // 处理锚点跳转
-    handleHashNavigation();
-    
-    // 监听 hash 变化
-    window.addEventListener('hashchange', handleHashNavigation);
-
-    // 初始化数据同步
-    initializeDataSync();
-
-    // 初始化远程搜索
-    initializeRemoteSearchSettings();
-
-    initializeMembership();
+    void initializeOptionsPage();
   });
 }
 

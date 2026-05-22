@@ -907,27 +907,39 @@
         ]
       },
       "contentExtractor": {
-        "selectors": [
-          "[data-message-author-role=\"assistant\"] .markdown",
-          "[data-message-author-role=\"assistant\"]",
-          ".deepseek-message .markdown",
-          ".deepseek-message",
+        "latestVisibleResponse": {
+          "messageSelector": ".ds-message .ds-markdown, [data-message-author-role=\"assistant\"] .markdown, [data-message-author-role=\"assistant\"] .ds-markdown",
+          "ignoredAncestorSelectors": [
+            "button",
+            "[class*=\"copy\"]",
+            "[class*=\"input\"]",
+            "[class*=\"prompt\"]",
+            ".attachment",
+            "[class*=\"attachment\"]",
+            "nav",
+            "header",
+            "footer",
+            "aside"
+          ]
+        },
+        "messageContainer": ".ds-message, [data-message-author-role=\"assistant\"]",
+        "contentSelectors": [
+          ".ds-markdown",
+          ".markdown",
           ".message-content .markdown",
-          ".message-content",
-          "[class*=\"deepseek\"][class*=\"message\"]",
-          "[class*=\"deepseek\"]",
-          "[class*=\"message\"]",
-          "[class*=\"response\"]",
-          "[class*=\"conversation\"]",
-          "[class*=\"chat\"]",
-          ".deepseek-response",
-          "[class*=\"deepseek-response\"]",
-          ".ai-response",
-          "[class*=\"ai-response\"]",
-          ".chat-message",
-          "[class*=\"chat-message\"]"
+          ".message-content"
+        ],
+        "selectors": [
+          ".ds-message .ds-markdown",
+          "[data-message-author-role=\"assistant\"] .markdown",
+          "[data-message-author-role=\"assistant\"] .ds-markdown",
+          ".message-content .markdown",
+          ".message-content"
         ],
         "fallbackSelectors": [
+          ".ds-message .ds-markdown",
+          ".ds-message",
+          "[data-message-author-role=\"assistant\"]",
           "main",
           "article",
           ".container",
@@ -955,7 +967,8 @@
           "[class*=\"stop\"]",
           ".attachment",
           "[class*=\"attachment\"]"
-        ]
+        ],
+        "exportLatestOnly": true
       },
       "historyHandler": {
         "urlFeature": "/chat/"
@@ -1706,26 +1719,6 @@
         "textSelector": "div.agent-chat__bubble--human, [class*=\"human-bubble\"], [class*=\"human-message\"] p, [class*=\"human-message\"] div"
       },
       "icon": "yuanbao.tencent.com.png",
-      "type": "information"
-    },
-    {
-      "name": "Google",
-      "url": "https://www.google.com/search?q={query}",
-      "enabled": false,
-      "supportUrlQuery": true,
-      "region": "US",
-      "hidden": false,
-      "supportIframe": true,
-      "searchHandler": {
-        "steps": [
-          {
-            "action": "custom",
-            "customAction": "url_query",
-            "description": "使用URL查询，无需输入框操作"
-          }
-        ]
-      },
-      "icon": "www.google.com.png",
       "type": "information"
     },
     {

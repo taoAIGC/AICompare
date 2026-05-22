@@ -16,6 +16,13 @@
                     <h1 data-i18n="contactLink">Contact Me</h1>
                     <div id="contactList" class="contact-list" aria-live="polite"></div>
                 </section>
+                <section class="settings-section changelog-section">
+                    <div class="section-header">
+                        <h2 data-i18n="contactChangelogTitle">What's New</h2>
+                        <p class="section-description" data-i18n="contactChangelogDescription">Recent updates are shown here so users can quickly understand what changed and why it helps.</p>
+                    </div>
+                    <div id="changelogContent" class="changelog-card" aria-live="polite"></div>
+                </section>
             </div>
         </main>
     </div>
@@ -23,6 +30,7 @@
     <script src="../shared/site-launch-utils.js"></script>
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
+    <script src="../shared/runtime-i18n.js"></script>
     <script src="../config/firebaseConfig.js"></script>
     <script src="../firebase/firebase-auth.js"></script>
     <script src="../firebase/firebase-sync.js"></script>

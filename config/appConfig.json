@@ -1,9 +1,5 @@
 {
-  "defaultFavoriteSites": [
-    {
-      "name": "Google"
-    }
-  ],
+  "defaultFavoriteSites": [],
   "defaultModes": {
     "iframe": false
   },

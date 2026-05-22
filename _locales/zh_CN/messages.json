@@ -148,8 +148,56 @@
   "settingsNavSyncTitle": {
     "message": "同步"
   },
+  "settingsNavLanguageTitle": {
+    "message": "语言"
+  },
   "settingsNavProTitle": {
     "message": "Pro"
+  },
+  "languageSettingsTitle": {
+    "message": "语言设置"
+  },
+  "languageSettingsDescription": {
+    "message": "选择扩展页面显示语言。切换后，设置页、首页和对比页会同步更新。"
+  },
+  "languageSettingsHelp": {
+    "message": "这会影响设置页、首页、对比页、收藏页和历史页等扩展自有页面。"
+  },
+  "languageSettingsCurrentLocale": {
+    "message": "当前显示语言"
+  },
+  "languageOptionAuto": {
+    "message": "跟随浏览器语言"
+  },
+  "languageOptionEn": {
+    "message": "English"
+  },
+  "languageOptionZhCn": {
+    "message": "简体中文"
+  },
+  "languageOptionZhTw": {
+    "message": "繁體中文"
+  },
+  "languageOptionJa": {
+    "message": "日本語"
+  },
+  "languageOptionKo": {
+    "message": "한국어"
+  },
+  "languageOptionFr": {
+    "message": "Français"
+  },
+  "languageOptionDe": {
+    "message": "Deutsch"
+  },
+  "languageOptionEs": {
+    "message": "Español"
+  },
+  "languageOptionPtBr": {
+    "message": "Português (Brasil)"
+  },
+  "languageOptionAr": {
+    "message": "العربية"
   },
   "agentEngineDescription": {
     "message": "智能体功能只能二选一使用官方 API 或自定义 API。"
@@ -721,6 +769,12 @@
   "promptTemplatesDescription": {
     "message": "自定义搜索建议按钮的提示词模板"
   },
+  "promptTemplatesEmpty": {
+    "message": "暂无提示词模板"
+  },
+  "promptTemplatesEmptyHint": {
+    "message": "点击上方“添加新模板”按钮开始创建"
+  },
   "addTemplateButton": {
     "message": "添加新模板"
   },
@@ -1282,7 +1336,7 @@
     "message": "本地备份"
   },
   "localSyncDescription": {
-    "message": "导出当前同步数据到本地 JSON 文件，或从文件恢复；历史记录导出时会截到前 500 条；不包含 WebDAV 连接信息。"
+    "message": "导出当前同步数据到本地 JSON 文件，或从文件恢复；历史记录导出时会截到前 500 条。"
   },
   "localSyncBadge": {
     "message": "JSON 文件"
@@ -1467,9 +1521,6 @@
   "googleDriveSyncReconnectButton": {
     "message": "重新连接 Google Drive"
   },
-  "googleDriveSyncRestoreButton": {
-    "message": "从 Drive 恢复"
-  },
   "googleDriveSyncDisconnectButton": {
     "message": "断开连接"
   },
@@ -1481,15 +1532,6 @@
   },
   "googleDriveSyncConnectFailed": {
     "message": "连接 Google Drive 失败"
-  },
-  "googleDriveSyncRestoring": {
-    "message": "正在从 Google Drive 恢复数据..."
-  },
-  "googleDriveSyncRestoreSuccess": {
-    "message": "Drive 备份已恢复，请刷新页面以使用最新数据"
-  },
-  "googleDriveSyncRestoreFailed": {
-    "message": "从 Google Drive 恢复失败"
   },
   "googleDriveSyncDisconnectConfirm": {
     "message": "确定要在本设备上断开 Google Drive 同步吗？"
@@ -1505,6 +1547,12 @@
   },
   "googleDriveSyncStatusLoadFailed": {
     "message": "加载 Drive 连接状态失败"
+  },
+  "googleDriveSyncLastSynced": {
+    "message": "上次同步"
+  },
+  "googleDriveSyncLastError": {
+    "message": "上次错误"
   },
   "googleDriveSyncInvalidRedirect": {
     "message": "Google 授权返回的重定向无效"
@@ -1580,6 +1628,21 @@
   },
   "contactLoadFailed": {
     "message": "联系方式加载失败，请检查 appConfig.json。"
+  },
+  "contactChangelogTitle": {
+    "message": "更新日志"
+  },
+  "contactChangelogDescription": {
+    "message": "这里会展示最近的更新内容，方便用户快速了解这次改了什么，以及能带来什么帮助。"
+  },
+  "contactChangelogLoading": {
+    "message": "正在加载最新更新..."
+  },
+  "contactChangelogEmpty": {
+    "message": "暂时还没有可展示的更新日志。"
+  },
+  "contactChangelogLoadFailed": {
+    "message": "更新日志加载失败。"
   },
   "selectAISites": {
     "message": "AI 站点"
@@ -1728,6 +1791,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "风险分析"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "导致失败的根本原因：「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "最佳实践"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "围绕这个项目写一份成功复盘报告：「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "翻译成中文"
   },
@@ -1819,12 +1894,12 @@
     "message": "刷新中..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "已汇总 $1/$2 个子页面的回答，请确认后复制。",
+    "message": "成功站点：$1\n失败站点：$2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

@@ -128,6 +128,41 @@
     return text.trim();
   }
 
+  function getNodeTagName(node) {
+    return String(node?.tagName || node?.nodeName || '').toUpperCase();
+  }
+
+  function getListItemPrefix(element) {
+    if (!element) return '';
+
+    const tagName = getNodeTagName(element);
+    const role = String(element.getAttribute?.('role') || '').toLowerCase();
+    const isListItem = tagName === 'LI' || role === 'listitem';
+    if (!isListItem) return '';
+
+    const parent = element.parentElement || null;
+    if (getNodeTagName(parent) === 'OL') {
+      const listItems = Array.from(parent.children || []).filter((child) => getNodeTagName(child) === 'LI');
+      const index = listItems.indexOf(element);
+      const itemNumber = index >= 0 ? index + 1 : 1;
+      return `${itemNumber}. `;
+    }
+
+    return '• ';
+  }
+
+  function prependListItemPrefix(text, prefix) {
+    const normalized = cleanExtractedText(text);
+    if (!normalized || !prefix) return normalized;
+
+    const alreadyMarked = /^\s*(?:•|-|\*|\d+\.)\s+/.test(normalized);
+    if (alreadyMarked) return normalized;
+
+    const lines = normalized.split('\n');
+    lines[0] = `${prefix}${lines[0]}`;
+    return lines.join('\n');
+  }
+
   function looksLikePlaceholderAnswerContent(content) {
     const normalized = cleanExtractedText(String(content || ''));
     if (!normalized) return true;
@@ -276,6 +311,7 @@
       }
 
       text = cleanExtractedText(text);
+      text = prependListItemPrefix(text, getListItemPrefix(element));
     } catch (_) {
       text = cleanExtractedText(element?.textContent || element?.innerText || '');
     }
@@ -697,10 +733,19 @@
     }
 
     const answers = await extractTimelineContentFromNodes(responseCandidates);
+    const content = answers.join('\n\n').trim();
+
+    if (!content && !nextPrompt) {
+      const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+    }
+
     return {
       found: true,
       answers,
-      content: answers.join('\n\n').trim()
+      content
     };
   }
 
@@ -732,6 +777,7 @@
     const ignoredAncestorSelectors = toArray(visibleResponseConfig.ignoredAncestorSelectors);
 
     const seen = new Set();
+    const seenListItems = new Set();
     const lines = [];
     const walker = doc.createTreeWalker(lastAssistantMessage, NodeFilter.SHOW_TEXT);
     let currentNode = walker.nextNode();
@@ -742,6 +788,18 @@
       const text = raw.replace(/[ \t]+/g, ' ').trim();
 
       if (parent && text) {
+        const listItem = (() => {
+          try {
+            return parent.closest?.('li, [role="listitem"]') || null;
+          } catch (_) {
+            return null;
+          }
+        })();
+        const listPrefix = listItem && !seenListItems.has(listItem) ? getListItemPrefix(listItem) : '';
+        if (listItem && listPrefix) {
+          seenListItems.add(listItem);
+        }
+        const displayText = listPrefix ? `${listPrefix}${text}` : text;
         const rect = typeof parent.getBoundingClientRect === 'function'
           ? parent.getBoundingClientRect()
           : { width: 1, height: 1 };
@@ -756,9 +814,9 @@
         const looksLikeUiText = ignoredTextPatterns.some((pattern) => pattern.test(text));
         const looksLikeScript = /window\.__|__reactRouter|requestAnimationFrame|\bimport\(\"\/cdn\//.test(text);
 
-        if (!hidden && !insideIgnoredUi && !looksLikeUiText && !looksLikeScript && !seen.has(text)) {
-          seen.add(text);
-          lines.push(text);
+        if (!hidden && !insideIgnoredUi && !looksLikeUiText && !looksLikeScript && !seen.has(displayText)) {
+          seen.add(displayText);
+          lines.push(displayText);
         }
       }
 

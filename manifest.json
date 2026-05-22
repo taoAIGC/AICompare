@@ -108,6 +108,7 @@
       "iframe/*",
       "homepage/*",
       "contact/*",
+      "docs/release-notes/*",
       "history/*",
       "shared/*",
       "icons/*",

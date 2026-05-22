@@ -1086,7 +1086,7 @@
     "message": "로컬 백업"
   },
   "localSyncDescription": {
-    "message": "현재 동기화 데이터를 로컬 JSON 파일로 내보내거나 파일에서 복원할 수 있습니다. 기록 내보내기는 처음 500개까지만 포함됩니다. WebDAV 자격 증명은 포함되지 않습니다."
+    "message": "현재 동기화 데이터를 로컬 JSON 파일로 내보내거나 파일에서 복원할 수 있습니다. 기록 내보내기는 처음 500개까지만 포함됩니다."
   },
   "localSyncBadge": {
     "message": "JSON 파일"
@@ -1304,6 +1304,21 @@
   "contactLoadFailed": {
     "message": "연락처 정보를 불러오지 못했습니다. appConfig.json을 확인해 주세요."
   },
+  "contactChangelogTitle": {
+    "message": "업데이트 로그"
+  },
+  "contactChangelogDescription": {
+    "message": "여기에 최근 업데이트가 표시되어 무엇이 바뀌었고 어떻게 도움이 되는지 빠르게 확인할 수 있습니다."
+  },
+  "contactChangelogLoading": {
+    "message": "최신 업데이트를 불러오는 중..."
+  },
+  "contactChangelogEmpty": {
+    "message": "아직 표시할 업데이트 노트가 없습니다."
+  },
+  "contactChangelogLoadFailed": {
+    "message": "최신 업데이트를 불러오지 못했습니다."
+  },
   "selectAISites": {
     "message": "AI 사이트"
   },
@@ -1451,6 +1466,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "이 자료를 1페이지 의사결정 메모로 정리해 주세요. 먼저 추천안을 제시하고, 그다음 왜 그 선택이 최선인지, 어떤 리스크가 있는지, 다음에 무엇을 해야 하는지 설명해 주세요. 직접적이고 의사결정 중심의 톤을 유지해 주세요.\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "리스크 분석"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "이 실패의 근본 원인을 분석해 주세요:「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "베스트 프랙티스"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "이 프로젝트에 대한 성공 회고 보고서를 작성해 주세요:「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "중국어로 번역"
   },
@@ -1536,12 +1563,12 @@
     "message": "Collecting responses from all sub-pages..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "성공 사이트: $1\n실패 사이트: $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

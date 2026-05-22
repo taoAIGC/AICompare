@@ -29,6 +29,7 @@ const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
+const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
 
 // 全局文件粘贴检测和处理
@@ -60,9 +61,62 @@ function applyIframeSubmitShortcutMode(buttonConfig = {}) {
   iframeSubmitShortcutMode = normalizeSendShortcutMode(buttonConfig?.sendShortcut);
 }
 
+async function refreshIframeVisibleQuerySuggestions() {
+  const searchInput = document.getElementById('searchInput');
+  const querySuggestions = document.getElementById('querySuggestions');
+  if (!searchInput || !querySuggestions || querySuggestions.style.display === 'none') {
+    return;
+  }
+
+  const query = String(searchInput.value || '').trim();
+  if (!query) {
+    querySuggestions.innerHTML = '';
+    querySuggestions.style.display = 'none';
+    return;
+  }
+
+  try {
+    await showQuerySuggestions(query);
+  } catch (error) {
+    console.warn('Failed to refresh iframe query suggestions:', error);
+  }
+}
+
+async function refreshOpenAnalysisTemplateSelects() {
+  const overlays = Array.from(document.querySelectorAll('.timeline-copy-preview-overlay'));
+  if (!overlays.length) {
+    return;
+  }
+
+  await Promise.all(overlays.map(async (overlay) => {
+    const selectEl = overlay?.querySelector?.('.timeline-copy-preview-analysis-select');
+    if (!(selectEl instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const selectedTemplateId = String(
+      overlay.__timelineSelectedAnalysisTemplateId
+      || selectEl.value
+      || ''
+    ).trim();
+
+    try {
+      await hydrateAnalysisTemplateSelect(overlay, selectedTemplateId);
+    } catch (error) {
+      console.warn('Failed to refresh analysis template select:', error);
+    }
+  }));
+}
+
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && changes.buttonConfig) {
     applyIframeSubmitShortcutMode(changes.buttonConfig.newValue || {});
+  }
+  if (namespace === 'sync' && changes.promptTemplates) {
+    void refreshIframeVisibleQuerySuggestions();
+  }
+  if (namespace === 'sync' && changes.analysisPromptTemplates) {
+    void refreshOpenAnalysisTemplateSelects();
   }
   if (namespace === 'local' && changes[AGENT_HIDDEN_IDS_STORAGE_KEY]) {
     renderSideNav().catch((error) => {
@@ -164,6 +218,16 @@ const analysisBuildCompareUrl = typeof AnalysisUtils.buildTimelineAnalysisCompar
       return chrome.runtime.getURL(`iframe/iframe.html?analysisToken=${encodeURIComponent(token)}&analysisMode=1`);
     });
 const DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL = 'http://64.188.6.42:8789';
+function getRuntimeAgentCatalogLocale() {
+  if (typeof RuntimeI18n?.getCurrentLocale === 'function') {
+    return RuntimeI18n.getCurrentLocale();
+  }
+  if (typeof AgentCatalog.getRuntimeLocale === 'function') {
+    return AgentCatalog.getRuntimeLocale('');
+  }
+  return '';
+}
+
 async function getRemoteSearchRelayBaseUrl() {
   try {
     const settings = await chrome.storage.sync.get('remoteSearchSettings');
@@ -642,15 +706,123 @@ function sortSitesFavoriteFirst(sites) {
 
 function t(key, fallback = '', substitutions = undefined) {
   try {
-    const message = chrome?.i18n?.getMessage(key, substitutions);
+    const message = window.RuntimeI18n?.getMessage?.(key, substitutions) || chrome?.i18n?.getMessage(key, substitutions);
     return message || fallback;
   } catch (_) {
     return fallback;
   }
 }
 
+function refreshIframeControlTitles(root = document) {
+  root.querySelectorAll('.refresh-page-btn').forEach((button) => {
+    button.title = t('refresh', '刷新');
+  });
+  root.querySelectorAll('.open-page-btn').forEach((button) => {
+    button.title = t('openInNewTab', '在新标签页打开');
+  });
+  root.querySelectorAll('.close-btn').forEach((button) => {
+    button.title = t('closeButton', '关闭');
+  });
+}
+
+function refreshIframeFavoriteI18n() {
+  const favoriteIcon = document.querySelector('.favorite-icon');
+  if (favoriteIcon) {
+    favoriteIcon.title = t('favoriteAllSites', '收藏全部站点');
+  }
+
+  document.querySelectorAll('.iframe-favorite-btn').forEach((button) => {
+    const isFavorite = button.dataset.favorite === 'true';
+    button.title = isFavorite
+      ? t('iframeUnfavoriteTitle', '取消收藏')
+      : t('iframeFavoriteTitle', '收藏');
+    const icon = button.querySelector('.iframe-favorite-icon');
+    if (icon) {
+      icon.alt = t('iframeFavoriteTitle', '收藏');
+    }
+  });
+}
+
+function refreshIframeDynamicI18n() {
+  const searchButton = document.getElementById('searchButton');
+  if (searchButton) {
+    searchButton.textContent = t('startCompare', 'PK');
+  }
+
+  refreshIframeControlTitles();
+  refreshIframeFavoriteI18n();
+}
+
 function escapeAttr(value) {
   return escapeHtml(value).replace(/"/g, '&quot;');
+}
+
+function formatTimelineSiteNames(siteNames = []) {
+  const names = Array.isArray(siteNames)
+    ? siteNames.map((name) => String(name || '').trim()).filter(Boolean)
+    : [];
+  return names.length ? names.join('、') : '—';
+}
+
+function isTimelineResponseCopyable(response) {
+  if (!response || typeof response !== 'object') return false;
+  if (Array.isArray(response.answers) && response.answers.some((answer) => String(answer || '').trim())) {
+    return true;
+  }
+  return String(response.content || '').trim().length > 0;
+}
+
+function partitionTimelineResponses(responses = []) {
+  const successResponses = [];
+  const successSiteNames = [];
+  const failedSiteNames = [];
+
+  for (const response of Array.isArray(responses) ? responses : []) {
+    const siteName = String(response?.siteName || '').trim();
+    if (!siteName) continue;
+    if (isTimelineResponseCopyable(response)) {
+      successResponses.push(response);
+      successSiteNames.push(siteName);
+    } else {
+      failedSiteNames.push(siteName);
+    }
+  }
+
+  return {
+    successResponses,
+    successSiteNames,
+    failedSiteNames
+  };
+}
+
+function showTimelineCopyPreviewActionFeedback(overlay, anchorButton, message, tone = 'success', duration = 2200) {
+  if (!overlay || !anchorButton || !message) return;
+
+  let bubble = overlay.querySelector('.timeline-copy-preview-action-feedback');
+  if (!(bubble instanceof HTMLElement)) {
+    bubble = document.createElement('div');
+    bubble.className = 'timeline-copy-preview-action-feedback';
+    bubble.setAttribute('role', 'status');
+    bubble.setAttribute('aria-live', 'polite');
+    overlay.appendChild(bubble);
+  }
+
+  const overlayRect = overlay.getBoundingClientRect();
+  const anchorRect = anchorButton.getBoundingClientRect();
+  bubble.textContent = String(message);
+  bubble.dataset.tone = tone === 'error' ? 'error' : 'success';
+  const preferredLeft = anchorRect.left - overlayRect.left - 12;
+  const maxLeft = Math.max(16, overlayRect.width - 260);
+  bubble.style.left = `${Math.min(Math.max(16, preferredLeft), maxLeft)}px`;
+  bubble.style.top = `${Math.max(16, anchorRect.top - overlayRect.top - 46)}px`;
+  bubble.classList.add('is-visible');
+
+  if (bubble.__hideTimer) {
+    clearTimeout(bubble.__hideTimer);
+  }
+  bubble.__hideTimer = setTimeout(() => {
+    bubble.classList.remove('is-visible');
+  }, duration);
 }
 
 function getTimelineElements() {
@@ -713,10 +885,11 @@ async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confi
     if (overlay.dataset.activeEntryKey !== currentEntryKey) return;
 
     const previewText = String(copyText || '').trim() || t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。');
+    const { successSiteNames, failedSiteNames } = partitionTimelineResponses(responses);
     metaEl.textContent = t(
       'timelineCopyPreviewSummary',
-      '已汇总 $1/$2 个子页面的回答，请确认后复制。',
-      [String(successCount), String(totalCount)]
+      '成功站点：$1\n失败站点：$2',
+      [formatTimelineSiteNames(successSiteNames), formatTimelineSiteNames(failedSiteNames)]
     );
     contentEl.textContent = previewText;
     confirmBtn.disabled = !String(copyText || '').trim();
@@ -816,15 +989,25 @@ function ensureTimelineCopyPreviewModal() {
 
     try {
       await copyTextToClipboard(copyText);
-      closeModal();
-      showToast(t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [successCount, totalCount]));
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        confirmBtn,
+        t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [successCount, totalCount]),
+        'success'
+      );
       trackEvent('iframe_timeline_copy', {
         sites_total: Number(totalCount) || 0,
         sites_with_content: Number(successCount) || 0
       });
     } catch (error) {
       console.error('复制时间线回答失败:', error);
-      showToast(t('timelineCopyFailed', '复制失败，请重试'));
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        confirmBtn,
+        t('timelineCopyFailed', '复制失败，请重试'),
+        'error',
+        2600
+      );
     }
   });
 
@@ -866,13 +1049,25 @@ function ensureTimelineCopyPreviewModal() {
     });
 
     if (!rawPayload) {
-      showToast(t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'));
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        shareBtn,
+        t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+        'error',
+        2600
+      );
       return;
     }
 
     const relayBaseUrl = await getRemoteSearchRelayBaseUrl();
     if (!relayBaseUrl) {
-      showToast(t('timelineCopyPreviewShareNoRelay', '请先在设置中填写 relay 地址'));
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        shareBtn,
+        t('timelineCopyPreviewShareNoRelay', '请先在设置中填写 relay 地址'),
+        'error',
+        2600
+      );
       return;
     }
 
@@ -894,10 +1089,21 @@ function ensureTimelineCopyPreviewModal() {
         ? String(data.publicUrl || data.shareUrl).trim()
         : `${relayBaseUrl.replace(/\/+$/, '')}${String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim()}`;
       await copyTextToClipboard(shareUrl);
-      showToast(t('timelineCopyPreviewShareSuccess', '分享链接已复制'));
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        shareBtn,
+        t('timelineCopyPreviewShareSuccess', '分享链接已复制'),
+        'success'
+      );
     } catch (error) {
       console.error('生成分享链接失败:', error);
-      showToast(t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'));
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        shareBtn,
+        t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+        'error',
+        2600
+      );
     } finally {
       shareBtn.disabled = false;
     }
@@ -2237,17 +2443,12 @@ async function hydrateAnalysisTemplateSelect(overlay, selectedTemplateId = '') {
 async function collectTimelineEntryResponses(entry) {
   if (isReadonlyHistoryMode && readonlyHistorySession) {
     const responses = collectReadonlyTimelineEntryResponses(entry, readonlyHistorySession);
-    const successCount = responses.filter((item) => {
-      if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
-        return true;
-      }
-      return String(item?.content || '').trim().length > 0;
-    }).length;
+    const { successResponses } = partitionTimelineResponses(responses);
 
     return {
       responses,
-      copyText: timelineBuildCopyText(entry, responses),
-      successCount,
+      copyText: timelineBuildCopyText(entry, successResponses),
+      successCount: successResponses.length,
       totalCount: responses.length
     };
   }
@@ -2255,10 +2456,11 @@ async function collectTimelineEntryResponses(entry) {
   const iframes = getSiteIframes();
   const agentResponses = getLiveAgentTimelineResponses(entry);
   if (!iframes.length) {
+    const { successResponses } = partitionTimelineResponses(agentResponses);
     return {
       responses: agentResponses,
-      copyText: timelineBuildCopyText(entry, agentResponses),
-      successCount: agentResponses.filter((item) => String(item?.content || '').trim().length > 0).length,
+      copyText: timelineBuildCopyText(entry, successResponses),
+      successCount: successResponses.length,
       totalCount: agentResponses.length
     };
   }
@@ -2284,17 +2486,14 @@ async function collectTimelineEntryResponses(entry) {
   }));
   normalizedResponses.push(...agentResponses);
 
-  const successCount = normalizedResponses.filter((item) => {
-    if (Array.isArray(item?.answers) && item.answers.some((answer) => String(answer || '').trim())) {
-      return true;
-    }
-    return String(item?.content || '').trim().length > 0;
-  }).length;
+  const { successResponses, successSiteNames, failedSiteNames } = partitionTimelineResponses(normalizedResponses);
 
   return {
     responses: normalizedResponses,
-    copyText: timelineBuildCopyText(entry, normalizedResponses),
-    successCount,
+    copyText: timelineBuildCopyText(entry, successResponses),
+    successCount: successResponses.length,
+    successSiteNames,
+    failedSiteNames,
     totalCount: normalizedResponses.length
   };
 }
@@ -2884,7 +3083,7 @@ function createInjectProgressOverlay(siteName) {
 
 async function retryCurrentUploadBatch() {
   if (!currentUploadRetryContext?.file) {
-    showToast(chrome.i18n.getMessage('fileUploadFailedTitle') || 'File upload failed');
+    showToast(t('fileUploadFailedTitle', 'File upload failed'));
     return;
   }
 
@@ -2919,6 +3118,23 @@ async function getAgentCustomSettingsMapForIframe() {
   return storedSettings && typeof storedSettings === 'object' ? storedSettings : {};
 }
 
+async function getCustomAgentsForIframe() {
+  const [{ [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }] = await Promise.all([
+    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+  ]);
+
+  if (typeof AgentCatalog.migrateLegacyCustomAgentsStorage === 'function') {
+    return AgentCatalog.migrateLegacyCustomAgentsStorage(syncCustomAgents, localCustomAgents);
+  }
+
+  if (Array.isArray(localCustomAgents) && localCustomAgents.length > 0) {
+    return localCustomAgents;
+  }
+
+  return Array.isArray(syncCustomAgents) ? syncCustomAgents : [];
+}
+
 async function getHiddenAgentIdSetForIframe() {
   const { [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds } = await chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY);
   const normalizedHiddenIds = typeof AgentCatalog.normalizeAgentHiddenIds === 'function'
@@ -2929,20 +3145,6 @@ async function getHiddenAgentIdSetForIframe() {
       .map((id) => String(id || '').trim())
       .filter(Boolean)
   );
-}
-
-async function getCustomAgentsForIframe() {
-  const [
-    { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
-    { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents }
-  ] = await Promise.all([
-    chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
-    chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
-  ]);
-
-  return Array.isArray(localCustomAgents) && localCustomAgents.length > 0
-    ? localCustomAgents
-    : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []);
 }
 
 function filterHiddenAgentsForIframe(agents, hiddenAgentIdSet = new Set()) {
@@ -3127,9 +3329,9 @@ function createAgentIframe(agent, container) {
   const openPageBtn = header.querySelector('.open-page-btn');
   const closeBtn = header.querySelector('.close-btn');
 
-  refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
-  openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
-  closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
+  refreshPageBtn.title = t('refresh', '刷新');
+  openPageBtn.title = t('openInNewTab', '在新标签页打开');
+  closeBtn.title = t('closeButton', '关闭');
 
   refreshPageBtn.onclick = (event) => {
     event.stopPropagation();
@@ -3187,8 +3389,8 @@ function createSnapshotPanel(title, content, container, panelKind, panelId) {
 
   const openPageBtn = header.querySelector('.open-page-btn');
   const closeBtn = header.querySelector('.close-btn');
-  openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || 'Open in New Tab';
-  closeBtn.title = chrome.i18n.getMessage('closeButton') || 'Close';
+  openPageBtn.title = t('openInNewTab', 'Open in New Tab');
+  closeBtn.title = t('closeButton', 'Close');
   openPageBtn.style.display = 'none';
   closeBtn.onclick = () => {
     panelContainer.remove();
@@ -3865,6 +4067,10 @@ async function requestClipboardPermission() {
 
 // 页面加载完成后的初始化
 document.addEventListener('DOMContentLoaded', async function() {
+    if (window.RuntimeI18n?.initializeRuntimeI18n) {
+        await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+
     // 初始化自动调整高度的输入框
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -4261,12 +4467,12 @@ function showLocalFileWarning(fileName, fileExtension) {
   const icon = '📁';
   
   // 获取国际化消息
-  const localFileDetected = chrome.i18n.getMessage('localFileDetected');
-  const browserSecurityRestriction = chrome.i18n.getMessage('browserSecurityRestriction');
-  const localFileSecurityMessage = chrome.i18n.getMessage('localFileSecurityMessage');
-  const suggestedActions = chrome.i18n.getMessage('suggestedActions');
-  const uploadFileAction = chrome.i18n.getMessage('uploadFileAction');
-  const dismissWarning = chrome.i18n.getMessage('dismissWarning');
+  const localFileDetected = t('localFileDetected', 'Local file detected');
+  const browserSecurityRestriction = t('browserSecurityRestriction', 'Browser security restriction');
+  const localFileSecurityMessage = t('localFileSecurityMessage', 'Local files cannot be read directly by webpages for security reasons.');
+  const suggestedActions = t('suggestedActions', 'Suggested actions');
+  const uploadFileAction = t('uploadFileAction', 'Upload this file through the attachment button instead');
+  const dismissWarning = t('dismissWarning', 'Dismiss');
   
   warning.innerHTML = `
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
@@ -4740,6 +4946,32 @@ function getOpenedAgentIds() {
   return getAgentPanelFrames()
     .map((iframe) => String(iframe.dataset.agentId || '').trim())
     .filter(Boolean);
+}
+
+function resetOpenedAgentPanelsForNewConversation() {
+  const openedAgentIds = getOpenedAgentIds();
+  openedAgentIds.forEach((agentId) => {
+    cancelInFlightAgentRequest(agentId);
+  });
+
+  openedAgentIds.forEach((agentId) => {
+    const state = getAgentState(agentId);
+    if (!state) return;
+    setAgentState(agentId, {
+      ...state,
+      messages: [],
+      localDraft: '',
+      isLoading: false,
+      error: '',
+      abortController: null
+    });
+  });
+
+  getAgentPanelFrames().forEach((iframe) => {
+    const agentId = String(iframe.dataset.agentId || '').trim();
+    if (!agentId) return;
+    syncAgentPanelStateToFrame(iframe, getAgentState(agentId));
+  });
 }
 
 function buildHybridHistorySessionId() {
@@ -5237,6 +5469,17 @@ function buildSiteUrlForQuery(site, query) {
 
 async function getAvailableAgentCatalog() {
   const hiddenAgentIdSet = await getHiddenAgentIdSetForIframe().catch(() => new Set());
+  const customSettingsMap = await getAgentCustomSettingsMapForIframe().catch(() => ({}));
+  const customAgents = await getCustomAgentsForIframe().catch(() => []);
+  const runtimeLocale = getRuntimeAgentCatalogLocale();
+  if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
+    const catalog = AgentCatalog.buildCatalogWithCustomSettings(customSettingsMap, customAgents, runtimeLocale);
+    return {
+      ...catalog,
+      agents: filterHiddenAgentsForIframe(catalog?.agents, hiddenAgentIdSet)
+    };
+  }
+
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'getAgentCatalog'
@@ -5252,17 +5495,8 @@ async function getAvailableAgentCatalog() {
     console.warn('获取智能体目录失败:', error);
   }
 
-  const customSettingsMap = await getAgentCustomSettingsMapForIframe().catch(() => ({}));
-  if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
-    const catalog = AgentCatalog.buildCatalogWithCustomSettings(customSettingsMap);
-    return {
-      ...catalog,
-      agents: filterHiddenAgentsForIframe(catalog?.agents, hiddenAgentIdSet)
-    };
-  }
-
   const catalog = typeof AgentCatalog.getCatalog === 'function'
-    ? AgentCatalog.getCatalog()
+    ? AgentCatalog.getCatalog(runtimeLocale)
     : { categories: [], agents: [] };
   return {
     ...catalog,
@@ -6279,9 +6513,9 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
   const closeBtn = header.querySelector('.close-btn');
   
   // 设置按钮提示
-  refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
-  openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
-  closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
+  refreshPageBtn.title = t('refresh', '刷新');
+  openPageBtn.title = t('openInNewTab', '在新标签页打开');
+  closeBtn.title = t('closeButton', '关闭');
 
   // 刷新按钮点击事件
   refreshPageBtn.onclick = (e) => {
@@ -6489,13 +6723,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 获取按钮元素
     const searchButton = document.getElementById('searchButton');
     if (searchButton) {
-        // 获取当前语言的文案
-        const buttonText = chrome.i18n.getMessage('startCompare');
+        const buttonText = t('startCompare', 'PK');
         searchButton.textContent = buttonText;
         
         // 调试日志
         console.log('按钮文案设置:', {
-            当前语言: chrome.i18n.getUILanguage(),
+            当前语言: window.RuntimeI18n?.getCurrentLocale?.() || navigator.language || 'en',
             文案: buttonText
         });
     }
@@ -6605,7 +6838,7 @@ function updateFavoriteButtonState(btn, isFavorite) {
         icon.src = isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
     }
     btn.dataset.favorite = isFavorite ? 'true' : 'false';
-    btn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
+    btn.title = isFavorite ? t('iframeUnfavoriteTitle', '取消收藏') : t('iframeFavoriteTitle', '收藏');
 }
 
 // 更新所有 iframe 的收藏按钮状态
@@ -6628,12 +6861,12 @@ function addFavoriteButtonToIframe(iframeContainer, siteName, isFavorite = false
     favoriteBtn.className = 'iframe-favorite-btn iframe-favorite-btn-float';
     favoriteBtn.dataset.siteName = siteName;
     favoriteBtn.dataset.favorite = isFavorite ? 'true' : 'false';
-    favoriteBtn.title = isFavorite ? (chrome.i18n.getMessage('iframeUnfavoriteTitle') || '取消收藏') : (chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏');
+    favoriteBtn.title = isFavorite ? t('iframeUnfavoriteTitle', '取消收藏') : t('iframeFavoriteTitle', '收藏');
     
     const favoriteIcon = document.createElement('img');
     favoriteIcon.className = 'iframe-favorite-icon';
     favoriteIcon.src = isFavorite ? '../icons/star_saved.svg' : '../icons/star_unsaved.svg';
-    favoriteIcon.alt = chrome.i18n.getMessage('iframeFavoriteTitle') || '收藏';
+    favoriteIcon.alt = t('iframeFavoriteTitle', '收藏');
     
     favoriteBtn.appendChild(favoriteIcon);
     
@@ -6728,7 +6961,7 @@ async function toggleIframeFavorite(siteName, favoriteBtn) {
 const favoriteIcon = document.querySelector('.favorite-icon');
 if (favoriteIcon) {
     // 设置收藏按钮的国际化标题
-    const favoriteAllSitesTitle = chrome.i18n.getMessage('favoriteAllSites');
+    const favoriteAllSitesTitle = t('favoriteAllSites');
     if (favoriteAllSitesTitle) {
         favoriteIcon.title = favoriteAllSitesTitle;
     }
@@ -6747,7 +6980,7 @@ function initializeI18n() {
     // 处理所有带有 data-i18n 属性的元素（不包含 data-i18n-title / data-i18n-alt，避免重复）
     document.querySelectorAll('[data-i18n]:not([data-i18n-title]):not([data-i18n-alt])').forEach(element => {
         const key = element.getAttribute('data-i18n');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             if ((element.tagName.toLowerCase() === 'input' && 
                 element.type === 'text') || 
@@ -6765,7 +6998,7 @@ function initializeI18n() {
     // 处理 data-i18n-title：设置元素的 title 属性
     document.querySelectorAll('[data-i18n-title]').forEach(element => {
         const key = element.getAttribute('data-i18n-title');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             element.title = message;
         }
@@ -6774,7 +7007,7 @@ function initializeI18n() {
     // 处理 data-i18n-alt：设置 img 的 alt 属性
     document.querySelectorAll('[data-i18n-alt]').forEach(element => {
         const key = element.getAttribute('data-i18n-alt');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             element.alt = message;
         }
@@ -6783,7 +7016,7 @@ function initializeI18n() {
     // 处理 data-i18n-aria-label：设置元素的 aria-label 属性
     document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
         const key = element.getAttribute('data-i18n-aria-label');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             element.setAttribute('aria-label', message);
         }
@@ -6792,11 +7025,13 @@ function initializeI18n() {
     // 手动设置输入框的占位符
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        const placeholderMessage = chrome.i18n.getMessage('inputPlaceholder');
+        const placeholderMessage = t('inputPlaceholder');
         if (placeholderMessage) {
             searchInput.placeholder = placeholderMessage;
         }
     }
+
+    refreshIframeDynamicI18n();
 }
 
 
@@ -6831,7 +7066,7 @@ async function showQuerySuggestions(query) {
 
     // 添加提示文案
     const label = document.createElement('div');
-    const labelText = (chrome?.i18n?.getMessage && chrome.i18n.getMessage('promptTemplatesLabel')) || '模板：';
+    const labelText = t('promptTemplatesLabel', '模板：');
     label.textContent = labelText;
     label.classList.add('query-suggestion-label');
     querySuggestions.appendChild(label);
@@ -6992,8 +7227,40 @@ function setIframeSearchInputValue(query) {
   return true;
 }
 
-function resetIframePageToDefaultType() {
-  const targetUrl = `${chrome.runtime.getURL('iframe/iframe.html')}?type=information`;
+function resetIframePageToCurrentPanels() {
+  const currentUrl = new URL(window.location.href);
+  const params = new URLSearchParams(currentUrl.search);
+
+  const openedSiteNames = getOpenedSites();
+  const openedAgentIds = getOpenedAgentIds();
+
+  resetOpenedAgentPanelsForNewConversation();
+
+  if (openedSiteNames.length > 0) {
+    params.set('sites', openedSiteNames.join(','));
+  } else {
+    params.delete('sites');
+  }
+
+  if (openedAgentIds.length > 0) {
+    params.set('agents', openedAgentIds.join(','));
+  } else {
+    params.delete('agents');
+  }
+
+  const customSiteIds = Array.from(document.querySelectorAll('.ai-iframe[data-custom-site="true"][data-site]'))
+    .map((iframe) => String(iframe.getAttribute('data-site') || '').trim())
+    .filter(Boolean);
+  if (customSiteIds.length > 0) {
+    params.set('customSites', customSiteIds.join(','));
+  } else {
+    params.delete('customSites');
+  }
+
+  params.delete('query');
+  params.delete('historyId');
+
+  const targetUrl = `${chrome.runtime.getURL('iframe/iframe.html')}?${params.toString()}`;
   window.location.href = targetUrl;
 }
 
@@ -7375,9 +7642,9 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       const closeBtn = header.querySelector('.close-btn');
       
       // 设置按钮提示
-      refreshPageBtn.title = chrome.i18n.getMessage('refresh') || '刷新';
-      openPageBtn.title = chrome.i18n.getMessage('openInNewTab') || '在新标签页打开';
-      closeBtn.title = chrome.i18n.getMessage('closeButton') || '关闭';
+      refreshPageBtn.title = t('refresh', '刷新');
+      openPageBtn.title = t('openInNewTab', '在新标签页打开');
+      closeBtn.title = t('closeButton', '关闭');
 
       iframe.addEventListener('load', () => {
         const historyId = window._currentHistoryId || null;
@@ -8035,7 +8302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resetIframePageButton = document.getElementById('resetIframePageButton');
   if (resetIframePageButton) {
     resetIframePageButton.addEventListener('click', () => {
-      resetIframePageToDefaultType();
+      resetIframePageToCurrentPanels();
     });
   }
   const shareTimelineButton = document.getElementById('shareTimelineButton');
@@ -8056,6 +8323,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkClipboardPermissionStatus();
   // 注意：粘贴事件监听器已在主 DOMContentLoaded 中统一处理，无需重复添加
 });
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('runtime-language-changed', () => {
+    initializeI18n();
+    void refreshIframeVisibleQuerySuggestions();
+    void refreshOpenAnalysisTemplateSelects();
+    renderSideNav().catch((error) => {
+      console.warn('Failed to rerender side nav after language change:', error);
+    });
+    if (document.getElementById('queryList')?.style.display === 'block') {
+      showFavorites();
+    }
+  });
+}
 
 
 // 检查剪贴板权限状态
@@ -8672,13 +8953,13 @@ function showFavorites() {
   const queryList = document.getElementById('queryList');
   
   if (favoritePrompts.length === 0) {
-    const favoritesTitle = chrome.i18n.getMessage('favoritesTitle');
-    const noFavoritesMessage = chrome.i18n.getMessage('noFavorites');
+    const favoritesTitle = t('favoritesTitle', 'Favorites');
+    const noFavoritesMessage = t('noFavorites', 'No favorites yet');
     queryList.innerHTML = `<div class="favorites-section"><div class="favorites-title">${favoritesTitle}</div><div style="padding: 10px; color: #666; text-align: center;">${noFavoritesMessage}</div></div>`;
   } else {
-    const favoritesTitle = chrome.i18n.getMessage('favoritesTitle');
-    const deleteTitle = chrome.i18n.getMessage('favoriteItemDeleteTitle') || chrome.i18n.getMessage('deleteButton') || 'Delete';
-    const deleteAlt = chrome.i18n.getMessage('favoriteItemDeleteAlt') || deleteTitle;
+    const favoritesTitle = t('favoritesTitle', 'Favorites');
+    const deleteTitle = t('favoriteItemDeleteTitle', '') || t('deleteButton', 'Delete');
+    const deleteAlt = t('favoriteItemDeleteAlt', deleteTitle);
     let html = `<div class="favorites-section"><div class="favorites-title">${favoritesTitle}</div>`;
     
     favoritePrompts.forEach((prompt, index) => {
@@ -8778,7 +9059,7 @@ async function deleteFavoriteItem(item) {
   const prompt = item.getAttribute('data-prompt');
   console.log('删除索引:', index, '提示词:', prompt);
   
-  const deleteConfirmMessage = chrome.i18n.getMessage('deleteConfirm');
+  const deleteConfirmMessage = t('deleteConfirm', 'Delete this item?');
   if (confirm(deleteConfirmMessage)) {
     try {
       // 从数组中删除
@@ -9157,7 +9438,7 @@ function showFileUploadError(message) {
 
   const retryButton = document.createElement('button');
   retryButton.type = 'button';
-  retryButton.textContent = chrome.i18n.getMessage('uploadRetryButton') || '重新上传文件';
+  retryButton.textContent = t('uploadRetryButton', '重新上传文件');
   retryButton.style.cssText = `
     margin-top: 12px;
     padding: 8px 12px;

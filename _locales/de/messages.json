@@ -1086,7 +1086,7 @@
     "message": "Lokales Backup"
   },
   "localSyncDescription": {
-    "message": "Exportieren Sie die aktuellen Sync-Daten in eine lokale JSON-Datei oder stellen Sie sie daraus wieder her. Der exportierte Verlauf ist auf die ersten 500 Einträge begrenzt. WebDAV-Zugangsdaten sind nicht enthalten."
+    "message": "Exportieren Sie die aktuellen Sync-Daten in eine lokale JSON-Datei oder stellen Sie sie daraus wieder her. Der exportierte Verlauf ist auf die ersten 500 Einträge begrenzt."
   },
   "localSyncBadge": {
     "message": "JSON-Datei"
@@ -1304,6 +1304,21 @@
   "contactLoadFailed": {
     "message": "Kontaktinformationen konnten nicht geladen werden. Bitte prüfe appConfig.json."
   },
+  "contactChangelogTitle": {
+    "message": "Neuerungen"
+  },
+  "contactChangelogDescription": {
+    "message": "Hier werden die neuesten Änderungen angezeigt, damit Nutzer schnell verstehen, was sich geändert hat und welchen Nutzen es bringt."
+  },
+  "contactChangelogLoading": {
+    "message": "Neueste Updates werden geladen..."
+  },
+  "contactChangelogEmpty": {
+    "message": "Es sind noch keine Update-Hinweise verfügbar."
+  },
+  "contactChangelogLoadFailed": {
+    "message": "Die neuesten Updates konnten nicht geladen werden."
+  },
   "selectAISites": {
     "message": "KI-Websites"
   },
@@ -1451,6 +1466,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "Verwandle dieses Material in ein einseitiges Entscheidungsmemo: beginne mit der Empfehlung, erkläre dann, warum sie die beste Wahl ist, welche Risiken bestehen und was als Nächstes zu tun ist. Der Ton soll direkt und entscheidungsorientiert sein.\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "Risikoanalyse"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "Analysiere die Grundursache dieses Scheiterns:「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "Best Practices"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "Schreibe einen Erfolgs-Retrospektivenbericht für dieses Projekt:「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "Ins Chinesische übersetzen"
   },
@@ -1536,12 +1563,12 @@
     "message": "Collecting responses from all sub-pages..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "Erfolgreiche Sites: $1\nFehlgeschlagene Sites: $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

@@ -1,0 +1,54 @@
+name: Package Extension
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate README snapshot
+        run: node scripts/update-readme.js
+
+      - name: Generate full changes snapshot
+        run: RELEASE_NOTES_MODE=worktree node scripts/generate-release-notes.js
+
+      - name: Append release summary history
+        run: RELEASE_NOTES_MODE=release node scripts/generate-release-notes.js
+
+      - name: Commit generated docs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: update packaged release notes"
+          file_pattern: README.md "AI Compare PrivacyPolicy.md" docs/release-notes/latest.md docs/release-notes/history.md
+
+      - name: Build extension zip
+        run: |
+          mkdir -p dist
+          zip -r "dist/ai-compare-${GITHUB_REF_NAME}-${GITHUB_SHA::7}.zip" . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "node_modules/*" \
+            -x "remote-relay/node_modules/*" \
+            -x "dist/*" \
+            -x "*.DS_Store"
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-compare-package
+          path: dist/*.zip

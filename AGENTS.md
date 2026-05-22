@@ -93,6 +93,8 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - Whenever git is used to record repository changes for a commit, update `README.md` as part of the same workflow before the commit is finalized.
 - Treat the README update as required companion work for shipped code, config, behavior, or UX changes. Do not leave README stale after a git-recorded change.
 - If the repository already provides an automated README update hook or script, use it. Otherwise, make the README update manually and include it in the same commit.
+- `docs/release-notes/latest.md` is the real-time user improvement request log. Refresh it during the same working session by passing the latest user request through `RELEASE_NOTES_MODE=worktree node scripts/generate-release-notes.js`, but only keep user-facing feature/UX improvement requests there instead of every command or file-change detail.
+- `docs/release-notes/history.md` is the packaged version summary history. Only append to it during GitHub packaging / release flow with `RELEASE_NOTES_MODE=release node scripts/generate-release-notes.js`.
 
 ## Localization Rules
 
@@ -105,6 +107,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 
 - When validating AI site integrations, do not treat selector existence alone as a passing result. A site only passes if the configured flow actually performs the target action successfully.
 - When testing a site, do not open the target website directly first. Open the extension page instead, then pass the site to test through URL parameters such as `sites=` / `customSites=` / `query=` so the real plugin launch path is exercised.
+- If the requested site is not currently open in the user's Chrome session, proactively construct the extension compare-page URL with `sites=` / `customSites=` / `query=` and open or retarget that plugin tab first, instead of waiting for the user to open the site manually.
 - When collecting site-adaptation parameters such as runtime URL, iframe support, bootstrap path, editor type, submit path, `searchHandler` steps, `userPrompt`, `contentExtractor`, and `historyHandler`, open the user's Chrome browser and inspect the real page there. Do not use a headless browser as the source of truth for these adaptation decisions.
 - Translation sites must be tested with a deterministic real query in user Chrome, not only with DOM inspection. The default verification query is `你好世界`.
 - A translation site passes only if the configured input steps really inject the source text, the page produces a non-placeholder translation result, and the configured `contentExtractor` selector can read that final translated text.

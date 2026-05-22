@@ -1086,7 +1086,7 @@
     "message": "نسخة احتياطية محلية"
   },
   "localSyncDescription": {
-    "message": "صدّر بيانات المزامنة الحالية إلى ملف JSON محلي أو استعدها من ملف. يقتصر تصدير السجل على أول 500 عنصر. لا تتضمن بيانات اعتماد WebDAV."
+    "message": "صدّر بيانات المزامنة الحالية إلى ملف JSON محلي أو استعدها من ملف. يقتصر تصدير السجل على أول 500 عنصر."
   },
   "localSyncBadge": {
     "message": "ملف JSON"
@@ -1304,6 +1304,21 @@
   "contactLoadFailed": {
     "message": "فشل تحميل معلومات الاتصال. يرجى التحقق من appConfig.json."
   },
+  "contactChangelogTitle": {
+    "message": "سجل التحديثات"
+  },
+  "contactChangelogDescription": {
+    "message": "تظهر هنا آخر التحديثات حتى يتمكن المستخدمون من فهم ما الذي تغيّر وكيف يساعدهم ذلك بسرعة."
+  },
+  "contactChangelogLoading": {
+    "message": "جارٍ تحميل آخر التحديثات..."
+  },
+  "contactChangelogEmpty": {
+    "message": "لا توجد ملاحظات تحديث متاحة بعد."
+  },
+  "contactChangelogLoadFailed": {
+    "message": "تعذر تحميل آخر التحديثات."
+  },
   "selectAISites": {
     "message": "مواقع الذكاء الاصطناعي"
   },
@@ -1451,6 +1466,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "حوّل هذه المادة إلى مذكرة قرار من صفحة واحدة: ابدأ بالتوصية، ثم اشرح لماذا هي الخيار الأفضل، وما المخاطر، وما الذي يجب فعله بعد ذلك. اجعل النبرة مباشرة وموجهة للقرار.\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "تحليل المخاطر"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "حلل السبب الجذري لهذا الفشل:「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "أفضل الممارسات"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "اكتب تقرير مراجعة نجاح لهذا المشروع:「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "الترجمة إلى الصينية"
   },
@@ -1536,12 +1563,12 @@
     "message": "Collecting responses from all sub-pages..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "المواقع الناجحة: $1\nالمواقع الفاشلة: $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

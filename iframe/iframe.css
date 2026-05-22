@@ -2365,6 +2365,7 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
 .timeline-copy-preview-close {
@@ -2476,6 +2477,8 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     line-height: 1.6;
     color: #707070;
     max-width: 560px;
+    white-space: pre-line;
+    word-break: break-word;
 }
 
 .timeline-copy-preview-content {
@@ -2545,6 +2548,43 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     height: 18px;
     display: block;
     filter: invert(1);
+}
+
+.timeline-copy-preview-action-feedback {
+    position: absolute;
+    z-index: 3;
+    max-width: min(320px, calc(100vw - 96px));
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(17, 17, 17, 0.96);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.4;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.timeline-copy-preview-action-feedback::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 100%;
+    width: 10px;
+    height: 10px;
+    background: inherit;
+    transform: translateY(-5px) rotate(45deg);
+}
+
+.timeline-copy-preview-action-feedback[data-tone="error"] {
+    background: rgba(184, 28, 28, 0.96);
+}
+
+.timeline-copy-preview-action-feedback.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }
 
 .timeline-copy-preview-confirm span {

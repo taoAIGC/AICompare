@@ -30,32 +30,36 @@ function safeTrackEvent(name, params = {}) {
     }
 }
 
+function sidebarMessage(key, fallback = '', substitutions = undefined) {
+    return window.RuntimeI18n?.getMessage?.(key, substitutions) || chrome?.i18n?.getMessage?.(key, substitutions) || fallback;
+}
+
 function applySidebarI18n(root) {
-    if (!root || !chrome?.i18n) return;
+    if (!root) return;
     root.querySelectorAll('[data-i18n]').forEach((element) => {
         const key = element.getAttribute('data-i18n');
-        const message = chrome.i18n.getMessage(key);
+        const message = sidebarMessage(key);
         if (message) {
             element.textContent = message;
         }
     });
     root.querySelectorAll('[data-i18n-title]').forEach((element) => {
         const key = element.getAttribute('data-i18n-title');
-        const message = chrome.i18n.getMessage(key);
+        const message = sidebarMessage(key);
         if (message) {
             element.title = message;
         }
     });
     root.querySelectorAll('[data-i18n-alt]').forEach((element) => {
         const key = element.getAttribute('data-i18n-alt');
-        const message = chrome.i18n.getMessage(key);
+        const message = sidebarMessage(key);
         if (message) {
             element.alt = message;
         }
     });
     root.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
         const key = element.getAttribute('data-i18n-aria-label');
-        const message = chrome.i18n.getMessage(key);
+        const message = sidebarMessage(key);
         if (message) {
             element.setAttribute('aria-label', message);
         }
@@ -253,8 +257,7 @@ async function updateSyncBar() {
     const syncBarText = document.getElementById('syncBarText');
     if (!syncBar || !syncBarText) return;
     syncBar.classList.remove('sync-bar--logged-in');
-    syncBarText.textContent = chrome.i18n.getMessage('logIn') ||
-        (chrome.i18n.getUILanguage().toLowerCase().startsWith('zh') ? '登录' : 'log In');
+    syncBarText.textContent = sidebarMessage('logIn', 'Log In');
 }
 
 function bindSyncBar() {
@@ -297,7 +300,7 @@ async function loadSidebarFavorites() {
         if (mergedFavoriteItems.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'sidebar-favorites-empty';
-            empty.textContent = chrome.i18n.getMessage('noFavorites') || '暂无收藏';
+            empty.textContent = sidebarMessage('noFavorites', '暂无收藏');
             listEl.appendChild(empty);
             hideSidebarFavoritesTooltip(tooltipEl);
             return;
@@ -483,6 +486,16 @@ async function initSharedSidebar() {
 document.addEventListener('DOMContentLoaded', () => {
     initSharedSidebar();
 });
+if (typeof window !== 'undefined') {
+    window.addEventListener('runtime-language-changed', () => {
+        const mount = document.getElementById('appSidebarMount');
+        if (mount) {
+            applySidebarI18n(mount);
+        }
+        updateSyncBar();
+        loadSidebarFavorites();
+    });
+}
 function getHybridFavoritesApi() {
     return window.AICompareHybridFavorites || {};
 }

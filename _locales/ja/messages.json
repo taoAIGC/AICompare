@@ -1086,7 +1086,7 @@
     "message": "ローカルバックアップ"
   },
   "localSyncDescription": {
-    "message": "現在の同期データをローカル JSON ファイルに書き出すか、ファイルから復元できます。履歴の書き出しは先頭 500 件までです。WebDAV の認証情報は含まれません。"
+    "message": "現在の同期データをローカル JSON ファイルに書き出すか、ファイルから復元できます。履歴の書き出しは先頭 500 件までです。"
   },
   "localSyncBadge": {
     "message": "JSON ファイル"
@@ -1304,6 +1304,21 @@
   "contactLoadFailed": {
     "message": "連絡先情報を読み込めませんでした。appConfig.json を確認してください。"
   },
+  "contactChangelogTitle": {
+    "message": "更新ログ"
+  },
+  "contactChangelogDescription": {
+    "message": "ここに最近の更新内容を表示し、何が変わったのか、どのように役立つのかをすぐに確認できます。"
+  },
+  "contactChangelogLoading": {
+    "message": "最新の更新内容を読み込み中..."
+  },
+  "contactChangelogEmpty": {
+    "message": "表示できる更新ログはまだありません。"
+  },
+  "contactChangelogLoadFailed": {
+    "message": "最新の更新内容を読み込めませんでした。"
+  },
   "selectAISites": {
     "message": "AI サイト"
   },
@@ -1451,6 +1466,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "この素材を1ページの意思決定メモにしてください。まず推奨案を示し、次にそれが最適な理由、リスク、次にやるべきことを説明してください。直接的で意思決定向けの口調でお願いします。\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "リスク分析"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "この失敗の根本原因を分析してください:「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "ベストプラクティス"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "このプロジェクトの成功レトロスペクティブレポートを書いてください:「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "中国語に翻訳"
   },
@@ -1536,12 +1563,12 @@
     "message": "Collecting responses from all sub-pages..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "成功サイト: $1\n失敗サイト: $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

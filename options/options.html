@@ -45,6 +45,10 @@
           <img class="action-link-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
           <span data-i18n="settingsNavSyncTitle">同步</span>
         </a>
+        <a href="#language-settings" class="action-link nav-link" data-section="language-settings">
+          <img class="action-link-icon" src="../icons/chromium.svg" alt="" aria-hidden="true">
+          <span data-i18n="settingsNavLanguageTitle">语言</span>
+        </a>
         <!-- 暂时隐藏 Pro 与 Remote Search 导航入口
         <a href="#membership" class="action-link nav-link" data-section="membership">
           <img class="action-link-icon" src="../icons/gem.svg" alt="" aria-hidden="true">
@@ -259,31 +263,6 @@
         <!-- 数据同步 -->
         <section id="data-sync" class="settings-section">
           <h1 data-i18n="dataSyncTitle">Sync &amp; backup</h1>
-          <p class="section-description" data-i18n="dataSyncDescription">Choose cloud sync or a local backup. The two flows are separate.</p>
-
-          <div class="sync-card sync-drive-card">
-            <div class="sync-card-header">
-              <div class="sync-card-heading">
-                <img class="sync-card-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
-                <div>
-                  <h2 data-i18n="googleDriveSyncTitle">Google Drive sync</h2>
-                  <p class="sync-card-description" data-i18n="googleDriveSyncDescription">Sign in with Google once, authorize Drive access, and sync the same backup data through your Google Drive app data space.</p>
-                </div>
-              </div>
-              <span class="sync-badge" data-i18n="googleDriveSyncBadge">Google Drive</span>
-            </div>
-            <div class="sync-account-row">
-              <div id="googleDriveSyncAccount" class="sync-account-text" data-i18n="googleDriveSyncNotConnected">Not connected yet</div>
-            </div>
-            <div class="sync-actions">
-              <button id="connectGoogleDriveSync" class="btn-primary btn-google" type="button">
-                <span class="btn-google-icon" aria-hidden="true"></span>
-                <span data-i18n="googleDriveSyncConnectButton">Sign in with Google</span>
-              </button>
-              <button id="restoreFromGoogleDriveSync" class="btn-secondary" type="button" data-i18n="googleDriveSyncRestoreButton">Restore from Drive</button>
-              <button id="disconnectGoogleDriveSync" class="btn-secondary" type="button" data-i18n="googleDriveSyncDisconnectButton">Disconnect</button>
-            </div>
-          </div>
 
           <!-- 云同步（WebDAV） -->
           <div class="sync-card sync-cloud-card">
@@ -348,7 +327,7 @@
                 <img class="sync-card-icon" src="../icons/download.svg" alt="" aria-hidden="true">
                 <div>
                   <h2 data-i18n="localSyncTitle">Local backup</h2>
-                  <p class="sync-card-description" data-i18n="localSyncDescription">Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. This includes skill engine settings, custom skills, favorites, and history. WebDAV credentials are not included.</p>
+                  <p class="sync-card-description" data-i18n="localSyncDescription">Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. This includes skill engine settings, custom skills, favorites, and history.</p>
                 </div>
               </div>
               <span class="sync-badge sync-badge-muted" data-i18n="localSyncBadge">JSON file</span>
@@ -360,7 +339,36 @@
             <input type="file" id="localSyncFileInput" accept="application/json,.json" hidden>
           </div>
 
+          <div class="sync-card sync-cloud-card">
+            <div class="sync-card-header">
+              <div class="sync-card-heading">
+                <img class="sync-card-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
+                <div>
+                  <h2 data-i18n="googleDriveSyncTitle">Google Drive sync</h2>
+                  <p class="sync-card-description" data-i18n="googleDriveSyncDescription">Sign in with Google once, authorize Drive access, and sync the same backup data through your Google Drive app data space.</p>
+                </div>
+              </div>
+              <span class="sync-badge" data-i18n="googleDriveSyncBadge">Google Drive</span>
+            </div>
+
+            <div id="googleDriveSyncAccount" class="sync-card-description">Not connected yet</div>
+
+            <div class="sync-actions">
+              <button id="connectGoogleDriveSync" class="btn-primary">
+                <span data-i18n="googleDriveSyncConnectButton">Sign in with Google</span>
+              </button>
+              <button id="disconnectGoogleDriveSync" class="btn-secondary" data-i18n="googleDriveSyncDisconnectButton">Disconnect</button>
+            </div>
+          </div>
+
           <div id="syncStatus" class="sync-status" style="display:none;"></div>
+        </section>
+
+        <section id="language-settings" class="settings-section">
+          <h1 data-i18n="languageSettingsTitle">语言设置</h1>
+          <div class="site-section unified-settings-panel">
+            <div id="languageSettingsContainer" class="site-configs"></div>
+          </div>
         </section>
 
         <!-- 暂时隐藏 Remote Search 设置页
@@ -689,12 +697,14 @@
 
   <script src="../config/firebaseConfig.js"></script>
   <script src="../shared/site-launch-utils.js"></script>
+  <script src="../config/agentCatalogData.js"></script>
   <script src="../config/agentCatalog.js"></script>
   <script src="../config/agentEngineConfig.js"></script>
   <script src="../shared/agent-prompt-utils.js"></script>
   <script src="../config/baseConfig.js"></script>
   <script src="../firebase/firebase-auth.js"></script>
   <script src="../shared/prompt-template-utils.js"></script>
+  <script src="../shared/runtime-i18n.js"></script>
   <script src="../firebase/stripe-payment.js"></script>
   <script src="options.js"></script>
 </body>

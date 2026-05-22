@@ -5,7 +5,7 @@ const HybridHistoryDB = window.AICompareHybridHistoryDB || {};
 const HybridFavorites = window.AICompareHybridFavorites || {};
 
 function t(key, fallback = '') {
-    return chrome?.i18n?.getMessage?.(key) || fallback;
+    return window.RuntimeI18n?.getMessage?.(key) || chrome?.i18n?.getMessage?.(key) || fallback;
 }
 
 function initializeI18n() {
@@ -30,6 +30,10 @@ function initializeI18n() {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.RuntimeI18n?.initializeRuntimeI18n) {
+        await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+
     initializeI18n();
     if (typeof window.migrateLegacyFavorites === 'function') await window.migrateLegacyFavorites();
     siteUrlFallbackMap = await loadSiteUrlFallbackMap();
@@ -230,6 +234,13 @@ function filterHistory(searchTerm) {
     filteredItems.forEach(item => {
         const historyItem = createHistoryItem(item);
         historyList.appendChild(historyItem);
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('runtime-language-changed', async () => {
+        initializeI18n();
+        await loadHistory();
     });
 }
 

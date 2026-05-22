@@ -1086,7 +1086,7 @@
     "message": "Copia local"
   },
   "localSyncDescription": {
-    "message": "Exporta los datos sincronizados actuales a un JSON local o restáuralos desde un archivo. El historial exportado se limita a los primeros 500 elementos. No se incluyen las credenciales de WebDAV."
+    "message": "Exporta los datos sincronizados actuales a un JSON local o restáuralos desde un archivo. El historial exportado se limita a los primeros 500 elementos."
   },
   "localSyncBadge": {
     "message": "Archivo JSON"
@@ -1304,6 +1304,21 @@
   "contactLoadFailed": {
     "message": "No se pudo cargar la información de contacto. Revisa appConfig.json."
   },
+  "contactChangelogTitle": {
+    "message": "Novedades"
+  },
+  "contactChangelogDescription": {
+    "message": "Aquí se muestran las actualizaciones recientes para que los usuarios entiendan rápidamente qué cambió y cómo les ayuda."
+  },
+  "contactChangelogLoading": {
+    "message": "Cargando las últimas actualizaciones..."
+  },
+  "contactChangelogEmpty": {
+    "message": "Todavía no hay notas de actualización disponibles."
+  },
+  "contactChangelogLoadFailed": {
+    "message": "No se pudieron cargar las últimas actualizaciones."
+  },
   "selectAISites": {
     "message": "Sitios de IA"
   },
@@ -1451,6 +1466,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "Convierte este material en un memorando de decisión de una página: empieza con la recomendación, luego explica por qué es la mejor opción, cuáles son los riesgos y qué hacer después. Mantén un tono directo y orientado a la decisión.\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "Análisis de riesgos"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "Analiza la causa raíz de este fallo:「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "Buenas prácticas"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "Escribe un informe de retrospectiva de éxito para este proyecto:「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "Traducir al chino"
   },
@@ -1536,12 +1563,12 @@
     "message": "Collecting responses from all sub-pages..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "Sitios exitosos: $1\nSitios fallidos: $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

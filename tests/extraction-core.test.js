@@ -29,8 +29,22 @@ function createBaseNode(ownerDocument, text = '') {
     matches() {
       return false;
     },
+    contains(other) {
+      return this === other;
+    },
     closest() {
       return null;
+    },
+    compareDocumentPosition(other) {
+      const selfOrder = Number.isFinite(this.__order) ? this.__order : 0;
+      const otherOrder = Number.isFinite(other?.__order) ? other.__order : 0;
+      if (selfOrder < otherOrder) {
+        return 4;
+      }
+      if (selfOrder > otherOrder) {
+        return 2;
+      }
+      return 0;
     },
     getBoundingClientRect() {
       return { width: 120, height: 24, top: 420 };
@@ -48,6 +62,7 @@ function createBaseNode(ownerDocument, text = '') {
 
 function createElement(ownerDocument, text = '', selectorMap = {}) {
   const node = createBaseNode(ownerDocument, text);
+  node.tagName = 'DIV';
   node.querySelectorAll = (selector) => selectorMap[selector] || [];
   node.querySelector = (selector) => {
     const matches = selectorMap[selector] || [];
@@ -246,6 +261,21 @@ test('extractMessagesWithContainer skips shell-like container fallback content',
   assert.equal(result.messageCount, 1);
 });
 
+test('extractElementContent preserves bullet prefixes for list items', async () => {
+  const doc = createDocument();
+  const listItem = createElement(doc, '写内容');
+  listItem.tagName = 'LI';
+  listItem.parentElement = {
+    tagName: 'UL',
+    children: [listItem]
+  };
+
+  const extraction = loadExtractionCore(doc);
+  const result = await extraction.extractElementContent(listItem);
+
+  assert.equal(result, '• 写内容');
+});
+
 test('resolveDocumentUrl keeps alternate link when history feature differs only by trailing slash', () => {
   const alternateLink = {
     getAttribute(name) {
@@ -283,4 +313,58 @@ test('resolveDocumentUrl keeps alternate link when history feature differs only 
   );
 
   assert.equal(resolved, 'https://example.com/chat/123');
+});
+
+test('extractPromptResponseForTimeline falls back to latest visible response for last prompt when scoped answers are empty', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const userText = createElement(doc, '测试问题');
+  const userMessage = createElement(doc, '', {
+    '.user-text': [userText]
+  });
+  userMessage.__order = 1;
+  userMessage.closest = (selector) => {
+    if (selector === '.user-message') return userMessage;
+    return null;
+  };
+
+  const emptyAnswerNode = createElement(doc, '');
+  emptyAnswerNode.__order = 2;
+  const latestVisibleParent = createElement(doc, '');
+  const latestVisibleMessage = createElement(doc, '');
+  latestVisibleMessage.__textNodes = [
+    {
+      textContent: 'DeepSeek 的最新回答',
+      parentElement: latestVisibleParent
+    }
+  ];
+
+  selectorMap.set('.user-message', [userMessage]);
+  selectorMap.set('.answer', [emptyAnswerNode]);
+  selectorMap.set('.assistant-latest', [latestVisibleMessage]);
+
+  const extraction = loadExtractionCore(doc);
+  const result = await extraction.extractPromptResponseForTimeline(
+    doc,
+    {
+      userPrompt: {
+        containerSelector: '.user-message',
+        textSelector: '.user-text'
+      },
+      contentExtractor: {
+        selectors: ['.answer'],
+        latestVisibleResponse: {
+          messageSelector: '.assistant-latest'
+        }
+      }
+    },
+    '测试问题',
+    0
+  );
+
+  assert.equal(result.found, true);
+  assert.equal(result.content, 'DeepSeek 的最新回答');
+  assert.equal(JSON.stringify(result.answers), JSON.stringify(['DeepSeek 的最新回答']));
+  assert.equal(result.fallbackUsed, 'latestVisibleResponse');
 });

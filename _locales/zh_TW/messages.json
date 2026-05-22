@@ -153,8 +153,56 @@
   "settingsNavSyncTitle": {
     "message": "同步"
   },
+  "settingsNavLanguageTitle": {
+    "message": "語言"
+  },
   "settingsNavProTitle": {
     "message": "Pro"
+  },
+  "languageSettingsTitle": {
+    "message": "語言設定"
+  },
+  "languageSettingsDescription": {
+    "message": "選擇擴充功能頁面的顯示語言。切換後，設定頁、首頁與對比頁會同步更新。"
+  },
+  "languageSettingsHelp": {
+    "message": "這會影響設定頁、首頁、對比頁、收藏頁與歷史頁等擴充功能自有頁面。"
+  },
+  "languageSettingsCurrentLocale": {
+    "message": "目前顯示語言"
+  },
+  "languageOptionAuto": {
+    "message": "跟隨瀏覽器語言"
+  },
+  "languageOptionEn": {
+    "message": "English"
+  },
+  "languageOptionZhCn": {
+    "message": "簡體中文"
+  },
+  "languageOptionZhTw": {
+    "message": "繁體中文"
+  },
+  "languageOptionJa": {
+    "message": "日本語"
+  },
+  "languageOptionKo": {
+    "message": "한국어"
+  },
+  "languageOptionFr": {
+    "message": "Français"
+  },
+  "languageOptionDe": {
+    "message": "Deutsch"
+  },
+  "languageOptionEs": {
+    "message": "Español"
+  },
+  "languageOptionPtBr": {
+    "message": "Português (Brasil)"
+  },
+  "languageOptionAr": {
+    "message": "العربية"
   },
   "agentEngineCardTitle": {
     "message": "自訂 API"
@@ -692,6 +740,12 @@
   },
   "promptTemplatesDescription": {
     "message": "自訂搜尋建議按鈕的提示詞範本"
+  },
+  "promptTemplatesEmpty": {
+    "message": "尚無提示詞範本"
+  },
+  "promptTemplatesEmptyHint": {
+    "message": "點擊上方「新增新範本」按鈕開始建立"
   },
   "addTemplateButton": {
     "message": "新增新範本"
@@ -1251,7 +1305,7 @@
     "message": "本機備份"
   },
   "localSyncDescription": {
-    "message": "將目前同步資料匯出為本機 JSON 檔，或從檔案還原；歷史記錄匯出時會截到前 500 筆；不包含 WebDAV 連線資訊。"
+    "message": "將目前同步資料匯出為本機 JSON 檔，或從檔案還原；歷史記錄匯出時會截到前 500 筆。"
   },
   "localSyncBadge": {
     "message": "JSON 檔"
@@ -1469,6 +1523,21 @@
   "contactLoadFailed": {
     "message": "載入聯絡資訊失敗，請檢查 appConfig.json。"
   },
+  "contactChangelogTitle": {
+    "message": "更新日誌"
+  },
+  "contactChangelogDescription": {
+    "message": "這裡會顯示最近的更新內容，方便使用者快速了解這次改了什麼，以及能帶來什麼幫助。"
+  },
+  "contactChangelogLoading": {
+    "message": "正在載入最新更新..."
+  },
+  "contactChangelogEmpty": {
+    "message": "目前還沒有可顯示的更新日誌。"
+  },
+  "contactChangelogLoadFailed": {
+    "message": "更新日誌載入失敗。"
+  },
   "selectAISites": {
     "message": "AI 網站"
   },
@@ -1616,6 +1685,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "請把這份材料寫成一頁決策備忘錄：先給建議，再說明為什麼這麼選、有什麼風險、下一步怎麼做。語氣直接，面向實際決策。\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "風險分析"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "導致失敗的根本原因：「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "最佳實踐"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "圍繞這個專案寫一份成功復盤報告：「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "翻譯成中文"
   },
@@ -1701,12 +1782,12 @@
     "message": "正在收集各站點回答..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "已彙總 $1/$2 個子頁面的回答，請確認後複製。",
+    "message": "成功站點：$1\n失敗站點：$2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

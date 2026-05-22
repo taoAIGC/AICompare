@@ -292,30 +292,48 @@ function createRelayServer(options = {}) {
     return publicBaseUrl ? `${publicBaseUrl}${normalizedPath}` : normalizedPath;
   }
 
-  function renderSharePage(shareId, shareRecord = null) {
+  function getSharePageLocale(req = null) {
+    const acceptLanguage = String(req?.headers?.['accept-language'] || '').toLowerCase();
+    if (acceptLanguage.startsWith('zh') || acceptLanguage.includes(',zh') || acceptLanguage.includes(';q=') && acceptLanguage.includes('zh')) {
+      return 'zh-CN';
+    }
+    return 'en';
+  }
+
+  function getSharePageMessages(locale = 'en') {
+    if (locale === 'zh-CN') {
+      return {
+        continueCompare: '继续 AI 对比'
+      };
+    }
+
+    return {
+      continueCompare: 'Continue AI Compare'
+    };
+  }
+
+  function renderSharePage(shareId, shareRecord = null, options = {}) {
     const title = shareRecord?.payload?.question ? `${shareRecord.payload.question} - AI Compare` : 'AI Compare Share';
+    const extensionInstallUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+    const locale = String(options.locale || 'en');
+    const messages = getSharePageMessages(locale);
     const responses = normalizeShareResponses(shareRecord?.payload?.responses);
-    const siteNavItems = responses.length
-      ? responses.map((response, index) => {
-        const siteName = escapeHtml(response.siteName || `Site ${index + 1}`);
-        const anchorId = `site-${index + 1}`;
-        return `<a class="site-nav-link" href="#${anchorId}">${siteName}</a>`;
-      }).join('\n')
-      : '';
     const responseCards = responses.length
       ? responses.map((response, index) => {
         const siteName = escapeHtml(response.siteName || 'Unknown');
         const anchorId = `site-${index + 1}`;
         const bodyText = getShareResponseBody(response);
         const bodyHtml = renderMarkdownToHtml(bodyText);
-        return `<section class="response-item" id="${anchorId}">
-          <div class="response-site">${siteName}</div>
-          <div class="response-body">${bodyHtml}</div>
+        return `<section class="share-panel iframe-container" id="${anchorId}">
+          <div class="share-panel-header iframe-header">
+            <div class="site-name">${siteName}</div>
+          </div>
+          <div class="share-panel-body snapshot-panel markdown">${bodyHtml}</div>
         </section>`;
       }).join('\n')
       : '<p class="share-empty">暂无可展示的回答</p>';
     return `<!doctype html>
-<html lang="en">
+<html lang="${escapeHtml(locale)}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -323,274 +341,186 @@ function createRelayServer(options = {}) {
   <style>
     :root{
       color-scheme: light;
-      --apple-bg-0:#eef1f5;
-      --apple-bg-1:#f7f8fa;
-      --apple-card:rgba(255,255,255,.72);
-      --apple-card-strong:rgba(255,255,255,.86);
-      --apple-border:rgba(255,255,255,.62);
-      --apple-shadow:0 18px 48px rgba(15,23,42,.08),0 2px 10px rgba(15,23,42,.04);
-      --apple-text:#101214;
-      --apple-subtle:#6b7280;
-      --apple-accent:#0071e3;
-      --apple-code-bg:rgba(245,247,250,.95);
+      --share-bg:#f7f8fb;
+      --share-surface:#ffffff;
+      --share-surface-soft:#f5f7fb;
+      --share-border:#dfe3eb;
+      --share-border-strong:#d0d6e0;
+      --share-text:#1f2328;
+      --share-text-muted:#697180;
+      --share-shadow:0 12px 32px rgba(15, 23, 42, 0.08);
+      --share-radius:12px;
+      --share-gap:16px;
     }
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
-    html,body{min-height:100%}
     body{
-      font-family:"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
       margin:0;
-      color:var(--apple-text);
-      background:
-        radial-gradient(circle at top left, rgba(255,255,255,.92), rgba(255,255,255,0) 32%),
-        radial-gradient(circle at top right, rgba(255,255,255,.8), rgba(255,255,255,0) 28%),
-        linear-gradient(180deg, var(--apple-bg-0) 0%, var(--apple-bg-1) 100%);
-      -webkit-font-smoothing:antialiased;
-      text-rendering:optimizeLegibility;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      color:var(--share-text);
+      background:var(--share-bg);
     }
-    .page-shell{
-      width:min(1240px, calc(100% - 40px));
+    .share-page{
+      max-width:1400px;
       margin:0 auto;
-      padding:40px 0 72px;
-      display:grid;
-      grid-template-columns:180px minmax(0, 1fr);
-      grid-template-rows:auto auto;
-      column-gap:28px;
-      row-gap:18px;
-      align-items:start;
+      padding:20px 16px 24px;
     }
-    .question-spacer{
-      grid-column:1;
-      grid-row:1;
+    .share-query-bar{
+      margin:0 0 16px;
+      padding:14px 18px;
+      border:1px solid var(--share-border);
+      border-radius:12px;
+      background:var(--share-surface);
+      box-shadow:var(--share-shadow);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
     }
-    .question-wrap{
-      grid-column:2;
-      grid-row:1;
+    .share-query{
+      margin:0;
+      font-size:18px;
+      line-height:1.45;
+      font-weight:700;
+      white-space:pre-wrap;
+      word-break:break-word;
+      flex:1;
       min-width:0;
     }
-    .site-nav{
-      grid-column:1;
-      grid-row:2;
-      position:sticky;
-      top:32px;
-      align-self:start;
-      height:fit-content;
-    }
-    .site-nav-card{
-      background:rgba(255,255,255,.58);
-      border:1px solid rgba(255,255,255,.62);
-      border-radius:22px;
-      padding:12px;
-      box-shadow:var(--apple-shadow);
-      backdrop-filter:blur(22px) saturate(170%);
-      -webkit-backdrop-filter:blur(22px) saturate(170%);
-    }
-    .site-nav-list{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-    .site-nav-link{
-      display:block;
-      padding:10px 12px;
-      border-radius:14px;
-      color:var(--apple-subtle);
+    .share-continue-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:40px;
+      padding:0 16px;
+      border-radius:10px;
+      border:1px solid #111827;
+      background:#111827;
+      color:#fff;
       text-decoration:none;
       font-size:14px;
-      line-height:1.35;
-      font-weight:600;
-      word-break:break-word;
-      transition:background-color .18s ease,color .18s ease,transform .18s ease;
+      line-height:1;
+      font-weight:700;
+      white-space:nowrap;
+      transition:background-color .18s ease,border-color .18s ease,transform .18s ease;
+      flex-shrink:0;
     }
-    .site-nav-link:hover{
-      background:rgba(0,113,227,.08);
-      color:var(--apple-accent);
-      transform:translateX(2px);
+    .share-continue-btn:hover{
+      background:#1f2937;
+      border-color:#1f2937;
+      transform:translateY(-1px);
     }
-    .response-wrap{
-      min-width:0;
-      grid-column:2;
-      grid-row:2;
+    .share-panels{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+      gap:var(--share-gap);
+      align-items:start;
     }
-    .card{
-      position:relative;
+    .share-footer-actions{
+      display:flex;
+      justify-content:center;
+      margin-top:20px;
+    }
+    .iframe-container{
+      background:var(--share-surface);
+      border:1px solid var(--share-border);
+      border-radius:12px;
       overflow:hidden;
-      background:var(--apple-card);
-      border:1px solid var(--apple-border);
-      border-radius:28px;
-      padding:24px 24px 22px;
-      box-shadow:var(--apple-shadow);
-      backdrop-filter:blur(24px) saturate(170%);
-      -webkit-backdrop-filter:blur(24px) saturate(170%);
-      margin-bottom:18px;
+      box-shadow:var(--share-shadow);
+      min-height:320px;
     }
-    h2{
-      margin:0 0 14px;
-      font-size:14px;
+    .iframe-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:8px 12px;
+      min-height:40px;
+      background:linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      border-bottom:1px solid var(--share-border);
+    }
+    .iframe-header .site-name{
+      font-size:13px;
       line-height:1.2;
       font-weight:700;
-      letter-spacing:.01em;
-      color:var(--apple-subtle);
-      text-transform:uppercase;
+      color:var(--share-text);
     }
-    .question-card .markdown{
-      font-size:32px;
-      line-height:1.26;
-      font-weight:700;
-      letter-spacing:-.03em;
-      color:var(--apple-text);
-    }
-    .question-card .markdown p{
-      margin:0;
-    }
-    .question-card{
-      background:transparent;
-      border:none;
-      box-shadow:none;
-      backdrop-filter:none;
-      -webkit-backdrop-filter:none;
-      padding:8px 6px 12px;
-      margin-bottom:18px;
+    .snapshot-panel{
+      background:#ffffff;
+      min-height:280px;
+      padding:16px;
     }
     .markdown{
-      font-size:17px;
-      line-height:1.82;
-      color:var(--apple-text);
+      font-size:14px;
+      line-height:1.72;
+      color:var(--share-text);
+      word-break:break-word;
     }
     .markdown p,.markdown ul,.markdown ol,.markdown blockquote,.markdown pre{margin:0 0 14px}
-    .markdown ul,.markdown ol{padding-left:24px}
+    .markdown ul,.markdown ol{padding-left:22px}
     .markdown li + li{margin-top:6px}
     .markdown blockquote{
-      border-left:3px solid rgba(0,113,227,.24);
-      padding:2px 0 2px 14px;
-      color:#4b5563;
+      border-left:3px solid #d0d7de;
+      padding-left:12px;
+      color:var(--share-text-muted);
     }
     .markdown pre{
       white-space:pre-wrap;
       word-break:break-word;
-      font:13px/1.75 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-      background:var(--apple-code-bg);
-      border:1px solid rgba(15,23,42,.06);
-      border-radius:18px;
-      padding:16px 18px;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.75);
+      font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      background:var(--share-surface-soft);
+      border:1px solid var(--share-border);
+      border-radius:10px;
+      padding:14px 16px;
     }
     .markdown code{
       font:13px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-      background:rgba(15,23,42,.055);
-      border-radius:8px;
-      padding:2px 7px;
+      background:var(--share-surface-soft);
+      border-radius:6px;
+      padding:2px 6px;
     }
     .markdown pre code{background:transparent;padding:0;border-radius:0}
     .markdown h2,.markdown h3,.markdown h4,.markdown h5,.markdown h6{
       margin:0 0 12px;
-      font-size:22px;
-      line-height:1.35;
+      font-size:18px;
+      line-height:1.4;
       font-weight:700;
-      letter-spacing:-.02em;
-      color:var(--apple-text);
+      color:var(--share-text);
       text-transform:none;
     }
-    .markdown a{color:var(--apple-accent);text-decoration:none}
+    .markdown a{color:#0969da;text-decoration:none}
     .markdown a:hover{text-decoration:underline}
-    .response-list{display:flex;flex-direction:column;gap:14px}
-    .response-item{
-      border:1px solid rgba(255,255,255,.72);
-      border-radius:24px;
-      padding:18px 18px 6px;
-      background:var(--apple-card-strong);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
-      scroll-margin-top:32px;
-    }
-    .response-site{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-size:17px;
-      line-height:1.3;
-      font-weight:700;
-      letter-spacing:-.01em;
-      margin:0 0 14px;
-    }
-    .response-site::before{
-      content:"";
-      width:10px;
-      height:10px;
-      border-radius:999px;
-      background:linear-gradient(180deg, #5ac8fa 0%, #007aff 100%);
-      box-shadow:0 0 0 6px rgba(0,122,255,.12);
-      flex-shrink:0;
-    }
     .share-empty{
-      color:var(--apple-subtle);
       margin:0;
-      font-size:15px;
-      line-height:1.7;
-    }
-    @media (max-width: 900px){
-      .page-shell{
-        width:min(100%, calc(100% - 28px));
-        padding:24px 0 40px;
-        grid-template-columns:minmax(0, 1fr);
-        grid-template-rows:auto auto auto;
-        row-gap:18px;
-      }
-      .question-spacer{display:none}
-      .question-wrap{
-        grid-column:1;
-        grid-row:1;
-      }
-      .site-nav{
-        grid-column:1;
-        grid-row:2;
-        top:12px;
-        z-index:5;
-      }
-      .site-nav-card{
-        padding:10px;
-      }
-      .response-wrap{
-        grid-column:1;
-        grid-row:3;
-      }
-      .site-nav-list{
-        flex-direction:row;
-        gap:8px;
-        overflow:auto;
-        padding-bottom:2px;
-      }
-      .site-nav-link{
-        white-space:nowrap;
-      }
+      padding:20px;
+      border:1px dashed var(--share-border-strong);
+      border-radius:12px;
+      background:var(--share-surface);
+      color:var(--share-text-muted);
+      font-size:14px;
+      line-height:1.6;
     }
     @media (max-width: 640px){
-      .card{border-radius:24px;padding:20px 18px}
-      .question-card{padding:6px 4px 10px}
-      .question-card .markdown{font-size:26px}
-      .markdown{font-size:16px}
-      .response-item{border-radius:20px}
+      .share-page{padding:14px 12px 20px}
+      .share-query-bar{padding:12px 14px;flex-direction:column;align-items:stretch}
+      .share-query{font-size:16px}
+      .share-continue-btn{width:100%}
+      .share-panels{grid-template-columns:1fr}
+      .share-footer-actions{justify-content:center}
+      .snapshot-panel{padding:14px}
     }
   </style>
 </head>
 <body>
-  <div class="page-shell">
-    <div class="question-spacer" aria-hidden="true"></div>
-    <div class="question-wrap">
-      <div class="card question-card">
-        <div class="markdown">${renderMarkdownToHtml(shareRecord?.payload?.question || '')}</div>
-      </div>
+  <div class="share-page">
+    <div class="share-query-bar">
+      <div class="share-query">${escapeHtml(shareRecord?.payload?.question || '')}</div>
+      <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
     </div>
-    ${siteNavItems ? `<aside class="site-nav">
-      <div class="site-nav-card">
-        <nav class="site-nav-list" aria-label="Response sites">
-          ${siteNavItems}
-        </nav>
-      </div>
-    </aside>` : ''}
-    <div class="response-wrap">
-      <div class="card">
-        <div class="response-list">${responseCards}</div>
-      </div>
+    <div class="share-panels">
+      ${responseCards}
+    </div>
+    <div class="share-footer-actions">
+      <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
     </div>
   </div>
 </body>
@@ -898,7 +828,9 @@ function createRelayServer(options = {}) {
         res.status(410).type('text/plain').send('Share expired');
         return;
       }
-      res.type('text/html').send(renderSharePage(shareId, shareRecord));
+      res.type('text/html').send(renderSharePage(shareId, shareRecord, {
+        locale: getSharePageLocale(req)
+      }));
     } catch (error) {
       next(error);
     }

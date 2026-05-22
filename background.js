@@ -1,5 +1,6 @@
 importScripts(
   './shared/site-launch-utils.js',
+  './config/agentCatalogData.js',
   './config/agentCatalog.js',
   './config/agentEngineConfig.js',
   './shared/agent-prompt-utils.js',
@@ -16,6 +17,7 @@ const SiteLaunchUtils = self.SiteLaunchUtils || {};
 const AgentCatalog = self.AICompareAgentCatalog || {};
 const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
+const UI_LANGUAGE_STORAGE_KEY = 'uiLanguage';
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
@@ -26,6 +28,7 @@ const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY |
 const DRIVE_SYNC_CONFIG_KEY = 'googleDriveSyncConfig';
 const DRIVE_SYNC_FILENAME = 'multiAI-settings.json';
 const DRIVE_SYNC_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+let googleDriveConnectInFlight = null;
 const OFFICIAL_AGENT_DAILY_FREE_LIMIT = Math.max(0, Number(AgentEngineConfig.DEFAULT_DAILY_FREE_LIMIT) || 3);
 
 function getDefaultAgentEngineConfig() {
@@ -321,24 +324,29 @@ async function getAgentCatalogWithCustomSettings() {
     { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings },
     { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
     { [CUSTOM_AGENTS_STORAGE_KEY]: syncCustomAgents },
-    { [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds }
+    { [AGENT_HIDDEN_IDS_STORAGE_KEY]: hiddenAgentIds },
+    { [UI_LANGUAGE_STORAGE_KEY]: uiLanguage }
   ] = await Promise.all([
     chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY),
     chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
     chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY),
-    chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY)
+    chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY),
+    chrome.storage.sync.get(UI_LANGUAGE_STORAGE_KEY)
   ]);
 
   const customAgents = Array.isArray(localCustomAgents) && localCustomAgents.length > 0
     ? localCustomAgents
     : (Array.isArray(syncCustomAgents) ? syncCustomAgents : []);
+  const requestedLocale = typeof AgentCatalog.getRuntimeLocale === 'function'
+    ? AgentCatalog.getRuntimeLocale(uiLanguage)
+    : String(uiLanguage || '').trim();
   const hiddenSet = new Set(
     typeof AgentCatalog.normalizeAgentHiddenIds === 'function'
       ? AgentCatalog.normalizeAgentHiddenIds(hiddenAgentIds)
       : (Array.isArray(hiddenAgentIds) ? hiddenAgentIds.filter(Boolean) : [])
   );
   if (typeof AgentCatalog.buildCatalogWithCustomSettings === 'function') {
-    const catalog = AgentCatalog.buildCatalogWithCustomSettings(storedSettings, customAgents);
+    const catalog = AgentCatalog.buildCatalogWithCustomSettings(storedSettings, customAgents, requestedLocale);
     return {
       ...catalog,
       agents: Array.isArray(catalog?.agents)
@@ -348,7 +356,7 @@ async function getAgentCatalogWithCustomSettings() {
   }
 
   const fallbackCatalog = typeof AgentCatalog.getCatalog === 'function'
-    ? AgentCatalog.getCatalog()
+    ? AgentCatalog.getCatalog(requestedLocale)
     : { categories: [], agents: [] };
   return {
     ...fallbackCatalog,
@@ -660,16 +668,16 @@ function getDefaultPromptTemplates() {
   return [
     {
       id: 'risk_analysis',
-      name: 'RiskAnalysis',
-      query: 'Root cause of the failure:「{query}」',
+      name: chrome.i18n.getMessage('defaultTemplateRiskAnalysisName') || 'RiskAnalysis',
+      query: chrome.i18n.getMessage('defaultTemplateRiskAnalysisQuery') || 'Root cause of the failure:「{query}」',
       type: 'information',
       order: 1,
       isDefault: true
     },
     {
       id: 'best_practice',
-      name: 'BestPractice',
-      query: 'Write a success retrospective report on this project:「{query}」',
+      name: chrome.i18n.getMessage('defaultTemplateBestPracticeName') || 'BestPractice',
+      query: chrome.i18n.getMessage('defaultTemplateBestPracticeQuery') || 'Write a success retrospective report on this project:「{query}」',
       type: 'information',
       order: 2,
       isDefault: true
@@ -2103,6 +2111,52 @@ async function clearGoogleDriveConfig() {
   await chrome.storage.local.remove(DRIVE_SYNC_CONFIG_KEY);
 }
 
+async function clearGoogleDriveCachedToken(token) {
+  const normalizedToken = String(token || '').trim();
+  if (!normalizedToken) {
+    return;
+  }
+
+  try {
+    if (chrome.identity?.removeCachedAuthToken) {
+      await chrome.identity.removeCachedAuthToken({ token: normalizedToken });
+    }
+  } catch (error) {
+    console.warn('[Google Drive Sync] remove cached token failed:', error.message);
+  }
+}
+
+async function tryChromeIdentityDriveToken({ interactive = false } = {}) {
+  if (!chrome.identity?.getAuthToken) {
+    return null;
+  }
+
+  try {
+    const result = await chrome.identity.getAuthToken({
+      interactive,
+      scopes: [DRIVE_SYNC_SCOPE]
+    });
+    const token = String(result?.token || result || '').trim();
+    if (!token) {
+      return null;
+    }
+
+    await setGoogleDriveConfig({
+      enabled: true,
+      accessToken: token,
+      expiresAt: Date.now() + 55 * 60 * 1000,
+      authProvider: 'chromeIdentity'
+    });
+
+    return token;
+  } catch (error) {
+    if (interactive || String(error?.message || '').trim()) {
+      console.warn('[Google Drive Sync] chrome.identity.getAuthToken failed:', error.message);
+    }
+    return null;
+  }
+}
+
 function launchWebAuthFlowAsync(url) {
   return new Promise((resolve, reject) => {
     chrome.identity.launchWebAuthFlow({ url, interactive: true }, (redirectedTo) => {
@@ -2169,7 +2223,44 @@ async function fetchGoogleProfile(accessToken) {
   };
 }
 
+async function runGoogleDriveInitialSync() {
+  try {
+    await googleDriveDownload({ interactive: false });
+    return;
+  } catch (error) {
+    const message = String(error?.message || '').trim();
+    if (!/No Google Drive backup was found/i.test(message)) {
+      await setGoogleDriveConfig({
+        lastError: message
+      });
+      console.warn('[Google Drive Sync] initial download failed:', message);
+      return;
+    }
+  }
+
+  try {
+    await setGoogleDriveConfig({
+      lastError: ''
+    });
+    await googleDriveUpload({ interactive: false });
+  } catch (error) {
+    const message = String(error?.message || '').trim();
+    await setGoogleDriveConfig({
+      lastError: message
+    });
+    console.warn('[Google Drive Sync] initial upload failed:', message);
+  }
+}
+
 async function googleDriveConnect() {
+  if (googleDriveConnectInFlight) {
+    return googleDriveConnectInFlight;
+  }
+
+  googleDriveConnectInFlight = (async () => {
+  let accessToken = '';
+  let expiresIn = 55 * 60;
+
   const clientId = getGoogleDriveClientId();
   if (!clientId) {
     throw new Error(
@@ -2198,7 +2289,9 @@ async function googleDriveConnect() {
   authUrl.searchParams.set('prompt', 'consent');
 
   const callbackUrl = await launchWebAuthFlowAsync(authUrl.toString());
-  const { accessToken, expiresIn } = parseGoogleDriveOAuthCallback(callbackUrl, redirectUri);
+  const parsed = parseGoogleDriveOAuthCallback(callbackUrl, redirectUri);
+  accessToken = parsed.accessToken;
+  expiresIn = parsed.expiresIn;
 
   const profile = await fetchGoogleProfile(accessToken);
   const config = await setGoogleDriveConfig({
@@ -2208,14 +2301,11 @@ async function googleDriveConnect() {
     email: profile.email || '',
     accountName: profile.name || profile.email || '',
     avatarUrl: profile.picture || '',
-    lastConnectedAt: new Date().toISOString()
+    lastConnectedAt: new Date().toISOString(),
+    lastError: ''
   });
 
-  try {
-    await googleDriveUpload({ interactive: false });
-  } catch (error) {
-    console.warn('[Google Drive Sync] initial upload failed:', error.message);
-  }
+  void runGoogleDriveInitialSync();
 
   return {
     enabled: true,
@@ -2223,6 +2313,13 @@ async function googleDriveConnect() {
     accountName: config.accountName || '',
     expiresAt: config.expiresAt || 0
   };
+  })();
+
+  try {
+    return await googleDriveConnectInFlight;
+  } finally {
+    googleDriveConnectInFlight = null;
+  }
 }
 
 async function googleDriveDisconnect() {
@@ -2248,7 +2345,8 @@ async function getGoogleDriveStatus() {
     email: String(cfg.email || '').trim(),
     accountName: String(cfg.accountName || '').trim(),
     expiresAt: Number(cfg.expiresAt) || 0,
-    lastSyncedAt: String(cfg.lastSyncedAt || '').trim()
+    lastSyncedAt: String(cfg.lastSyncedAt || '').trim(),
+    lastError: String(cfg.lastError || '').trim()
   };
 }
 
@@ -2259,6 +2357,11 @@ async function getGoogleDriveAccessToken({ interactive = false } = {}) {
 
   if (token && expiresAt > Date.now() + 60 * 1000) {
     return token;
+  }
+
+  const chromeIdentityToken = await tryChromeIdentityDriveToken({ interactive });
+  if (chromeIdentityToken) {
+    return chromeIdentityToken;
   }
 
   const clientId = getGoogleDriveClientId();
@@ -2369,13 +2472,28 @@ async function applyUnifiedSyncPayload(data = {}) {
 
 async function googleDriveRequest(path, options = {}, { interactive = false } = {}) {
   const token = await getGoogleDriveAccessToken({ interactive });
-  const res = await fetch(`https://www.googleapis.com${path}`, {
+  const request = async (accessToken) => fetch(`https://www.googleapis.com${path}`, {
     ...options,
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
       ...(options.headers || {})
     }
   });
+
+  let res = await request(token);
+  if ((res.status === 401 || res.status === 403) && token) {
+    await clearGoogleDriveCachedToken(token);
+    await setGoogleDriveConfig({
+      accessToken: '',
+      expiresAt: 0
+    });
+    const retryToken = interactive
+      ? await getGoogleDriveAccessToken({ interactive: true })
+      : await tryChromeIdentityDriveToken({ interactive: false });
+    if (retryToken) {
+      res = await request(retryToken);
+    }
+  }
   return res;
 }
 
@@ -2398,45 +2516,53 @@ async function googleDriveUpload({ interactive = false } = {}) {
   if (!cfg.enabled) {
     return;
   }
-  const payload = await buildUnifiedSyncPayload();
-  const existingFile = await findGoogleDriveSyncFileId({ interactive });
-  const boundary = `----multi-ai-sync-${Date.now()}`;
-  const metadata = {
-    name: DRIVE_SYNC_FILENAME,
-    parents: ['appDataFolder']
-  };
-  const multipartBody = [
-    `--${boundary}`,
-    'Content-Type: application/json; charset=UTF-8',
-    '',
-    JSON.stringify(metadata),
-    `--${boundary}`,
-    'Content-Type: application/json; charset=UTF-8',
-    '',
-    JSON.stringify(payload, null, 2),
-    `--${boundary}--`
-  ].join('\r\n');
+  try {
+    const payload = await buildUnifiedSyncPayload();
+    const existingFile = await findGoogleDriveSyncFileId({ interactive });
+    const boundary = `----multi-ai-sync-${Date.now()}`;
+    const metadata = {
+      name: DRIVE_SYNC_FILENAME,
+      parents: ['appDataFolder']
+    };
+    const multipartBody = [
+      `--${boundary}`,
+      'Content-Type: application/json; charset=UTF-8',
+      '',
+      JSON.stringify(metadata),
+      `--${boundary}`,
+      'Content-Type: application/json; charset=UTF-8',
+      '',
+      JSON.stringify(payload, null, 2),
+      `--${boundary}--`
+    ].join('\r\n');
 
-  const method = existingFile?.id ? 'PATCH' : 'POST';
-  const path = existingFile?.id
-    ? `/upload/drive/v3/files/${encodeURIComponent(existingFile.id)}?uploadType=multipart`
-    : '/upload/drive/v3/files?uploadType=multipart';
-  const res = await googleDriveRequest(path, {
-    method,
-    headers: {
-      'Content-Type': `multipart/related; boundary=${boundary}`
-    },
-    body: multipartBody
-  }, { interactive });
+    const method = existingFile?.id ? 'PATCH' : 'POST';
+    const path = existingFile?.id
+      ? `/upload/drive/v3/files/${encodeURIComponent(existingFile.id)}?uploadType=multipart`
+      : '/upload/drive/v3/files?uploadType=multipart';
+    const res = await googleDriveRequest(path, {
+      method,
+      headers: {
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body: multipartBody
+    }, { interactive });
 
-  if (!res.ok) {
-    throw new Error(`Failed to upload Drive sync data: HTTP ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`Failed to upload Drive sync data: HTTP ${res.status}`);
+    }
+
+    await setGoogleDriveConfig({
+      enabled: true,
+      lastSyncedAt: new Date().toISOString(),
+      lastError: ''
+    });
+  } catch (error) {
+    await setGoogleDriveConfig({
+      lastError: String(error?.message || '').trim()
+    });
+    throw error;
   }
-
-  await setGoogleDriveConfig({
-    enabled: true,
-    lastSyncedAt: new Date().toISOString()
-  });
 }
 
 async function googleDriveDownload(options = {}) {
@@ -2447,26 +2573,36 @@ async function googleDriveDownload(options = {}) {
     throw new Error('Google Drive sync is not connected');
   }
 
-  const existingFile = await findGoogleDriveSyncFileId({ interactive });
-  if (!existingFile?.id) {
-    if (silent) return;
-    throw new Error('No Google Drive backup was found');
-  }
+  try {
+    const existingFile = await findGoogleDriveSyncFileId({ interactive });
+    if (!existingFile?.id) {
+      if (silent) return;
+      throw new Error('No Google Drive backup was found');
+    }
 
-  const res = await googleDriveRequest(
-    `/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`,
-    {},
-    { interactive }
-  );
-  if (!res.ok) {
-    throw new Error(`Failed to download Drive sync data: HTTP ${res.status}`);
+    const res = await googleDriveRequest(
+      `/drive/v3/files/${encodeURIComponent(existingFile.id)}?alt=media`,
+      {},
+      { interactive }
+    );
+    if (!res.ok) {
+      throw new Error(`Failed to download Drive sync data: HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    await applyUnifiedSyncPayload(data);
+    await setGoogleDriveConfig({
+      enabled: true,
+      lastSyncedAt: new Date().toISOString(),
+      lastError: ''
+    });
+  } catch (error) {
+    if (!silent) {
+      await setGoogleDriveConfig({
+        lastError: String(error?.message || '').trim()
+      });
+    }
+    throw error;
   }
-  const data = await res.json();
-  await applyUnifiedSyncPayload(data);
-  await setGoogleDriveConfig({
-    enabled: true,
-    lastSyncedAt: new Date().toISOString()
-  });
 }
 
 async function getWebDAVConfig() {
@@ -2536,7 +2672,10 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   syncDebounceTimer = setTimeout(() => {
     webdavUpload();
     googleDriveUpload().catch((error) => {
-      console.warn('[Google Drive Sync] 自动上传失败:', error.message);
+      const message = String(error?.message || '').trim();
+      if (!/not connected|authorization failed/i.test(message)) {
+        console.warn('[Google Drive Sync] 自动上传失败:', error.message);
+      }
     });
   }, 500);
 });

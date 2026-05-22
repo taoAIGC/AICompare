@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+cd "$repo_root"
+
+current_branch="$(git branch --show-current)"
+
+if [ -z "$current_branch" ]; then
+  exit 0
+fi
+
+if ! git remote get-url origin >/dev/null 2>&1; then
+  exit 0
+fi
+
+git push -u origin "$current_branch"

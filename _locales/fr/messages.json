@@ -1086,7 +1086,7 @@
     "message": "Sauvegarde locale"
   },
   "localSyncDescription": {
-    "message": "Exportez les données synchronisées actuelles dans un fichier JSON local ou restaurez-les depuis un fichier. L'historique exporté est limité aux 500 premiers éléments. Les identifiants WebDAV ne sont pas inclus."
+    "message": "Exportez les données synchronisées actuelles dans un fichier JSON local ou restaurez-les depuis un fichier. L'historique exporté est limité aux 500 premiers éléments."
   },
   "localSyncBadge": {
     "message": "Fichier JSON"
@@ -1304,6 +1304,21 @@
   "contactLoadFailed": {
     "message": "Impossible de charger les informations de contact. Vérifiez appConfig.json."
   },
+  "contactChangelogTitle": {
+    "message": "Nouveautés"
+  },
+  "contactChangelogDescription": {
+    "message": "Les dernières mises à jour s’affichent ici pour permettre aux utilisateurs de comprendre rapidement ce qui a changé et en quoi cela aide."
+  },
+  "contactChangelogLoading": {
+    "message": "Chargement des dernières mises à jour..."
+  },
+  "contactChangelogEmpty": {
+    "message": "Aucune note de mise à jour n’est encore disponible."
+  },
+  "contactChangelogLoadFailed": {
+    "message": "Impossible de charger les dernières mises à jour."
+  },
   "selectAISites": {
     "message": "Sites IA"
   },
@@ -1451,6 +1466,18 @@
   "defaultAnalysisTemplateReportQuery": {
     "message": "Transformez ce contenu en note de décision d'une page : commencez par la recommandation, puis expliquez pourquoi c'est le meilleur choix, quels sont les risques et quoi faire ensuite. Gardez un ton direct et orienté décision.\n\n{analysisInput}"
   },
+  "defaultTemplateRiskAnalysisName": {
+    "message": "Analyse des risques"
+  },
+  "defaultTemplateRiskAnalysisQuery": {
+    "message": "Analyse la cause racine de cet échec :「{query}」"
+  },
+  "defaultTemplateBestPracticeName": {
+    "message": "Bonnes pratiques"
+  },
+  "defaultTemplateBestPracticeQuery": {
+    "message": "Rédige un rapport de rétrospective de réussite pour ce projet :「{query}」"
+  },
   "defaultTemplateTranslateToChineseName": {
     "message": "Traduire en chinois"
   },
@@ -1536,12 +1563,12 @@
     "message": "Collecting responses from all sub-pages..."
   },
   "timelineCopyPreviewSummary": {
-    "message": "Collected responses from $1/$2 sub-pages. Review before copying.",
+    "message": "Sites réussis : $1\nSites en échec : $2",
     "placeholders": {
       "success_count": {
         "content": "$1"
       },
-      "total_count": {
+      "failure_count": {
         "content": "$2"
       }
     }

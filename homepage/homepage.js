@@ -22,6 +22,8 @@ const HOMEPAGE_DEFAULT_SEND_SHORTCUT = 'enter';
 const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
     navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
 );
+const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
+const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
 const SITE_GROUP_LABELS = {
     information: 'homepageTypeInformation',
@@ -67,9 +69,33 @@ function applyHomepageSubmitShortcutMode(buttonConfig = {}) {
     homepageSubmitShortcutMode = normalizeSendShortcutMode(buttonConfig?.sendShortcut);
 }
 
+async function refreshHomepageVisibleQuerySuggestions() {
+    const searchInput = document.getElementById('searchInput');
+    const querySuggestions = document.getElementById('querySuggestions');
+    if (!searchInput || !querySuggestions || querySuggestions.style.display === 'none') {
+        return;
+    }
+
+    const query = String(searchInput.value || '').trim();
+    if (!query) {
+        querySuggestions.innerHTML = '';
+        querySuggestions.style.display = 'none';
+        return;
+    }
+
+    try {
+        await showQuerySuggestions(query);
+    } catch (error) {
+        console.warn('Failed to refresh homepage query suggestions:', error);
+    }
+}
+
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'sync' && changes.buttonConfig) {
         applyHomepageSubmitShortcutMode(changes.buttonConfig.newValue || {});
+    }
+    if (namespace === 'sync' && changes.promptTemplates) {
+        void refreshHomepageVisibleQuerySuggestions();
     }
 });
 
@@ -144,7 +170,33 @@ function trackEvent(name, params = {}) {
 }
 
 function t(key, fallback = '') {
-    return chrome?.i18n?.getMessage?.(key) || fallback;
+    return window.RuntimeI18n?.getMessage?.(key) || chrome?.i18n?.getMessage?.(key) || fallback;
+}
+
+function interpolateMessage(template, substitutions = []) {
+    const values = Array.isArray(substitutions) ? substitutions : [substitutions];
+    return values.reduce((result, value, index) => (
+        result.replaceAll(`$${index + 1}`, String(value))
+    ), String(template || ''));
+}
+
+function refreshHomepageDynamicI18n() {
+    const searchButton = document.getElementById('searchButton');
+    if (searchButton) {
+        searchButton.textContent = t('startCompare', 'PK');
+    }
+
+    const saveBtn = document.getElementById('saveSitesBtn');
+    if (saveBtn) {
+        const saveTitle = t('saveFavoriteSitesTitle', '') || t('saveFavoriteSites', 'Save as default sites');
+        saveBtn.setAttribute('aria-label', saveTitle);
+    }
+
+    if (remoteSearchHomepageState) {
+        renderRemoteSearchHomepageCard(remoteSearchHomepageState);
+    }
+
+    renderSiteTypeTabs();
 }
 
 function openRemoteSearchSettingsPage() {
@@ -198,10 +250,10 @@ function renderRemoteSearchHomepageCard(state) {
     badge.textContent = getRemoteSearchHomepageStatusText(status);
 
     if (state?.pairRecord?.phoneName) {
-        description.textContent = chrome.i18n.getMessage(
-            'remoteSearchHomepagePairedDescription',
+        description.textContent = interpolateMessage(
+            t('remoteSearchHomepagePairedDescription', `Paired with ${state.pairRecord.phoneName}.`),
             [state.pairRecord.phoneName]
-        ) || `Paired with ${state.pairRecord.phoneName}.`;
+        );
         return;
     }
 
@@ -551,25 +603,49 @@ function renderAgentsList() {
 
 async function initializeAgentsList() {
     try {
-        const [response, localStorageData] = await Promise.all([
-            chrome.runtime.sendMessage({
-                action: 'getAgentCatalog'
-            }),
-            chrome.storage.local.get(AGENT_HIDDEN_IDS_STORAGE_KEY)
+        const [syncData, localStorageData] = await Promise.all([
+            chrome.storage.sync.get([AGENT_CUSTOM_SETTINGS_STORAGE_KEY, CUSTOM_AGENTS_STORAGE_KEY]),
+            chrome.storage.local.get([AGENT_HIDDEN_IDS_STORAGE_KEY, CUSTOM_AGENTS_STORAGE_KEY])
         ]);
+        const agentCatalogUtils = window.AICompareAgentCatalog || null;
+        const runtimeLocale = window.RuntimeI18n?.getCurrentLocale?.()
+            || agentCatalogUtils?.getRuntimeLocale?.('')
+            || '';
+        const normalizedSettings = typeof agentCatalogUtils?.normalizeAgentCustomSettingsMap === 'function'
+            ? agentCatalogUtils.normalizeAgentCustomSettingsMap(syncData?.[AGENT_CUSTOM_SETTINGS_STORAGE_KEY])
+            : (syncData?.[AGENT_CUSTOM_SETTINGS_STORAGE_KEY] && typeof syncData[AGENT_CUSTOM_SETTINGS_STORAGE_KEY] === 'object'
+                ? syncData[AGENT_CUSTOM_SETTINGS_STORAGE_KEY]
+                : {});
+        const normalizedCustomAgents = typeof agentCatalogUtils?.migrateLegacyCustomAgentsStorage === 'function'
+            ? agentCatalogUtils.migrateLegacyCustomAgentsStorage(syncData?.[CUSTOM_AGENTS_STORAGE_KEY], localStorageData?.[CUSTOM_AGENTS_STORAGE_KEY])
+            : (Array.isArray(localStorageData?.[CUSTOM_AGENTS_STORAGE_KEY]) && localStorageData[CUSTOM_AGENTS_STORAGE_KEY].length > 0
+                ? localStorageData[CUSTOM_AGENTS_STORAGE_KEY]
+                : (Array.isArray(syncData?.[CUSTOM_AGENTS_STORAGE_KEY]) ? syncData[CUSTOM_AGENTS_STORAGE_KEY] : []));
         const hiddenAgentIds = typeof window.AICompareAgentCatalog?.normalizeAgentHiddenIds === 'function'
             ? window.AICompareAgentCatalog.normalizeAgentHiddenIds(localStorageData?.[AGENT_HIDDEN_IDS_STORAGE_KEY])
             : (Array.isArray(localStorageData?.[AGENT_HIDDEN_IDS_STORAGE_KEY]) ? localStorageData[AGENT_HIDDEN_IDS_STORAGE_KEY].filter(Boolean) : []);
         const hiddenAgentIdSet = new Set(hiddenAgentIds.map(id => String(id || '').trim()).filter(Boolean));
-        const catalog = response?.success ? response.result : { categories: [], agents: [] };
+        const catalog = typeof agentCatalogUtils?.buildCatalogWithCustomSettings === 'function'
+            ? agentCatalogUtils.buildCatalogWithCustomSettings(normalizedSettings, normalizedCustomAgents, runtimeLocale)
+            : (typeof agentCatalogUtils?.getCatalog === 'function'
+                ? agentCatalogUtils.getCatalog(runtimeLocale)
+                : { categories: [], agents: [] });
         homepageSitesState.agentCatalog = {
             categories: Array.isArray(catalog?.categories) ? catalog.categories : [],
             agents: Array.isArray(catalog?.agents)
                 ? catalog.agents.filter(agent => agent && !hiddenAgentIdSet.has(String(agent.id || '').trim()))
                 : []
         };
+        const previousSelectedAgents = homepageSitesState.selectedAgents instanceof Map
+            ? homepageSitesState.selectedAgents
+            : new Map();
         homepageSitesState.selectedAgents = new Map(
-            (homepageSitesState.agentCatalog.agents || []).map(agent => [agent.id, agent.defaultEnabled === true])
+            (homepageSitesState.agentCatalog.agents || []).map(agent => [
+                agent.id,
+                previousSelectedAgents.has(agent.id)
+                    ? previousSelectedAgents.get(agent.id)
+                    : (agent.defaultEnabled === true)
+            ])
         );
         updateAgentsSectionVisibility();
         renderAgentsList();
@@ -660,6 +736,10 @@ async function initializeCustomSitesList() {
 
 // 页面加载完成后的初始化
 document.addEventListener('DOMContentLoaded', async function() {
+    if (window.RuntimeI18n?.initializeRuntimeI18n) {
+        await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+
     perfMark('dom_content_loaded');
     perfMeasure('script_to_dom_content_loaded_duration', 'script_eval_start', 'dom_content_loaded');
     perfMark('dom_init_start');
@@ -887,7 +967,7 @@ function initializeI18n() {
     // 处理所有带有 data-i18n 属性的元素
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             if ((element.tagName.toLowerCase() === 'input' && 
                 element.type === 'text') || 
@@ -907,7 +987,7 @@ function initializeI18n() {
     // 处理 data-i18n-title：设置元素的 title 属性
     document.querySelectorAll('[data-i18n-title]').forEach(element => {
         const key = element.getAttribute('data-i18n-title');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             element.title = message;
         }
@@ -916,7 +996,7 @@ function initializeI18n() {
     // 处理 data-i18n-alt：设置 img 的 alt 属性（若未在 data-i18n 中处理）
     document.querySelectorAll('[data-i18n-alt]').forEach(element => {
         const key = element.getAttribute('data-i18n-alt');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             element.alt = message;
         }
@@ -924,7 +1004,7 @@ function initializeI18n() {
 
     document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
         const key = element.getAttribute('data-i18n-aria-label');
-        const message = chrome.i18n.getMessage(key);
+        const message = t(key);
         if (message) {
             element.setAttribute('aria-label', message);
         }
@@ -933,11 +1013,13 @@ function initializeI18n() {
     // 手动设置输入框的占位符
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        const placeholderMessage = chrome.i18n.getMessage('inputPlaceholder');
+        const placeholderMessage = t('inputPlaceholder');
         if (placeholderMessage) {
             searchInput.placeholder = placeholderMessage;
         }
     }
+
+    refreshHomepageDynamicI18n();
 }
 
 // 初始化查询建议
@@ -997,7 +1079,7 @@ async function showQuerySuggestions(query) {
 
         // 添加提示文案
         const label = document.createElement('div');
-        const labelText = (chrome?.i18n?.getMessage && chrome.i18n.getMessage('promptTemplatesLabel')) || '模板：';
+        const labelText = t('promptTemplatesLabel', '模板：');
         label.textContent = labelText;
         label.classList.add('query-suggestion-label');
         querySuggestions.appendChild(label);
@@ -1400,7 +1482,7 @@ async function updateHomepageSitesOrder(listEl) {
             (a, b) => (orderMap.get(a.name) ?? 999) - (orderMap.get(b.name) ?? 999)
         );
 
-        showToast(chrome.i18n.getMessage('saveSuccess') || '配置已保存');
+        showToast(t('saveSuccess', '配置已保存'));
     } catch (error) {
         console.error('保存主页站点顺序失败:', error);
     }
@@ -1418,8 +1500,8 @@ function initializeSaveSitesButton() {
     console.log('保存按钮已找到，开始绑定事件');
     
     // 使用自定义 tooltip（快速显示），仅设置 aria-label 供无障碍
-    const saveTitle = chrome.i18n.getMessage('saveFavoriteSitesTitle') || 
-        chrome.i18n.getMessage('saveFavoriteSites') || 
+    const saveTitle = t('saveFavoriteSitesTitle') || 
+        t('saveFavoriteSites') || 
         'Save as default sites';
     saveBtn.setAttribute('aria-label', saveTitle);
     
@@ -1456,7 +1538,7 @@ function initializeSaveSitesButton() {
             
             if (!allSites || allSites.length === 0) {
                 console.error('无法获取站点列表，保存失败');
-                showToast(chrome.i18n.getMessage('saveFailed') || '保存失败，请重试');
+                showToast(t('saveFailed', '保存失败，请重试'));
                 return;
             }
             
@@ -1531,16 +1613,24 @@ function initializeSaveSitesButton() {
             });
             
             // 显示成功提示
-            showToast(chrome.i18n.getMessage('saveSuccess') || '配置已保存');
+            showToast(t('saveSuccess', '配置已保存'));
             
             console.log('常用站点已保存到 sites:', updatedUserSettings);
         } catch (error) {
             console.error('保存常用站点失败:', error);
-            showToast(chrome.i18n.getMessage('saveFailed') || '保存失败，请重试');
+            showToast(t('saveFailed', '保存失败，请重试'));
         }
     });
     
     console.log('保存按钮事件绑定完成');
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('runtime-language-changed', () => {
+        initializeI18n();
+        void initializeAgentsList();
+        void refreshHomepageVisibleQuerySuggestions();
+    });
 }
 
 // 添加上传附件按钮点击事件
