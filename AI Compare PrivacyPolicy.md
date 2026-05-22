@@ -26,6 +26,7 @@ The extension may collect and process the following categories of data:
 |-----------|-------------|----------------|---------|
 | **Clipboard Content** | Text or images from your clipboard | Only when you use the paste feature in the extension | To paste content into AI chat inputs as you requested |
 | **Google Account Identity** | Email and user ID (via OAuth) | Only when you sign in with Google for cloud sync | To associate your synced data with your account |
+| **Remote Search Query / Result Payloads** | Search text and streamed result frames exchanged between paired devices | Only when you enable Remote Search | To relay your request from phone to desktop and stream results back |
 
 ### 1.3 Data We Do NOT Collect
 
@@ -57,6 +58,7 @@ The extension may collect and process the following categories of data:
 - **No sale of data:** We do not sell your data to third parties.
 - **Firebase (Google):** When you enable cloud sync, data is transmitted to and stored on Google Cloud (Firestore) under our Firebase project. Google's privacy policy applies to their services: https://policies.google.com/privacy
 - **WebDAV:** If you configure WebDAV, data is sent only to the URL you provide. We do not have access to your WebDAV server.
+- **Remote Search:** If you enable the phone-to-desktop remote search feature, the extension and companion app exchange encrypted frames through the relay you configure. The relay is designed to keep only pairing/device metadata needed for routing; query text and result payloads are not intended to be stored there in plaintext.
 - **AI websites:** When you use the extension to query AI sites (e.g., ChatGPT, Gemini), your queries are sent directly to those AI providers according to their own privacy policies. We do not relay or store your queries on our servers except as described in Data Storage above.
 - **Stripe:** If you use in-app payments, payment processing is handled by Stripe. We do not store full payment details. See Stripe's privacy policy for their practices.
 
