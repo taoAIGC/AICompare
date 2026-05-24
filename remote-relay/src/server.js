@@ -214,6 +214,17 @@ function getShareResponseBody(response) {
   return '';
 }
 
+function truncateText(text, maxLength = 220) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return '';
+  }
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
 function createRelayServer(options = {}) {
   const logger = options.logger || console;
   const publicBaseUrl = String(options.publicBaseUrl || process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
@@ -303,12 +314,24 @@ function createRelayServer(options = {}) {
   function getSharePageMessages(locale = 'en') {
     if (locale === 'zh-CN') {
       return {
-        continueCompare: '继续 AI 对比'
+        continueCompare: '继续 AI 对比',
+        viewWeb: '网页模式',
+        viewImage: '图模式',
+        questionTitle: '问题',
+        summaryTitle: '汇总',
+        responsesTitle: '回答',
+        imageModeHint: '适合转发预览的单图样式'
       };
     }
 
     return {
-      continueCompare: 'Continue AI Compare'
+      continueCompare: 'Continue AI Compare',
+      viewWeb: 'Web View',
+      viewImage: 'Image View',
+      questionTitle: 'Question',
+      summaryTitle: 'Summary',
+      responsesTitle: 'Responses',
+      imageModeHint: 'Single-poster layout for sharing'
     };
   }
 
@@ -316,8 +339,13 @@ function createRelayServer(options = {}) {
     const title = shareRecord?.payload?.question ? `${shareRecord.payload.question} - AI Compare` : 'AI Compare Share';
     const extensionInstallUrl = 'https://chromewebstore.google.com/detail/ai-compare-oneclick-to-co/dkhpgbbhlnmjbkihoeniojpkggkabbbl';
     const locale = String(options.locale || 'en');
+    const viewMode = String(options.viewMode || 'web') === 'image' ? 'image' : 'web';
     const messages = getSharePageMessages(locale);
     const responses = normalizeShareResponses(shareRecord?.payload?.responses);
+    const questionText = String(shareRecord?.payload?.question || '').trim();
+    const summaryText = String(shareRecord?.payload?.summaryText || '').trim();
+    const webViewHref = `/share/${encodeURIComponent(shareId)}`;
+    const imageViewHref = `/share/${encodeURIComponent(shareId)}?view=image`;
     const responseCards = responses.length
       ? responses.map((response, index) => {
         const siteName = escapeHtml(response.siteName || 'Unknown');
@@ -332,6 +360,73 @@ function createRelayServer(options = {}) {
         </section>`;
       }).join('\n')
       : '<p class="share-empty">暂无可展示的回答</p>';
+    const posterCards = responses.length
+      ? responses.map((response, index) => {
+        const bodyText = getShareResponseBody(response);
+        const snippet = truncateText(bodyText, 280);
+        const siteName = escapeHtml(response.siteName || `AI ${index + 1}`);
+        const cardClass = index === 0 ? 'poster-response-card is-primary' : 'poster-response-card';
+        return `<article class="${cardClass}">
+          <div class="poster-response-site">${siteName}</div>
+          <div class="poster-response-body markdown">${renderMarkdownToHtml(snippet)}</div>
+        </article>`;
+      }).join('\n')
+      : `<div class="share-empty">${locale === 'zh-CN' ? '暂无可展示的回答' : 'No responses available yet.'}</div>`;
+    const webLayout = `
+    <div class="share-page">
+      <div class="share-query-bar">
+        <div class="share-query">${escapeHtml(questionText)}</div>
+        <div class="share-query-actions">
+          <div class="share-view-switch" role="tablist" aria-label="${escapeHtml(locale === 'zh-CN' ? '分享视图' : 'Share view')}">
+            <a class="share-view-btn is-active" href="${escapeHtml(webViewHref)}">${escapeHtml(messages.viewWeb)}</a>
+            <a class="share-view-btn" href="${escapeHtml(imageViewHref)}">${escapeHtml(messages.viewImage)}</a>
+          </div>
+          <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
+        </div>
+      </div>
+      <div class="share-panels">
+        ${responseCards}
+      </div>
+      <div class="share-footer-actions">
+        <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
+      </div>
+    </div>`;
+    const imageLayout = `
+    <div class="share-page share-page-image">
+      <div class="share-image-topbar">
+        <div class="share-view-switch" role="tablist" aria-label="${escapeHtml(locale === 'zh-CN' ? '分享视图' : 'Share view')}">
+          <a class="share-view-btn" href="${escapeHtml(webViewHref)}">${escapeHtml(messages.viewWeb)}</a>
+          <a class="share-view-btn is-active" href="${escapeHtml(imageViewHref)}">${escapeHtml(messages.viewImage)}</a>
+        </div>
+        <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
+      </div>
+      <main class="share-poster-shell" aria-label="${escapeHtml(messages.viewImage)}">
+        <section class="share-poster-card">
+          <div class="poster-brand-row">
+            <div class="poster-brand">AI Compare</div>
+            <div class="poster-hint">${escapeHtml(messages.imageModeHint)}</div>
+          </div>
+          <div class="poster-question-block">
+            <div class="poster-section-label">${escapeHtml(messages.questionTitle)}</div>
+            <h1 class="poster-question">${escapeHtml(questionText)}</h1>
+          </div>
+          ${summaryText ? `<section class="poster-summary-block">
+            <div class="poster-section-label">${escapeHtml(messages.summaryTitle)}</div>
+            <div class="poster-summary markdown">${renderMarkdownToHtml(summaryText)}</div>
+          </section>` : ''}
+          <section class="poster-responses-block">
+            <div class="poster-section-label">${escapeHtml(messages.responsesTitle)}</div>
+            <div class="poster-response-grid">
+              ${posterCards}
+            </div>
+          </section>
+          <div class="poster-footer">
+            <div class="poster-footer-meta">${escapeHtml(extensionInstallUrl)}</div>
+            <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
+          </div>
+        </section>
+      </main>
+    </div>`;
     return `<!doctype html>
 <html lang="${escapeHtml(locale)}">
 <head>
@@ -365,6 +460,19 @@ function createRelayServer(options = {}) {
       margin:0 auto;
       padding:20px 16px 24px;
     }
+    .share-page-image{
+      max-width:1200px;
+      padding-top:24px;
+      padding-bottom:32px;
+    }
+    .share-image-topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin:0 auto 18px;
+      max-width:1080px;
+    }
     .share-query-bar{
       margin:0 0 16px;
       padding:14px 18px;
@@ -376,6 +484,46 @@ function createRelayServer(options = {}) {
       align-items:flex-start;
       justify-content:space-between;
       gap:16px;
+    }
+    .share-query-actions{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-shrink:0;
+    }
+    .share-view-switch{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px;
+      border:1px solid var(--share-border);
+      border-radius:999px;
+      background:rgba(255,255,255,0.78);
+      backdrop-filter:blur(12px);
+      box-shadow:0 6px 18px rgba(15,23,42,0.06);
+    }
+    .share-view-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:34px;
+      padding:0 14px;
+      border-radius:999px;
+      color:var(--share-text-muted);
+      text-decoration:none;
+      font-size:13px;
+      font-weight:700;
+      line-height:1;
+      transition:background-color .18s ease,color .18s ease,transform .18s ease;
+    }
+    .share-view-btn:hover{
+      color:var(--share-text);
+      transform:translateY(-1px);
+    }
+    .share-view-btn.is-active{
+      background:#111827;
+      color:#fff;
+      box-shadow:0 8px 20px rgba(17,24,39,0.18);
     }
     .share-query{
       margin:0;
@@ -415,6 +563,146 @@ function createRelayServer(options = {}) {
       grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
       gap:var(--share-gap);
       align-items:start;
+    }
+    .share-poster-shell{
+      max-width:1080px;
+      margin:0 auto;
+    }
+    .share-poster-card{
+      position:relative;
+      overflow:hidden;
+      min-height:1440px;
+      padding:44px;
+      border-radius:36px;
+      border:1px solid rgba(255,255,255,0.6);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.95), rgba(255,255,255,0.86) 38%, rgba(247,248,251,0.98) 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.92));
+      box-shadow:0 28px 80px rgba(15, 23, 42, 0.12);
+    }
+    .share-poster-card::before{
+      content:"";
+      position:absolute;
+      inset:-120px auto auto -80px;
+      width:280px;
+      height:280px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(251,146,60,0.16), rgba(251,146,60,0));
+      pointer-events:none;
+    }
+    .share-poster-card::after{
+      content:"";
+      position:absolute;
+      inset:auto -120px 120px auto;
+      width:320px;
+      height:320px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(148,163,184,0.18), rgba(148,163,184,0));
+      pointer-events:none;
+    }
+    .poster-brand-row,
+    .poster-question-block,
+    .poster-summary-block,
+    .poster-responses-block,
+    .poster-footer{
+      position:relative;
+      z-index:1;
+    }
+    .poster-brand-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin-bottom:28px;
+    }
+    .poster-brand{
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#111827;
+    }
+    .poster-hint{
+      font-size:14px;
+      line-height:1.4;
+      color:var(--share-text-muted);
+      text-align:right;
+    }
+    .poster-section-label{
+      margin-bottom:10px;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:#f97316;
+    }
+    .poster-question-block{
+      margin-bottom:28px;
+    }
+    .poster-question{
+      margin:0;
+      font-size:48px;
+      line-height:1.16;
+      letter-spacing:-0.03em;
+      color:#0f172a;
+    }
+    .poster-summary-block{
+      margin-bottom:28px;
+      padding:22px 24px;
+      border:1px solid rgba(203,213,225,0.65);
+      border-radius:24px;
+      background:rgba(255,255,255,0.7);
+      box-shadow:0 16px 32px rgba(15,23,42,0.06);
+    }
+    .poster-summary{
+      font-size:18px;
+      line-height:1.72;
+    }
+    .poster-response-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:18px;
+      align-items:stretch;
+    }
+    .poster-response-card{
+      min-height:260px;
+      padding:22px 22px 24px;
+      border-radius:24px;
+      border:1px solid rgba(203,213,225,0.72);
+      background:rgba(255,255,255,0.82);
+      box-shadow:0 16px 36px rgba(15,23,42,0.06);
+    }
+    .poster-response-card.is-primary{
+      border-color:rgba(249,115,22,0.28);
+      box-shadow:0 20px 44px rgba(249,115,22,0.12);
+    }
+    .poster-response-site{
+      margin-bottom:14px;
+      font-size:18px;
+      line-height:1.3;
+      font-weight:800;
+      color:#111827;
+    }
+    .poster-response-body{
+      font-size:15px;
+      line-height:1.72;
+      color:#334155;
+    }
+    .poster-footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin-top:28px;
+      padding-top:22px;
+      border-top:1px solid rgba(203,213,225,0.72);
+    }
+    .poster-footer-meta{
+      min-width:0;
+      font-size:13px;
+      line-height:1.5;
+      color:var(--share-text-muted);
+      word-break:break-all;
     }
     .share-footer-actions{
       display:flex;
@@ -503,26 +791,39 @@ function createRelayServer(options = {}) {
       .share-page{padding:14px 12px 20px}
       .share-query-bar{padding:12px 14px;flex-direction:column;align-items:stretch}
       .share-query{font-size:16px}
+      .share-query-actions,.share-image-topbar{flex-direction:column;align-items:stretch}
+      .share-view-switch{width:100%;justify-content:stretch}
+      .share-view-btn{flex:1}
       .share-continue-btn{width:100%}
       .share-panels{grid-template-columns:1fr}
       .share-footer-actions{justify-content:center}
       .snapshot-panel{padding:14px}
+      .share-poster-card{
+        min-height:auto;
+        padding:20px;
+        border-radius:24px;
+      }
+      .poster-brand-row,.poster-footer{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .poster-hint{
+        text-align:left;
+      }
+      .poster-question{
+        font-size:30px;
+      }
+      .poster-summary{
+        font-size:16px;
+      }
+      .poster-response-grid{
+        grid-template-columns:1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="share-page">
-    <div class="share-query-bar">
-      <div class="share-query">${escapeHtml(shareRecord?.payload?.question || '')}</div>
-      <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
-    </div>
-    <div class="share-panels">
-      ${responseCards}
-    </div>
-    <div class="share-footer-actions">
-      <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
-    </div>
-  </div>
+  ${viewMode === 'image' ? imageLayout : webLayout}
 </body>
 </html>`;
   }
@@ -818,6 +1119,7 @@ function createRelayServer(options = {}) {
   app.get('/share/:shareId', async (req, res, next) => {
     try {
       const shareId = String(req.params.shareId || '').trim();
+      const viewMode = String(req.query.view || '').trim().toLowerCase() === 'image' ? 'image' : 'web';
       const shareRecord = await store.getShareRecord(shareId);
       if (!shareRecord) {
         res.status(404).type('text/plain').send('Share not found');
@@ -829,7 +1131,8 @@ function createRelayServer(options = {}) {
         return;
       }
       res.type('text/html').send(renderSharePage(shareId, shareRecord, {
-        locale: getSharePageLocale(req)
+        locale: getSharePageLocale(req),
+        viewMode
       }));
     } catch (error) {
       next(error);

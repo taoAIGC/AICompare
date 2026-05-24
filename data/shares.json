@@ -1,0 +1,31 @@
+{
+  "shareRecords": [
+    {
+      "shareId": "share-1779464119262-a2j07mee",
+      "status": "active",
+      "expiresAt": "2026-06-21T15:35:19.262Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-22T15:35:19.262Z",
+      "updatedAt": "2026-05-22T15:35:19.262Z"
+    }
+  ]
+}

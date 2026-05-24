@@ -26,6 +26,9 @@
 *.zip
 zi*
 .codex-video/
+.tmp-promo-profile/
+.tmp-pw-profile/
+generated/
 
 # Local secrets / env files
 .env

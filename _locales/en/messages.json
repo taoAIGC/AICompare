@@ -2399,8 +2399,14 @@
   "timelineCopyPreviewShare": {
     "message": "Share"
   },
+  "timelineCopyPreviewShareImage": {
+    "message": "Share image-view link"
+  },
   "timelineCopyPreviewShareSuccess": {
     "message": "Share link copied"
+  },
+  "timelineCopyPreviewShareImageSuccess": {
+    "message": "Image-view link copied"
   },
   "timelineCopyPreviewShareManualPrompt": {
     "message": "Automatic copy failed. Please copy the link below manually:"

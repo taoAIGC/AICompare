@@ -2394,8 +2394,14 @@
   "timelineCopyPreviewShare": {
     "message": "分享"
   },
+  "timelineCopyPreviewShareImage": {
+    "message": "分享图模式链接"
+  },
   "timelineCopyPreviewShareSuccess": {
     "message": "分享链接已复制"
+  },
+  "timelineCopyPreviewShareImageSuccess": {
+    "message": "图模式链接已复制"
   },
   "timelineCopyPreviewShareManualPrompt": {
     "message": "自动复制失败，请手动复制下面的链接："

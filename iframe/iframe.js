@@ -963,6 +963,9 @@ function ensureTimelineCopyPreviewModal() {
           <button class="timeline-copy-preview-share" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}" title="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}">
             <img src="../icons/link.svg" alt="" aria-hidden="true">
           </button>
+          <button class="timeline-copy-preview-share-image" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewShareImage', '分享图模式链接'))}" title="${escapeHtml(t('timelineCopyPreviewShareImage', '分享图模式链接'))}">
+            <img src="../icons/external-link.svg" alt="" aria-hidden="true">
+          </button>
           <button class="timeline-copy-preview-download" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}" title="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}">
             <img src="../icons/download.svg" alt="" aria-hidden="true">
           </button>
@@ -1032,81 +1035,11 @@ function ensureTimelineCopyPreviewModal() {
   });
 
   overlay.querySelector('.timeline-copy-preview-share')?.addEventListener('click', async () => {
-    const shareBtn = overlay.querySelector('.timeline-copy-preview-share');
-    const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
-    if (!(shareBtn instanceof HTMLButtonElement) || !(confirmBtn instanceof HTMLButtonElement)) return;
+    await createTimelineShareLink(overlay, 'web');
+  });
 
-    const rawPayload = analysisBuildSharePayload({
-      entry: overlay.__timelineCopyPreviewEntry || null,
-      summaryText: overlay.__timelineCopyPreviewCopyText || confirmBtn.dataset.copyText || '',
-      responses: Array.isArray(overlay.__timelineCopyPreviewResponses) ? overlay.__timelineCopyPreviewResponses : [],
-      question: overlay.__timelineCopyPreviewEntry?.query || '',
-      successCount: Number(confirmBtn.dataset.successCount || '0') || 0,
-      totalCount: Number(confirmBtn.dataset.totalCount || '0') || 0,
-      analysisTemplateId: overlay.__timelineSelectedAnalysisTemplateId || '',
-      analysisTemplateName: '',
-      analysisTemplateQuery: ''
-    });
-
-    if (!rawPayload) {
-      showTimelineCopyPreviewActionFeedback(
-        overlay,
-        shareBtn,
-        t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
-        'error',
-        2600
-      );
-      return;
-    }
-
-    const relayBaseUrl = await getRemoteSearchRelayBaseUrl();
-    if (!relayBaseUrl) {
-      showTimelineCopyPreviewActionFeedback(
-        overlay,
-        shareBtn,
-        t('timelineCopyPreviewShareNoRelay', '请先在设置中填写 relay 地址'),
-        'error',
-        2600
-      );
-      return;
-    }
-
-    shareBtn.disabled = true;
-    try {
-      const response = await fetch(`${relayBaseUrl.replace(/\/+$/, '')}/shares`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(rawPayload)
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.ok || !data?.shareId) {
-        throw new Error(data?.error || `share_http_${response.status}`);
-      }
-
-      const shareUrl = String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim().startsWith('http')
-        ? String(data.publicUrl || data.shareUrl).trim()
-        : `${relayBaseUrl.replace(/\/+$/, '')}${String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim()}`;
-      await copyTextToClipboard(shareUrl);
-      showTimelineCopyPreviewActionFeedback(
-        overlay,
-        shareBtn,
-        t('timelineCopyPreviewShareSuccess', '分享链接已复制'),
-        'success'
-      );
-    } catch (error) {
-      console.error('生成分享链接失败:', error);
-      showTimelineCopyPreviewActionFeedback(
-        overlay,
-        shareBtn,
-        t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
-        'error',
-        2600
-      );
-    } finally {
-      shareBtn.disabled = false;
-    }
+  overlay.querySelector('.timeline-copy-preview-share-image')?.addEventListener('click', async () => {
+    await createTimelineShareLink(overlay, 'image');
   });
 
   overlay.querySelector('.timeline-copy-preview-analyze')?.addEventListener('click', async () => {
@@ -1182,6 +1115,91 @@ function ensureTimelineCopyPreviewModal() {
 
   document.body.appendChild(overlay);
   return overlay;
+}
+
+async function createTimelineShareLink(overlay, viewMode = 'web') {
+  const shareBtn = overlay.querySelector(viewMode === 'image'
+    ? '.timeline-copy-preview-share-image'
+    : '.timeline-copy-preview-share');
+  const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
+  if (!(shareBtn instanceof HTMLButtonElement) || !(confirmBtn instanceof HTMLButtonElement)) return;
+
+  const rawPayload = analysisBuildSharePayload({
+    entry: overlay.__timelineCopyPreviewEntry || null,
+    summaryText: overlay.__timelineCopyPreviewCopyText || confirmBtn.dataset.copyText || '',
+    responses: Array.isArray(overlay.__timelineCopyPreviewResponses) ? overlay.__timelineCopyPreviewResponses : [],
+    question: overlay.__timelineCopyPreviewEntry?.query || '',
+    successCount: Number(confirmBtn.dataset.successCount || '0') || 0,
+    totalCount: Number(confirmBtn.dataset.totalCount || '0') || 0,
+    analysisTemplateId: overlay.__timelineSelectedAnalysisTemplateId || '',
+    analysisTemplateName: '',
+    analysisTemplateQuery: ''
+  });
+
+  if (!rawPayload) {
+    showTimelineCopyPreviewActionFeedback(
+      overlay,
+      shareBtn,
+      t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+      'error',
+      2600
+    );
+    return;
+  }
+
+  const relayBaseUrl = await getRemoteSearchRelayBaseUrl();
+  if (!relayBaseUrl) {
+    showTimelineCopyPreviewActionFeedback(
+      overlay,
+      shareBtn,
+      t('timelineCopyPreviewShareNoRelay', '请先在设置中填写 relay 地址'),
+      'error',
+      2600
+    );
+    return;
+  }
+
+  shareBtn.disabled = true;
+  try {
+    const response = await fetch(`${relayBaseUrl.replace(/\/+$/, '')}/shares`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(rawPayload)
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.ok || !data?.shareId) {
+      throw new Error(data?.error || `share_http_${response.status}`);
+    }
+
+    const baseShareUrl = String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim().startsWith('http')
+      ? String(data.publicUrl || data.shareUrl).trim()
+      : `${relayBaseUrl.replace(/\/+$/, '')}${String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim()}`;
+    const shareUrl = viewMode === 'image'
+      ? `${baseShareUrl}${baseShareUrl.includes('?') ? '&' : '?'}view=image`
+      : baseShareUrl;
+    await copyTextToClipboard(shareUrl);
+    showTimelineCopyPreviewActionFeedback(
+      overlay,
+      shareBtn,
+      viewMode === 'image'
+        ? t('timelineCopyPreviewShareImageSuccess', '图模式链接已复制')
+        : t('timelineCopyPreviewShareSuccess', '分享链接已复制'),
+      'success'
+    );
+  } catch (error) {
+    console.error('生成分享链接失败:', error);
+    showTimelineCopyPreviewActionFeedback(
+      overlay,
+      shareBtn,
+      t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+      'error',
+      2600
+    );
+  } finally {
+    shareBtn.disabled = false;
+  }
 }
 
 async function showTimelineCopyPreviewModal(entry) {
@@ -8774,7 +8792,6 @@ async function showDetailedUpdateInfo() {
             <span class="config-update-dialog__time">${escapeHtml(formatUpdateRelativeTime(latestUpdate?.timestamp || lastUpdateTime))}</span>
           </div>
           <h2 class="config-update-dialog__title" id="configUpdateDialogTitle">${escapeHtml(t('configUpdateDetailsTitle', 'Update details'))}</h2>
-          <p class="config-update-dialog__subtitle">${escapeHtml(t('configUpdateDetailsSubtitle', 'Recent version records, site changes, and sync source.'))}</p>
           <div class="config-update-metrics config-update-metrics--dialog">
             ${buildUpdateMetricCards(latestUpdate, siteConfigVersion)}
           </div>

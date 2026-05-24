@@ -23,6 +23,7 @@
 - **History**: History drawer lists recent comparison sessions; click to reopen a session.
 - **Query suggestions**: Prompt templates appear as buttons above the input; one click fills the query (e.g. `风险分析：「{query}」`). On `homepage` and `iframe`, suggestions are filtered by the currently selected site type.
 - **Launch URLs**: Official sites can use a custom `entryUrl` so the homepage, iframe comparison page, and external shortcuts open a saved session URL instead of the root page. Use `{query}` when the URL should include the search text.
+- **Share posters**: Shared links can be paired with a vertical result poster so people can forward a readable AI comparison card instead of only a raw URL.
 - **Custom sites**: Add standalone sites that only open the page. They do not inject prompts or run automation, and can optionally carry a note tooltip plus an icon filename for iframe navigation.
 - **Favorite query**: Star the current query to save it to Favorites.
 - **Site selection**: Choose which AI sites to load and save as default (collection mode settings).
@@ -151,6 +152,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
 - Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
+- Shared result pages now support two modes from the same share record: the default multi-panel web view and an image-style poster view at the same URL with `?view=image`. The Responses summary modal also includes a dedicated button to copy the image-view link directly.
 - The timeline copy preview's copy button now keeps the Responses summary modal open after copying.
 - The preview body now only shows copyable site responses; failed sites stay in the summary header.
 - Copy/share actions in the Responses summary modal now show feedback next to the clicked button instead of using the top toast.
@@ -404,59 +406,32 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-22 17:59:46 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-25 00:06:50 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `A` `.githooks/post-commit`
-- `M` `.githooks/pre-commit`
-- `A` `.github/workflows/package-extension.yml`
-- `M` `AGENTS.md`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/de/messages.json`
+- `M` `.githooks/post-commit`
+- `M` `.gitignore`
 - `M` `_locales/en/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
-- `M` `config/agentCatalog.js`
-- `A` `config/agentCatalogData.js`
-- `M` `config/appConfig.json`
-- `M` `config/siteHandlers.json`
-- `M` `contact/contact.css`
 - `M` `contact/contact.html`
-- `M` `contact/contact.js`
-- `A` `docs/release-notes/history.md`
-- `A` `docs/release-notes/latest.md`
-- `M` `favorites/favorites.html`
-- `M` `favorites/favorites.js`
-- `M` `history/history.html`
-- `M` `history/history.js`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `M` `iframe/agent-panel.html`
-- `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
+- `A` `data/shares.json`
+- `M` `docs/release-notes/history.md`
+- `M` `docs/release-notes/latest.md`
+- `A` `docs/superpowers/specs/2026-05-22-share-poster-design.md`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `M` `options/options.html`
-- `M` `options/options.js`
+- `M` `remote-relay/data/shares.json`
 - `M` `remote-relay/src/server.js`
-- `A` `scripts/generate-release-notes.js`
-- `M` `shared/extraction-core.js`
-- `A` `shared/runtime-i18n.js`
-- `M` `shared/sidebar.js`
-- `M` `tests/extraction-core.test.js`
+- `A` `scripts/generate-promo-placeholder-video.js`
+- `M` `scripts/generate-release-notes.js`
+- `A` `scripts/record-promo-video.js`
 
 ### Recent commits / 最近提交
+- `dfa6433` 2026-05-22 chore: verify auto sync hooks
 - `2a720e3` 2026-05-21 V4.1.0 支持分享到链接
 - `f79a148` 2026-05-18 V4.0.1 修复小 bug
 - `63e4f41` 2026-05-18 V4.0.0 支持智能体
 - `16923e6` 2026-05-15 V3.4.2 完善语言包
-- `52ad022` 2026-05-14 V3.4.1 修复 UI 小问题
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->
