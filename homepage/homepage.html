@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title data-i18n="appName">MultiAI</title>
+    <title data-i18n="appName"></title>
     <link rel="stylesheet" href="../shared/ui-tokens.css">
     <link rel="stylesheet" href="../shared/sidebar.css">
     <link rel="stylesheet" href="homepage.css">
@@ -41,8 +41,8 @@
                 <div class="pin-guide-content">
                     <div class="pin-guide-icon">📌</div>
                     <div class="pin-guide-text">
-                        <div class="pin-guide-title" data-i18n="pinGuideTitle">Pin the extension for quick access</div>
-                        <div class="pin-guide-steps" data-i18n="pinGuideSteps">Click the puzzle icon in the toolbar → Find "AI Compare" → Click the pin icon</div>
+                        <div class="pin-guide-title" data-i18n="pinGuideTitle"></div>
+                        <div class="pin-guide-steps" data-i18n="pinGuideSteps"></div>
                     </div>
                     <!--
                     <img id="pinGuideImage" src="" data-i18n-alt="pinGuideImageAlt" alt="Pin" class="pin-guide-image">
@@ -51,7 +51,7 @@
                 </div>
             </div>
             <div class="extension-icon-container">
-                <h1 id="extensionName" class="extension-name" data-i18n="shortName">AI Compare</h1>
+                <h1 id="extensionName" class="extension-name" data-i18n="shortName"></h1>
             </div>
             <!--
             <div id="remoteSearchStatusCard" class="remote-search-home-card" hidden>
@@ -77,7 +77,7 @@
                             <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
                                 <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
                             </button>
-                            <button id="searchButton" class="search-btn" data-i18n="startCompare">PK</button>
+                            <button id="searchButton" class="search-btn" data-i18n="startCompare"></button>
                         </div>
                     </div>
                     <div id="querySuggestions" class="query-suggestions" style="display: none;">
@@ -94,49 +94,55 @@
 
             <div class="sites-section combined-selection-section">
                 <div class="sites-header">
-                    <h3 class="sites-title" data-i18n="selectAISites">AI sites</h3>
+                    <h3 class="sites-title" data-i18n="selectAISites"></h3>
                     <button id="saveSitesBtn" class="save-settings-btn" aria-label="">
                         <img src="../icons/save.svg" data-i18n-alt="saveIconAlt" alt="save" class="save-icon">
                     </button>
-                    <span class="save-btn-tooltip" data-i18n="saveFavoriteSitesTitle">保存为默认站点</span>
+                    <span class="save-btn-tooltip" data-i18n="saveFavoriteSitesTitle"></span>
                 </div>
                 <div class="selection-group">
                     <div id="sitesList" class="sites-list sites-list-skeleton" aria-busy="true">
                         <div class="site-item site-item-skeleton" aria-hidden="true">
                             <span class="site-drag-handle skeleton-block"></span>
                             <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-avatar-skeleton skeleton-block"></span>
                             <span class="site-name-skeleton skeleton-block"></span>
                         </div>
                         <div class="site-item site-item-skeleton" aria-hidden="true">
                             <span class="site-drag-handle skeleton-block"></span>
                             <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-avatar-skeleton skeleton-block"></span>
                             <span class="site-name-skeleton skeleton-block"></span>
                         </div>
                         <div class="site-item site-item-skeleton" aria-hidden="true">
                             <span class="site-drag-handle skeleton-block"></span>
                             <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-avatar-skeleton skeleton-block"></span>
                             <span class="site-name-skeleton skeleton-block"></span>
                         </div>
                         <div class="site-item site-item-skeleton" aria-hidden="true">
                             <span class="site-drag-handle skeleton-block"></span>
                             <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-avatar-skeleton skeleton-block"></span>
                             <span class="site-name-skeleton skeleton-block"></span>
                         </div>
                         <div class="site-item site-item-skeleton" aria-hidden="true">
                             <span class="site-drag-handle skeleton-block"></span>
                             <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-avatar-skeleton skeleton-block"></span>
                             <span class="site-name-skeleton skeleton-block"></span>
                         </div>
                         <div class="site-item site-item-skeleton" aria-hidden="true">
                             <span class="site-drag-handle skeleton-block"></span>
                             <span class="site-checkbox-skeleton skeleton-block"></span>
+                            <span class="site-avatar-skeleton skeleton-block"></span>
                             <span class="site-name-skeleton skeleton-block"></span>
                         </div>
                     </div>
                 </div>
                 <div id="agentsSection" class="selection-group agents-section">
                     <div class="selection-group-header">
-                        <h4 class="selection-group-title" data-i18n="homepageAgentsTitle">AI agents</h4>
+                        <h4 class="selection-group-title" data-i18n="homepageAgentsTitle"></h4>
                     </div>
                     <div id="agentsList" class="sites-list"></div>
                 </div>
@@ -144,19 +150,22 @@
 
             <div class="sites-section custom-sites-section">
                 <div class="sites-header">
-                    <h3 class="sites-title" data-i18n="customSitesTitle">Custom sites</h3>
+                    <h3 class="sites-title" data-i18n="customSitesTitle"></h3>
                 </div>
                 <div id="customSitesList" class="sites-list sites-list-skeleton" aria-busy="true">
                     <div class="site-item site-item-skeleton" aria-hidden="true">
                         <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-avatar-skeleton skeleton-block"></span>
                         <span class="site-name-skeleton skeleton-block"></span>
                     </div>
                     <div class="site-item site-item-skeleton" aria-hidden="true">
                         <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-avatar-skeleton skeleton-block"></span>
                         <span class="site-name-skeleton skeleton-block"></span>
                     </div>
                     <div class="site-item site-item-skeleton" aria-hidden="true">
                         <span class="site-checkbox-skeleton skeleton-block"></span>
+                        <span class="site-avatar-skeleton skeleton-block"></span>
                         <span class="site-name-skeleton skeleton-block"></span>
                     </div>
                 </div>
@@ -171,6 +180,7 @@
     <script src="../shared/prompt-template-utils.js"></script>
     <script src="../shared/submit-shortcut-utils.js"></script>
     <script src="../shared/textarea-resize-utils.js"></script>
+    <script src="../shared/url-tooltip.js"></script>
     <script src="../shared/sidebar.js"></script>
     <script src="../config/agentCatalogData.js"></script>
     <script src="../config/agentCatalog.js"></script>

@@ -19,35 +19,35 @@
       <div class="action-links">
         <a href="#quick-entry" class="action-link nav-link active" data-section="quick-entry">
           <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
-          <span data-i18n="settingsNavShortcutsTitle">快捷</span>
+          <span data-i18n="settingsNavShortcutsTitle"></span>
         </a>
         <a href="#launch-settings" class="action-link nav-link" data-section="launch-settings">
           <img class="action-link-icon" src="../icons/layout-grid.svg" alt="" aria-hidden="true">
-          <span data-i18n="settingsNavSitesTitle">站点</span>
+          <span data-i18n="settingsNavSitesTitle"></span>
         </a>
         <a href="#agent-settings" class="action-link nav-link" data-section="agent-settings">
           <img class="action-link-icon" src="../icons/brain.svg" alt="" aria-hidden="true">
-          <span data-i18n="settingsNavSkillsTitle">技能</span>
+          <span data-i18n="settingsNavSkillsTitle"></span>
         </a>
         <a href="#agent-engine" class="action-link nav-link" data-section="agent-engine">
           <img class="action-link-icon" src="../icons/move-3d.svg" alt="" aria-hidden="true">
-          <span data-i18n="settingsNavApiTitle">API</span>
+          <span data-i18n="settingsNavApiTitle"></span>
         </a>
         <a href="#prompt-templates" class="action-link nav-link" data-section="prompt-templates">
           <img class="action-link-icon" src="../icons/message-square-share.svg" alt="" aria-hidden="true">
-          <span data-i18n="promptTemplatesTitle">Chat Prompt</span>
+          <span data-i18n="promptTemplatesTitle"></span>
         </a>
         <a href="#analysis-prompt-templates" class="action-link nav-link" data-section="analysis-prompt-templates">
           <img class="action-link-icon" src="../icons/file-chart-column.svg" alt="" aria-hidden="true">
-          <span data-i18n="analysisPromptTemplatesTitle">Analysis Prompt</span>
+          <span data-i18n="analysisPromptTemplatesTitle"></span>
         </a>
         <a href="#data-sync" class="action-link nav-link" data-section="data-sync">
           <img class="action-link-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
-          <span data-i18n="settingsNavSyncTitle">同步</span>
+          <span data-i18n="settingsNavSyncTitle"></span>
         </a>
         <a href="#language-settings" class="action-link nav-link" data-section="language-settings">
-          <img class="action-link-icon" src="../icons/chromium.svg" alt="" aria-hidden="true">
-          <span data-i18n="settingsNavLanguageTitle">语言</span>
+          <img class="action-link-icon" src="../icons/globe.svg" alt="" aria-hidden="true">
+          <span data-i18n="settingsNavLanguageTitle"></span>
         </a>
         <!-- 暂时隐藏 Pro 与 Remote Search 导航入口
         <a href="#membership" class="action-link nav-link" data-section="membership">
@@ -56,7 +56,7 @@
         </a>
         <a href="#remote-search" class="action-link nav-link" data-section="remote-search">
           <img class="action-link-icon" src="../icons/smartphone.svg" alt="" aria-hidden="true">
-          <span data-i18n="remoteSearchTitle">手机搜索（开发中）</span>
+          <span data-i18n="remoteSearchTitle"></span>
         </a>
         -->
       </div>
@@ -67,15 +67,15 @@
       <div class="container">
         <!-- 快捷入口设置 -->
         <section id="quick-entry" class="settings-section">
-          <h1 data-i18n="configButtonTitle">入口</h1>
+          <h1 data-i18n="configButtonTitle"></h1>
           <div class="site-section">
             <div id="buttonSiteConfigs" class="site-configs"></div>
             <div id="sendShortcutConfig" class="site-configs"></div>
           </div>
 
           <div class="site-section quick-entry-subsection">
-            <h2 data-i18n="disabledSitesTitle">悬浮球禁用网站</h2>
-            <p class="section-description" data-i18n="disabledSitesDescription">管理悬浮球被禁用的网站，您可以在这里重新启用悬浮球</p>
+            <h2 data-i18n="disabledSitesTitle"></h2>
+            <p class="section-description" data-i18n="disabledSitesDescription"></p>
             <div class="disabled-sites-section">
               <div id="disabledSitesList" class="disabled-sites-list">
                 <!-- 禁用网站列表将在这里动态生成 -->
@@ -86,20 +86,20 @@
 
         <!-- 启动网址设置 -->
         <section id="launch-settings" class="settings-section">
-          <h1 data-i18n="launchSettingsTitle">自定义站点</h1>
+          <h1 data-i18n="launchSettingsTitle"></h1>
 
           <div class="site-section">
-            <h2 data-i18n="officialEntryUrlTitle">官方站点入口 URL</h2>
-            <p class="section-description" data-i18n="officialEntryUrlDescription">为支持的官方站点覆盖默认落地页，URL 需要拼接查询词时可使用 {query}。</p>
+            <h2 data-i18n="officialEntryUrlTitle"></h2>
+            <p class="section-description" data-i18n="officialEntryUrlDescription"></p>
             <div id="officialEntryUrlConfigs" class="site-configs"></div>
           </div>
 
           <div id="custom-sites-settings" class="site-section site-section-spaced">
-            <h2 data-i18n="customSitesTitle">自定义网站</h2>
+            <h2 data-i18n="customSitesTitle"></h2>
 
             <div class="template-header">
               <button id="addCustomSiteBtn" class="btn-primary template-add-button">
-                <span>+ </span><span data-i18n="addCustomSiteButton">添加自定义网站</span>
+                <span>+ </span><span data-i18n="addCustomSiteButton"></span>
               </button>
             </div>
 
@@ -109,10 +109,10 @@
 
         <section id="agent-settings" class="settings-section">
           <div class="settings-section-header agent-settings-section-header">
-            <h1 data-i18n="agentSettingsTitle">智能体设置</h1>
+            <h1 data-i18n="agentSettingsTitle"></h1>
             <div class="agent-actions-group">
-              <button id="addAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentNewButton">新建</button>
-              <button id="importAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentImportButton">从 URL 导入</button>
+              <button id="addAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentNewButton"></button>
+              <button id="importAgentBtn" class="btn-primary template-add-button" type="button" data-i18n="agentImportButton"></button>
             </div>
           </div>
 
@@ -122,7 +122,7 @@
         </section>
 
         <section id="agent-engine" class="settings-section">
-          <h1 data-i18n="agentEngineTitle">API 设置</h1>
+          <h1 data-i18n="agentEngineTitle"></h1>
 
           <div class="site-section unified-settings-panel">
             <div class="agent-engine-list" role="list">
@@ -130,23 +130,23 @@
                 <button id="officialAgentEngineSelectBtn" class="agent-engine-row-main" type="button">
                   <span class="agent-engine-select-indicator" aria-hidden="true"></span>
                   <span class="agent-engine-row-copy">
-                    <span class="agent-engine-row-title" data-i18n="agentEngineOfficialOptionTitle">官方 API</span>
+                    <span class="agent-engine-row-title" data-i18n="agentEngineOfficialOptionTitle"></span>
                     <span id="officialAgentEngineMeta" class="agent-engine-row-meta"></span>
                   </span>
                 </button>
-                <button id="officialAgentEngineUpgradeBtn" class="btn-secondary agent-engine-inline-btn" type="button" data-i18n="agentEngineUpgradeButton">立即升级 PRO</button>
+                <button id="officialAgentEngineUpgradeBtn" class="btn-secondary agent-engine-inline-btn" type="button" data-i18n="agentEngineUpgradeButton"></button>
               </div>
 
               <div id="agentEngineCard" class="agent-engine-row agent-engine-option-card" data-source="custom" data-status="unconfigured" data-selected="false">
                 <button id="customAgentEngineSelectBtn" class="agent-engine-row-main" type="button">
                   <span class="agent-engine-select-indicator" aria-hidden="true"></span>
                   <span class="agent-engine-row-copy">
-                    <span class="agent-engine-row-title" data-i18n="agentEngineCustomOptionTitle">自定义 API</span>
-                    <span id="customAgentEngineMeta" class="agent-engine-row-hint" data-i18n="agentEngineCustomCardHint">填写自己的 API</span>
+                    <span class="agent-engine-row-title" data-i18n="agentEngineCustomOptionTitle"></span>
+                    <span id="customAgentEngineMeta" class="agent-engine-row-hint" data-i18n="agentEngineCustomCardHint"></span>
                   </span>
-                  <span id="agentEngineStatusBadge" class="agent-engine-status-badge" data-i18n="agentEngineStatusUnconfigured">未配置</span>
+                  <span id="agentEngineStatusBadge" class="agent-engine-status-badge" data-i18n="agentEngineStatusUnconfigured"></span>
                 </button>
-                <button id="editAgentEngineBtn" class="btn-secondary agent-engine-inline-btn" type="button" data-i18n="agentEngineEditButton">填写自己的 API</button>
+                <button id="editAgentEngineBtn" class="btn-secondary agent-engine-inline-btn" type="button" data-i18n="agentEngineEditButton"></button>
               </div>
             </div>
           </div>
@@ -154,14 +154,14 @@
 
         <!-- 提示词模板管理 -->
         <section id="prompt-templates" class="settings-section">
-          <h1 data-i18n="promptTemplatesTitle">Chat Prompt</h1>
-          <p class="section-description" data-i18n="promptTemplatesDescription">自定义搜索建议按钮的提示词模板</p>
+          <h1 data-i18n="promptTemplatesTitle"></h1>
+          <p class="section-description" data-i18n="promptTemplatesDescription"></p>
           
           <div class="prompt-templates-section unified-settings-panel">
             <!-- 添加新模板按钮 -->
             <div class="template-header">
               <button id="addTemplateBtn" class="btn-primary add-template-btn template-add-button">
-                <span>+ </span><span data-i18n="addTemplateButton">添加新模板</span>
+                <span>+ </span><span data-i18n="addTemplateButton"></span>
               </button>
             </div>
 
@@ -175,37 +175,37 @@
               <div class="dialog-overlay" id="dialogOverlay"></div>
               <div class="dialog-content">
                 <div class="dialog-header">
-                  <h3 id="dialogTitle" data-i18n="addTemplateTitle" class="dialog-title">添加提示词模板</h3>
+                  <h3 id="dialogTitle" data-i18n="addTemplateTitle" class="dialog-title"></h3>
                   <button class="dialog-close" id="dialogClose">×</button>
                 </div>
                 <div class="dialog-body">
                   <div class="form-group">
-                    <label for="templateName" data-i18n="templateNameLabel" class="form-label">模板名称:</label>
-                    <input type="text" id="templateName" class="dialog-field" data-i18n-placeholder="templateNamePlaceholder" placeholder="例如：风险分析" maxlength="20">
-                    <div class="help-text" data-i18n="templateNameHelp">显示在按钮上的文字</div>
+                    <label for="templateName" data-i18n="templateNameLabel" class="form-label"></label>
+                    <input type="text" id="templateName" class="dialog-field" data-i18n-placeholder="templateNamePlaceholder" placeholder="" maxlength="20">
+                    <div class="help-text" data-i18n="templateNameHelp"></div>
                   </div>
                   
                   <div class="form-group">
-                    <label for="templateQuery" data-i18n="templateQueryLabel" class="form-label">查询模板:</label>
-                    <textarea id="templateQuery" class="dialog-field" data-i18n-placeholder="templateQueryPlaceholder" placeholder="例如：导致失败的原因:「{query}」" rows="3"></textarea>
-                    <div class="help-text" data-i18n="templateQueryHelp">使用 {query} 作为用户输入的占位符</div>
+                    <label for="templateQuery" data-i18n="templateQueryLabel" class="form-label"></label>
+                    <textarea id="templateQuery" class="dialog-field" data-i18n-placeholder="templateQueryPlaceholder" placeholder="" rows="3"></textarea>
+                    <div class="help-text" data-i18n="templateQueryHelp"></div>
                   </div>
 
                   <div class="form-group">
-                    <label for="templateType" data-i18n="templateTypeLabel" class="form-label">模板类型:</label>
+                    <label for="templateType" data-i18n="templateTypeLabel" class="form-label"></label>
                     <select id="templateType" class="dialog-field"></select>
-                    <div class="help-text" data-i18n="templateTypeHelp">homepage 和 iframe 会按当前站点类型过滤提示词模板</div>
+                    <div class="help-text" data-i18n="templateTypeHelp"></div>
                   </div>
 
                   <div class="form-group form-group-compact">
-                    <label for="templateOrder" data-i18n="templateOrderLabel" class="form-label">显示顺序:</label>
+                    <label for="templateOrder" data-i18n="templateOrderLabel" class="form-label"></label>
                     <input type="number" id="templateOrder" class="dialog-field dialog-field-narrow" min="1" max="99" value="1">
-                    <div class="help-text" data-i18n="templateOrderHelp">数字越小越靠前显示</div>
+                    <div class="help-text" data-i18n="templateOrderHelp"></div>
                   </div>
                 </div>
                 <div class="dialog-footer">
-                  <button id="cancelTemplate" class="btn-secondary" data-i18n="cancelButton">取消</button>
-                  <button id="saveTemplate" class="btn-primary" data-i18n="saveButton">保存</button>
+                  <button id="cancelTemplate" class="btn-secondary" data-i18n="cancelButton"></button>
+                  <button id="saveTemplate" class="btn-primary" data-i18n="saveButton"></button>
                 </div>
               </div>
             </div>
@@ -213,13 +213,13 @@
         </section>
 
         <section id="analysis-prompt-templates" class="settings-section">
-          <h1 data-i18n="analysisPromptTemplatesTitle">Analysis Prompt</h1>
-          <p class="section-description" data-i18n="analysisPromptTemplatesDescription">自定义复制预览中的分析提示词模板</p>
+          <h1 data-i18n="analysisPromptTemplatesTitle"></h1>
+          <p class="section-description" data-i18n="analysisPromptTemplatesDescription"></p>
 
           <div class="prompt-templates-section unified-settings-panel">
             <div class="template-header">
               <button id="addAnalysisTemplateBtn" class="btn-primary add-template-btn template-add-button">
-                <span>+ </span><span data-i18n="addAnalysisTemplateButton">添加分析提示词</span>
+                <span>+ </span><span data-i18n="addAnalysisTemplateButton"></span>
               </button>
             </div>
 
@@ -229,31 +229,31 @@
               <div class="dialog-overlay" id="analysisDialogOverlay"></div>
               <div class="dialog-content">
                 <div class="dialog-header">
-                  <h3 id="analysisDialogTitle" data-i18n="addAnalysisTemplateTitle" class="dialog-title">添加分析提示词</h3>
+                  <h3 id="analysisDialogTitle" data-i18n="addAnalysisTemplateTitle" class="dialog-title"></h3>
                   <button class="dialog-close" id="analysisDialogClose">×</button>
                 </div>
                 <div class="dialog-body">
                   <div class="form-group">
-                    <label for="analysisTemplateName" data-i18n="templateNameLabel" class="form-label">模板名称:</label>
-                    <input type="text" id="analysisTemplateName" class="dialog-field" data-i18n-placeholder="analysisTemplateNamePlaceholder" placeholder="例如：结论优先" maxlength="20">
-                    <div class="help-text" data-i18n="analysisTemplateNameHelp">显示在下拉按钮里的名称</div>
+                    <label for="analysisTemplateName" data-i18n="templateNameLabel" class="form-label"></label>
+                    <input type="text" id="analysisTemplateName" class="dialog-field" data-i18n-placeholder="analysisTemplateNamePlaceholder" placeholder="" maxlength="20">
+                    <div class="help-text" data-i18n="analysisTemplateNameHelp"></div>
                   </div>
 
                   <div class="form-group">
-                    <label for="analysisTemplateQuery" data-i18n="templateQueryLabel" class="form-label">查询模板:</label>
-                    <textarea id="analysisTemplateQuery" class="dialog-field" data-i18n-placeholder="analysisTemplateQueryPlaceholder" placeholder="例如：请基于以下内容分析..." rows="6"></textarea>
-                    <div class="help-text" data-i18n="analysisTemplateQueryHelp">支持任意 {xxx} 占位符；不写占位符时会自动追加分析内容</div>
+                    <label for="analysisTemplateQuery" data-i18n="templateQueryLabel" class="form-label"></label>
+                    <textarea id="analysisTemplateQuery" class="dialog-field" data-i18n-placeholder="analysisTemplateQueryPlaceholder" placeholder="" rows="6"></textarea>
+                    <div class="help-text" data-i18n="analysisTemplateQueryHelp"></div>
                   </div>
 
                   <div class="form-group form-group-compact">
-                    <label for="analysisTemplateOrder" data-i18n="templateOrderLabel" class="form-label">显示顺序:</label>
+                    <label for="analysisTemplateOrder" data-i18n="templateOrderLabel" class="form-label"></label>
                     <input type="number" id="analysisTemplateOrder" class="dialog-field dialog-field-narrow" min="1" max="99" value="1">
-                    <div class="help-text" data-i18n="templateOrderHelp">数字越小越靠前显示</div>
+                    <div class="help-text" data-i18n="templateOrderHelp"></div>
                   </div>
                 </div>
                 <div class="dialog-footer">
-                  <button id="cancelAnalysisTemplate" class="btn-secondary" data-i18n="cancelButton">取消</button>
-                  <button id="saveAnalysisTemplate" class="btn-primary" data-i18n="saveButton">保存</button>
+                  <button id="cancelAnalysisTemplate" class="btn-secondary" data-i18n="cancelButton"></button>
+                  <button id="saveAnalysisTemplate" class="btn-primary" data-i18n="saveButton"></button>
                 </div>
               </div>
             </div>
@@ -262,7 +262,7 @@
 
         <!-- 数据同步 -->
         <section id="data-sync" class="settings-section">
-          <h1 data-i18n="dataSyncTitle">Sync &amp; backup</h1>
+          <h1 data-i18n="dataSyncTitle"></h1>
 
           <!-- 云同步（WebDAV） -->
           <div class="sync-card sync-cloud-card">
@@ -270,33 +270,33 @@
               <div class="sync-card-heading">
                 <img class="sync-card-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
                 <div>
-                  <h2 data-i18n="cloudSyncTitle">Cloud sync</h2>
-                  <p class="sync-card-description" data-i18n="cloudSyncDescription">Sync your settings through WebDAV so they follow you across devices.</p>
+                  <h2 data-i18n="cloudSyncTitle"></h2>
+                  <p class="sync-card-description" data-i18n="cloudSyncDescription"></p>
                 </div>
               </div>
-              <span class="sync-badge" data-i18n="syncProviderWebdav">WebDAV</span>
+              <span class="sync-badge" data-i18n="syncProviderWebdav"></span>
             </div>
 
             <div class="sync-enable-row">
               <label class="sync-checkbox-label">
                 <input type="checkbox" id="syncEnabled">
-                <span data-i18n="syncEnabledLabel">Enable cloud sync</span>
+                <span data-i18n="syncEnabledLabel"></span>
               </label>
             </div>
 
             <!-- WebDAV 连接配置 -->
             <div class="sync-connection-table" id="syncConnectionConfig">
               <div class="sync-table-row sync-table-header">
-                <div class="sync-table-cell" data-i18n="syncAuthType">Auth type</div>
-                <div class="sync-table-cell sync-cell-url" data-i18n="syncUrlHeader">URL</div>
-                <div id="syncUsernameHeader" class="sync-table-cell" data-i18n="syncUsername">Username</div>
-                <div id="syncPasswordHeader" class="sync-table-cell" data-i18n="syncPassword">Password</div>
+                <div class="sync-table-cell" data-i18n="syncAuthType"></div>
+                <div class="sync-table-cell sync-cell-url" data-i18n="syncUrlHeader"></div>
+                <div id="syncUsernameHeader" class="sync-table-cell" data-i18n="syncUsername"></div>
+                <div id="syncPasswordHeader" class="sync-table-cell" data-i18n="syncPassword"></div>
               </div>
               <div class="sync-table-row sync-table-body">
                 <div class="sync-table-cell">
                   <select id="syncAuthType" class="sync-field-select">
-                    <option value="password" data-i18n="syncAuthPassword">password</option>
-                    <option value="token" data-i18n="syncAuthToken">token</option>
+                    <option value="password" data-i18n="syncAuthPassword"></option>
+                    <option value="token" data-i18n="syncAuthToken"></option>
                   </select>
                 </div>
                 <div class="sync-table-cell sync-cell-url">
@@ -316,8 +316,8 @@
 
             <!-- 操作按钮与状态 -->
             <div class="sync-actions">
-              <button id="saveSyncConfig" class="btn-primary sync-save-btn" data-i18n="saveButton">Save</button>
-              <button id="importFromSync" class="btn-secondary" data-i18n="syncImportButton">Restore from WebDAV</button>
+              <button id="saveSyncConfig" class="btn-primary sync-save-btn" data-i18n="saveButton"></button>
+              <button id="importFromSync" class="btn-secondary" data-i18n="syncImportButton"></button>
             </div>
           </div>
 
@@ -326,15 +326,15 @@
               <div class="sync-card-heading">
                 <img class="sync-card-icon" src="../icons/download.svg" alt="" aria-hidden="true">
                 <div>
-                  <h2 data-i18n="localSyncTitle">Local backup</h2>
-                  <p class="sync-card-description" data-i18n="localSyncDescription">Export the current sync data to a local JSON file or restore it from one. History records are capped at the first 500 items. This includes skill engine settings, custom skills, favorites, and history.</p>
+                  <h2 data-i18n="localSyncTitle"></h2>
+                  <p class="sync-card-description" data-i18n="localSyncDescription"></p>
                 </div>
               </div>
-              <span class="sync-badge sync-badge-muted" data-i18n="localSyncBadge">JSON file</span>
+              <span class="sync-badge sync-badge-muted" data-i18n="localSyncBadge"></span>
             </div>
             <div class="sync-actions">
-              <button id="exportLocalSync" class="btn-primary" data-i18n="localSyncExportButton">Export backup</button>
-              <button id="importLocalSync" class="btn-secondary" data-i18n="localSyncImportButton">Import backup</button>
+              <button id="exportLocalSync" class="btn-primary" data-i18n="localSyncExportButton"></button>
+              <button id="importLocalSync" class="btn-secondary" data-i18n="localSyncImportButton"></button>
             </div>
             <input type="file" id="localSyncFileInput" accept="application/json,.json" hidden>
           </div>
@@ -344,20 +344,20 @@
               <div class="sync-card-heading">
                 <img class="sync-card-icon" src="../icons/cloud-sync.svg" alt="" aria-hidden="true">
                 <div>
-                  <h2 data-i18n="googleDriveSyncTitle">Google Drive sync</h2>
-                  <p class="sync-card-description" data-i18n="googleDriveSyncDescription">Sign in with Google once, authorize Drive access, and sync the same backup data through your Google Drive app data space.</p>
+                  <h2 data-i18n="googleDriveSyncTitle"></h2>
+                  <p class="sync-card-description" data-i18n="googleDriveSyncDescription"></p>
                 </div>
               </div>
-              <span class="sync-badge" data-i18n="googleDriveSyncBadge">Google Drive</span>
+              <span class="sync-badge" data-i18n="googleDriveSyncBadge"></span>
             </div>
 
             <div id="googleDriveSyncAccount" class="sync-card-description">Not connected yet</div>
 
             <div class="sync-actions">
               <button id="connectGoogleDriveSync" class="btn-primary">
-                <span data-i18n="googleDriveSyncConnectButton">Sign in with Google</span>
+                <span data-i18n="googleDriveSyncConnectButton"></span>
               </button>
-              <button id="disconnectGoogleDriveSync" class="btn-secondary" data-i18n="googleDriveSyncDisconnectButton">Disconnect</button>
+              <button id="disconnectGoogleDriveSync" class="btn-secondary" data-i18n="googleDriveSyncDisconnectButton"></button>
             </div>
           </div>
 
@@ -365,7 +365,7 @@
         </section>
 
         <section id="language-settings" class="settings-section">
-          <h1 data-i18n="languageSettingsTitle">语言设置</h1>
+          <h1 data-i18n="languageSettingsTitle"></h1>
           <div class="site-section unified-settings-panel">
             <div id="languageSettingsContainer" class="site-configs"></div>
           </div>
@@ -373,49 +373,49 @@
 
         <!-- 暂时隐藏 Remote Search 设置页
         <section id="remote-search" class="settings-section">
-          <h1 data-i18n="remoteSearchTitle">手机搜索（开发中）</h1>
-          <p class="section-description" data-i18n="remoteSearchDescription">让手机连接到当前 Chrome 会话，远程发起搜索并查看流式结果。</p>
+          <h1 data-i18n="remoteSearchTitle"></h1>
+          <p class="section-description" data-i18n="remoteSearchDescription"></p>
 
           <div class="remote-search-grid">
             <div class="remote-card">
               <div class="remote-card-header">
-                <h2 data-i18n="remoteSearchTitle">手机搜索（开发中）</h2>
-                <span id="remoteSearchConnectionBadge" class="remote-status-badge" data-status="disabled" data-i18n="remoteSearchStatusDisabled">已关闭</span>
+                <h2 data-i18n="remoteSearchTitle"></h2>
+                <span id="remoteSearchConnectionBadge" class="remote-status-badge" data-status="disabled" data-i18n="remoteSearchStatusDisabled"></span>
               </div>
               <div class="remote-settings-grid">
                 <label class="remote-checkbox-row" for="remoteSearchEnabled">
                   <input type="checkbox" id="remoteSearchEnabled">
-                  <span data-i18n="remoteSearchEnableLabel">启用远程搜索</span>
+                  <span data-i18n="remoteSearchEnableLabel"></span>
                 </label>
                 <div class="remote-field">
                   <label for="remoteSearchRelayUrl" data-i18n="remoteSearchRelayUrlLabel">Relay URL</label>
                   <input type="url" id="remoteSearchRelayUrl" class="sync-field-input" data-i18n-placeholder="remoteSearchRelayUrlPlaceholder" placeholder="http://127.0.0.1:8787">
-                  <div class="site-config-help" data-i18n="remoteSearchRelayUrlHelp">填入本地或 Cloud Run relay 地址。</div>
+                  <div class="site-config-help" data-i18n="remoteSearchRelayUrlHelp"></div>
                 </div>
                 <div class="remote-field">
-                  <label for="remoteSearchDesktopName" data-i18n="remoteSearchDesktopNameLabel">电脑名称</label>
+                  <label for="remoteSearchDesktopName" data-i18n="remoteSearchDesktopNameLabel"></label>
                   <input type="text" id="remoteSearchDesktopName" class="sync-field-input" data-i18n-placeholder="remoteSearchDesktopNamePlaceholder" placeholder="My Chrome">
                 </div>
               </div>
               <div class="remote-actions">
-                <button id="saveRemoteSearchSettings" class="btn-primary" data-i18n="saveButton">保存</button>
-                <button id="generateRemoteSearchQr" class="btn-secondary" data-i18n="remoteSearchGenerateQrButton">生成配对二维码</button>
+                <button id="saveRemoteSearchSettings" class="btn-primary" data-i18n="saveButton"></button>
+                <button id="generateRemoteSearchQr" class="btn-secondary" data-i18n="remoteSearchGenerateQrButton"></button>
               </div>
-              <div class="site-config-help" data-i18n="remoteSearchPairingLimitNote">每次只能绑定一台手机，新的手机会替换旧绑定。</div>
+              <div class="site-config-help" data-i18n="remoteSearchPairingLimitNote"></div>
             </div>
 
             <div class="remote-card">
               <div class="remote-card-header">
-                <h2 data-i18n="remoteSearchQrTitle">配对二维码</h2>
+                <h2 data-i18n="remoteSearchQrTitle"></h2>
                 <span id="remoteSearchStatusText" class="remote-status-text">-</span>
               </div>
               <div class="remote-qr-panel">
-                <div id="remoteSearchQrPlaceholder" class="remote-qr-placeholder" data-i18n="remoteSearchQrEmpty">启用远程搜索后生成二维码。</div>
+                <div id="remoteSearchQrPlaceholder" class="remote-qr-placeholder" data-i18n="remoteSearchQrEmpty"></div>
                 <img id="remoteSearchQrImage" class="remote-qr-image" alt="Remote Search QR" hidden>
               </div>
               <div class="remote-meta-list">
                 <div class="remote-meta-row">
-                  <span class="remote-meta-label" data-i18n="remoteSearchExpiresAtLabel">有效期至</span>
+                  <span class="remote-meta-label" data-i18n="remoteSearchExpiresAtLabel"></span>
                   <span id="remoteSearchTicketExpiresAt" class="remote-meta-value">-</span>
                 </div>
               </div>
@@ -423,60 +423,60 @@
 
             <div id="remoteSearchPendingPairCard" class="remote-card" hidden>
               <div class="remote-card-header">
-                <h2 data-i18n="remoteSearchPendingPairTitle">待处理配对请求</h2>
+                <h2 data-i18n="remoteSearchPendingPairTitle"></h2>
               </div>
-              <p class="section-description" data-i18n="remoteSearchPendingPairDescription">收到新手机的连接请求后，会在这里显示设备信息。</p>
+              <p class="section-description" data-i18n="remoteSearchPendingPairDescription"></p>
               <div class="remote-meta-list">
                 <div class="remote-meta-row">
-                  <span class="remote-meta-label" data-i18n="remoteSearchPhoneNameLabel">手机名称</span>
+                  <span class="remote-meta-label" data-i18n="remoteSearchPhoneNameLabel"></span>
                   <span id="remoteSearchPendingPhoneName" class="remote-meta-value">-</span>
                 </div>
                 <div class="remote-meta-row">
-                  <span class="remote-meta-label" data-i18n="remoteSearchPhonePlatformLabel">平台</span>
+                  <span class="remote-meta-label" data-i18n="remoteSearchPhonePlatformLabel"></span>
                   <span id="remoteSearchPendingPhonePlatform" class="remote-meta-value">-</span>
                 </div>
                 <div class="remote-meta-row">
-                  <span class="remote-meta-label" data-i18n="remoteSearchFingerprintLabel">指纹</span>
+                  <span class="remote-meta-label" data-i18n="remoteSearchFingerprintLabel"></span>
                   <span id="remoteSearchPendingFingerprint" class="remote-meta-value">-</span>
                 </div>
               </div>
               <div class="remote-actions">
-                <button id="remoteSearchApprovePair" class="btn-primary" data-i18n="remoteSearchApproveButton">批准</button>
-                <button id="remoteSearchRejectPair" class="btn-secondary" data-i18n="remoteSearchRejectButton">拒绝</button>
+                <button id="remoteSearchApprovePair" class="btn-primary" data-i18n="remoteSearchApproveButton"></button>
+                <button id="remoteSearchRejectPair" class="btn-secondary" data-i18n="remoteSearchRejectButton"></button>
               </div>
             </div>
 
             <div class="remote-card">
               <div class="remote-card-header">
-                <h2 data-i18n="remoteSearchPairedPhoneTitle">已绑定手机</h2>
+                <h2 data-i18n="remoteSearchPairedPhoneTitle"></h2>
               </div>
-              <div id="remoteSearchPairedEmpty" class="remote-empty-state" data-i18n="remoteSearchNotPaired">当前还没有绑定手机。</div>
+              <div id="remoteSearchPairedEmpty" class="remote-empty-state" data-i18n="remoteSearchNotPaired"></div>
               <div id="remoteSearchPairedDetails" hidden>
                 <div class="remote-meta-list">
                   <div class="remote-meta-row">
-                    <span class="remote-meta-label" data-i18n="remoteSearchPhoneNameLabel">手机名称</span>
+                    <span class="remote-meta-label" data-i18n="remoteSearchPhoneNameLabel"></span>
                     <span id="remoteSearchPairedPhoneName" class="remote-meta-value">-</span>
                   </div>
                   <div class="remote-meta-row">
-                    <span class="remote-meta-label" data-i18n="remoteSearchPhonePlatformLabel">平台</span>
+                    <span class="remote-meta-label" data-i18n="remoteSearchPhonePlatformLabel"></span>
                     <span id="remoteSearchPairedPhonePlatform" class="remote-meta-value">-</span>
                   </div>
                   <div class="remote-meta-row">
-                    <span class="remote-meta-label" data-i18n="remoteSearchFingerprintLabel">指纹</span>
+                    <span class="remote-meta-label" data-i18n="remoteSearchFingerprintLabel"></span>
                     <span id="remoteSearchPairedFingerprint" class="remote-meta-value">-</span>
                   </div>
                 </div>
                 <div class="remote-actions">
-                  <button id="remoteSearchUnpair" class="btn-secondary" data-i18n="remoteSearchUnpairButton">解除绑定</button>
+                  <button id="remoteSearchUnpair" class="btn-secondary" data-i18n="remoteSearchUnpairButton"></button>
                 </div>
               </div>
             </div>
 
             <div class="remote-card">
               <div class="remote-card-header">
-                <h2 data-i18n="remoteSearchLastErrorLabel">最近错误</h2>
+                <h2 data-i18n="remoteSearchLastErrorLabel"></h2>
               </div>
-              <div id="remoteSearchLastError" class="remote-error-text" data-i18n="remoteSearchNoLastError">当前没有错误。</div>
+              <div id="remoteSearchLastError" class="remote-error-text" data-i18n="remoteSearchNoLastError"></div>
             </div>
           </div>
         </section>
@@ -484,8 +484,8 @@
 
         <!-- 暂时隐藏 Pro Membership 设置页
         <section id="membership" class="settings-section">
-          <h1 data-i18n="membershipTitle">Pro 会员</h1>
-          <p class="section-description" data-i18n="membershipDescription">解锁全部功能，畅享 AI 比较体验</p>
+          <h1 data-i18n="membershipTitle"></h1>
+          <p class="section-description" data-i18n="membershipDescription"></p>
 
           <div id="membershipStatusCard" class="membership-status-card">
             <div class="membership-status-inner">
@@ -502,54 +502,44 @@
           <div id="membershipPlans" class="membership-plans">
             <div class="plan-card" id="planMonthly">
               <div class="plan-header">
-                <span class="plan-name" data-i18n="planMonthlyName">月度订阅</span>
-                <span class="plan-price" data-i18n="planMonthlyPrice">$4.99 / 月</span>
+                <span class="plan-name" data-i18n="planMonthlyName"></span>
+                <span class="plan-price" data-i18n="planMonthlyPrice"></span>
               </div>
               <ul class="plan-features">
-                <li data-i18n="planFeature1">无限制 AI 对比</li>
-                <li data-i18n="planFeature2">优先客户支持</li>
-                <li data-i18n="planFeature3">随时取消</li>
+                <li data-i18n="planFeature1"></li>
+                <li data-i18n="planFeature2"></li>
+                <li data-i18n="planFeature3"></li>
               </ul>
-              <button class="btn-upgrade" id="btnUpgradeMonthly" data-i18n="btnUpgradeMonthly">
-                按月订阅
-              </button>
+              <button class="btn-upgrade" id="btnUpgradeMonthly" data-i18n="btnUpgradeMonthly"></button>
             </div>
 
             <div class="plan-card plan-card-featured" id="planYearly">
-              <div class="plan-badge-popular" data-i18n="planPopular">最受欢迎</div>
+              <div class="plan-badge-popular" data-i18n="planPopular"></div>
               <div class="plan-header">
-                <span class="plan-name" data-i18n="planYearlyName">年度订阅</span>
-                <span class="plan-price" data-i18n="planYearlyPrice">$39.99 / 年</span>
-                <span class="plan-saving" data-i18n="planYearlySaving">节省 33%</span>
+                <span class="plan-name" data-i18n="planYearlyName"></span>
+                <span class="plan-price" data-i18n="planYearlyPrice"></span>
+                <span class="plan-saving" data-i18n="planYearlySaving"></span>
               </div>
               <ul class="plan-features">
-                <li data-i18n="planFeature1">无限制 AI 对比</li>
-                <li data-i18n="planFeature2">优先客户支持</li>
-                <li data-i18n="planFeature4">全年最低价</li>
+                <li data-i18n="planFeature1"></li>
+                <li data-i18n="planFeature2"></li>
+                <li data-i18n="planFeature4"></li>
               </ul>
-              <button class="btn-upgrade btn-upgrade-featured" id="btnUpgradeYearly" data-i18n="btnUpgradeYearly">
-                按年订阅
-              </button>
+              <button class="btn-upgrade btn-upgrade-featured" id="btnUpgradeYearly" data-i18n="btnUpgradeYearly"></button>
             </div>
           </div>
 
           <div id="membershipProActions" class="membership-pro-actions" style="display:none;">
-            <p data-i18n="membershipProThankYou">感谢您的支持！</p>
-            <button class="btn-secondary" id="btnManageSubscription" data-i18n="btnManageSubscription">
-              管理订阅 / 取消续费
-            </button>
+            <p data-i18n="membershipProThankYou"></p>
+            <button class="btn-secondary" id="btnManageSubscription" data-i18n="btnManageSubscription"></button>
           </div>
 
-          <div id="membershipLoadingMsg" class="membership-loading" data-i18n="membershipLoading">
-            正在加载会员状态…
-          </div>
-          <div id="membershipLoginHint" class="membership-login-hint" style="display:none;" data-i18n="membershipLoginHint">
-            请先在「数据同步」页面登录谷歌账号后查看会员状态
-          </div>
+          <div id="membershipLoadingMsg" class="membership-loading" data-i18n="membershipLoading"></div>
+          <div id="membershipLoginHint" class="membership-login-hint" style="display:none;" data-i18n="membershipLoginHint"></div>
           <div id="membershipLoginActions" class="membership-pro-actions" style="display:none;">
             <button class="btn-primary btn-google" id="membershipGoogleLoginBtn" type="button">
               <span class="btn-google-icon" aria-hidden="true"></span>
-              <span data-i18n="membershipGoogleLoginButton">使用 Google 登录</span>
+              <span data-i18n="membershipGoogleLoginButton"></span>
             </button>
           </div>
         </section>
@@ -562,38 +552,38 @@
     <div class="dialog-overlay" id="customSiteDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="customSiteDialogTitle" data-i18n="customSiteAddTitle" class="dialog-title">添加自定义网站</h3>
+        <h3 id="customSiteDialogTitle" data-i18n="customSiteAddTitle" class="dialog-title"></h3>
         <button class="dialog-close" id="customSiteDialogClose">×</button>
       </div>
       <div class="dialog-body">
         <input type="hidden" id="customSiteId">
 
         <div class="form-group">
-          <label for="customSiteName" data-i18n="customSiteNameLabel" class="form-label">名称</label>
-          <input type="text" id="customSiteName" class="dialog-field" data-i18n-placeholder="customSiteNamePlaceholder" placeholder="例如：DeepSeek 专家模式对话" maxlength="80">
+          <label for="customSiteName" data-i18n="customSiteNameLabel" class="form-label"></label>
+          <input type="text" id="customSiteName" class="dialog-field" data-i18n-placeholder="customSiteNamePlaceholder" placeholder="" maxlength="80">
         </div>
 
         <div class="form-group">
-          <label for="customSiteUrl" data-i18n="customSiteUrlLabel" class="form-label">页面 URL</label>
-          <input type="url" id="customSiteUrl" class="dialog-field" data-i18n-placeholder="customSiteUrlPlaceholder" placeholder="粘贴要直接打开的页面地址">
+          <label for="customSiteUrl" data-i18n="customSiteUrlLabel" class="form-label"></label>
+          <input type="url" id="customSiteUrl" class="dialog-field" data-i18n-placeholder="customSiteUrlPlaceholder" placeholder="">
         </div>
 
         <div class="form-group form-group-inline">
           <label class="checkbox-label">
             <input type="checkbox" id="customSiteEnabled" checked>
-            <span data-i18n="customSiteEnabledLabel">默认打开</span>
+            <span data-i18n="customSiteEnabledLabel"></span>
           </label>
         </div>
 
         <div class="form-group form-group-compact">
-          <label for="customSiteOrder" data-i18n="customSiteOrderLabel" class="form-label">排序</label>
+          <label for="customSiteOrder" data-i18n="customSiteOrderLabel" class="form-label"></label>
           <input type="number" id="customSiteOrder" class="dialog-field dialog-field-narrow" min="0" max="9999" value="0">
-          <div class="help-text" data-i18n="customSiteOrderHelp">数字越小越靠前显示。</div>
+          <div class="help-text" data-i18n="customSiteOrderHelp"></div>
         </div>
       </div>
       <div class="dialog-footer">
-        <button id="cancelCustomSite" class="btn-secondary" data-i18n="cancelButton">取消</button>
-        <button id="saveCustomSite" class="btn-primary" data-i18n="saveButton">保存</button>
+        <button id="cancelCustomSite" class="btn-secondary" data-i18n="cancelButton"></button>
+        <button id="saveCustomSite" class="btn-primary" data-i18n="saveButton"></button>
       </div>
     </div>
   </div>
@@ -602,30 +592,30 @@
     <div class="dialog-overlay" id="agentCustomDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="agentCustomDialogTitle" data-i18n="agentCustomDialogTitle" class="dialog-title">自定义 Skill</h3>
+        <h3 id="agentCustomDialogTitle" data-i18n="agentCustomDialogTitle" class="dialog-title"></h3>
         <button class="dialog-close" id="agentCustomDialogClose">×</button>
       </div>
       <div class="dialog-body">
         <div class="form-group">
-          <label for="agentCustomName" class="form-label" data-i18n="agentCustomNameLabel">显示名称</label>
-          <input type="text" id="agentCustomName" class="dialog-field" data-i18n-placeholder="agentCustomNamePlaceholder" placeholder="例如：巴菲特（审慎版）" maxlength="60">
+          <label for="agentCustomName" class="form-label" data-i18n="agentCustomNameLabel"></label>
+          <input type="text" id="agentCustomName" class="dialog-field" data-i18n-placeholder="agentCustomNamePlaceholder" placeholder="" maxlength="60">
         </div>
 
         <div class="form-group">
-          <label for="agentCustomDescription" class="form-label" data-i18n="agentCustomDescriptionLabel">简介</label>
-          <input type="text" id="agentCustomDescription" class="dialog-field" data-i18n-placeholder="agentCustomDescriptionPlaceholder" placeholder="一句话说明这个 Skill 的定位">
+          <label for="agentCustomDescription" class="form-label" data-i18n="agentCustomDescriptionLabel"></label>
+          <input type="text" id="agentCustomDescription" class="dialog-field" data-i18n-placeholder="agentCustomDescriptionPlaceholder" placeholder="">
         </div>
 
         <div class="form-group">
-          <label for="agentCustomPersonaPrompt" class="form-label" data-i18n="agentCustomPersonaPromptLabel">Persona 提示词</label>
-          <textarea id="agentCustomPersonaPrompt" class="dialog-field" data-i18n-placeholder="agentCustomPersonaPromptPlaceholder" placeholder="定义这个 Skill 的思考风格和输出要求" rows="10"></textarea>
-          <div class="help-text" data-i18n="agentCustomPersonaPromptHelp">这里会直接作为系统提示词的一部分参与 Skill 回答。</div>
+          <label for="agentCustomPersonaPrompt" class="form-label" data-i18n="agentCustomPersonaPromptLabel"></label>
+          <textarea id="agentCustomPersonaPrompt" class="dialog-field" data-i18n-placeholder="agentCustomPersonaPromptPlaceholder" placeholder="" rows="10"></textarea>
+          <div class="help-text" data-i18n="agentCustomPersonaPromptHelp"></div>
         </div>
       </div>
       <div class="dialog-footer">
-        <button id="resetAgentCustom" class="btn-secondary" data-i18n="agentCustomResetButton">恢复默认</button>
-        <button id="cancelAgentCustom" class="btn-secondary" data-i18n="cancelButton">取消</button>
-        <button id="saveAgentCustom" class="btn-primary" data-i18n="saveButton">保存</button>
+        <button id="resetAgentCustom" class="btn-secondary" data-i18n="agentCustomResetButton"></button>
+        <button id="cancelAgentCustom" class="btn-secondary" data-i18n="cancelButton"></button>
+        <button id="saveAgentCustom" class="btn-primary" data-i18n="saveButton"></button>
       </div>
     </div>
   </div>
@@ -634,34 +624,38 @@
     <div class="dialog-overlay" id="agentEngineDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="agentEngineDialogTitle" data-i18n="agentEngineEditDialogTitle" class="dialog-title">填写自己的 API</h3>
+        <h3 id="agentEngineDialogTitle" data-i18n="agentEngineEditDialogTitle" class="dialog-title"></h3>
         <button class="dialog-close" id="agentEngineDialogClose">×</button>
       </div>
       <div class="dialog-body">
         <div class="form-group">
-          <label for="agentApiBaseUrl" class="form-label" data-i18n="agentEngineApiUrlLabel">API 地址</label>
-          <input type="url" id="agentApiBaseUrl" class="dialog-field" data-i18n-placeholder="agentEngineApiUrlPlaceholder" placeholder="例如：https://api.example.com/v1" required>
+          <label for="agentApiBaseUrl" class="form-label" data-i18n="agentEngineApiUrlLabel"></label>
+          <input type="url" id="agentApiBaseUrl" class="dialog-field" data-i18n-placeholder="agentEngineApiUrlPlaceholder" placeholder="" required>
         </div>
 
         <div class="form-group">
-          <label for="agentApiKey" class="form-label" data-i18n="agentEngineApiKeyLabel">API Key</label>
-          <input type="password" id="agentApiKey" class="dialog-field" data-i18n-placeholder="agentEngineApiKeyPlaceholder" placeholder="粘贴你的 API Key" required>
+          <label for="agentApiKey" class="form-label" data-i18n="agentEngineApiKeyLabel"></label>
+          <div class="dialog-password-field">
+            <input type="password" id="agentApiKey" class="dialog-field dialog-field-with-toggle" data-i18n-placeholder="agentEngineApiKeyPlaceholder" placeholder="" required>
+            <button class="dialog-password-toggle" id="toggleAgentApiKey" type="button" data-i18n-aria-label="syncTogglePasswordAriaLabel" aria-label="Show or hide password">👁</button>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="agentApiModel" class="form-label" data-i18n="agentEngineModelLabel">模型</label>
-          <input type="text" id="agentApiModel" class="dialog-field" data-i18n-placeholder="agentEngineModelPlaceholder" placeholder="例如：gpt-5.4-mini" required>
+          <label for="agentApiModel" class="form-label" data-i18n="agentEngineModelLabel"></label>
+          <input type="text" id="agentApiModel" class="dialog-field" data-i18n-placeholder="agentEngineModelPlaceholder" placeholder="" required>
         </div>
 
         <div class="form-group form-group-compact">
-          <label for="agentApiConcurrency" class="form-label" data-i18n="agentEngineConcurrencyLabel">并发请求数</label>
-          <input type="number" id="agentApiConcurrency" class="dialog-field dialog-field-narrow" min="1" max="8" step="1" value="2" required>
-          <div class="help-text" data-i18n="agentEngineConcurrencyHelp">这是所有智能体面板共享的全局并发上限。</div>
+          <label for="agentApiConcurrency" class="form-label" data-i18n="agentEngineConcurrencyLabel"></label>
+          <input type="number" id="agentApiConcurrency" class="dialog-field dialog-field-narrow" min="1" max="10" step="1" value="10" required>
+          <div class="help-text" data-i18n="agentEngineConcurrencyHelp"></div>
         </div>
       </div>
       <div class="dialog-footer">
-        <button id="cancelAgentEngine" class="btn-secondary" data-i18n="cancelButton">取消</button>
-        <button id="saveAgentEngineBtn" class="btn-primary" type="button" data-i18n="agentEngineSaveButton">保存自定义 API</button>
+        <button id="cancelAgentEngine" class="btn-secondary" data-i18n="cancelButton"></button>
+        <button id="testAgentEngineBtn" class="btn-secondary" type="button" data-i18n="agentEngineTestButton"></button>
+        <button id="saveAgentEngineBtn" class="btn-primary" type="button" data-i18n="agentEngineSaveButton"></button>
       </div>
     </div>
   </div>
@@ -670,24 +664,24 @@
     <div class="dialog-overlay" id="agentImportDialogOverlay"></div>
     <div class="dialog-content dialog-content-wide">
       <div class="dialog-header">
-        <h3 id="agentImportDialogTitle" data-i18n="agentImportDialogTitle" class="dialog-title">从 URL 导入 Skill</h3>
+        <h3 id="agentImportDialogTitle" data-i18n="agentImportDialogTitle" class="dialog-title"></h3>
         <button class="dialog-close" id="agentImportDialogClose">×</button>
       </div>
       <div class="dialog-body">
         <div class="form-group">
-          <label for="agentSkillUrl" class="form-label" data-i18n="agentSkillUrlLabel">Skill URL</label>
-          <input type="url" id="agentSkillUrl" class="dialog-field" data-i18n-placeholder="agentSkillUrlPlaceholder" placeholder="粘贴 GitHub 或 raw 的 SKILL.md 链接">
+          <label for="agentSkillUrl" class="form-label" data-i18n="agentSkillUrlLabel"></label>
+          <input type="url" id="agentSkillUrl" class="dialog-field" data-i18n-placeholder="agentSkillUrlPlaceholder" placeholder="">
         </div>
 
         <div class="form-group">
-          <label for="agentSkillContent" class="form-label" data-i18n="agentSkillContentLabel">Skill 内容</label>
-          <textarea id="agentSkillContent" class="dialog-field" data-i18n-placeholder="agentSkillContentPlaceholder" placeholder="可直接粘贴 SKILL.md 内容；如果填写了 URL，会优先抓取 URL 内容" rows="10"></textarea>
-          <div class="help-text" data-i18n="agentSkillContentHelp">导入后会转换为插件内可直接使用的自定义 Skill。</div>
+          <label for="agentSkillContent" class="form-label" data-i18n="agentSkillContentLabel"></label>
+          <textarea id="agentSkillContent" class="dialog-field" data-i18n-placeholder="agentSkillContentPlaceholder" placeholder="" rows="10"></textarea>
+          <div class="help-text" data-i18n="agentSkillContentHelp"></div>
         </div>
       </div>
       <div class="dialog-footer">
-        <button id="cancelAgentImport" class="btn-secondary" data-i18n="cancelButton">取消</button>
-        <button id="saveAgentImport" class="btn-primary" data-i18n="agentSkillImportButton">Import Skill</button>
+        <button id="cancelAgentImport" class="btn-secondary" data-i18n="cancelButton"></button>
+        <button id="saveAgentImport" class="btn-primary" data-i18n="agentSkillImportButton"></button>
       </div>
     </div>
   </div>

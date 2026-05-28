@@ -29,6 +29,8 @@ const DEV_BRAND_ACTION_ICON_PATHS = Object.freeze({
   48: 'icons/dev-icon48.png',
   128: 'icons/dev-icon128.png'
 });
+const CHROME_WEB_STORE_EXTENSION_ID = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+const CHROME_WEB_STORE_REVIEW_URL = `https://chromewebstore.google.com/detail/${CHROME_WEB_STORE_EXTENSION_ID}/reviews`;
 
 function getCurrentExtensionId() {
   try {
@@ -70,6 +72,18 @@ function getActionIconPaths() {
   return DEFAULT_BRAND_ICON_PATHS;
 }
 
+function getChromeWebStoreExtensionId() {
+  return CHROME_WEB_STORE_EXTENSION_ID;
+}
+
+function getChromeWebStoreReviewUrl(externalLinks = null) {
+  const configuredUrl = String(externalLinks?.reviewLink || '').trim();
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+  return CHROME_WEB_STORE_REVIEW_URL;
+}
+
 const ExtensionEnvironment = {
   getCurrentExtensionId,
   isDevelopmentExtensionId,
@@ -79,7 +93,9 @@ const ExtensionEnvironment = {
   getBrandIconAssetPath,
   getBrandIconUrl,
   applyBrandIconToImage,
-  getActionIconPaths
+  getActionIconPaths,
+  getChromeWebStoreExtensionId,
+  getChromeWebStoreReviewUrl
 };
 
 // 生产环境 console 重写（仅在 production 模式下）
@@ -287,6 +303,19 @@ async function hydrateBundledSiteConfigIfNeeded() {
   }
 
   return cachedSites;
+}
+
+async function hydrateBundledAgentCatalogIfNeededFromBaseConfig() {
+  try {
+    const agentCatalog = globalThis?.AICompareAgentCatalog || null;
+    if (typeof agentCatalog?.hydrateBundledAgentCatalogIfNeeded === 'function') {
+      await agentCatalog.hydrateBundledAgentCatalogIfNeeded();
+      return true;
+    }
+  } catch (error) {
+    console.error('读取扩展包内技能配置失败:', error);
+  }
+  return false;
 }
 
 function getSiteLaunchUtils() {
@@ -673,6 +702,21 @@ const RemoteConfigManager = {
   }
 };
 
+const RemoteAgentConfigManager = {
+  async autoCheckUpdate() {
+    try {
+      const agentCatalog = globalThis?.AICompareAgentCatalog || null;
+      if (typeof agentCatalog?.autoCheckUpdate === 'function') {
+        return await agentCatalog.autoCheckUpdate();
+      }
+      return { hasUpdate: false, reason: 'agent_catalog_unavailable' };
+    } catch (error) {
+      console.error('检查技能配置更新失败:', error);
+      return { hasUpdate: false, error: error.message };
+    }
+  }
+};
+
 // Service Worker环境
 if (typeof window === 'undefined') {
   const language = navigator.language.toLowerCase();
@@ -697,6 +741,8 @@ if (typeof window === 'undefined') {
         const localSites = await loadLocalSitesConfig();
         return mergeSitesWithUserSettings(localSites, userSettings);
       }
+
+      await hydrateBundledAgentCatalogIfNeededFromBaseConfig();
 
       //1 从 remoteSiteHandlers 读取基础配置
       console.log('尝试从 remoteSiteHandlers 读取站点配置...');
@@ -741,6 +787,9 @@ if (typeof window === 'undefined') {
   self.getCustomSites = async function() {
     return loadCustomSitesConfig();
   };
+
+  self.hydrateBundledAgentCatalogIfNeeded = hydrateBundledAgentCatalogIfNeededFromBaseConfig;
+  self.RemoteAgentConfigManager = RemoteAgentConfigManager;
 
   self.AppConfigManager = AppConfigManager;
   self.RemoteConfigManager = RemoteConfigManager;
@@ -936,6 +985,8 @@ else {
 
   window.AppConfigManager = AppConfigManager;
   window.RemoteConfigManager = RemoteConfigManager;
+  window.RemoteAgentConfigManager = RemoteAgentConfigManager;
+  window.hydrateBundledAgentCatalogIfNeeded = hydrateBundledAgentCatalogIfNeededFromBaseConfig;
   window.ExtensionEnvironment = ExtensionEnvironment;
   
   // 开发环境配置切换函数

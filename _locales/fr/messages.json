@@ -1573,6 +1573,12 @@
       }
     }
   },
+  "timelineCopyPreviewSuccessSitesLabel": {
+    "message": "Sites réussis"
+  },
+  "timelineCopyPreviewFailedSitesLabel": {
+    "message": "Sites en échec"
+  },
   "timelineCopyPreviewShare": {
     "message": "Partager"
   },
@@ -1862,6 +1868,9 @@
   "timelineCopyPreviewShareNoRelay": {
     "message": "Aucune adresse relay disponible n’a été trouvée. Veuillez d’abord la renseigner dans les paramètres."
   },
+  "timelineCopyPreviewOpen": {
+    "message": "Ouvrir"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -2037,6 +2046,18 @@
   "agentPanelSendButton": {
     "message": "Envoyer"
   },
+  "agentPanelRemoveAttachment": {
+    "message": "Supprimer la pièce jointe"
+  },
+  "agentPanelAttachmentTooLarge": {
+    "message": "La pièce jointe est trop volumineuse"
+  },
+  "agentAttachmentImagesOnly": {
+    "message": "Le modèle de skill actuel prend uniquement en charge l’envoi direct des images originales. Veuillez conserver les fichiers non image dans les panneaux de site."
+  },
+  "agentAttachmentSourceMissing": {
+    "message": "La pièce jointe d’origine n’est plus disponible. Veuillez joindre à nouveau le fichier."
+  },
   "agentRequestFailed": {
     "message": "Échec de la requête de l’agent"
   },
@@ -2069,17 +2090,11 @@
   "agentBuffettName": {
     "message": "Buffett"
   },
-  "agentBuffettShortName": {
-    "message": "B"
-  },
   "agentBuffettDescription": {
     "message": "Valeur long terme, douves et allocation du capital"
   },
   "agentMungerName": {
     "message": "Munger"
-  },
-  "agentMungerShortName": {
-    "message": "M"
   },
   "agentMungerDescription": {
     "message": "Modèles mentaux, inversion, éviter la stupidité"
@@ -2087,17 +2102,11 @@
   "agentDuanyongpingName": {
     "message": "Duan Yongping"
   },
-  "agentDuanyongpingShortName": {
-    "message": "D"
-  },
   "agentDuanyongpingDescription": {
     "message": "Bon sens, qualité du business, détention long terme"
   },
   "agentElonMuskName": {
     "message": "Elon Musk"
-  },
-  "agentElonMuskShortName": {
-    "message": "E"
   },
   "agentElonMuskDescription": {
     "message": "Premiers principes, vitesse, densité d’ingénierie, optimisation extrême"
@@ -2105,17 +2114,11 @@
   "agentSamAltmanName": {
     "message": "Sam Altman"
   },
-  "agentSamAltmanShortName": {
-    "message": "S"
-  },
   "agentSamAltmanDescription": {
     "message": "Startup, distribution, stratégie de plateforme, positionnement long terme"
   },
   "agentKarpathyName": {
     "message": "Andrej Karpathy"
-  },
-  "agentKarpathyShortName": {
-    "message": "K"
   },
   "agentKarpathyDescription": {
     "message": "Intuition IA, pensée système, apprentissage, réalité de l’ingénierie"
@@ -2141,9 +2144,6 @@
   "agentSocraticQuestioningName": {
     "message": "Questionnement socratique"
   },
-  "agentSocraticQuestioningShortName": {
-    "message": "Q"
-  },
   "agentSocraticQuestioningDescription": {
     "message": "Clarifiez hypothèses, objectifs, preuves et contradictions grâce au questionnement socratique"
   },
@@ -2152,9 +2152,6 @@
   },
   "agentExecutiveRoundtableName": {
     "message": "Comité de direction"
-  },
-  "agentExecutiveRoundtableShortName": {
-    "message": "C"
   },
   "agentExecutiveRoundtableDescription": {
     "message": "Analysez un sujet sous les angles finance, audit, technique, produit, ventes, marque, opérations et RH"

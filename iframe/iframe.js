@@ -32,6 +32,15 @@ const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STO
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
 
+async function ensureIframeAgentCatalogReady() {
+  if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
+    await window.hydrateBundledAgentCatalogIfNeeded().catch(() => false);
+  }
+  if (typeof window.AICompareAgentCatalog?.ensureCatalogHydrated === 'function') {
+    await window.AICompareAgentCatalog.ensureCatalogHydrated().catch(() => null);
+  }
+}
+
 // 全局文件粘贴检测和处理
 let filePasteHandlerAdded = false;
 
@@ -249,6 +258,8 @@ const timelineState = {
 };
 let timelineSyncTimer = null;
 let timelineMessageBridgeInitialized = false;
+let agentRuntimeMessageBridgeInitialized = false;
+let agentRuntimeKeepalivePorts = new Map();
 const TIMELINE_EDGE_TRIGGER_ID = 'timelineEdgeTrigger';
 const TIMELINE_HIDE_DELAY_MS = 180;
 let timelineHideTimer = null;
@@ -453,11 +464,15 @@ window.addEventListener(AI_COMPARE_RUNTIME_EVENT, () => {
 const IFRAME_ALLOW_PERMISSIONS = 'clipboard-read; clipboard-write; autoplay; fullscreen; picture-in-picture';
 
 async function getReviewUrlFromConfig() {
-  const fallbackUrl = chrome.runtime.getURL('homepage/homepage.html');
+  const fallbackUrl = window.ExtensionEnvironment?.getChromeWebStoreReviewUrl?.()
+    || 'https://chromewebstore.google.com/detail/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
   try {
     if (window.AppConfigManager?.loadConfig) {
       const config = await window.AppConfigManager.loadConfig();
       const externalLinks = config?.externalLinks || {};
+      if (window.ExtensionEnvironment?.getChromeWebStoreReviewUrl) {
+        return window.ExtensionEnvironment.getChromeWebStoreReviewUrl(externalLinks);
+      }
       if (externalLinks.reviewLink) {
         return externalLinks.reviewLink;
       }
@@ -621,7 +636,7 @@ async function showRatingPromptOnce(kind) {
         primaryButton?.focus({ preventScroll: true });
         trackEvent(kind === 'reminder' ? 'rating_prompt_reminder_shown' : 'rating_prompt_shown');
       }
-    }, 5000);
+    }, 120000);
   }
 }
 
@@ -764,6 +779,25 @@ function formatTimelineSiteNames(siteNames = []) {
   return names.length ? names.join('、') : '—';
 }
 
+function buildTimelineCopyPreviewMetaHtml(successSiteNames = [], failedSiteNames = []) {
+  const successLabel = t('timelineCopyPreviewSuccessSitesLabel', '成功站点');
+  const failedLabel = t('timelineCopyPreviewFailedSitesLabel', '失败站点');
+  const successText = formatTimelineSiteNames(successSiteNames);
+  const failedText = formatTimelineSiteNames(failedSiteNames);
+  const hasFailedSites = Array.isArray(failedSiteNames) && failedSiteNames.length > 0;
+
+  return [
+    `<span class="timeline-copy-preview-meta-line">`
+      + `<span class="timeline-copy-preview-meta-label">${escapeHtml(successLabel)}：</span>`
+      + `<span class="timeline-copy-preview-meta-sites">${escapeHtml(successText)}</span>`
+      + `</span>`,
+    `<span class="timeline-copy-preview-meta-line">`
+      + `<span class="timeline-copy-preview-meta-label">${escapeHtml(failedLabel)}：</span>`
+      + `<span class="timeline-copy-preview-meta-sites${hasFailedSites ? ' is-failed' : ''}">${escapeHtml(failedText)}</span>`
+      + `</span>`
+  ].join('');
+}
+
 function isTimelineResponseCopyable(response) {
   if (!response || typeof response !== 'object') return false;
   if (Array.isArray(response.answers) && response.answers.some((answer) => String(answer || '').trim())) {
@@ -809,12 +843,16 @@ function showTimelineCopyPreviewActionFeedback(overlay, anchorButton, message, t
 
   const overlayRect = overlay.getBoundingClientRect();
   const anchorRect = anchorButton.getBoundingClientRect();
+  const sharePanel = anchorButton.closest('.timeline-copy-preview-share-panel');
+  const referenceRect = sharePanel instanceof HTMLElement
+    ? sharePanel.getBoundingClientRect()
+    : anchorRect;
   bubble.textContent = String(message);
   bubble.dataset.tone = tone === 'error' ? 'error' : 'success';
   const preferredLeft = anchorRect.left - overlayRect.left - 12;
   const maxLeft = Math.max(16, overlayRect.width - 260);
   bubble.style.left = `${Math.min(Math.max(16, preferredLeft), maxLeft)}px`;
-  bubble.style.top = `${Math.max(16, anchorRect.top - overlayRect.top - 46)}px`;
+  bubble.style.top = `${Math.max(16, referenceRect.top - overlayRect.top - 46)}px`;
   bubble.classList.add('is-visible');
 
   if (bubble.__hideTimer) {
@@ -823,6 +861,126 @@ function showTimelineCopyPreviewActionFeedback(overlay, anchorButton, message, t
   bubble.__hideTimer = setTimeout(() => {
     bubble.classList.remove('is-visible');
   }, duration);
+}
+
+function ensureTimelineCopyPreviewTooltip(overlay) {
+  let tooltip = overlay.querySelector('.timeline-copy-preview-tooltip');
+  if (!(tooltip instanceof HTMLElement)) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'timeline-copy-preview-tooltip';
+    tooltip.setAttribute('role', 'tooltip');
+    overlay.appendChild(tooltip);
+  }
+  return tooltip;
+}
+
+function showTimelineCopyPreviewTooltip(overlay, anchorButton, message) {
+  if (!overlay || !anchorButton || !message) return;
+  const tooltip = ensureTimelineCopyPreviewTooltip(overlay);
+  const overlayRect = overlay.getBoundingClientRect();
+  const anchorRect = anchorButton.getBoundingClientRect();
+  tooltip.textContent = String(message);
+  const preferredLeft = anchorRect.left - overlayRect.left - 8;
+  const maxLeft = Math.max(16, overlayRect.width - 220);
+  tooltip.style.left = `${Math.min(Math.max(16, preferredLeft), maxLeft)}px`;
+  tooltip.style.top = `${Math.max(16, anchorRect.top - overlayRect.top - 44)}px`;
+  tooltip.classList.add('is-visible');
+}
+
+function hideTimelineCopyPreviewTooltip(overlay) {
+  const tooltip = overlay?.querySelector('.timeline-copy-preview-tooltip');
+  if (tooltip instanceof HTMLElement) {
+    tooltip.classList.remove('is-visible');
+  }
+}
+
+function ensureTimelineCopyPreviewSharePanel(overlay) {
+  let panel = overlay.querySelector('.timeline-copy-preview-share-panel');
+  if (panel) return panel;
+
+  panel = document.createElement('div');
+  panel.className = 'timeline-copy-preview-share-panel';
+  panel.hidden = true;
+  panel.innerHTML = `
+    <div class="timeline-copy-preview-share-panel__row">
+      <input class="timeline-copy-preview-share-panel__input" type="text" readonly>
+    </div>
+    <div class="timeline-copy-preview-share-panel__actions">
+      <button class="timeline-copy-preview-share-panel__open" type="button"></button>
+      <button class="timeline-copy-preview-share-panel__copy" type="button"></button>
+    </div>
+  `;
+  overlay.appendChild(panel);
+  return panel;
+}
+
+function hideTimelineCopyPreviewSharePanel(overlay) {
+  const panel = overlay?.querySelector('.timeline-copy-preview-share-panel');
+  if (panel instanceof HTMLElement) {
+    panel.hidden = true;
+    panel.classList.remove('is-visible');
+  }
+}
+
+function showTimelineCopyPreviewSharePanel(overlay, anchorButton, shareUrl, options = {}) {
+  if (!overlay || !anchorButton || !shareUrl) return;
+  const panel = ensureTimelineCopyPreviewSharePanel(overlay);
+  const input = panel.querySelector('.timeline-copy-preview-share-panel__input');
+  const openBtn = panel.querySelector('.timeline-copy-preview-share-panel__open');
+  const copyBtn = panel.querySelector('.timeline-copy-preview-share-panel__copy');
+  if (!(input instanceof HTMLInputElement) || !(openBtn instanceof HTMLButtonElement) || !(copyBtn instanceof HTMLButtonElement)) return;
+
+  input.value = shareUrl;
+  openBtn.textContent = t('timelineCopyPreviewOpen', '打开');
+  copyBtn.textContent = t('timelineCopyPreviewConfirm', '复制');
+  const copySuccessMessage = String(options?.copySuccessMessage || t('timelineCopyPreviewShareSuccess', '分享链接已复制'));
+  openBtn.onclick = async () => {
+    try {
+      if (chrome?.tabs?.create) {
+        await chrome.tabs.create({ url: shareUrl });
+      } else {
+        window.open(shareUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error('打开分享链接失败:', error);
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        anchorButton,
+        t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+        'error',
+        2600
+      );
+    }
+  };
+  copyBtn.onclick = async () => {
+    try {
+      await copyTextToClipboard(shareUrl);
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        copyBtn,
+        copySuccessMessage,
+        'success'
+      );
+    } catch (error) {
+      console.error('复制分享链接失败:', error);
+      showTimelineCopyPreviewActionFeedback(
+        overlay,
+        copyBtn,
+        t('timelineCopyFailed', '复制失败，请重试'),
+        'error',
+        2600
+      );
+    }
+  };
+
+  const overlayRect = overlay.getBoundingClientRect();
+  const anchorRect = anchorButton.getBoundingClientRect();
+  const preferredLeft = anchorRect.left - overlayRect.left - 120;
+  const maxLeft = Math.max(16, overlayRect.width - 360);
+  panel.style.left = `${Math.min(Math.max(16, preferredLeft), maxLeft)}px`;
+  panel.style.top = `${Math.max(16, anchorRect.top - overlayRect.top - 96)}px`;
+  panel.hidden = false;
+  requestAnimationFrame(() => panel.classList.add('is-visible'));
 }
 
 function getTimelineElements() {
@@ -853,6 +1011,8 @@ function formatTimelineDateLabel(timestamp) {
 
 async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confirmBtn, refreshBtn, entryOverride = null) {
   if (!overlay || !metaEl || !contentEl || !confirmBtn || !refreshBtn) return;
+  hideTimelineCopyPreviewTooltip(overlay);
+  hideTimelineCopyPreviewSharePanel(overlay);
   const analyzeBtn = overlay.querySelector('.timeline-copy-preview-analyze');
   const templateSelect = overlay.querySelector('.timeline-copy-preview-analysis-select');
 
@@ -886,11 +1046,7 @@ async function refreshTimelineCopyPreviewModal(overlay, metaEl, contentEl, confi
 
     const previewText = String(copyText || '').trim() || t('timelineCopyPreviewEmpty', '当前没有可复制的回答内容。');
     const { successSiteNames, failedSiteNames } = partitionTimelineResponses(responses);
-    metaEl.textContent = t(
-      'timelineCopyPreviewSummary',
-      '成功站点：$1\n失败站点：$2',
-      [formatTimelineSiteNames(successSiteNames), formatTimelineSiteNames(failedSiteNames)]
-    );
+    metaEl.innerHTML = buildTimelineCopyPreviewMetaHtml(successSiteNames, failedSiteNames);
     contentEl.textContent = previewText;
     confirmBtn.disabled = !String(copyText || '').trim();
     confirmBtn.dataset.copyText = copyText || '';
@@ -960,16 +1116,13 @@ function ensureTimelineCopyPreviewModal() {
           <button class="timeline-copy-preview-analyze" type="button">${escapeHtml(t('timelineCopyPreviewAnalyze', '分析'))}</button>
         </div>
         <div class="timeline-copy-preview-export-actions">
-          <button class="timeline-copy-preview-share" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}" title="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}">
+          <button class="timeline-copy-preview-share" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}" data-tooltip="${escapeAttr(t('timelineCopyPreviewShare', '分享'))}">
             <img src="../icons/link.svg" alt="" aria-hidden="true">
           </button>
-          <button class="timeline-copy-preview-share-image" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewShareImage', '分享图模式链接'))}" title="${escapeHtml(t('timelineCopyPreviewShareImage', '分享图模式链接'))}">
-            <img src="../icons/external-link.svg" alt="" aria-hidden="true">
-          </button>
-          <button class="timeline-copy-preview-download" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}" title="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}">
+          <button class="timeline-copy-preview-download" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}" data-tooltip="${escapeAttr(t('timelineCopyPreviewDownload', '下载 MD'))}">
             <img src="../icons/download.svg" alt="" aria-hidden="true">
           </button>
-          <button class="timeline-copy-preview-confirm" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}" title="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}">
+          <button class="timeline-copy-preview-confirm" type="button" aria-label="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}" data-tooltip="${escapeAttr(t('timelineCopyPreviewConfirm', '复制'))}">
             <span aria-hidden="true">⧉</span>
           </button>
         </div>
@@ -978,12 +1131,30 @@ function ensureTimelineCopyPreviewModal() {
   `;
 
   const closeModal = () => {
+    hideTimelineCopyPreviewTooltip(overlay);
+    hideTimelineCopyPreviewSharePanel(overlay);
     overlay.classList.remove('is-visible');
   };
+
+  overlay.querySelectorAll('.timeline-copy-preview-export-actions button').forEach((button) => {
+    button.addEventListener('mouseenter', () => {
+      showTimelineCopyPreviewTooltip(overlay, button, button.getAttribute('data-tooltip') || button.getAttribute('aria-label') || '');
+    });
+    button.addEventListener('mouseleave', () => {
+      hideTimelineCopyPreviewTooltip(overlay);
+    });
+    button.addEventListener('focus', () => {
+      showTimelineCopyPreviewTooltip(overlay, button, button.getAttribute('data-tooltip') || button.getAttribute('aria-label') || '');
+    });
+    button.addEventListener('blur', () => {
+      hideTimelineCopyPreviewTooltip(overlay);
+    });
+  });
 
   overlay.querySelector('.timeline-copy-preview-confirm')?.addEventListener('click', async () => {
     const confirmBtn = overlay.querySelector('.timeline-copy-preview-confirm');
     if (!(confirmBtn instanceof HTMLButtonElement)) return;
+    hideTimelineCopyPreviewSharePanel(overlay);
 
     const copyText = confirmBtn.dataset.copyText || '';
     const successCount = confirmBtn.dataset.successCount || '0';
@@ -1017,6 +1188,7 @@ function ensureTimelineCopyPreviewModal() {
   overlay.querySelector('.timeline-copy-preview-download')?.addEventListener('click', async () => {
     const downloadBtn = overlay.querySelector('.timeline-copy-preview-download');
     if (!(downloadBtn instanceof HTMLButtonElement)) return;
+    hideTimelineCopyPreviewSharePanel(overlay);
 
     const markdownContent = getTimelineCopyPreviewMarkdownContent(overlay);
     if (!markdownContent) return;
@@ -1035,11 +1207,8 @@ function ensureTimelineCopyPreviewModal() {
   });
 
   overlay.querySelector('.timeline-copy-preview-share')?.addEventListener('click', async () => {
+    hideTimelineCopyPreviewTooltip(overlay);
     await createTimelineShareLink(overlay, 'web');
-  });
-
-  overlay.querySelector('.timeline-copy-preview-share-image')?.addEventListener('click', async () => {
-    await createTimelineShareLink(overlay, 'image');
   });
 
   overlay.querySelector('.timeline-copy-preview-analyze')?.addEventListener('click', async () => {
@@ -1104,6 +1273,14 @@ function ensureTimelineCopyPreviewModal() {
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) {
       closeModal();
+      return;
+    }
+    const panel = overlay.querySelector('.timeline-copy-preview-share-panel');
+    const shareBtn = overlay.querySelector('.timeline-copy-preview-share');
+    const clickedInsidePanel = panel instanceof HTMLElement && panel.contains(event.target);
+    const clickedShareBtn = shareBtn instanceof HTMLElement && shareBtn.contains(event.target);
+    if (!clickedInsidePanel && !clickedShareBtn) {
+      hideTimelineCopyPreviewSharePanel(overlay);
     }
   });
 
@@ -1179,15 +1356,11 @@ async function createTimelineShareLink(overlay, viewMode = 'web') {
     const shareUrl = viewMode === 'image'
       ? `${baseShareUrl}${baseShareUrl.includes('?') ? '&' : '?'}view=image`
       : baseShareUrl;
-    await copyTextToClipboard(shareUrl);
-    showTimelineCopyPreviewActionFeedback(
-      overlay,
-      shareBtn,
-      viewMode === 'image'
+    showTimelineCopyPreviewSharePanel(overlay, shareBtn, shareUrl, {
+      copySuccessMessage: viewMode === 'image'
         ? t('timelineCopyPreviewShareImageSuccess', '图模式链接已复制')
-        : t('timelineCopyPreviewShareSuccess', '分享链接已复制'),
-      'success'
-    );
+        : t('timelineCopyPreviewShareSuccess', '分享链接已复制')
+    });
   } catch (error) {
     console.error('生成分享链接失败:', error);
     showTimelineCopyPreviewActionFeedback(
@@ -1212,6 +1385,8 @@ async function showTimelineCopyPreviewModal(entry) {
   const templateSelect = overlay.querySelector('.timeline-copy-preview-analysis-select');
   const closeBtn = overlay.querySelector('.timeline-copy-preview-close');
   if (!metaEl || !contentEl || !confirmBtn || !refreshBtn || !analyzeBtn || !templateSelect || !closeBtn) return;
+  hideTimelineCopyPreviewTooltip(overlay);
+  hideTimelineCopyPreviewSharePanel(overlay);
 
   const activeEntryKey = String(entry?.timelineId || buildTimelineFavoriteKey(entry));
   const isSameVisibleEntry = overlay.classList.contains('is-visible')
@@ -1967,14 +2142,46 @@ function clearTimelineSnapshotForSite(siteName) {
 function initializeTimelineMessageBridge() {
   if (timelineMessageBridgeInitialized) return;
   timelineMessageBridgeInitialized = true;
+  initializeAgentRuntimeMessageBridge();
 
   window.addEventListener('message', (event) => {
     const data = event.data || {};
     if (data.type !== 'AGENT_PANEL_EVENT') {
       return;
     }
-    if (data.event === 'submitLocalMessage' && data.agentId && data.content) {
-      runAgentPrompt(String(data.agentId), String(data.content), 'local').catch((error) => {
+    if (data.event === 'attachmentError' && data.error) {
+      showToast(String(data.error));
+      return;
+    }
+    if (data.event === 'localDraftChanged' && data.agentId) {
+      updateAgentDraftState(String(data.agentId), String(data.draft || ''));
+      return;
+    }
+    if (data.event === 'pendingAttachmentsChanged' && data.agentId) {
+      updateAgentPendingAttachments(
+        String(data.agentId),
+        normalizeAgentAttachments(data.attachments)
+      );
+      return;
+    }
+    if (data.event === 'pendingAttachmentFilesSelected' && data.agentId) {
+      stageAgentAttachmentSourcesFromPanel({
+        agentId: String(data.agentId),
+        entries: Array.isArray(data.entries) ? data.entries : []
+      });
+      return;
+    }
+    if (
+      data.event === 'submitLocalMessage' &&
+      data.agentId &&
+      (String(data.content || '').trim() || (Array.isArray(data.attachments) && data.attachments.length > 0))
+    ) {
+      runAgentPrompt(
+        String(data.agentId),
+        String(data.content || ''),
+        'local',
+        normalizeAgentAttachments(data.attachments)
+      ).catch((error) => {
         console.error('执行智能体本地提问失败:', error);
       });
     }
@@ -1994,66 +2201,6 @@ function initializeTimelineMessageBridge() {
     updateTimelineSnapshotFromIframe(siteName, event.data.prompts);
   });
 
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message?.type !== 'agentRuntimeEvent' || !message.agentId) {
-      return;
-    }
-
-    const agentId = String(message.agentId || '').trim();
-    const currentState = getAgentState(agentId);
-    if (!currentState) {
-      return;
-    }
-
-    if (message.event === 'started' || message.event === 'queued') {
-      updateAgentLoadingState(agentId, true);
-      return;
-    }
-
-    if (message.event === 'delta') {
-      const latestState = getAgentState(agentId);
-      if (!latestState) return;
-      const messages = [...latestState.messages];
-      const lastAssistant = messages[messages.length - 1];
-      if (lastAssistant && lastAssistant.role === 'assistant') {
-        lastAssistant.content = `${lastAssistant.content || ''}${message.delta || ''}`;
-      } else {
-        messages.push({
-          role: 'assistant',
-          content: message.delta || ''
-        });
-      }
-      const nextState = {
-        ...latestState,
-        messages
-      };
-      setAgentState(agentId, nextState);
-      const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
-      if (iframe) {
-        syncAgentPanelStateToFrame(iframe, nextState);
-      }
-      return;
-    }
-
-    if (message.event === 'completed') {
-      updateAgentLoadingState(agentId, false);
-      return;
-    }
-
-    if (message.event === 'error') {
-      updateAgentLoadingState(agentId, false, message.error || '');
-      appendAgentMessage(agentId, {
-        role: 'assistant',
-        content: message.error || t('agentRequestFailed', 'Skill request failed'),
-        isError: true
-      });
-      return;
-    }
-
-    if (message.event === 'cancelled') {
-      updateAgentLoadingState(agentId, false);
-    }
-  });
 }
 
 async function syncTimelineFromIframes() {
@@ -3122,10 +3269,42 @@ function buildAgentPanelState(agent) {
     color: agent.color || '#111111',
     messages: [],
     localDraft: '',
+    pendingAttachments: [],
     isLoading: false,
     error: '',
     participatesInGlobal: true
   };
+}
+
+function normalizeAgentAttachments(attachments = []) {
+  if (!Array.isArray(attachments)) {
+    return [];
+  }
+
+  return attachments.map((attachment) => {
+    if (!attachment || typeof attachment !== 'object') {
+      return null;
+    }
+
+    const name = String(attachment.name || attachment.fileName || '').trim();
+    if (!name) {
+      return null;
+    }
+
+    return {
+      id: String(attachment.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+      name,
+      type: String(attachment.type || '').trim(),
+      size: Math.max(0, Number(attachment.size) || 0),
+      dataUrl: typeof attachment.dataUrl === 'string' ? attachment.dataUrl : '',
+      textContent: typeof attachment.textContent === 'string' ? attachment.textContent : '',
+      textPreview: typeof attachment.textPreview === 'string' ? attachment.textPreview : '',
+      fileId: typeof attachment.fileId === 'string' ? attachment.fileId.trim() : '',
+      uploadMode: typeof attachment.uploadMode === 'string' ? attachment.uploadMode.trim() : '',
+      mediaCategory: String(attachment.mediaCategory || '').trim(),
+      extractedAsText: attachment.extractedAsText === true
+    };
+  }).filter(Boolean);
 }
 
 async function getAgentCustomSettingsMapForIframe() {
@@ -3195,6 +3374,61 @@ function setAgentState(agentId, nextState) {
   return nextState;
 }
 
+function updateAgentDraftState(agentId, draft = '') {
+  const existingState = getAgentState(agentId);
+  if (!existingState) return null;
+
+  const nextState = {
+    ...existingState,
+    localDraft: String(draft || '')
+  };
+  setAgentState(agentId, nextState);
+
+  const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+  if (iframe) {
+    syncAgentPanelStateToFrame(iframe, nextState);
+  }
+
+  persistCurrentHybridHistorySession().catch((error) => {
+    console.warn('保存智能体草稿历史失败:', error);
+  });
+  return nextState;
+}
+
+function updateAgentPendingAttachments(agentId, attachments = []) {
+  const existingState = getAgentState(agentId);
+  if (!existingState) return null;
+
+  const normalizedAttachments = normalizeAgentAttachments(attachments);
+  const nextAttachmentIdSet = new Set(
+    normalizedAttachments
+      .map((attachment) => String(attachment?.id || '').trim())
+      .filter(Boolean)
+  );
+  normalizeAgentAttachments(existingState.pendingAttachments).forEach((attachment) => {
+    const attachmentId = String(attachment?.id || '').trim();
+    if (attachmentId && !nextAttachmentIdSet.has(attachmentId)) {
+      forgetAgentAttachmentSource(agentId, attachmentId);
+    }
+  });
+
+  const nextState = {
+    ...existingState,
+    pendingAttachments: normalizedAttachments
+  };
+  setAgentState(agentId, nextState);
+
+  const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+  if (iframe) {
+    syncAgentPanelStateToFrame(iframe, nextState);
+  }
+
+  persistCurrentHybridHistorySession().catch((error) => {
+    console.warn('保存智能体附件历史失败:', error);
+  });
+  return nextState;
+}
+
 async function getAgentEngineConfigForIframe() {
   const [syncData, localData] = await Promise.all([
     chrome.storage.sync.get([AGENT_ENGINE_STORAGE_KEY, AGENT_ENGINE_SETTINGS_STORAGE_KEY]),
@@ -3231,7 +3465,7 @@ async function getAgentEngineConfigForIframe() {
     apiKey: String(rawConfig.apiKey || bundledDefaults.apiKey || '').trim(),
     baseUrl: String(rawConfig.baseUrl || bundledDefaults.baseUrl || '').replace(/\/+$/, ''),
     model: String(rawConfig.model || bundledDefaults.model || '').trim(),
-    concurrency: Math.max(1, Number(rawConfig.concurrency) || Number(bundledDefaults.concurrency) || 2),
+    concurrency: Math.max(1, Number(rawConfig.concurrency) || Number(bundledDefaults.concurrency) || 10),
     systemPrompt: String(rawConfig.systemPrompt || bundledDefaults.systemPrompt || '').trim(),
     selectedSource: 'official'
   };
@@ -3243,6 +3477,7 @@ function getAgentAbortController(agentId) {
 }
 
 function cancelInFlightAgentRequest(agentId) {
+  closeAgentRuntimeKeepalivePort(agentId);
   const controller = getAgentAbortController(agentId);
   const state = getAgentState(agentId);
   if (controller) {
@@ -3354,6 +3589,7 @@ function createAgentIframe(agent, container) {
   refreshPageBtn.onclick = (event) => {
     event.stopPropagation();
     cancelInFlightAgentRequest(agent.id);
+    forgetAllAgentAttachmentSources(agent.id);
     iframe.src = buildAgentPanelUrl(agent.id);
     setAgentState(agent.id, buildAgentPanelState(agent));
     rebuildTimelineEntriesFromSnapshots();
@@ -3366,6 +3602,7 @@ function createAgentIframe(agent, container) {
 
   closeBtn.onclick = () => {
     cancelInFlightAgentRequest(agent.id);
+    forgetAllAgentAttachmentSources(agent.id);
     iframeContainer.remove();
     activeAgentPanelStore.delete(String(agent.id || '').trim());
     rebuildTimelineEntriesFromSnapshots();
@@ -3536,6 +3773,8 @@ async function restoreHybridSessionAsLivePanels(hybridSession, container) {
       const nextState = {
         ...buildAgentPanelState(agent),
         messages: restoredMessages,
+        localDraft: String(panel?.localDraft || '').trim(),
+        pendingAttachments: normalizeAgentAttachments(panel?.pendingAttachments),
         isLoading: false,
         error: ''
       };
@@ -3587,9 +3826,14 @@ function appendAgentMessage(agentId, message) {
   const existingState = getAgentState(agentId);
   if (!existingState) return null;
 
+  const normalizedMessage = {
+    ...message,
+    attachments: normalizeAgentAttachments(message?.attachments)
+  };
+
   const nextState = {
     ...existingState,
-    messages: [...existingState.messages, message]
+    messages: [...existingState.messages, normalizedMessage]
   };
   setAgentState(agentId, nextState);
 
@@ -3626,16 +3870,232 @@ function updateAgentLoadingState(agentId, isLoading, error = '') {
   return nextState;
 }
 
-async function runAgentPrompt(agentId, content, source = 'global') {
+async function prepareAgentAttachmentsForDispatch(agentId, attachments = []) {
+  const normalizedAgentId = String(agentId || '').trim();
+  const normalizedAttachments = normalizeAgentAttachments(attachments);
+  if (!normalizedAgentId || normalizedAttachments.length === 0) {
+    return [];
+  }
+
+  const preparedAttachments = [];
+  for (const attachment of normalizedAttachments) {
+    const mediaCategory = String(
+      attachment.mediaCategory
+      || (typeof AgentPromptUtils.getAttachmentMediaCategory === 'function'
+        ? AgentPromptUtils.getAttachmentMediaCategory(attachment.name, attachment.type)
+        : '')
+    ).trim();
+
+    if (mediaCategory !== 'image') {
+      throw new Error(
+        t(
+          'agentAttachmentImagesOnly',
+          'The current skill model only supports sending original image attachments directly. Please keep non-image files on site panels.'
+        )
+      );
+    }
+
+    if (attachment.dataUrl) {
+      preparedAttachments.push({
+        ...attachment,
+        mediaCategory: 'image'
+      });
+      continue;
+    }
+
+    const source = getAgentAttachmentSource(normalizedAgentId, attachment.id);
+    if (!source) {
+      throw new Error(
+        t(
+          'agentAttachmentSourceMissing',
+          'The original attachment is no longer available. Please attach the file again.'
+        )
+      );
+    }
+
+    if (typeof AgentPromptUtils.readSourceAsDataUrl !== 'function') {
+      throw new Error(t('agentRequestFailed', 'Skill request failed'));
+    }
+
+    preparedAttachments.push({
+      ...attachment,
+      mediaCategory: 'image',
+      dataUrl: await AgentPromptUtils.readSourceAsDataUrl(source, attachment.type || 'image/*')
+    });
+  }
+
+  return preparedAttachments;
+}
+
+function getAgentRuntimeKeepalivePort(agentId) {
+  return agentRuntimeKeepalivePorts.get(String(agentId || '').trim()) || null;
+}
+
+function closeAgentRuntimeKeepalivePort(agentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  if (!normalizedAgentId) return;
+
+  const port = getAgentRuntimeKeepalivePort(normalizedAgentId);
+  if (!port) return;
+
+  agentRuntimeKeepalivePorts.delete(normalizedAgentId);
+  try {
+    port.disconnect();
+  } catch (_) {}
+}
+
+function bindAgentRuntimeKeepalivePort(agentId, jobId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  const normalizedJobId = String(jobId || '').trim();
+  if (!normalizedAgentId || !normalizedJobId) {
+    return;
+  }
+
+  closeAgentRuntimeKeepalivePort(normalizedAgentId);
+
+  let port = null;
+  try {
+    port = chrome.runtime.connect({ name: 'agent-runtime-keepalive' });
+  } catch (error) {
+    console.warn('创建技能运行保活通道失败:', error);
+    return;
+  }
+
+  agentRuntimeKeepalivePorts.set(normalizedAgentId, port);
+
+  port.onDisconnect.addListener(() => {
+    if (agentRuntimeKeepalivePorts.get(normalizedAgentId) === port) {
+      agentRuntimeKeepalivePorts.delete(normalizedAgentId);
+    }
+  });
+
+  try {
+    port.postMessage({
+      type: 'bindAgentRuntimeJob',
+      agentId: normalizedAgentId,
+      jobId: normalizedJobId
+    });
+  } catch (error) {
+    console.warn('绑定技能运行保活任务失败:', error);
+    closeAgentRuntimeKeepalivePort(normalizedAgentId);
+  }
+}
+
+function initializeAgentRuntimeMessageBridge() {
+  if (agentRuntimeMessageBridgeInitialized) {
+    return;
+  }
+  agentRuntimeMessageBridgeInitialized = true;
+
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type !== 'agentRuntimeEvent' || !message.agentId) {
+      return;
+    }
+
+    const agentId = String(message.agentId || '').trim();
+    const currentState = getAgentState(agentId);
+    if (!currentState) {
+      return;
+    }
+
+    if (message.event === 'started' || message.event === 'queued') {
+      if (message.jobId) {
+        bindAgentRuntimeKeepalivePort(agentId, message.jobId);
+      }
+      updateAgentLoadingState(agentId, true);
+      return;
+    }
+
+    if (message.event === 'delta') {
+      const latestState = getAgentState(agentId);
+      if (!latestState) return;
+      const messages = [...latestState.messages];
+      const lastAssistant = messages[messages.length - 1];
+      if (lastAssistant && lastAssistant.role === 'assistant') {
+        lastAssistant.content = `${lastAssistant.content || ''}${message.delta || ''}`;
+      } else {
+        messages.push({
+          role: 'assistant',
+          content: message.delta || ''
+        });
+      }
+      const nextState = {
+        ...latestState,
+        messages
+      };
+      setAgentState(agentId, nextState);
+      const iframe = getAgentPanelFrames().find((item) => item.dataset.agentId === agentId);
+      if (iframe) {
+        syncAgentPanelStateToFrame(iframe, nextState);
+      }
+      return;
+    }
+
+    if (message.event === 'completed') {
+      closeAgentRuntimeKeepalivePort(agentId);
+      updateAgentLoadingState(agentId, false);
+      return;
+    }
+
+    if (message.event === 'error') {
+      closeAgentRuntimeKeepalivePort(agentId);
+      updateAgentLoadingState(agentId, false, message.error || '');
+      appendAgentMessage(agentId, {
+        role: 'assistant',
+        content: message.error || t('agentRequestFailed', 'Skill request failed'),
+        isError: true
+      });
+      return;
+    }
+
+    if (message.event === 'cancelled') {
+      closeAgentRuntimeKeepalivePort(agentId);
+      updateAgentLoadingState(agentId, false);
+    }
+  });
+}
+
+async function runAgentPrompt(agentId, content, source = 'global', attachments = []) {
+  initializeAgentRuntimeMessageBridge();
   const existingState = getAgentState(agentId);
   if (!existingState) return false;
+  const normalizedContent = String(content || '').trim();
+  const explicitAttachments = normalizeAgentAttachments(attachments);
+  const pendingAttachmentsBeforeSubmit = normalizeAgentAttachments(existingState.pendingAttachments);
+  const normalizedAttachments = explicitAttachments.length > 0
+    ? explicitAttachments
+    : pendingAttachmentsBeforeSubmit;
+  if (!normalizedContent && normalizedAttachments.length === 0) {
+    return false;
+  }
+
+  let preparedAttachments = [];
+  try {
+    preparedAttachments = await prepareAgentAttachmentsForDispatch(agentId, normalizedAttachments);
+  } catch (error) {
+    const attachmentError = error?.message || t('agentRequestFailed', 'Skill request failed');
+    updateAgentLoadingState(agentId, false, attachmentError);
+    appendAgentMessage(agentId, {
+      role: 'assistant',
+      content: attachmentError,
+      isError: true
+    });
+    return false;
+  }
 
   cancelInFlightAgentRequest(agentId);
+  if (pendingAttachmentsBeforeSubmit.length > 0) {
+    updateAgentPendingAttachments(agentId, []);
+  }
+  if (existingState.localDraft) {
+    updateAgentDraftState(agentId, '');
+  }
 
   appendAgentMessage(agentId, {
     role: 'user',
-    content,
-    source
+    content: normalizedContent,
+    source,
+    attachments: preparedAttachments
   });
   updateAgentLoadingState(agentId, true);
 
@@ -3643,7 +4103,8 @@ async function runAgentPrompt(agentId, content, source = 'global') {
   const messages = (stateAfterUserMessage?.messages || []).map((message) => ({
     role: message.role,
     content: message.content,
-    source: message.source
+    source: message.source,
+    attachments: normalizeAgentAttachments(message.attachments)
   }));
 
   const agent = await getMergedAgentByIdForIframe(agentId);
@@ -3706,7 +4167,12 @@ async function runAgentPrompt(agentId, content, source = 'global') {
     if (!response?.success) {
       throw new Error(response?.error || t('agentRequestFailed', 'Skill request failed'));
     }
+    if (response?.result?.jobId) {
+      bindAgentRuntimeKeepalivePort(agentId, response.result.jobId);
+    }
+    forgetAgentAttachmentSources(agentId, normalizedAttachments);
   } catch (error) {
+    closeAgentRuntimeKeepalivePort(agentId);
     updateAgentLoadingState(agentId, false, error?.message || t('agentRequestFailed', 'Skill request failed'));
     appendAgentMessage(agentId, {
       role: 'assistant',
@@ -4087,6 +4553,14 @@ async function requestClipboardPermission() {
 document.addEventListener('DOMContentLoaded', async function() {
     if (window.RuntimeI18n?.initializeRuntimeI18n) {
         await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+
+    initializeAgentRuntimeMessageBridge();
+    await ensureIframeAgentCatalogReady();
+    if (typeof window.RemoteAgentConfigManager?.autoCheckUpdate === 'function') {
+        window.RemoteAgentConfigManager.autoCheckUpdate().catch((error) => {
+            console.warn('技能目录后台更新检查失败:', error);
+        });
     }
 
     // 初始化自动调整高度的输入框
@@ -4722,18 +5196,33 @@ async function handleUnifiedFilePaste(event) {
 
 // 发送文件到所有iframe的简化函数
 async function sendFileToAllIframes(fileObj) {
-  const iframes = getSiteIframes();
-  console.log(`🎯 开始向 ${iframes.length} 个iframe发送文件`);
+  const siteIframes = getSiteIframes();
+  const agentCount = getOpenedAgentIds().length;
+  console.log(`🎯 开始发送文件到面板: 站点 ${siteIframes.length} 个，skills ${agentCount} 个`);
   console.log('🎯 文件对象详情:', {
     name: fileObj.name,
     type: fileObj.type,
     size: fileObj.size
   });
-  
-  // 使用逐个处理的方式，确保每个iframe有足够时间处理
-  await executeFileUploadSequentially(iframes, fileObj);
-  
-  console.log('🎯 所有iframe文件发送完成');
+
+  const fileData = {
+    type: fileObj.type,
+    blob: fileObj.blob || fileObj.data || fileObj.file || null,
+    data: fileObj.data || fileObj.blob || null,
+    file: fileObj.file || null,
+    fileName: fileObj.name,
+    originalName: fileObj.name,
+    size: fileObj.size,
+    lastModified: fileObj.lastModified || Date.now(),
+    name: fileObj.name
+  };
+
+  const processed = await processFileToAllIframes(fileData);
+  if (!processed) {
+    throw new Error(t('fileUploadNoAvailablePanels', 'No available panels were found'));
+  }
+
+  console.log('🎯 所有面板文件发送完成');
 }
 
 // 逐个执行文件上传的函数
@@ -4915,6 +5404,7 @@ let requestedIframeSiteType = '';
 let iframeConfiguredTypes = ['information'];
 let ensureIframePromptTemplatesPromise = null;
 let activeAgentPanelStore = new Map();
+let agentAttachmentSourceStore = new Map();
 let currentHybridHistorySessionId = null;
 let isReadonlyHistoryMode = false;
 let readonlyHistorySession = null;
@@ -4966,10 +5456,171 @@ function getOpenedAgentIds() {
     .filter(Boolean);
 }
 
+function getAgentAttachmentSourceStore(agentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  if (!normalizedAgentId) {
+    return null;
+  }
+  let store = agentAttachmentSourceStore.get(normalizedAgentId);
+  if (!(store instanceof Map)) {
+    store = new Map();
+    agentAttachmentSourceStore.set(normalizedAgentId, store);
+  }
+  return store;
+}
+
+function rememberAgentAttachmentSource(agentId, attachmentId, source) {
+  const normalizedAttachmentId = String(attachmentId || '').trim();
+  if (!normalizedAttachmentId || !source) {
+    return false;
+  }
+  const store = getAgentAttachmentSourceStore(agentId);
+  if (!store) {
+    return false;
+  }
+  store.set(normalizedAttachmentId, source);
+  return true;
+}
+
+function getAgentAttachmentSource(agentId, attachmentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  const normalizedAttachmentId = String(attachmentId || '').trim();
+  if (!normalizedAgentId || !normalizedAttachmentId) {
+    return null;
+  }
+  return agentAttachmentSourceStore.get(normalizedAgentId)?.get(normalizedAttachmentId) || null;
+}
+
+function forgetAgentAttachmentSource(agentId, attachmentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  const normalizedAttachmentId = String(attachmentId || '').trim();
+  if (!normalizedAgentId || !normalizedAttachmentId) {
+    return;
+  }
+  const store = agentAttachmentSourceStore.get(normalizedAgentId);
+  if (!(store instanceof Map)) {
+    return;
+  }
+  store.delete(normalizedAttachmentId);
+  if (store.size === 0) {
+    agentAttachmentSourceStore.delete(normalizedAgentId);
+  }
+}
+
+function forgetAgentAttachmentSources(agentId, attachments = []) {
+  normalizeAgentAttachments(attachments).forEach((attachment) => {
+    forgetAgentAttachmentSource(agentId, attachment.id);
+  });
+}
+
+function forgetAllAgentAttachmentSources(agentId) {
+  const normalizedAgentId = String(agentId || '').trim();
+  if (!normalizedAgentId) {
+    return;
+  }
+  agentAttachmentSourceStore.delete(normalizedAgentId);
+}
+
+function stageAgentAttachmentSourcesFromPanel(payload = {}) {
+  const agentId = String(payload.agentId || '').trim();
+  const entries = Array.isArray(payload.entries) ? payload.entries : [];
+  if (!agentId || entries.length === 0) {
+    return 0;
+  }
+
+  let stagedCount = 0;
+  entries.forEach((entry) => {
+    const attachmentId = String(entry?.attachmentId || entry?.id || '').trim();
+    const source = entry?.file || entry?.source || entry?.blob || entry?.data || entry?.fileData || null;
+    if (!attachmentId || !source) {
+      return;
+    }
+    if (rememberAgentAttachmentSource(agentId, attachmentId, source)) {
+      stagedCount += 1;
+    }
+  });
+  return stagedCount;
+}
+
+window.AICompareIframeAgentAttachmentBridge = {
+  stageFilesFromPanel: stageAgentAttachmentSourcesFromPanel
+};
+
+async function buildAgentAttachmentPayloadFromFileSource(source) {
+  if (!source) {
+    return null;
+  }
+
+  if (typeof AgentPromptUtils.buildAttachmentPayloadFromSource === 'function') {
+    return AgentPromptUtils.buildAttachmentPayloadFromSource(source, {
+      name: source.fileName || source.originalName || source.name || '',
+      type: source.type || '',
+      size: source.size || 0,
+      maxTextLength: 12000,
+      previewLength: 800
+    });
+  }
+
+  return normalizeAgentAttachments([{
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: source.fileName || source.originalName || source.name || 'attachment',
+    type: source.type || '',
+    size: Math.max(0, Number(source.size) || 0),
+    mediaCategory: String(source.type || '').startsWith('image/') ? 'image' : 'binary'
+  }])[0] || null;
+}
+
+async function stageFileForAllAgentPanels(fileSource) {
+  const openedAgentIds = getOpenedAgentIds();
+  if (openedAgentIds.length === 0) {
+    return {
+      total: 0,
+      successCount: 0,
+      failureCount: 0
+    };
+  }
+
+  let successCount = 0;
+  let failureCount = 0;
+  for (const agentId of openedAgentIds) {
+    const existingState = getAgentState(agentId);
+    if (!existingState) {
+      failureCount += 1;
+      continue;
+    }
+
+    try {
+      const builtAttachment = await buildAgentAttachmentPayloadFromFileSource(fileSource);
+      const attachment = {
+        ...(builtAttachment || {})
+      };
+      if (!attachment.name) {
+        throw new Error('Failed to build skill attachment payload');
+      }
+      rememberAgentAttachmentSource(agentId, attachment.id, fileSource.file || fileSource.blob || fileSource.data || fileSource);
+      updateAgentPendingAttachments(agentId, [
+        ...(Array.isArray(existingState.pendingAttachments) ? existingState.pendingAttachments : []),
+        attachment
+      ]);
+      successCount += 1;
+    } catch (error) {
+      console.warn(`添加技能附件失败: ${agentId}`, error);
+      failureCount += 1;
+    }
+  }
+
+  return {
+    total: openedAgentIds.length,
+    successCount,
+    failureCount
+  };
+}
+
 function resetOpenedAgentPanelsForNewConversation() {
   const openedAgentIds = getOpenedAgentIds();
   openedAgentIds.forEach((agentId) => {
     cancelInFlightAgentRequest(agentId);
+    forgetAllAgentAttachmentSources(agentId);
   });
 
   openedAgentIds.forEach((agentId) => {
@@ -5053,7 +5704,9 @@ async function persistCurrentHybridHistorySession(query = '') {
       title: state.name,
       agentId,
       agentName: state.name,
-      messages: state.messages || []
+      messages: state.messages || [],
+      localDraft: state.localDraft || '',
+      pendingAttachments: normalizeAgentAttachments(state.pendingAttachments)
     };
   }).filter(Boolean);
 
@@ -5552,6 +6205,7 @@ function removeAgentIframeById(agentId) {
   const iframe = getAgentPanelFrames()
     .find((item) => item.getAttribute('data-agent-id') === agentId);
   const container = iframe?.closest('.iframe-container');
+  forgetAllAgentAttachmentSources(agentId);
   if (!container) return false;
   container.remove();
   activeAgentPanelStore.delete(String(agentId || '').trim());
@@ -5659,8 +6313,14 @@ function createNavItemElement(site, container = document.getElementById('iframes
   });
   iconBtn.appendChild(iconImage);
 
+  const nameLabel = document.createElement('span');
+  nameLabel.className = 'nav-site-name';
+  nameLabel.textContent = siteName;
+  nameLabel.title = siteName;
+
   row.appendChild(checkbox);
   row.appendChild(iconBtn);
+  row.appendChild(nameLabel);
   navItem.appendChild(row);
 
   checkbox.addEventListener('click', (e) => {
@@ -5716,7 +6376,7 @@ function createNavAgentItemElement(agent, container = document.getElementById('i
 
   const iconBtn = document.createElement('button');
   iconBtn.type = 'button';
-  iconBtn.className = 'nav-site-icon-btn';
+  iconBtn.className = 'nav-site-icon-btn nav-agent-badge-btn';
   iconBtn.title = agent.name;
   iconBtn.setAttribute('aria-label', agent.name);
   iconBtn.textContent = String(agent.shortName || agent.name || '?').slice(0, 1);
@@ -5724,8 +6384,14 @@ function createNavAgentItemElement(agent, container = document.getElementById('i
   iconBtn.style.color = '#ffffff';
   iconBtn.style.fontWeight = '700';
 
+  const nameLabel = document.createElement('span');
+  nameLabel.className = 'nav-site-name nav-agent-name';
+  nameLabel.textContent = String(agent.name || '');
+  nameLabel.title = String(agent.name || '');
+
   row.appendChild(checkbox);
   row.appendChild(iconBtn);
+  row.appendChild(nameLabel);
   navItem.appendChild(row);
 
   checkbox.addEventListener('click', (e) => {
@@ -9362,14 +10028,12 @@ async function processUploadedFile(file) {
   }
   
   try {
-    // 读取文件内容
-    const arrayBuffer = await file.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: file.type });
-    
     // 创建文件数据对象
     const fileData = {
       type: file.type,
-      blob: blob,
+      blob: file,
+      data: file,
+      file,
       fileName: file.name,
       originalName: file.name,
       size: file.size,
@@ -9385,7 +10049,7 @@ async function processUploadedFile(file) {
     // 调用现有的多iframe文件处理流程
     const ok = await processFileToAllIframes(fileData);
     if (!ok) {
-      return { ok: false, errorMessage: '没有找到可用的AI站点' };
+      return { ok: false, errorMessage: t('fileUploadNoAvailablePanels', 'No available panels were found') };
     }
     
     return { ok: true };
@@ -9401,23 +10065,28 @@ async function processUploadedFile(file) {
 
 // 向所有iframe发送文件
 async function processFileToAllIframes(fileData) {
-  console.log('🎯 开始向所有iframe发送文件');
-  
-  // 获取所有 iframe 元素
-  const iframes = getSiteIframes();
-  console.log(`找到 ${iframes.length} 个 iframe`);
-  
-  if (iframes.length === 0) {
-    showFileUploadError('没有找到可用的AI站点');
+  console.log('🎯 开始向所有面板发送文件');
+
+  const siteIframes = getSiteIframes();
+  const openedAgentIds = getOpenedAgentIds();
+  console.log(`找到 ${siteIframes.length} 个站点 iframe，${openedAgentIds.length} 个 skill 面板`);
+
+  if (siteIframes.length === 0 && openedAgentIds.length === 0) {
+    showFileUploadError(t('fileUploadNoAvailablePanels', 'No available panels were found'));
     return false;
   }
-  
-  // 调用现有的文件上传处理流程
-  await executeFileUploadSequentially(iframes, fileData);
+
+  if (siteIframes.length > 0) {
+    await executeFileUploadSequentially(siteIframes, fileData);
+  }
+
+  if (openedAgentIds.length > 0) {
+    await stageFileForAllAgentPanels(fileData);
+  }
   if (currentUploadRetryContext) {
     currentUploadRetryContext.fileData = fileData;
   }
-  
+
   return true;
 }
 

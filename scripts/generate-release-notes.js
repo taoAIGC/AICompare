@@ -79,6 +79,10 @@ function readLatestCommands() {
     .filter(Boolean);
 }
 
+function stripTimestamp(entry) {
+  return String(entry || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+}
+
 function normalizeCommand(command) {
   return String(command || '')
     .replace(/\s+/g, ' ')
@@ -148,16 +152,18 @@ function toUserFacingRequest(command) {
 }
 
 function updateCommandLog(existingCommands, nextCommand) {
-  const commands = existingCommands
-    .map((entry) => toUserFacingRequest(entry) || '')
-    .filter(Boolean)
-    .map((entry) => `[${formatDate()}] ${entry}`);
+  const normalizedExisting = uniq(
+    existingCommands
+      .map((entry) => stripTimestamp(entry))
+      .map((entry) => toUserFacingRequest(entry) || '')
+      .filter(Boolean)
+  );
+
+  const commands = normalizedExisting.map((entry) => entry);
   const userFacingRequest = toUserFacingRequest(nextCommand);
   if (userFacingRequest) {
-    const entry = `[${formatDate()}] ${userFacingRequest}`;
-    const lastEntry = commands[commands.length - 1] || '';
-    if (!lastEntry.endsWith(userFacingRequest)) {
-      commands.push(entry);
+    if (!commands.includes(userFacingRequest)) {
+      commands.push(userFacingRequest);
     }
   }
 
@@ -353,6 +359,10 @@ function updateReleaseHistory({ releaseName, generatedAt, compareRange, highligh
 }
 
 function writeLatestCommands() {
+  if (!commandInput && fs.existsSync(latestPath)) {
+    return;
+  }
+
   const generatedAt = formatDate();
   const branchName = getCurrentRefName();
   const headSha = getHeadSha();

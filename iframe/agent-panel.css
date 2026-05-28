@@ -28,8 +28,15 @@ html, body {
     padding: 12px 14px;
     font-size: 14px;
     line-height: 1.6;
-    white-space: pre-wrap;
     word-break: break-word;
+}
+
+.agent-message-content {
+    white-space: pre-wrap;
+}
+
+.agent-message.assistant .agent-message-content {
+    white-space: normal;
 }
 
 .agent-message.user {
@@ -55,22 +62,222 @@ html, body {
     color: #a33333;
 }
 
+.agent-markdown > :first-child {
+    margin-top: 0;
+}
+
+.agent-markdown > :last-child {
+    margin-bottom: 0;
+}
+
+.agent-markdown p,
+.agent-markdown ul,
+.agent-markdown ol,
+.agent-markdown pre,
+.agent-markdown blockquote,
+.agent-markdown hr {
+    margin: 0 0 12px;
+}
+
+.agent-markdown h1,
+.agent-markdown h2,
+.agent-markdown h3,
+.agent-markdown h4,
+.agent-markdown h5,
+.agent-markdown h6 {
+    margin: 18px 0 10px;
+    line-height: 1.35;
+    font-weight: 700;
+}
+
+.agent-markdown h1 {
+    font-size: 22px;
+}
+
+.agent-markdown h2 {
+    font-size: 19px;
+}
+
+.agent-markdown h3 {
+    font-size: 17px;
+}
+
+.agent-markdown h4,
+.agent-markdown h5,
+.agent-markdown h6 {
+    font-size: 15px;
+}
+
+.agent-markdown ul,
+.agent-markdown ol {
+    padding-left: 22px;
+}
+
+.agent-markdown li + li {
+    margin-top: 6px;
+}
+
+.agent-markdown a {
+    color: #0f62fe;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.agent-markdown code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.92em;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 0.14em 0.38em;
+}
+
+.agent-markdown pre {
+    overflow-x: auto;
+    background: #111827;
+    color: #f9fafb;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.agent-markdown pre code {
+    display: block;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9em;
+    white-space: pre;
+}
+
+.agent-markdown blockquote {
+    border-left: 3px solid #d1d5db;
+    padding-left: 12px;
+    color: #4b5563;
+}
+
+.agent-markdown hr {
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.agent-markdown img {
+    display: block;
+    max-width: 100%;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
 .agent-input-bar {
     padding: 12px;
     border-top: 1px solid #e6e6e6;
     background: #ffffff;
     display: flex;
+    flex-direction: column;
     gap: 10px;
 }
 
-.agent-local-input {
+.agent-input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.agent-input-shell {
+    position: relative;
     flex: 1;
+    min-width: 0;
+}
+
+.agent-attachment-input {
+    display: none;
+}
+
+.agent-attachment-btn {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.agent-attachment-btn:hover {
+    background: #f3f3f3;
+}
+
+.agent-attachment-btn:focus,
+.agent-attachment-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+}
+
+.agent-attachment-btn img {
+    width: 17px;
+    height: 17px;
+}
+
+.agent-pending-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.agent-pending-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 999px;
+    background: #fafafa;
+    color: #333333;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.agent-pending-attachment-name {
+    min-width: 0;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agent-pending-attachment-meta {
+    color: #767676;
+    flex-shrink: 0;
+}
+
+.agent-pending-attachment-remove {
+    border: 0;
+    background: transparent;
+    color: #8a8a8a;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+}
+
+.agent-pending-attachment-remove:hover {
+    color: #111111;
+}
+
+.agent-local-input {
     min-height: 40px;
     max-height: 140px;
     resize: vertical;
     border: 1px solid #d9d9d9;
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 10px 42px 10px 12px;
+    width: 100%;
     font-size: 14px;
     font: inherit;
     box-sizing: border-box;
@@ -79,6 +286,7 @@ html, body {
 .agent-send-btn {
     flex-shrink: 0;
     min-width: 72px;
+    height: 40px;
     border: none;
     border-radius: 12px;
     background: #111111;
@@ -88,4 +296,45 @@ html, body {
     font: inherit;
     font-weight: 700;
     cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    .agent-input-row {
+        align-items: stretch;
+    }
+
+    .agent-send-btn {
+        min-width: 64px;
+    }
+}
+
+.agent-message-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.agent-message-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: 12px;
+}
+
+.agent-message.assistant .agent-message-attachment {
+    background: #f6f6f6;
+    border-color: #ececec;
+}
+
+.agent-message-attachment-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

@@ -79,7 +79,7 @@
     baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
     encryptedApiKey: 'IDsoQglEAxdVCQMiSlJYTHZDUwhfARdYUwYAG3F9JVlaQAURVwkNJ0oAWEVyXQ==',
     model: 'glm-5.1',
-    concurrency: 2,
+    concurrency: 10,
     systemPrompt: '',
     officialDailyFreeLimit: DEFAULT_DAILY_FREE_LIMIT,
     defaultCheckoutPlan: DEFAULT_CHECKOUT_PLAN
@@ -89,7 +89,7 @@
     baseUrl: '',
     apiKey: '',
     model: '',
-    concurrency: 2,
+    concurrency: 10,
     systemPrompt: ''
   });
 

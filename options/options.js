@@ -31,6 +31,18 @@ const SYNC_KEYS = [
 const RuntimeI18n = window.RuntimeI18n || null;
 const UI_LANGUAGE_STORAGE_KEY = RuntimeI18n?.STORAGE_KEY || 'uiLanguage';
 
+async function ensureOptionsAgentCatalogReady() {
+  if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
+    await window.hydrateBundledAgentCatalogIfNeeded().catch(() => false);
+  }
+  if (typeof window.RemoteAgentConfigManager?.autoCheckUpdate === 'function') {
+    await window.RemoteAgentConfigManager.autoCheckUpdate().catch(() => null);
+  }
+  if (typeof window.AICompareAgentCatalog?.ensureCatalogHydrated === 'function') {
+    await window.AICompareAgentCatalog.ensureCatalogHydrated().catch(() => null);
+  }
+}
+
 
 // 加载保存的配置
 async function loadConfig() {
@@ -320,7 +332,7 @@ function getBundledAgentEngineDefaults() {
     apiKey: String(rawDefaults.apiKey || '').trim(),
     baseUrl: String(rawDefaults.baseUrl || '').trim().replace(/\/+$/, ''),
     model: String(rawDefaults.model || '').trim(),
-    concurrency: Math.max(1, Number(rawDefaults.concurrency) || 2),
+    concurrency: Math.max(1, Number(rawDefaults.concurrency) || 10),
     systemPrompt: String(rawDefaults.systemPrompt || '').trim()
   };
 }
@@ -521,7 +533,7 @@ async function setSelectedAgentEngineSource(nextSource) {
       customConfig: {
         baseUrl: String(customConfig.baseUrl || '').trim(),
         model: String(customConfig.model || '').trim(),
-        concurrency: Math.max(1, Number(customConfig.concurrency) || 2),
+        concurrency: Math.max(1, Number(customConfig.concurrency) || 10),
         systemPrompt: String(customConfig.systemPrompt || '').trim()
       }
     }
@@ -554,7 +566,7 @@ async function saveAgentEngineConfig() {
     baseUrl: String(baseUrlInput?.value || '').trim(),
     apiKey: String(apiKeyInput?.value || '').trim(),
     model: String(modelInput?.value || '').trim(),
-    concurrency: Math.max(1, Number(concurrencyInput?.value) || 2)
+    concurrency: Math.max(1, Number(concurrencyInput?.value) || 10)
   };
 
   if (!isAgentEngineConfigured(normalizedConfig)) {
@@ -596,11 +608,103 @@ async function saveAgentEngineConfig() {
   return true;
 }
 
-async function initializeAgentEngineSettings() {
+async function testAgentEngineConnection() {
   const baseUrlInput = document.getElementById('agentApiBaseUrl');
   const apiKeyInput = document.getElementById('agentApiKey');
   const modelInput = document.getElementById('agentApiModel');
   const concurrencyInput = document.getElementById('agentApiConcurrency');
+  const testButton = document.getElementById('testAgentEngineBtn');
+  const promptUtils = getAgentPromptUtils();
+
+  const normalizedConfig = promptUtils?.normalizeApiConfig?.({
+    baseUrl: baseUrlInput?.value || '',
+    apiKey: apiKeyInput?.value || '',
+    model: modelInput?.value || '',
+    concurrency: concurrencyInput?.value || 2
+  }, { useBundledDefaults: false }) || {
+    baseUrl: String(baseUrlInput?.value || '').trim(),
+    apiKey: String(apiKeyInput?.value || '').trim(),
+    model: String(modelInput?.value || '').trim(),
+    concurrency: Math.max(1, Number(concurrencyInput?.value) || 10)
+  };
+
+  if (!isAgentEngineConfigured(normalizedConfig)) {
+    showToast(getMessageWithFallback('agentEngineValidationFailed', 'Please fill in all required agent engine fields'), 3000);
+    return false;
+  }
+
+  const originalLabel = testButton?.textContent || '';
+  if (testButton) {
+    testButton.disabled = true;
+    testButton.textContent = getMessageWithFallback('agentEngineTesting', 'Testing...');
+  }
+
+  try {
+    const response = await fetch(`${normalizedConfig.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${normalizedConfig.apiKey}`
+      },
+      body: JSON.stringify({
+        model: normalizedConfig.model,
+        stream: false,
+        messages: [
+          {
+            role: 'user',
+            content: 'hello'
+          }
+        ]
+      })
+    });
+
+    let detailMessage = '';
+    try {
+      const rawText = await response.text();
+      if (rawText) {
+        try {
+          const parsed = JSON.parse(rawText);
+          detailMessage = String(parsed?.error?.message || parsed?.message || parsed?.detail || rawText).trim();
+        } catch (_) {
+          detailMessage = rawText.trim();
+        }
+      }
+    } catch (_) {
+      detailMessage = '';
+    }
+
+    if (!response.ok) {
+      const failurePrefix = getMessageWithFallback('agentEngineTestFailedPrefix', 'Connection failed');
+      const failureText = detailMessage
+        ? `${failurePrefix} (HTTP ${response.status}): ${detailMessage}`
+        : `${failurePrefix} (HTTP ${response.status})`;
+      showToast(failureText, 4500);
+      return false;
+    }
+
+    showToast(getMessageWithFallback('agentEngineTestSuccess', 'Connection successful'), 2500);
+    return true;
+  } catch (error) {
+    showToast(
+      getMessageWithFallback('agentEngineTestRequestError', 'Connection test failed: $1', [error?.message || String(error)]),
+      4500
+    );
+    return false;
+  } finally {
+    if (testButton) {
+      testButton.disabled = false;
+      testButton.textContent = originalLabel || getMessageWithFallback('agentEngineTestButton', 'Test connection');
+    }
+  }
+}
+
+async function initializeAgentEngineSettings() {
+  const baseUrlInput = document.getElementById('agentApiBaseUrl');
+  const apiKeyInput = document.getElementById('agentApiKey');
+  const toggleApiKeyButton = document.getElementById('toggleAgentApiKey');
+  const modelInput = document.getElementById('agentApiModel');
+  const concurrencyInput = document.getElementById('agentApiConcurrency');
+  const testButton = document.getElementById('testAgentEngineBtn');
   const saveButton = document.getElementById('saveAgentEngineBtn');
   const editButton = document.getElementById('editAgentEngineBtn');
   const closeButton = document.getElementById('agentEngineDialogClose');
@@ -612,7 +716,7 @@ async function initializeAgentEngineSettings() {
   const customCard = document.getElementById('agentEngineCard');
   const customSelectButton = document.getElementById('customAgentEngineSelectBtn');
 
-  if (!baseUrlInput || !apiKeyInput || !modelInput || !concurrencyInput || !saveButton || !editButton || !closeButton || !cancelButton || !overlay || !officialCard || !officialSelectButton || !customCard || !customSelectButton || !officialUpgradeButton) {
+  if (!baseUrlInput || !apiKeyInput || !toggleApiKeyButton || !modelInput || !concurrencyInput || !testButton || !saveButton || !editButton || !closeButton || !cancelButton || !overlay || !officialCard || !officialSelectButton || !customCard || !customSelectButton || !officialUpgradeButton) {
     return;
   }
 
@@ -622,7 +726,7 @@ async function initializeAgentEngineSettings() {
     baseUrlInput.value = editableConfig.baseUrl || '';
     apiKeyInput.value = editableConfig.apiKey || '';
     modelInput.value = editableConfig.model || '';
-    concurrencyInput.value = String(editableConfig.concurrency || 2);
+    concurrencyInput.value = String(editableConfig.concurrency || 10);
     renderAgentEngineCard(config);
     await refreshOfficialAgentEngineMeta();
   } catch (error) {
@@ -719,7 +823,7 @@ async function initializeAgentEngineSettings() {
         baseUrlInput.value = effectiveConfig.baseUrl || '';
         apiKeyInput.value = effectiveConfig.apiKey || '';
         modelInput.value = effectiveConfig.model || '';
-        concurrencyInput.value = String(effectiveConfig.concurrency || 2);
+        concurrencyInput.value = String(effectiveConfig.concurrency || 10);
         renderAgentEngineCard(config);
         await refreshOfficialAgentEngineMeta();
         closeAgentEngineDialog();
@@ -727,6 +831,24 @@ async function initializeAgentEngineSettings() {
         console.error('保存智能体引擎设置失败:', error);
         showToast(getMessageWithFallback('saveFailed', 'Save failed'));
       }
+    });
+  }
+
+  if (testButton.dataset.bound !== 'true') {
+    testButton.dataset.bound = 'true';
+    testButton.addEventListener('click', async () => {
+      await testAgentEngineConnection();
+    });
+  }
+
+  if (toggleApiKeyButton.dataset.bound !== 'true') {
+    toggleApiKeyButton.dataset.bound = 'true';
+    toggleApiKeyButton.addEventListener('click', () => {
+      apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+      toggleApiKeyButton.textContent = apiKeyInput.type === 'password' ? '👁' : '🙈';
+      const toggleLabel = getMessageWithFallback('syncTogglePasswordAriaLabel', 'Show or hide password');
+      toggleApiKeyButton.setAttribute('aria-label', toggleLabel);
+      toggleApiKeyButton.setAttribute('title', toggleLabel);
     });
   }
 }
@@ -855,9 +977,11 @@ function renderAgentCustomSettingsManager(catalog, customSettingsMap = {}, custo
   agents.forEach((agent) => {
     const customSettings = customSettingsMap?.[agent.id] || {};
     const summaryParts = [];
+    const isEnabled = agent.enabled === true;
     if (Object.keys(customSettings).length > 0) {
       summaryParts.push(getMessageWithFallback('agentCustomOverriddenBadge', 'Customized'));
     }
+    const summaryText = summaryParts.map(escapeHtml).join(' · ');
 
     const card = document.createElement('div');
     card.className = 'template-item';
@@ -865,9 +989,25 @@ function renderAgentCustomSettingsManager(catalog, customSettingsMap = {}, custo
     card.innerHTML = `
       <div class="template-item-head">
         <div class="template-item-body">
-          <h4 class="template-item-title">${escapeHtml(agent.name || '')}</h4>
+          <div class="template-item-title-row">
+            <h4 class="template-item-title">${escapeHtml(agent.name || '')}</h4>
+            <label
+              class="agent-enabled-switch"
+              aria-label="${escapeHtml(getMessageWithFallback('agentEnabledToggleLabel', 'Enable this skill'))}"
+              title="${escapeHtml(getMessageWithFallback('agentEnabledToggleLabel', 'Enable this skill'))}"
+            >
+              <input
+                type="checkbox"
+                class="agent-enabled-switch-input"
+                data-agent-id="${escapeHtml(agent.id)}"
+                data-agent-source="${agent.isCustom ? 'custom' : 'builtin'}"
+                ${isEnabled ? 'checked' : ''}
+              >
+              <span class="agent-enabled-switch-track" aria-hidden="true"></span>
+            </label>
+          </div>
           <div class="custom-site-detail">${escapeHtml(agent.description || '')}</div>
-          <div class="custom-site-summary">${summaryParts.map(escapeHtml).join(' · ')}</div>
+          ${summaryText ? `<div class="custom-site-summary">${summaryText}</div>` : ''}
         </div>
         <div class="template-actions">
           <button type="button" class="edit-agent-custom-btn icon-action-btn" data-agent-id="${escapeHtml(agent.id)}" title="${getMessageWithFallback('editButton', 'Edit')}" aria-label="${getMessageWithFallback('editButton', 'Edit')}">
@@ -899,6 +1039,7 @@ function bindAgentCustomSettingsEvents() {
   }
   bindAgentCustomSettingsEvents.bound = true;
   document.getElementById('agentCustomSettingsList')?.addEventListener('click', handleAgentCustomSettingsListClick);
+  document.getElementById('agentCustomSettingsList')?.addEventListener('change', handleAgentCustomSettingsListChange);
   document.getElementById('agentCustomDialogClose')?.addEventListener('click', closeAgentCustomDialog);
   document.getElementById('cancelAgentCustom')?.addEventListener('click', closeAgentCustomDialog);
   document.getElementById('saveAgentCustom')?.addEventListener('click', saveAgentCustomSettingsFromDialog);
@@ -923,6 +1064,11 @@ function bindAgentCustomSettingsEvents() {
 }
 
 async function handleAgentCustomSettingsListClick(event) {
+  const toggleInput = event.target.closest('.agent-enabled-switch-input');
+  if (toggleInput) {
+    return;
+  }
+
   const editButton = event.target.closest('.edit-agent-custom-btn');
   const deleteButton = event.target.closest('.delete-agent-custom-btn');
   if (!editButton) {
@@ -947,6 +1093,71 @@ async function handleAgentCustomSettingsListClick(event) {
   }
 
   await openAgentCustomDialog(agentId);
+}
+
+async function handleAgentCustomSettingsListChange(event) {
+  const toggleInput = event.target.closest('.agent-enabled-switch-input');
+  if (!toggleInput) {
+    return;
+  }
+
+  const agentId = String(toggleInput.dataset.agentId || '').trim();
+  const agentSource = String(toggleInput.dataset.agentSource || '').trim();
+  const nextEnabled = toggleInput.checked === true;
+
+  if (!agentId) {
+    return;
+  }
+
+  toggleInput.disabled = true;
+
+  try {
+    if (agentSource === 'custom') {
+      const [{ [CUSTOM_AGENTS_STORAGE_KEY]: localAgents }, { [CUSTOM_AGENTS_STORAGE_KEY]: syncAgents }] = await Promise.all([
+        chrome.storage.local.get(CUSTOM_AGENTS_STORAGE_KEY),
+        chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
+      ]);
+      const currentAgents = Array.isArray(localAgents) && localAgents.length > 0
+        ? localAgents
+        : (Array.isArray(syncAgents) ? syncAgents : []);
+      const targetAgent = currentAgents.find((agent) => agent?.id === agentId);
+      if (!targetAgent) {
+        throw new Error(getMessageWithFallback('agentUnknownError', 'Unknown skill'));
+      }
+
+      await saveCustomAgent({
+        ...targetAgent,
+        id: targetAgent.id,
+        enabled: nextEnabled
+      });
+    } else {
+      const { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings } = await chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY);
+      const utils = getAgentCatalogUtils();
+      const normalizedSettings = typeof utils?.normalizeAgentCustomSettingsMap === 'function'
+        ? utils.normalizeAgentCustomSettingsMap(storedSettings)
+        : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+
+      const nextSettings = { ...normalizedSettings };
+      const currentPatch = nextSettings[agentId] && typeof nextSettings[agentId] === 'object'
+        ? { ...nextSettings[agentId] }
+        : {};
+      currentPatch.enabled = nextEnabled;
+      nextSettings[agentId] = currentPatch;
+
+      await chrome.storage.sync.set({
+        [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: nextSettings
+      });
+    }
+
+    showToast(getMessageWithFallback('agentCustomSaveSuccess', 'Skill settings saved'));
+    await loadAgentCustomSettingsManager();
+  } catch (error) {
+    console.error('更新 Skill 启用状态失败:', error);
+    toggleInput.checked = !nextEnabled;
+    showToast(getMessageWithFallback('saveFailed', 'Save failed'), 3000);
+  } finally {
+    toggleInput.disabled = false;
+  }
 }
 
 async function openAgentCustomDialog(agentId) {
@@ -1222,12 +1433,12 @@ async function saveNewCustomAgentFromDialog(nextValue) {
   await saveCustomAgent({
     id: nextValue.agentId,
     name,
-    shortName: name.slice(0, 1),
     description,
     personaPrompt,
     type: 'information',
     color: '#4f6b95',
-    defaultEnabled: false,
+    enabled: true,
+    defaultSelected: false,
     sourceType: 'manual',
     importedAt: new Date().toISOString()
   });
@@ -1712,12 +1923,12 @@ async function importSkillAsCustomAgent() {
     await saveCustomAgent({
       id: agentId,
       name: title,
-      shortName: title.slice(0, 1),
       description,
       personaPrompt,
       type: 'information',
       color: '#4f6b95',
-      defaultEnabled: false,
+      enabled: true,
+      defaultSelected: false,
       sourceType: 'skill',
       sourceUrl: skillUrl,
       sourceTitle: title,
@@ -3788,16 +3999,20 @@ async function exportAllSettings() {
     chrome.storage.local.get(LOCAL_SYNC_KEYS),
     chrome.storage.sync.get(CUSTOM_AGENTS_STORAGE_KEY)
   ]);
+  const promptUtils = getAgentPromptUtils();
   const localCustomAgents = Array.isArray(localData?.[CUSTOM_AGENTS_STORAGE_KEY]) ? localData[CUSTOM_AGENTS_STORAGE_KEY] : [];
   const syncCustomAgents = Array.isArray(legacySyncCustomAgents?.[CUSTOM_AGENTS_STORAGE_KEY])
     ? legacySyncCustomAgents[CUSTOM_AGENTS_STORAGE_KEY]
     : [];
+  const normalizedAgentEngineSecret = typeof promptUtils?.normalizeAgentEngineSecret === 'function'
+    ? promptUtils.normalizeAgentEngineSecret(localData[AGENT_ENGINE_SECRET_STORAGE_KEY])
+    : (localData[AGENT_ENGINE_SECRET_STORAGE_KEY] || '');
   return {
     ...syncData,
     [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents.length > 0 ? localCustomAgents : syncCustomAgents,
     pkHistory: (localData.pkHistory || []).slice(0, 500),
     favoriteFolders: localData.favoriteFolders || [],
-    [AGENT_ENGINE_SECRET_STORAGE_KEY]: localData[AGENT_ENGINE_SECRET_STORAGE_KEY] || '',
+    [AGENT_ENGINE_SECRET_STORAGE_KEY]: normalizedAgentEngineSecret,
     [AGENT_HIDDEN_IDS_STORAGE_KEY]: Array.isArray(localData?.[AGENT_HIDDEN_IDS_STORAGE_KEY])
       ? localData[AGENT_HIDDEN_IDS_STORAGE_KEY]
       : [],
@@ -3836,6 +4051,12 @@ async function importLocalSyncBackupFromFile(file) {
     }
 
     const { syncPatch, localPatch } = getLocalSyncImportPayload(rawPayload);
+    const promptUtils = getAgentPromptUtils();
+    if (Object.prototype.hasOwnProperty.call(localPatch, AGENT_ENGINE_SECRET_STORAGE_KEY)) {
+      localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY] = typeof promptUtils?.normalizeAgentEngineSecret === 'function'
+        ? promptUtils.normalizeAgentEngineSecret(localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY])
+        : localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY];
+    }
 
     showSyncStatus(getMessage('localSyncImporting') || '正在恢复本地备份…', 'loading');
 
@@ -4567,11 +4788,18 @@ async function initializeOptionsPage() {
   }
 
   initializeI18n();
+  initializeNavigation();
+  handleHashNavigation();
+  window.addEventListener('hashchange', handleHashNavigation);
+
+  const agentCatalogReadyPromise = ensureOptionsAgentCatalogReady();
+
   await initializeLanguageSettings();
+
+  await agentCatalogReadyPromise;
 
   loadConfig();
   await initializeLaunchSettings();
-  initializeNavigation();
   initializeDisabledSites();
   initializeRuleInfo();
   await initializePromptTemplates();
@@ -4579,8 +4807,6 @@ async function initializeOptionsPage() {
   initializeAgentEngineSettings();
   loadAgentCustomSettingsManager();
   bindAgentCustomSettingsEvents();
-  handleHashNavigation();
-  window.addEventListener('hashchange', handleHashNavigation);
   initializeDataSync();
   initializeRemoteSearchSettings();
   initializeMembership();
@@ -4607,10 +4833,14 @@ if (typeof window !== 'undefined') {
   });
 }
 
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading' && typeof document.addEventListener === 'function') {
+    document.addEventListener('DOMContentLoaded', () => {
+      void initializeOptionsPage();
+    }, { once: true });
+  } else {
     void initializeOptionsPage();
-  });
+  }
 }
 
 if (typeof module !== 'undefined' && module.exports) {

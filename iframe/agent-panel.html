@@ -10,13 +10,24 @@
     <div class="agent-panel">
         <div id="agentMessages" class="agent-messages"></div>
         <div class="agent-input-bar">
-            <textarea id="agentLocalInput" class="agent-local-input" rows="1" placeholder=""></textarea>
-            <button id="agentSendButton" class="agent-send-btn" type="button">Send</button>
+            <input id="agentAttachmentInput" class="agent-attachment-input" type="file" multiple hidden>
+            <div id="agentPendingAttachments" class="agent-pending-attachments"></div>
+            <div class="agent-input-row">
+                <div class="agent-input-shell">
+                    <textarea id="agentLocalInput" class="agent-local-input" rows="1" placeholder=""></textarea>
+                    <button id="agentAttachmentButton" class="agent-attachment-btn" type="button" title="">
+                        <img src="../icons/attachment.svg" alt="">
+                    </button>
+                </div>
+                <button id="agentSendButton" class="agent-send-btn" type="button">Send</button>
+            </div>
         </div>
     </div>
 
     <script src="../config/agentCatalogData.js"></script>
     <script src="../config/agentCatalog.js"></script>
+    <script src="../config/agentEngineConfig.js"></script>
+    <script src="../shared/agent-prompt-utils.js"></script>
     <script src="agent-panel.js"></script>
 </body>
 </html>

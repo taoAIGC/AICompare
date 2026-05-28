@@ -957,6 +957,17 @@ body.search-bar-bottom .query-suggestions {
     margin: 0;
 }
 
+.site-avatar {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    object-fit: contain;
+    background: transparent;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
 .site-item input[type="checkbox"] {
     width: 16px;
     height: 16px;
@@ -972,6 +983,13 @@ body.search-bar-bottom .query-suggestions {
     opacity: 0.65;
     cursor: default;
     user-select: none;
+}
+
+.site-avatar-skeleton {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    flex-shrink: 0;
 }
 
 .agent-item {
@@ -993,7 +1011,9 @@ body.search-bar-bottom .query-suggestions {
 .agent-item-head {
     display: flex;
     align-items: center;
+    gap: 0;
     min-width: 0;
+    flex-wrap: nowrap;
 }
 
 .agent-name-label {

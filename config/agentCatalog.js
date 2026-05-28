@@ -12,10 +12,18 @@
   const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = 'agentCustomSettings';
   const CUSTOM_AGENTS_STORAGE_KEY = 'customAgents';
   const AGENT_HIDDEN_IDS_STORAGE_KEY = 'agentHiddenIds';
+  const AGENT_CONFIG_VERSION_STORAGE_KEY = 'agentConfigVersion';
+  const REMOTE_AGENT_CATALOG_STORAGE_KEY = 'remoteAgentCatalog';
+  const AGENT_CONFIG_SOURCE_STORAGE_KEY = 'agentConfigSource';
+  const AGENT_CONFIG_LAST_UPDATE_TIME_STORAGE_KEY = 'agentConfigLastUpdateTime';
+  const AGENT_CONFIG_UPDATE_HISTORY_STORAGE_KEY = 'agentConfigUpdateHistory';
+  const REMOTE_AGENT_CATALOG_URL = 'https://raw.githubusercontent.com/taoAIGC/AI-Shortcuts/main/config/agentCatalog.json';
   const NODE_LOCALE_MESSAGES_CACHE = new Map();
   const AgentCatalogData = resolveAgentCatalogData();
-  const CATEGORY_DEFINITIONS = Object.freeze(Array.isArray(AgentCatalogData.CATEGORY_DEFINITIONS) ? AgentCatalogData.CATEGORY_DEFINITIONS : []);
-  const AGENT_DEFINITIONS = Object.freeze(Array.isArray(AgentCatalogData.AGENT_DEFINITIONS) ? AgentCatalogData.AGENT_DEFINITIONS : []);
+
+  let currentCatalogData = resolveCurrentCatalogData();
+  let hydratePromise = null;
+  let fetchPromise = null;
 
   function resolveAgentCatalogData() {
     try {
@@ -36,6 +44,17 @@
     return {};
   }
 
+  function resolveCurrentCatalogData() {
+    try {
+      const runtimeData = typeof AgentCatalogData.getCatalogData === 'function'
+        ? AgentCatalogData.getCatalogData()
+        : AgentCatalogData;
+      return normalizeCatalogData(runtimeData);
+    } catch (_) {
+      return normalizeCatalogData(AgentCatalogData);
+    }
+  }
+
   function normalizeString(value) {
     return String(value || '').trim();
   }
@@ -43,21 +62,6 @@
   function normalizeColor(value, fallback = '#4f6b95') {
     const color = normalizeString(value);
     return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : fallback;
-  }
-
-  function buildShortName(name, fallback = 'A') {
-    const normalizedName = normalizeString(name);
-    if (!normalizedName) {
-      return fallback;
-    }
-
-    const firstToken = normalizedName.split(/\s+/).find(Boolean) || normalizedName;
-    const cjkMatch = normalizedName.match(/[\u3400-\u9fff]/);
-    if (cjkMatch) {
-      return cjkMatch[0];
-    }
-
-    return firstToken.slice(0, 1).toUpperCase() || fallback;
   }
 
   function normalizeLocale(locale) {
@@ -180,13 +184,344 @@
     return fallback;
   }
 
+  function cloneDefinitions(items = []) {
+    return Array.isArray(items) ? items.map((item) => ({ ...item })) : [];
+  }
+
+  function normalizeCatalogData(rawCatalog) {
+    const fallback = AgentCatalogData?.FALLBACK_CATALOG || {};
+    const categories = cloneDefinitions(
+      rawCatalog?.CATEGORY_DEFINITIONS
+      || rawCatalog?.categories
+      || fallback.categories
+    );
+    const agents = cloneDefinitions(
+      rawCatalog?.AGENT_DEFINITIONS
+      || rawCatalog?.agents
+      || fallback.agents
+    );
+
+    return {
+      version: normalizeString(rawCatalog?.version || fallback.version || Date.now()),
+      CATEGORY_DEFINITIONS: Object.freeze(categories),
+      AGENT_DEFINITIONS: Object.freeze(agents)
+    };
+  }
+
+  function applyCatalogData(rawCatalog) {
+    currentCatalogData = normalizeCatalogData(rawCatalog);
+    if (typeof AgentCatalogData?.setCatalogData === 'function') {
+      AgentCatalogData.setCatalogData({
+        version: currentCatalogData.version,
+        categories: currentCatalogData.CATEGORY_DEFINITIONS,
+        agents: currentCatalogData.AGENT_DEFINITIONS
+      });
+      currentCatalogData = normalizeCatalogData(AgentCatalogData.getCatalogData());
+    }
+    return currentCatalogData;
+  }
+
+  async function loadLocalAgentCatalogSnapshot() {
+    const response = await fetch(chrome.runtime.getURL('config/agentCatalog.json'));
+    if (!response.ok) {
+      throw new Error(`加载本地技能配置失败: HTTP ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  function compareVersions(version1, version2) {
+    if (String(version1) === String(version2)) {
+      return 0;
+    }
+
+    const parseVersion = (version) => {
+      if (typeof version === 'string') {
+        const cleanVersion = version.replace(/^v/, '');
+        return cleanVersion.split('.').map((part) => {
+          const match = part.match(/^(\d+)(.*)$/);
+          return {
+            number: parseInt(match ? match[1] : part, 10) || 0,
+            suffix: match ? match[2] : ''
+          };
+        });
+      }
+      return [{ number: parseInt(version, 10) || 0, suffix: '' }];
+    };
+
+    const v1Parts = parseVersion(version1);
+    const v2Parts = parseVersion(version2);
+    const maxLength = Math.max(v1Parts.length, v2Parts.length);
+
+    for (let i = 0; i < maxLength; i += 1) {
+      const v1Part = v1Parts[i] || { number: 0, suffix: '' };
+      const v2Part = v2Parts[i] || { number: 0, suffix: '' };
+
+      if (v1Part.number !== v2Part.number) {
+        return v1Part.number > v2Part.number ? 1 : -1;
+      }
+
+      if (v1Part.suffix !== v2Part.suffix) {
+        if (v1Part.suffix === '' && v2Part.suffix !== '') {
+          return 1;
+        }
+        if (v1Part.suffix !== '' && v2Part.suffix === '') {
+          return -1;
+        }
+        return v1Part.suffix > v2Part.suffix ? 1 : -1;
+      }
+    }
+
+    return 0;
+  }
+
+  async function hydrateBundledAgentCatalogIfNeeded() {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+      return getCatalogData();
+    }
+
+    const {
+      [REMOTE_AGENT_CATALOG_STORAGE_KEY]: cachedCatalog,
+      [AGENT_CONFIG_VERSION_STORAGE_KEY]: cachedVersion,
+      [AGENT_CONFIG_SOURCE_STORAGE_KEY]: configSource,
+      [AGENT_CONFIG_LAST_UPDATE_TIME_STORAGE_KEY]: lastUpdateTime
+    } = await chrome.storage.local.get([
+      REMOTE_AGENT_CATALOG_STORAGE_KEY,
+      AGENT_CONFIG_VERSION_STORAGE_KEY,
+      AGENT_CONFIG_SOURCE_STORAGE_KEY,
+      AGENT_CONFIG_LAST_UPDATE_TIME_STORAGE_KEY
+    ]);
+
+    let localCatalog = null;
+    try {
+      localCatalog = await loadLocalAgentCatalogSnapshot();
+    } catch (_) {
+      if (cachedCatalog) {
+        applyCatalogData(cachedCatalog);
+      }
+      return getCatalogData();
+    }
+
+    const normalizedLocal = normalizeCatalogData(localCatalog);
+    const normalizedCached = normalizeCatalogData(cachedCatalog || {});
+    const effectiveCachedCategories = normalizedCached.CATEGORY_DEFINITIONS;
+    const effectiveCachedAgents = normalizedCached.AGENT_DEFINITIONS;
+    const effectiveCachedVersion = normalizeString(
+      cachedCatalog?.version
+      || cachedVersion
+      || normalizedCached.version
+    );
+    const versionComparison = compareVersions(normalizedLocal.version, effectiveCachedVersion);
+    const cacheLooksRemoteManaged = configSource === 'remote' || Boolean(lastUpdateTime);
+    const bundledDiffersFromCache =
+      JSON.stringify(normalizedLocal.CATEGORY_DEFINITIONS) !== JSON.stringify(effectiveCachedCategories)
+      || JSON.stringify(normalizedLocal.AGENT_DEFINITIONS) !== JSON.stringify(effectiveCachedAgents);
+
+    const shouldRefreshFromBundled =
+      effectiveCachedCategories.length === 0
+      || effectiveCachedAgents.length === 0
+      || versionComparison > 0
+      || (versionComparison === 0 && !cacheLooksRemoteManaged && bundledDiffersFromCache);
+
+    if (shouldRefreshFromBundled) {
+      await chrome.storage.local.set({
+        [AGENT_CONFIG_VERSION_STORAGE_KEY]: normalizedLocal.version || Date.now(),
+        [REMOTE_AGENT_CATALOG_STORAGE_KEY]: {
+          version: normalizedLocal.version,
+          categories: normalizedLocal.CATEGORY_DEFINITIONS,
+          agents: normalizedLocal.AGENT_DEFINITIONS
+        },
+        [AGENT_CONFIG_SOURCE_STORAGE_KEY]: 'bundled'
+      });
+      applyCatalogData({
+        version: normalizedLocal.version,
+        categories: normalizedLocal.CATEGORY_DEFINITIONS,
+        agents: normalizedLocal.AGENT_DEFINITIONS
+      });
+      return getCatalogData();
+    }
+
+    if (cachedCatalog) {
+      applyCatalogData(cachedCatalog);
+    } else {
+      applyCatalogData({
+        version: normalizedLocal.version,
+        categories: normalizedLocal.CATEGORY_DEFINITIONS,
+        agents: normalizedLocal.AGENT_DEFINITIONS
+      });
+    }
+
+    if (!configSource && effectiveCachedCategories.length > 0 && effectiveCachedAgents.length > 0) {
+      await chrome.storage.local.set({
+        [AGENT_CONFIG_SOURCE_STORAGE_KEY]: cacheLooksRemoteManaged ? 'remote' : 'bundled'
+      });
+    }
+
+    return getCatalogData();
+  }
+
+  async function hydrateCatalogFromStorageIfPossible() {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+      return getCatalogData();
+    }
+    return await hydrateBundledAgentCatalogIfNeeded();
+  }
+
+  async function ensureCatalogHydrated() {
+    if (hydratePromise) {
+      return hydratePromise;
+    }
+
+    hydratePromise = hydrateCatalogFromStorageIfPossible()
+      .catch(() => getCatalogData())
+      .finally(() => {
+        hydratePromise = null;
+      });
+
+    return hydratePromise;
+  }
+
+  async function getLocalVersion() {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        const result = await chrome.storage.local.get(AGENT_CONFIG_VERSION_STORAGE_KEY);
+        if (result?.[AGENT_CONFIG_VERSION_STORAGE_KEY]) {
+          return result[AGENT_CONFIG_VERSION_STORAGE_KEY];
+        }
+      }
+
+      const localCatalog = await loadLocalAgentCatalogSnapshot();
+      return normalizeString(localCatalog?.version || 0);
+    } catch (_) {
+      return normalizeString(currentCatalogData?.version || 0);
+    }
+  }
+
+  async function updateLocalCatalog(remoteCatalog) {
+    const normalized = normalizeCatalogData(remoteCatalog);
+    const currentTime = Date.now();
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const {
+        [AGENT_CONFIG_UPDATE_HISTORY_STORAGE_KEY]: updateHistory = [],
+        [REMOTE_AGENT_CATALOG_STORAGE_KEY]: previousCatalog
+      } = await chrome.storage.local.get([
+        AGENT_CONFIG_UPDATE_HISTORY_STORAGE_KEY,
+        REMOTE_AGENT_CATALOG_STORAGE_KEY
+      ]);
+
+      const previousNormalized = normalizeCatalogData(previousCatalog || {});
+      const previousCategories = previousNormalized.CATEGORY_DEFINITIONS;
+      const previousAgents = previousNormalized.AGENT_DEFINITIONS;
+
+      const newCategoryNames = normalized.CATEGORY_DEFINITIONS
+        .filter((category) => !previousCategories.some((oldCategory) => oldCategory.id === category.id))
+        .map((category) => category.name || category.id)
+        .filter(Boolean);
+
+      const newAgentNames = normalized.AGENT_DEFINITIONS
+        .filter((agent) => !previousAgents.some((oldAgent) => oldAgent.id === agent.id))
+        .map((agent) => agent.name || agent.id)
+        .filter(Boolean);
+
+      const updatedAgentNames = normalized.AGENT_DEFINITIONS
+        .filter((agent) => {
+          const oldAgent = previousAgents.find((item) => item.id === agent.id);
+          if (!oldAgent) {
+            return false;
+          }
+          return JSON.stringify(oldAgent) !== JSON.stringify(agent);
+        })
+        .map((agent) => agent.name || agent.id)
+        .filter(Boolean);
+
+      const updateRecord = {
+        timestamp: currentTime,
+        version: normalized.version || currentTime,
+        newCategories: newCategoryNames,
+        newAgents: newAgentNames,
+        updatedAgents: updatedAgentNames,
+        totalCategories: normalized.CATEGORY_DEFINITIONS.length,
+        totalAgents: normalized.AGENT_DEFINITIONS.length,
+        oldVersion: normalizeString(previousCatalog?.version || 'unknown')
+      };
+
+      const nextUpdateHistory = [...updateHistory, updateRecord].slice(-10);
+
+      await chrome.storage.local.set({
+        [AGENT_CONFIG_VERSION_STORAGE_KEY]: normalized.version || currentTime,
+        [REMOTE_AGENT_CATALOG_STORAGE_KEY]: {
+          version: normalized.version,
+          categories: normalized.CATEGORY_DEFINITIONS,
+          agents: normalized.AGENT_DEFINITIONS
+        },
+        [AGENT_CONFIG_SOURCE_STORAGE_KEY]: 'remote',
+        [AGENT_CONFIG_LAST_UPDATE_TIME_STORAGE_KEY]: currentTime,
+        [AGENT_CONFIG_UPDATE_HISTORY_STORAGE_KEY]: nextUpdateHistory
+      });
+    }
+
+    applyCatalogData({
+      version: normalized.version,
+      categories: normalized.CATEGORY_DEFINITIONS,
+      agents: normalized.AGENT_DEFINITIONS
+    });
+    return getCatalogData();
+  }
+
+  async function fetchAndApplyRemoteCatalog() {
+    const response = await fetch(REMOTE_AGENT_CATALOG_URL, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`技能配置服务器错误: ${response.status}`);
+    }
+
+    const remoteCatalog = await response.json();
+    const remoteVersion = normalizeString(remoteCatalog?.version || Date.now());
+    const localVersion = await getLocalVersion();
+    const versionComparison = compareVersions(remoteVersion, localVersion);
+
+    if (versionComparison > 0) {
+      await updateLocalCatalog(remoteCatalog);
+      return {
+        hasUpdate: true,
+        config: remoteCatalog,
+        version: remoteVersion,
+        oldVersion: localVersion,
+        versionComparison
+      };
+    }
+
+    return {
+      hasUpdate: false,
+      reason: versionComparison < 0 ? 'remote_older' : 'same_version',
+      version: remoteVersion,
+      remoteVersion,
+      localVersion
+    };
+  }
+
+  async function autoCheckUpdate() {
+    if (fetchPromise) {
+      return fetchPromise;
+    }
+
+    fetchPromise = fetchAndApplyRemoteCatalog()
+      .catch((error) => ({ hasUpdate: false, error: error.message }))
+      .finally(() => {
+        fetchPromise = null;
+      });
+
+    return fetchPromise;
+  }
+
+  function getCatalogData() {
+    return currentCatalogData;
+  }
+
   function getStaticLocalizedVariant(definition, locale) {
     const localeKey = normalizeString(definition?.localeKey);
     return {
       name: normalizeString(getLocaleMessage(`${localeKey}Name`, '', undefined, locale)),
-      description: normalizeString(getLocaleMessage(`${localeKey}Description`, '', undefined, locale)),
-      shortName: normalizeString(getLocaleMessage(`${localeKey}ShortName`, '', undefined, locale)),
-      personaPrompt: normalizeString(getLocaleMessage(`${localeKey}PersonaPrompt`, '', undefined, locale))
+      description: normalizeString(getLocaleMessage(`${localeKey}Description`, '', undefined, locale))
     };
   }
 
@@ -194,32 +529,34 @@
     const variant = getStaticLocalizedVariant(definition, locale);
     return {
       id: definition.id,
-      name: normalizeString(variant.name) || definition.fallbackName,
-      description: normalizeString(variant.description) || definition.fallbackDescription
+      name: normalizeString(variant.name) || normalizeString(definition.name),
+      description: normalizeString(variant.description) || normalizeString(definition.description)
     };
   }
 
   function buildAgent(definition, locale) {
     const variant = getStaticLocalizedVariant(definition, locale);
+    const configuredName = normalizeString(definition.name);
+    const legacyDefaultEnabled = definition.defaultEnabled === true;
     return {
       id: definition.id,
-      name: normalizeString(variant.name) || definition.fallbackName,
-      shortName: normalizeString(variant.shortName) || definition.fallbackShortName || normalizeString(variant.name) || definition.fallbackName,
+      name: normalizeString(variant.name) || configuredName,
       type: definition.type,
       categoryId: definition.categoryId,
       color: definition.color,
-      description: normalizeString(variant.description) || definition.fallbackDescription,
-      defaultEnabled: definition.defaultEnabled === true,
-      personaPrompt: normalizeString(variant.personaPrompt) || definition.fallbackPersonaPrompt
+      description: normalizeString(variant.description) || normalizeString(definition.description),
+      enabled: definition.enabled === true || legacyDefaultEnabled,
+      defaultSelected: definition.defaultSelected === true || legacyDefaultEnabled,
+      personaPrompt: normalizeString(definition.personaPrompt)
     };
   }
 
   function getCategories(locale) {
-    return CATEGORY_DEFINITIONS.map((definition) => buildCategory(definition, locale));
+    return getCatalogData().CATEGORY_DEFINITIONS.map((definition) => buildCategory(definition, locale));
   }
 
   function getAgents(locale) {
-    return AGENT_DEFINITIONS.map((definition) => buildAgent(definition, locale));
+    return getCatalogData().AGENT_DEFINITIONS.map((definition) => buildAgent(definition, locale));
   }
 
   function getCategoryMap(locale) {
@@ -278,19 +615,19 @@
     const categoryId = normalizedCategoryIds.includes(normalizeString(rawAgent.categoryId))
       ? normalizeString(rawAgent.categoryId)
       : 'technology';
-    const shortName = normalizeString(rawAgent.shortName) || buildShortName(name, 'A');
     const type = normalizeString(rawAgent.type) || 'information';
+    const legacyDefaultEnabled = rawAgent.defaultEnabled === true;
 
     return {
       id,
       name,
-      shortName,
       description: normalizeString(rawAgent.description),
       personaPrompt,
       type,
       categoryId,
       color: normalizeColor(rawAgent.color, '#4f6b95'),
-      defaultEnabled: rawAgent.defaultEnabled === true,
+      enabled: rawAgent.enabled === true || legacyDefaultEnabled,
+      defaultSelected: rawAgent.defaultSelected === true || legacyDefaultEnabled,
       sourceType: normalizeString(rawAgent.sourceType) || 'custom',
       sourceUrl: normalizeString(rawAgent.sourceUrl),
       sourceTitle: normalizeString(rawAgent.sourceTitle),
@@ -336,38 +673,46 @@
       return nextMap;
     }
 
-    AGENT_DEFINITIONS.forEach((definition) => {
+    getCatalogData().AGENT_DEFINITIONS.forEach((definition) => {
       const raw = settingsMap?.[definition.id];
       if (!raw || typeof raw !== 'object') {
         return;
       }
 
       const entry = {};
-      const fallbackName = normalizeString(definition.fallbackName);
-      const fallbackDescription = normalizeString(definition.fallbackDescription);
-      const fallbackPersonaPrompt = normalizeString(definition.fallbackPersonaPrompt);
+      const configuredName = normalizeString(definition.name);
+      const configuredDescription = normalizeString(definition.description);
+      const configuredPersonaPrompt = normalizeString(definition.personaPrompt);
 
-      if (typeof raw.defaultEnabled === 'boolean') {
-        entry.defaultEnabled = raw.defaultEnabled;
+      if (typeof raw.enabled === 'boolean') {
+        entry.enabled = raw.enabled;
+      } else if (typeof raw.defaultEnabled === 'boolean') {
+        entry.enabled = raw.defaultEnabled;
+      }
+
+      if (typeof raw.defaultSelected === 'boolean') {
+        entry.defaultSelected = raw.defaultSelected;
+      } else if (typeof raw.defaultEnabled === 'boolean') {
+        entry.defaultSelected = raw.defaultEnabled;
       }
 
       if (typeof raw.name === 'string') {
         const name = raw.name.trim();
-        if (name && name !== fallbackName) {
+        if (name && name !== configuredName) {
           entry.name = name;
         }
       }
 
       if (typeof raw.description === 'string') {
         const description = raw.description.trim();
-        if (description !== fallbackDescription) {
+        if (description !== configuredDescription) {
           entry.description = description;
         }
       }
 
       if (typeof raw.personaPrompt === 'string') {
         const personaPrompt = raw.personaPrompt.trim();
-        if (personaPrompt && personaPrompt !== fallbackPersonaPrompt) {
+        if (personaPrompt && personaPrompt !== configuredPersonaPrompt) {
           entry.personaPrompt = personaPrompt;
         }
       }
@@ -395,9 +740,6 @@
 
     if (typeof customSettings.name === 'string' && customSettings.name.trim()) {
       baseAgent.name = customSettings.name.trim();
-      if (!baseAgent.shortName || baseAgent.shortName === originalName) {
-        baseAgent.shortName = customSettings.name.trim();
-      }
     }
 
     if (typeof customSettings.description === 'string') {
@@ -408,8 +750,16 @@
       baseAgent.personaPrompt = customSettings.personaPrompt.trim();
     }
 
-    if (typeof customSettings.defaultEnabled === 'boolean') {
-      baseAgent.defaultEnabled = customSettings.defaultEnabled;
+    if (typeof customSettings.enabled === 'boolean') {
+      baseAgent.enabled = customSettings.enabled;
+    } else if (typeof customSettings.defaultEnabled === 'boolean') {
+      baseAgent.enabled = customSettings.defaultEnabled;
+    }
+
+    if (typeof customSettings.defaultSelected === 'boolean') {
+      baseAgent.defaultSelected = customSettings.defaultSelected;
+    } else if (typeof customSettings.defaultEnabled === 'boolean') {
+      baseAgent.defaultSelected = customSettings.defaultEnabled;
     }
 
     return baseAgent;
@@ -449,19 +799,33 @@
     AGENT_CUSTOM_SETTINGS_STORAGE_KEY,
     CUSTOM_AGENTS_STORAGE_KEY,
     AGENT_HIDDEN_IDS_STORAGE_KEY,
+    AGENT_CONFIG_VERSION_STORAGE_KEY,
+    REMOTE_AGENT_CATALOG_STORAGE_KEY,
+    AGENT_CONFIG_SOURCE_STORAGE_KEY,
+    AGENT_CONFIG_LAST_UPDATE_TIME_STORAGE_KEY,
+    AGENT_CONFIG_UPDATE_HISTORY_STORAGE_KEY,
+    REMOTE_AGENT_CATALOG_URL,
+    autoCheckUpdate,
+    applyCatalogData,
     buildCatalogWithCustomSettings,
+    ensureCatalogHydrated,
     getCatalog,
+    getCatalogData,
     getAgentById,
     getCategoryById,
+    getLocalVersion,
     getRuntimeLocale,
+    hydrateBundledAgentCatalogIfNeeded,
     listAgents,
     listCategories,
     listAgentsByCategory,
     mergeAgentWithCustomSettings,
     normalizeAgentCustomSettingsMap,
+    normalizeCatalogData,
     normalizeCustomAgent,
     normalizeCustomAgents,
     normalizeAgentHiddenIds,
-    migrateLegacyCustomAgentsStorage
+    migrateLegacyCustomAgentsStorage,
+    updateLocalCatalog
   };
 });

@@ -82,7 +82,10 @@
 - **Quick entry settings**: Toggle on/off: Floating ball, Selection search, Context menu, Search engine toolbar (defaults from `appConfig.json`). Changes apply to already open tabs immediately.
 - **Launch settings**: Customize official site entry URLs and manage standalone custom sites.
 - **Agent settings**: Override each built-in skill's display name, description, and persona prompt.
+- **Built-in skill catalog**: Bundled skills now ship from `config/agentCatalog.json`, so the default built-in skill list can follow the same config-file workflow as site adapters.
+- **Built-in thinking skills**: The extension now includes analysis-first skills such as Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable for comparing one problem through different frameworks and personas.
 - **API settings**: Configure the shared skill engine used by the built-in skills.
+- **API connection test**: The custom API dialog can now send a small `chat/completions` probe and show the exact HTTP failure reason before you save, which is useful for local OpenAI-compatible servers such as Hermes.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
 - **Cloud sync**: Use WebDAV or Google Drive to sync settings across devices.
@@ -152,15 +155,17 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
 - Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
-- Shared result pages now support two modes from the same share record: the default multi-panel web view and an image-style poster view at the same URL with `?view=image`. The Responses summary modal also includes a dedicated button to copy the image-view link directly.
+- Shared result pages now support two modes from the same share record: the default multi-panel web view and an image-style poster view at the same URL with `?view=image`.
 - The timeline copy preview's copy button now keeps the Responses summary modal open after copying.
 - The preview body now only shows copyable site responses; failed sites stay in the summary header.
 - Copy/share actions in the Responses summary modal now show feedback next to the clicked button instead of using the top toast.
+- Export-button hover help now uses in-modal tooltips, and the share button opens an in-modal link card with `Open` and `Copy` actions.
 - The relay's share endpoints are `POST /shares`, `GET /shares/:shareId`, and `GET /share/:shareId`. For public links, set `PUBLIC_BASE_URL` before starting `remote-relay` so returned `publicUrl` values point at the externally reachable host.
 - Share records are now persisted on disk. Set `SHARE_STORE_FILE` for `remote-relay` if you want the share data file in a stable external path; otherwise it defaults to `remote-relay/data/shares.json`.
 - The DevTools-based verifier expects a real Chrome profile with the extension installed and a reachable endpoint from `DevToolsActivePort`. If that port points to a stale or non-debuggable browser session, it will fail before the extension flow starts. The Playwright verifier launches its own persistent Chromium profile and does not need `DevToolsActivePort`.
 - The packaged MV3 extension no longer includes any Firebase JS SDK CDN imports; membership uses local extension code plus Firebase REST endpoints, while cloud sync now supports WebDAV and Google Drive.
 - Site handler synchronization now fetches `config/siteHandlers.json` from GitHub raw at runtime and falls back to the bundled copy if the remote check fails.
+- Built-in skill synchronization now also fetches `config/agentCatalog.json` from GitHub raw at runtime and falls back to the bundled copy if the remote check fails, while user overrides and imported custom skills remain in Chrome storage.
 - The site-handler update prompt now uses a localized card-style notification plus a details dialog instead of the old plain toast.
 - Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow. `node debug/inspect-claude-response.js` prints the outer shell versus the `main .font-claude-response` answer body.
@@ -176,6 +181,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
 - Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
 - The built-in skill-engine defaults are now centralized in `config/agentEngineConfig.js`, currently targeting Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the bundled API key is stored there as ciphertext and decrypted at runtime, user-saved values still override them, and each skill uses only its own persona prompt as the system prompt.
+- The built-in skill catalog now uses `config/agentCatalog.json` as the bundled source of truth, caches the latest remote snapshot in `chrome.storage.local.remoteAgentCatalog`, and tracks version/update metadata alongside the site-config updater.
+- The built-in skill catalog now also includes a dedicated `Thinking` category for Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable.
+- The bundled persona roster has been trimmed to focus on the currently supported built-in skills; Buffett, Munger, Duan Yongping, Elon Musk, and Steve Jobs are no longer shipped as standalone built-ins.
 - Imported GitHub `SKILL.md` entries can be converted into custom skills through `Settings -> Agent settings -> Import from URL`, and the dedicated verifier is `node debug/verify-agent-import-runtime-playwright.js`.
 - Built-in skills now support deletion from Settings too. For bundled skills this is implemented as a per-device hidden list stored in local storage, so deleted built-ins disappear from Settings, homepage, and iframe agent selection without mutating the bundled catalog.
 - The default retry ceiling for configured step retries is now 10 attempts.
@@ -204,6 +212,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - `ok=false` responses should stop at install / reload guidance; they must not fall back to `web_search` or other search tools.
 - The extension page now exposes `window.aiCompareOpenClaw.run(options)` for automation.
 - OpenClaw TUI smoke test: `openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` returned raw ChatGPT and Gemini plugin content.
+- Hermes compatibility now uses a thin project plugin under `.hermes/plugins/ai-compare-hard-router/`, which reuses `openclaw/ai-compare-openclaw-fast.js` as the shared execution core instead of trying to load the OpenClaw plugin format directly.
+- Hermes project plugins must be enabled explicitly with `HERMES_ENABLE_PROJECT_PLUGINS=true`, and the Hermes-side compatibility notes live in `docs/hermes-openclaw-plugin-compat.md`.
+- When using Hermes API Server as the custom browser-extension API, remember that command-line checks and browser-extension checks are different: `curl` can succeed while the extension still gets `HTTP 403` if Hermes has not allowed the extension origin. Because the options page calls Hermes from `chrome-extension://...`, Hermes must include the extension origin in `API_SERVER_CORS_ORIGINS`, for example `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi`. A working minimal setup is `baseUrl=http://localhost:8642/v1`, `model=hermes-agent`, `Authorization: Bearer <API_SERVER_KEY>`, plus the matching `API_SERVER_CORS_ORIGINS` entry and a Hermes gateway restart after config changes.
 - GitHub packaging now maintains two release-note docs before producing the zip artifact:
   `docs/release-notes/latest.md` stores the running user-facing improvement request log, and `docs/release-notes/history.md` appends one user-facing version summary per packaged build.
 - Local git commits now auto-refresh the release-note docs in `.githooks/pre-commit`, and `.githooks/post-commit` pushes the committed branch to `origin` so updated `README.md`, privacy docs, and `history.md` sync to GitHub immediately.
@@ -239,6 +250,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **打开方式**：点击扩展图标，或快捷键 **⌘+M**（Mac）/ **Ctrl+M**（Windows）。
 - **搜索与对比**：输入问题、勾选 AI 站点，点击 PK 打开多 AI 对比页（仅加载支持 iframe 的站点）。
 - **保存常用站点**：勾选站点后可保存为「常用站点」，下次一键使用。
+- **skills 名称提示**：内置 skills 名称过长被省略时，鼠标悬停会立即显示完整名称，不再依赖浏览器原生 `title` 的延迟提示。
 - **固定引导**：可选提示用户将扩展固定到工具栏，方便打开。
 - **入口**：设置、历史记录、收藏记录、用户反馈；可选文件上传按钮。
 
@@ -285,6 +297,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **快捷入口设置**：开关 悬浮球、划词搜索、AI 站内按钮、右键菜单、搜索引擎 是否启用（默认来自 `appConfig.json`）。已打开的页面会立即同步开关状态，无需刷新。
 - **启动网址设置**：可配置官方站点入口 URL，并管理独立的自定义网站。
 - **智能体设置**：按 Skill 覆盖显示名称、简介和 persona 提示词。
+- **内置思维类 Skill**：现已内置多学科思维、六顶思考帽、苏格拉底追问、大佬开会等分析型 Skill，方便从不同框架和人物视角拆解同一个问题。
 - **API 设置**：配置内置 Skill 共用的引擎参数。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
@@ -369,6 +382,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
 - 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
 - 内置的 Skill 引擎默认配置现已统一收口到 `config/agentEngineConfig.js`，当前默认值为火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；其中内置 API Key 在配置文件中以密文形式保存、运行时再解密，用户在设置页手动保存后的值仍然优先覆盖，并且每个 Skill 只使用自己配置的 persona 提示词作为 system prompt。
+- 内置 Skill 目录现已新增一组“思维工具”分类，包含多学科思维、六顶思考帽、苏格拉底追问和大佬开会，适合做多视角分析、连续追问和人物风格对照判断。
 - 现在可以通过“设置 -> Skill 设置 -> 从 URL 导入”把 GitHub 上的 `SKILL.md` 转成自定义 Skill；对应的专项验证脚本为 `node debug/verify-agent-import-runtime-playwright.js`。
 - 系统自带的 Skill 现在也支持在设置页删除。对内置 Skill 来说，这个“删除”实现为当前设备本地隐藏，因此它会同时从设置页、homepage 和 iframe 的 Skill 选择里消失，但不会改写扩展内置目录。
 - 配置步骤的默认重试上限现在是 10 次。
@@ -389,6 +403,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 真正执行多站点搜索的浏览器扩展本体仍然在仓库根目录，例如 `manifest.json`、`iframe/`、`content-scripts/` 等。`openclaw-extension/` 不是浏览器扩展包，而是 OpenClaw 侧的插件入口层。
 - 最近一次端到端验证通过的，是正式硬路由链路：`openclaw-extension/` 负责入口拦截，`openclaw/ai-compare-openclaw-fast.js` / `openclaw/ai-compare-openclaw-runner.js` 负责拉起 GUI runner，浏览器扩展运行时 `iframe/inject.js`、`iframe/iframe.js`、`iframe/openclaw-bridge.js` 负责真正执行搜索与主动上报结果。
 - 如果你希望 OpenClaw 用户只说 `搜索 XX` 就能直接触发，而不需要显式提到 skill，优先安装 `openclaw-extension/`；`openclaw/` 建议保留为共享 runner / 兼容层。
+- Hermes 兼容现在通过 `.hermes/plugins/ai-compare-hard-router/` 这层项目级插件完成，它不会直接复用 OpenClaw 的插件格式，而是把 `openclaw/ai-compare-openclaw-fast.js` 当作共享执行核心。
+- 启用方式是显式打开项目级插件：`HERMES_ENABLE_PROJECT_PLUGINS=true hermes`，兼容说明见 `docs/hermes-openclaw-plugin-compat.md`。
+- 如果把 Hermes API Server 当作浏览器扩展里的自定义 API 来用，要特别注意命令行探活和扩展页探活不是一回事：`curl` 能返回 200，不代表扩展页也能访问。因为设置页是从 `chrome-extension://...` 这个来源直接请求 Hermes，所以如果 Hermes 没有把扩展来源加入 `API_SERVER_CORS_ORIGINS`，扩展里的“测试连接”和实际对话都会得到 `HTTP 403`。最小可用配置是：`baseUrl=http://localhost:8642/v1`、`model=hermes-agent`、请求头 `Authorization: Bearer <API_SERVER_KEY>`，并在 `API_SERVER_CORS_ORIGINS` 里加入当前扩展来源，例如 `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi`。修改 Hermes 配置后记得重启 `hermes gateway`。
 - 仓库 `openclaw/` 目录提供了可直接使用的桥接方案。
 - `openclaw/SKILL.md` 现已整理为可安装的 OpenClaw skill，支持“用户提问 -> 调起浏览器插件搜索 -> 返回每个站点结果”。
 - Runner 入口：`node openclaw/ai-compare-openclaw-runner.js --query "你的问题"`。
@@ -406,32 +423,59 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-25 00:06:50 UTC+08:00
+Last auto-update / 最近自动更新：2026-05-29 00:18:56 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.githooks/post-commit`
-- `M` `.gitignore`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
-- `M` `contact/contact.html`
-- `A` `data/shares.json`
+- `M` `_locales/zh_TW/messages.json`
+- `M` `background.js`
+- `M` `config/agentCatalog.js`
+- `A` `config/agentCatalog.json`
+- `M` `config/agentCatalogData.js`
+- `M` `config/agentEngineConfig.js`
+- `M` `config/appConfig.json`
+- `M` `config/baseConfig.js`
+- `A` `docs/hermes-openclaw-plugin-compat.md`
 - `M` `docs/release-notes/history.md`
 - `M` `docs/release-notes/latest.md`
-- `A` `docs/superpowers/specs/2026-05-22-share-poster-design.md`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `M` `homepage/site-indicator-utils.js`
+- `A` `icons/globe.svg`
+- `M` `iframe/agent-panel.css`
+- `M` `iframe/agent-panel.html`
+- `M` `iframe/agent-panel.js`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `M` `remote-relay/data/shares.json`
-- `M` `remote-relay/src/server.js`
-- `A` `scripts/generate-promo-placeholder-video.js`
+- `M` `options/options.css`
+- `M` `options/options.html`
+- `M` `options/options.js`
 - `M` `scripts/generate-release-notes.js`
-- `A` `scripts/record-promo-video.js`
+- `A` `scripts/package-extension.sh`
+- `M` `shared/agent-prompt-utils.js`
+- `M` `shared/runtime-i18n.js`
+- `M` `shared/sidebar.js`
+- `A` `tests/agent-catalog.test.js`
+- `A` `tests/agent-prompt-utils.test.js`
+- `A` `tests/hermes-ai-compare-plugin.test.js`
 
 ### Recent commits / 最近提交
+- `0a94946` 2026-05-25 V4.1.1 支持语言选择，支持谷歌网盘同步，支持展示更新记录
 - `dfa6433` 2026-05-22 chore: verify auto sync hooks
 - `2a720e3` 2026-05-21 V4.1.0 支持分享到链接
 - `f79a148` 2026-05-18 V4.0.1 修复小 bug
 - `63e4f41` 2026-05-18 V4.0.0 支持智能体
-- `16923e6` 2026-05-15 V3.4.2 完善语言包
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

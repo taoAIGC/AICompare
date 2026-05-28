@@ -1573,6 +1573,12 @@
       }
     }
   },
+  "timelineCopyPreviewSuccessSitesLabel": {
+    "message": "成功サイト"
+  },
+  "timelineCopyPreviewFailedSitesLabel": {
+    "message": "失敗サイト"
+  },
   "timelineCopyPreviewShare": {
     "message": "共有"
   },
@@ -1862,6 +1868,9 @@
   "timelineCopyPreviewShareNoRelay": {
     "message": "利用可能な relay アドレスが見つかりません。先に設定で入力してください。"
   },
+  "timelineCopyPreviewOpen": {
+    "message": "開く"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -2037,6 +2046,18 @@
   "agentPanelSendButton": {
     "message": "送信"
   },
+  "agentPanelRemoveAttachment": {
+    "message": "添付を削除"
+  },
+  "agentPanelAttachmentTooLarge": {
+    "message": "添付ファイルが大きすぎます"
+  },
+  "agentAttachmentImagesOnly": {
+    "message": "現在のスキルモデルは、元の画像添付のみを直接送信できます。画像以外のファイルはサイトパネルで利用してください。"
+  },
+  "agentAttachmentSourceMissing": {
+    "message": "元の添付ファイルを利用できなくなりました。もう一度添付してください。"
+  },
   "agentRequestFailed": {
     "message": "エージェントへのリクエストに失敗しました"
   },
@@ -2069,17 +2090,11 @@
   "agentBuffettName": {
     "message": "バフェット"
   },
-  "agentBuffettShortName": {
-    "message": "バ"
-  },
   "agentBuffettDescription": {
     "message": "長期価値、競争優位、資本配分"
   },
   "agentMungerName": {
     "message": "マンガー"
-  },
-  "agentMungerShortName": {
-    "message": "マ"
   },
   "agentMungerDescription": {
     "message": "メンタルモデル、逆張り、愚かさを避ける"
@@ -2087,17 +2102,11 @@
   "agentDuanyongpingName": {
     "message": "段永平"
   },
-  "agentDuanyongpingShortName": {
-    "message": "段"
-  },
   "agentDuanyongpingDescription": {
     "message": "常識、事業の質、長期保有"
   },
   "agentElonMuskName": {
     "message": "イーロン・マスク"
-  },
-  "agentElonMuskShortName": {
-    "message": "イ"
   },
   "agentElonMuskDescription": {
     "message": "第一原理、スピード、エンジニアリング密度、極限最適化"
@@ -2105,17 +2114,11 @@
   "agentSamAltmanName": {
     "message": "Sam Altman"
   },
-  "agentSamAltmanShortName": {
-    "message": "S"
-  },
   "agentSamAltmanDescription": {
     "message": "スタートアップ、流通、プラットフォーム戦略、長期ポジショニング"
   },
   "agentKarpathyName": {
     "message": "Andrej Karpathy"
-  },
-  "agentKarpathyShortName": {
-    "message": "K"
   },
   "agentKarpathyDescription": {
     "message": "AI の直感、システム思考、学習、現実的なエンジニアリング"
@@ -2141,9 +2144,6 @@
   "agentSocraticQuestioningName": {
     "message": "ソクラテス式問いかけ"
   },
-  "agentSocraticQuestioningShortName": {
-    "message": "問"
-  },
   "agentSocraticQuestioningDescription": {
     "message": "ソクラテス式の問いで前提・目的・根拠・矛盾を明確にする"
   },
@@ -2152,9 +2152,6 @@
   },
   "agentExecutiveRoundtableName": {
     "message": "経営会議"
-  },
-  "agentExecutiveRoundtableShortName": {
-    "message": "会"
   },
   "agentExecutiveRoundtableDescription": {
     "message": "財務・監査・技術・プロダクト・営業・ブランド・運営・人事の視点から同じ課題を分析する"

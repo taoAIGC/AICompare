@@ -1,4 +1,74 @@
-async function loadSidebarMarkup() {
+const SIDEBAR_MARKUP = `
+<nav class="sidebar-nav" data-i18n-aria-label="sidebarPrimaryAriaLabel" aria-label="">
+    <div class="sidebar-nav-body">
+        <div class="sidebar-nav-header">
+            <a class="app-icon-link" href="../homepage/homepage.html" data-i18n-title="openHomepageLabel" data-i18n-aria-label="openHomepageLabel" title="" aria-label="">
+                <img class="app-icon" src="../icons/icon48.png" alt="" aria-hidden="true">
+            </a>
+        </div>
+        <div class="action-links">
+            <a id="settingsLink" class="action-link" href="#">
+                <img class="action-link-icon" src="../icons/extension-setting.svg" alt="" aria-hidden="true">
+                <span data-i18n="settingsLink"></span>
+            </a>
+            <a id="historyLink" class="action-link" href="#">
+                <img class="action-link-icon" src="../icons/history.svg" alt="" aria-hidden="true">
+                <span data-i18n="historyLink"></span>
+            </a>
+            <a id="contactLink" class="action-link" href="#">
+                <img class="action-link-icon" src="../icons/feedback.svg" alt="" aria-hidden="true">
+                <span data-i18n="contactLink"></span>
+            </a>
+            <a id="reviewLink" class="action-link" href="#">
+                <img class="action-link-icon action-link-icon-grayscale" src="../icons/thumbs-up.svg" alt="" aria-hidden="true">
+                <span data-i18n="reviewLink"></span>
+            </a>
+            <a id="coffeeLink" class="action-link" href="#">
+                <img class="action-link-icon" src="../icons/coffee.svg" alt="" aria-hidden="true">
+                <span data-i18n="coffeeLink"></span>
+            </a>
+        </div>
+        <div class="sidebar-favorites-list-wrap">
+            <a id="favoritesLink" class="action-link" href="#">
+                <img class="action-link-icon" src="../icons/star_unsaved.svg" alt="" aria-hidden="true">
+                <span data-i18n="favoritesLink"></span>
+            </a>
+            <div id="sidebarFavoritesList" class="sidebar-favorites-list"></div>
+        </div>
+    </div>
+    <div class="sync-bar-wrap">
+        <div id="syncBar" class="sync-bar" role="button" tabindex="0">
+            <img class="sync-bar-icon" src="../icons/user.svg" alt="" aria-hidden="true">
+            <span id="syncBarText" class="sync-bar-text" data-i18n="logIn"></span>
+        </div>
+    </div>
+</nav>
+
+<div id="wechatModal" class="wechat-modal" style="display: none;">
+    <div class="wechat-modal-overlay"></div>
+    <div class="wechat-modal-content">
+        <div class="wechat-modal-title" data-i18n="wechatModalTitle"></div>
+        <div class="wechat-modal-id">aipmgpt</div>
+    </div>
+</div>
+
+<div id="coffeeModal" class="coffee-modal" style="display: none;">
+    <div class="coffee-modal-overlay"></div>
+    <div class="coffee-modal-content">
+        <p class="coffee-modal-text" data-i18n="coffeeModalText"></p>
+        <div class="coffee-modal-body">
+            <img id="coffeeModalImage" class="coffee-modal-image" src="" alt="">
+            <div class="coffee-modal-bmc">
+                <a class="bmc-button" href="https://buymeacoffee.com/aicompare" target="_blank" rel="noopener noreferrer">
+                    <img class="bmc-button-icon" src="../icons/buymecoffee.gif" data-i18n-alt="coffeeButtonAlt" alt="">
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+
+function renderSidebarMarkup() {
     const mount = document.getElementById('appSidebarMount');
     if (!mount) return null;
     const urlParams = new URLSearchParams(window.location.search);
@@ -7,20 +77,9 @@ async function loadSidebarMarkup() {
         mount.remove();
         return null;
     }
-    try {
-        const sidebarUrl = chrome.runtime.getURL('shared/sidebar.html');
-        const response = await fetch(sidebarUrl);
-        if (!response.ok) {
-            console.warn('Failed to load sidebar HTML:', response.status);
-            return null;
-        }
-        const html = await response.text();
-        mount.innerHTML = html;
-        return mount;
-    } catch (error) {
-        console.error('Failed to load sidebar HTML', error);
-        return null;
-    }
+
+    mount.innerHTML = SIDEBAR_MARKUP;
+    return mount;
 }
 
 function safeTrackEvent(name, params = {}) {
@@ -77,11 +136,14 @@ function applySidebarBranding(root) {
 }
 
 function getSidebarReviewUrl(externalLinks = {}) {
+    if (window.ExtensionEnvironment && typeof window.ExtensionEnvironment.getChromeWebStoreReviewUrl === 'function') {
+        return window.ExtensionEnvironment.getChromeWebStoreReviewUrl(externalLinks);
+    }
     const configuredUrl = String(externalLinks.reviewLink || '').trim();
     if (configuredUrl) {
         return configuredUrl;
     }
-    return `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
+    return 'https://chromewebstore.google.com/detail/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews';
 }
 
 async function initializeSidebarActionLinks() {
@@ -469,8 +531,11 @@ function markActiveSidebarLink() {
 }
 
 async function initSharedSidebar() {
-    const mount = await loadSidebarMarkup();
+    const mount = renderSidebarMarkup();
     if (!mount) return;
+    if (window.RuntimeI18n?.initializeRuntimeI18n) {
+        await window.RuntimeI18n.initializeRuntimeI18n();
+    }
     applySidebarI18n(mount);
     applySidebarBranding(mount);
     markActiveSidebarLink();
@@ -483,9 +548,18 @@ async function initSharedSidebar() {
     ]);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    initSharedSidebar();
-});
+function scheduleSharedSidebarInit() {
+    if (document.getElementById('appSidebarMount')) {
+        void initSharedSidebar();
+        return;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        void initSharedSidebar();
+    }, { once: true });
+}
+
+scheduleSharedSidebarInit();
 if (typeof window !== 'undefined') {
     window.addEventListener('runtime-language-changed', () => {
         const mount = document.getElementById('appSidebarMount');

@@ -1573,6 +1573,12 @@
       }
     }
   },
+  "timelineCopyPreviewSuccessSitesLabel": {
+    "message": "المواقع الناجحة"
+  },
+  "timelineCopyPreviewFailedSitesLabel": {
+    "message": "المواقع الفاشلة"
+  },
   "timelineCopyPreviewShare": {
     "message": "مشاركة"
   },
@@ -1862,6 +1868,9 @@
   "timelineCopyPreviewShareNoRelay": {
     "message": "لم يتم العثور على عنوان relay متاح. يرجى إضافته في الإعدادات أولاً."
   },
+  "timelineCopyPreviewOpen": {
+    "message": "فتح"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -2037,6 +2046,18 @@
   "agentPanelSendButton": {
     "message": "إرسال"
   },
+  "agentPanelRemoveAttachment": {
+    "message": "إزالة المرفق"
+  },
+  "agentPanelAttachmentTooLarge": {
+    "message": "المرفق كبير جدًا"
+  },
+  "agentAttachmentImagesOnly": {
+    "message": "نموذج المهارة الحالي يدعم فقط إرسال مرفقات الصور الأصلية مباشرة. يُرجى إبقاء الملفات غير الصورية في لوحات المواقع."
+  },
+  "agentAttachmentSourceMissing": {
+    "message": "لم يعد المرفق الأصلي متاحًا. يُرجى إعادة إرفاق الملف."
+  },
   "agentRequestFailed": {
     "message": "فشل طلب الوكيل"
   },
@@ -2069,17 +2090,11 @@
   "agentBuffettName": {
     "message": "بافيت"
   },
-  "agentBuffettShortName": {
-    "message": "ب"
-  },
   "agentBuffettDescription": {
     "message": "قيمة طويلة الأجل، الخنادق التنافسية، تخصيص رأس المال"
   },
   "agentMungerName": {
     "message": "مانغر"
-  },
-  "agentMungerShortName": {
-    "message": "م"
   },
   "agentMungerDescription": {
     "message": "نماذج ذهنية، التفكير العكسي، تجنب الحماقة"
@@ -2087,17 +2102,11 @@
   "agentDuanyongpingName": {
     "message": "دوان يونغبينغ"
   },
-  "agentDuanyongpingShortName": {
-    "message": "د"
-  },
   "agentDuanyongpingDescription": {
     "message": "المنطق السليم، جودة الأعمال، الاحتفاظ طويل الأجل"
   },
   "agentElonMuskName": {
     "message": "إيلون ماسك"
-  },
-  "agentElonMuskShortName": {
-    "message": "إ"
   },
   "agentElonMuskDescription": {
     "message": "المبادئ الأولى، السرعة، كثافة الهندسة، التحسين المتطرف"
@@ -2105,17 +2114,11 @@
   "agentSamAltmanName": {
     "message": "سام ألتمان"
   },
-  "agentSamAltmanShortName": {
-    "message": "س"
-  },
   "agentSamAltmanDescription": {
     "message": "الشركات الناشئة، التوزيع، استراتيجية المنصة، التموضع طويل الأجل"
   },
   "agentKarpathyName": {
     "message": "أندريه كارباتي"
-  },
-  "agentKarpathyShortName": {
-    "message": "ك"
   },
   "agentKarpathyDescription": {
     "message": "حدس الذكاء الاصطناعي، التفكير المنظومي، التعلم، واقع الهندسة"
@@ -2141,9 +2144,6 @@
   "agentSocraticQuestioningName": {
     "message": "الأسئلة السقراطية"
   },
-  "agentSocraticQuestioningShortName": {
-    "message": "س"
-  },
   "agentSocraticQuestioningDescription": {
     "message": "وضّح الافتراضات والأهداف والأدلة والتناقضات عبر الأسئلة السقراطية"
   },
@@ -2152,9 +2152,6 @@
   },
   "agentExecutiveRoundtableName": {
     "message": "اجتماع القيادات"
-  },
-  "agentExecutiveRoundtableShortName": {
-    "message": "ج"
   },
   "agentExecutiveRoundtableDescription": {
     "message": "حلّل القضية نفسها من منظور المالية والتدقيق والتقنية والمنتج والمبيعات والعلامة التجارية والعمليات والموارد البشرية"

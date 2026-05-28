@@ -42,17 +42,21 @@ function getDefaultAgentEngineConfig() {
   return {
     baseUrl: String(normalizedDefaults.baseUrl || '').trim().replace(/\/+$/, ''),
     model: String(normalizedDefaults.model || '').trim(),
-    concurrency: Math.max(1, Number(normalizedDefaults.concurrency) || 2),
+    concurrency: Math.max(1, Number(normalizedDefaults.concurrency) || 10),
     systemPrompt: String(normalizedDefaults.systemPrompt || '').trim()
   };
 }
 
 const DEFAULT_AGENT_ENGINE_CONFIG = Object.freeze(getDefaultAgentEngineConfig());
+const AGENT_RUNTIME_KEEPALIVE_PORT_NAME = 'agent-runtime-keepalive';
+const AGENT_RUNTIME_KEEPALIVE_INTERVAL_MS = 20000;
 const agentRuntimeState = {
   activeCount: 0,
   queue: [],
   jobs: new Map(),
-  panelJobMap: new Map()
+  panelJobMap: new Map(),
+  keepalivePorts: new Map(),
+  keepaliveTimers: new Map()
 };
 
 function t(key, fallback = '', substitutions = undefined) {
@@ -134,14 +138,14 @@ async function ensureDefaultAgentEngineConfig() {
           customConfig: {
             baseUrl: String(customConfig.baseUrl || '').trim(),
             model: String(customConfig.model || '').trim(),
-            concurrency: Math.max(1, Number(customConfig.concurrency) || 2),
+            concurrency: Math.max(1, Number(customConfig.concurrency) || 10),
             systemPrompt: String(customConfig.systemPrompt || '').trim()
           }
         },
         [AGENT_ENGINE_STORAGE_KEY]: {
           baseUrl: String(customConfig.baseUrl || '').trim(),
           model: String(customConfig.model || '').trim(),
-          concurrency: Math.max(1, Number(customConfig.concurrency) || 2),
+          concurrency: Math.max(1, Number(customConfig.concurrency) || 10),
           systemPrompt: String(customConfig.systemPrompt || '').trim()
         }
       }),
@@ -320,6 +324,10 @@ async function consumeOfficialUsageQuota() {
 }
 
 async function getAgentCatalogWithCustomSettings() {
+  if (typeof AgentCatalog.ensureCatalogHydrated === 'function') {
+    await AgentCatalog.ensureCatalogHydrated().catch(() => null);
+  }
+
   const [
     { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings },
     { [CUSTOM_AGENTS_STORAGE_KEY]: localCustomAgents },
@@ -381,12 +389,48 @@ function buildAgentRequestJob(payload) {
     jobId: String(payload?.jobId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
     panelId: String(payload?.panelId || '').trim(),
     agentId: String(payload?.agentId || '').trim(),
-    messages: Array.isArray(payload?.messages) ? payload.messages : [],
+    messages: Array.isArray(payload?.messages) ? payload.messages.map((message) => ({
+      ...message,
+      attachments: Array.isArray(message?.attachments) ? message.attachments : []
+    })) : [],
     meta: payload?.meta || {},
     createdAt: Date.now(),
     status: 'queued',
     abortController: null
   };
+}
+
+function validateAgentMessageAttachments(messages = []) {
+  const normalizedMessages = Array.isArray(messages) ? messages : [];
+  normalizedMessages.forEach((message) => {
+    const attachments = Array.isArray(message?.attachments) ? message.attachments : [];
+    attachments.forEach((attachment) => {
+      const mediaCategory = String(
+        attachment?.mediaCategory
+        || (typeof AgentPromptUtils.getAttachmentMediaCategory === 'function'
+          ? AgentPromptUtils.getAttachmentMediaCategory(attachment?.name, attachment?.type)
+          : '')
+      ).trim();
+
+      if (mediaCategory !== 'image') {
+        throw new Error(
+          t(
+            'agentAttachmentImagesOnly',
+            'The current skill model only supports sending original image attachments directly. Please keep non-image files on site panels.'
+          )
+        );
+      }
+
+      if (typeof attachment?.dataUrl !== 'string' || !attachment.dataUrl.trim()) {
+        throw new Error(
+          t(
+            'agentAttachmentSourceMissing',
+            'The original attachment is no longer available. Please attach the file again.'
+          )
+        );
+      }
+    });
+  });
 }
 
 function sendAgentRuntimeEvent(job, data) {
@@ -399,6 +443,65 @@ function sendAgentRuntimeEvent(job, data) {
   }).catch(() => {});
 }
 
+function clearAgentKeepaliveTimer(jobId = '') {
+  const normalizedJobId = String(jobId || '').trim();
+  if (!normalizedJobId) return;
+
+  const timerId = agentRuntimeState.keepaliveTimers.get(normalizedJobId);
+  if (timerId) {
+    clearInterval(timerId);
+    agentRuntimeState.keepaliveTimers.delete(normalizedJobId);
+  }
+}
+
+function releaseAgentKeepalive(jobId = '') {
+  const normalizedJobId = String(jobId || '').trim();
+  if (!normalizedJobId) return;
+
+  clearAgentKeepaliveTimer(normalizedJobId);
+  const port = agentRuntimeState.keepalivePorts.get(normalizedJobId);
+  if (port) {
+    agentRuntimeState.keepalivePorts.delete(normalizedJobId);
+    try {
+      port.disconnect();
+    } catch (_) {}
+  }
+}
+
+function attachAgentKeepalivePort(jobId, port) {
+  const normalizedJobId = String(jobId || '').trim();
+  if (!normalizedJobId || !port) return;
+
+  releaseAgentKeepalive(normalizedJobId);
+  agentRuntimeState.keepalivePorts.set(normalizedJobId, port);
+
+  port.onDisconnect.addListener(() => {
+    clearAgentKeepaliveTimer(normalizedJobId);
+    if (agentRuntimeState.keepalivePorts.get(normalizedJobId) === port) {
+      agentRuntimeState.keepalivePorts.delete(normalizedJobId);
+    }
+  });
+
+  const timerId = setInterval(() => {
+    if (agentRuntimeState.keepalivePorts.get(normalizedJobId) !== port) {
+      clearAgentKeepaliveTimer(normalizedJobId);
+      return;
+    }
+
+    try {
+      port.postMessage({
+        type: 'agentRuntimeKeepalive',
+        jobId: normalizedJobId,
+        ts: Date.now()
+      });
+    } catch (_) {
+      releaseAgentKeepalive(normalizedJobId);
+    }
+  }, AGENT_RUNTIME_KEEPALIVE_INTERVAL_MS);
+
+  agentRuntimeState.keepaliveTimers.set(normalizedJobId, timerId);
+}
+
 function removeQueuedJobsForPanel(panelId, keepJobId = '') {
   const normalizedPanelId = String(panelId || '').trim();
   if (!normalizedPanelId) return;
@@ -407,6 +510,7 @@ function removeQueuedJobsForPanel(panelId, keepJobId = '') {
     const shouldKeep = job.panelId !== normalizedPanelId || (keepJobId && job.jobId === keepJobId);
     if (!shouldKeep) {
       agentRuntimeState.jobs.delete(job.jobId);
+      releaseAgentKeepalive(job.jobId);
     }
     return shouldKeep;
   });
@@ -468,7 +572,9 @@ async function consumeAgentStream(job, response) {
         continue;
       }
 
-      const delta = parsed?.choices?.[0]?.delta?.content || '';
+      const delta = parsed?.choices?.[0]?.delta?.content
+        || parsed?.choices?.[0]?.delta?.reasoning_content
+        || '';
       if (!delta) continue;
       content += delta;
       sendAgentRuntimeEvent(job, {
@@ -486,8 +592,17 @@ async function parseAgentErrorMessage(response) {
 
   try {
     const rawText = await response.text();
+    const requestUrl = String(response?.url || '').trim();
+    const isHermesLocalApi = /:\/\/(?:localhost|127\.0\.0\.1):8642\/v1\//i.test(requestUrl);
+    const withAuthHint = (baseMessage) => {
+      if (!isHermesLocalApi || (response.status !== 401 && response.status !== 403)) {
+        return baseMessage;
+      }
+      return `${baseMessage} Hint: check that Hermes API server is enabled, the base URL is http://localhost:8642/v1, and the API key exactly matches API_SERVER_KEY.`;
+    };
+
     if (!rawText) {
-      return fallback;
+      return withAuthHint(fallback);
     }
 
     try {
@@ -499,13 +614,13 @@ async function parseAgentErrorMessage(response) {
         ''
       ).trim();
       if (message) {
-        return `HTTP ${response.status}: ${message}`;
+        return withAuthHint(`HTTP ${response.status}: ${message}`);
       }
     } catch (_) {
       // ignore json parse errors and fall back to raw text
     }
 
-    return `HTTP ${response.status}: ${rawText.trim()}`;
+    return withAuthHint(`HTTP ${response.status}: ${rawText.trim()}`);
   } catch (_) {
     return fallback;
   }
@@ -584,6 +699,7 @@ async function executeAgentJob(job) {
       agentRuntimeState.panelJobMap.delete(job.panelId);
     }
     agentRuntimeState.jobs.delete(job.jobId);
+    releaseAgentKeepalive(job.jobId);
     flushAgentRuntimeQueue().catch((error) => {
       console.error('刷新智能体队列失败:', error);
     });
@@ -592,7 +708,7 @@ async function executeAgentJob(job) {
 
 async function flushAgentRuntimeQueue() {
   const config = await getAgentEngineConfig();
-  const maxConcurrency = Math.max(1, Number(config.concurrency) || 2);
+  const maxConcurrency = Math.max(1, Number(config.concurrency) || 10);
 
   while (agentRuntimeState.activeCount < maxConcurrency && agentRuntimeState.queue.length > 0) {
     const nextJob = agentRuntimeState.queue.shift();
@@ -610,6 +726,7 @@ async function enqueueAgentJob(payload) {
   if (!job.panelId || !job.agentId) {
     throw new Error('panelId and agentId are required');
   }
+  validateAgentMessageAttachments(job.messages);
 
   cancelAgentJob(job.panelId, 'replaced');
   removeQueuedJobsForPanel(job.panelId, job.jobId);
@@ -625,6 +742,39 @@ async function enqueueAgentJob(payload) {
     jobId: job.jobId
   };
 }
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== AGENT_RUNTIME_KEEPALIVE_PORT_NAME) {
+    return;
+  }
+
+  let boundJobId = '';
+
+  port.onMessage.addListener((message) => {
+    if (message?.type !== 'bindAgentRuntimeJob') {
+      return;
+    }
+
+    const nextJobId = String(message.jobId || '').trim();
+    if (!nextJobId) {
+      return;
+    }
+
+    if (boundJobId && boundJobId !== nextJobId) {
+      releaseAgentKeepalive(boundJobId);
+    }
+
+    boundJobId = nextJobId;
+    attachAgentKeepalivePort(nextJobId, port);
+  });
+
+  port.onDisconnect.addListener(() => {
+    if (boundJobId) {
+      releaseAgentKeepalive(boundJobId);
+      boundJobId = '';
+    }
+  });
+});
 
 // 从本地文件初始化配置到 Chrome Storage Local
 async function initializeLocalConfig() {
@@ -660,6 +810,16 @@ async function initializeLocalConfig() {
     
   } catch (error) {
     console.error('本地配置初始化失败:', error);
+  }
+}
+
+async function initializeLocalAgentCatalog() {
+  try {
+    if (typeof AgentCatalog.hydrateBundledAgentCatalogIfNeeded === 'function') {
+      await AgentCatalog.hydrateBundledAgentCatalogIfNeeded();
+    }
+  } catch (error) {
+    console.error('本地技能配置初始化失败:', error);
   }
 }
 
@@ -984,6 +1144,7 @@ chrome.runtime.onStartup.addListener(async () => {
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
     await ensureDefaultAgentEngineConfig();
+    await initializeLocalAgentCatalog();
     await initializeDefaultPromptTemplates();
     await initializeDefaultAnalysisPromptTemplates();
     
@@ -1002,6 +1163,11 @@ chrome.runtime.onStartup.addListener(async () => {
     } else {
       console.error('RemoteConfigManager 未加载');
     }
+
+    if (self.RemoteAgentConfigManager) {
+      const agentUpdateInfo = await self.RemoteAgentConfigManager.autoCheckUpdate();
+      console.log('启动时技能配置检查结果:', agentUpdateInfo);
+    }
   } catch (error) {
     console.error('启动时检查更新失败:', error);
   }
@@ -1016,6 +1182,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
     await ensureDefaultAgentEngineConfig();
+    await initializeLocalAgentCatalog();
     
     // 初始化默认提示词模板
     await initializeDefaultPromptTemplates();
@@ -1050,6 +1217,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
           console.log('扩展更新，配置无需更新，原因:', updateInfo?.reason || 'unknown');
         }
       }
+    }
+
+    if (self.RemoteAgentConfigManager) {
+      const agentUpdateInfo = await self.RemoteAgentConfigManager.autoCheckUpdate();
+      console.log('技能配置检查结果:', agentUpdateInfo);
     }
     
     // 获取当前存储的数据
@@ -2411,11 +2583,14 @@ async function getGoogleDriveAccessToken({ interactive = false } = {}) {
 async function buildUnifiedSyncPayload() {
   const syncData = await chrome.storage.sync.get(WEBDAV_SYNC_KEYS);
   const localData = await chrome.storage.local.get(WEBDAV_LOCAL_SYNC_KEYS);
+  const normalizedAgentEngineSecret = typeof AgentPromptUtils.normalizeAgentEngineSecret === 'function'
+    ? AgentPromptUtils.normalizeAgentEngineSecret(localData[AGENT_ENGINE_SECRET_STORAGE_KEY])
+    : (localData[AGENT_ENGINE_SECRET_STORAGE_KEY] || {});
   return {
     ...syncData,
     pkHistory: Array.isArray(localData.pkHistory) ? localData.pkHistory.slice(0, 500) : [],
     favoriteFolders: Array.isArray(localData.favoriteFolders) ? localData.favoriteFolders : [],
-    [AGENT_ENGINE_SECRET_STORAGE_KEY]: localData[AGENT_ENGINE_SECRET_STORAGE_KEY] || {},
+    [AGENT_ENGINE_SECRET_STORAGE_KEY]: normalizedAgentEngineSecret,
     [CUSTOM_AGENTS_STORAGE_KEY]: Array.isArray(localData[CUSTOM_AGENTS_STORAGE_KEY])
       ? localData[CUSTOM_AGENTS_STORAGE_KEY]
       : [],
@@ -2456,8 +2631,11 @@ async function applyUnifiedSyncPayload(data = {}) {
   if (Array.isArray(favoriteFolders)) {
     localPatch.favoriteFolders = favoriteFolders;
   }
-  if (agentEngineSecret && typeof agentEngineSecret === 'object') {
-    localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY] = agentEngineSecret;
+  const normalizedAgentEngineSecret = typeof AgentPromptUtils.normalizeAgentEngineSecret === 'function'
+    ? AgentPromptUtils.normalizeAgentEngineSecret(agentEngineSecret)
+    : (agentEngineSecret && typeof agentEngineSecret === 'object' ? agentEngineSecret : {});
+  if (normalizedAgentEngineSecret.apiKey || normalizedAgentEngineSecret.customApiKey) {
+    localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY] = normalizedAgentEngineSecret;
   }
   if (Array.isArray(customAgents)) {
     localPatch[CUSTOM_AGENTS_STORAGE_KEY] = customAgents;

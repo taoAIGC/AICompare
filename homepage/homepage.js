@@ -48,6 +48,19 @@ let ensureHomepagePromptTemplatesPromise = null;
 let homepageSubmitShortcutMode = HOMEPAGE_DEFAULT_SEND_SHORTCUT;
 let remoteSearchHomepageState = null;
 let remoteSearchHomepageListenerBound = false;
+let homepageAgentNameTooltipController = null;
+
+async function ensureHomepageAgentCatalogReady() {
+    if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
+        await window.hydrateBundledAgentCatalogIfNeeded().catch(() => false);
+    }
+    if (typeof window.RemoteAgentConfigManager?.autoCheckUpdate === 'function') {
+        await window.RemoteAgentConfigManager.autoCheckUpdate().catch(() => null);
+    }
+    if (typeof window.AICompareAgentCatalog?.ensureCatalogHydrated === 'function') {
+        await window.AICompareAgentCatalog.ensureCatalogHydrated().catch(() => null);
+    }
+}
 
 async function loadHomepageSubmitShortcutMode() {
     let nextMode = HOMEPAGE_DEFAULT_SEND_SHORTCUT;
@@ -355,6 +368,31 @@ function getHomepageSiteIndicatorIcon(site) {
     return window.HomepageSiteIndicatorUtils?.getHomepageSiteIndicatorIcon?.(site) || null;
 }
 
+function getHomepageSiteIconPath(site) {
+    return window.HomepageSiteIndicatorUtils?.getHomepageSiteIconPath?.(site) || '../icons/icon16.png';
+}
+
+function getHomepageSiteIconFallbackPath() {
+    return window.HomepageSiteIndicatorUtils?.getHomepageSiteIconFallbackPath?.() || '../icons/icon16.png';
+}
+
+function createHomepageSiteAvatar(site) {
+    const avatar = document.createElement('img');
+    avatar.className = 'site-avatar';
+    avatar.src = getHomepageSiteIconPath(site);
+    avatar.alt = '';
+    avatar.loading = 'lazy';
+    avatar.draggable = false;
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.addEventListener('error', () => {
+        if (!avatar.dataset.fallbackApplied) {
+            avatar.dataset.fallbackApplied = '1';
+            avatar.src = getHomepageSiteIconFallbackPath();
+        }
+    });
+    return avatar;
+}
+
 function getAvailableSiteGroups(sites) {
     const configuredGroups = Array.isArray(homepageSitesState.configuredGroups) && homepageSitesState.configuredGroups.length > 0
         ? homepageSitesState.configuredGroups
@@ -457,6 +495,8 @@ function renderSitesList() {
         nameLabel.textContent = site.name;
         nameLabel.htmlFor = `site-${site.name}`;
 
+        const avatar = createHomepageSiteAvatar(site);
+
         const siteIndicatorIcon = getHomepageSiteIndicatorIcon(site);
         let indicator = null;
         if (siteIndicatorIcon) {
@@ -484,6 +524,7 @@ function renderSitesList() {
 
         div.appendChild(dragHandle);
         div.appendChild(checkbox);
+        div.appendChild(avatar);
         div.appendChild(nameLabel);
         if (indicator) {
             div.appendChild(indicator);
@@ -502,21 +543,13 @@ function getSelectedCustomSiteIds() {
 
 function getSelectedAgentIds() {
     return (homepageSitesState.agentCatalog?.agents || [])
-        .filter(agent =>
-            homepageSitesState.selectedAgents.get(agent.id) === true
-            && getAgentGroup(agent) === homepageSitesState.activeGroup
-        )
+        .filter(agent => homepageSitesState.selectedAgents.get(agent.id) === true)
         .map(agent => agent.id);
-}
-
-function getAgentGroup(agent) {
-    const rawGroup = String(agent?.type || DEFAULT_SITE_GROUP).trim().toLowerCase();
-    return rawGroup === 'agents' ? DEFAULT_SITE_GROUP : (rawGroup || DEFAULT_SITE_GROUP);
 }
 
 function getFilteredAgents() {
     return (homepageSitesState.agentCatalog?.agents || [])
-        .filter(agent => getAgentGroup(agent) === DEFAULT_SITE_GROUP);
+        .filter(agent => agent.enabled === true);
 }
 
 function updateAgentsSectionVisibility() {
@@ -526,8 +559,54 @@ function updateAgentsSectionVisibility() {
     }
 
     const hasVisibleAgents = (homepageSitesState.agentCatalog?.agents || [])
-        .some(agent => getAgentGroup(agent) === DEFAULT_SITE_GROUP);
-    agentsSection.hidden = !(homepageSitesState.activeGroup === DEFAULT_SITE_GROUP && hasVisibleAgents);
+        .some(agent => agent.enabled === true);
+    agentsSection.hidden = !hasVisibleAgents;
+}
+
+function refreshHomepageAgentNameTooltipEligibility() {
+    const agentsList = document.getElementById('agentsList');
+    if (!agentsList) {
+        return;
+    }
+
+    agentsList.querySelectorAll('.agent-name-label').forEach((label) => {
+        if (!(label instanceof HTMLElement)) {
+            return;
+        }
+        const fullName = String(label.dataset.agentName || label.textContent || '').trim();
+        const isTruncated = label.scrollWidth > label.clientWidth + 1;
+        if (isTruncated && fullName) {
+            label.setAttribute('data-url', fullName);
+            label.setAttribute('aria-label', fullName);
+        } else {
+            label.removeAttribute('data-url');
+            if (label.getAttribute('aria-label') === fullName) {
+                label.removeAttribute('aria-label');
+            }
+        }
+        label.removeAttribute('title');
+        label.removeAttribute('data-original-title');
+    });
+}
+
+function bindHomepageAgentNameTooltip() {
+    const agentsList = document.getElementById('agentsList');
+    const tooltipApi = window.SiteUrlTooltip;
+    if (!agentsList || typeof tooltipApi?.attachUrlTooltip !== 'function') {
+        return;
+    }
+
+    if (homepageAgentNameTooltipController?.destroy) {
+        homepageAgentNameTooltipController.destroy();
+    }
+
+    homepageAgentNameTooltipController = tooltipApi.attachUrlTooltip(agentsList, {
+        selector: '.agent-name-label[data-url]',
+        tooltipId: 'homepageAgentNameTooltip',
+        showDelay: 80
+    });
+
+    refreshHomepageAgentNameTooltipEligibility();
 }
 
 function renderAgentsList() {
@@ -574,6 +653,7 @@ function renderAgentsList() {
         label.htmlFor = `agent-${agent.id}`;
         label.textContent = agent.name;
         label.className = 'agent-name-label';
+        label.dataset.agentName = agent.name || '';
 
         const description = document.createElement('div');
         description.className = 'agent-description';
@@ -599,6 +679,7 @@ function renderAgentsList() {
     });
 
     agentsList.appendChild(fragment);
+    refreshHomepageAgentNameTooltipEligibility();
 }
 
 async function initializeAgentsList() {
@@ -633,7 +714,11 @@ async function initializeAgentsList() {
         homepageSitesState.agentCatalog = {
             categories: Array.isArray(catalog?.categories) ? catalog.categories : [],
             agents: Array.isArray(catalog?.agents)
-                ? catalog.agents.filter(agent => agent && !hiddenAgentIdSet.has(String(agent.id || '').trim()))
+                ? catalog.agents.filter(agent =>
+                    agent
+                    && agent.enabled === true
+                    && !hiddenAgentIdSet.has(String(agent.id || '').trim())
+                )
                 : []
         };
         const previousSelectedAgents = homepageSitesState.selectedAgents instanceof Map
@@ -644,7 +729,7 @@ async function initializeAgentsList() {
                 agent.id,
                 previousSelectedAgents.has(agent.id)
                     ? previousSelectedAgents.get(agent.id)
-                    : (agent.defaultEnabled === true)
+                    : (agent.defaultSelected === true)
             ])
         );
         updateAgentsSectionVisibility();
@@ -695,6 +780,8 @@ function renderCustomSitesList() {
         nameLabel.textContent = site.name;
         nameLabel.htmlFor = `custom-site-${site.id}`;
 
+        const avatar = createHomepageSiteAvatar(site);
+
         div.addEventListener('click', (e) => {
             if (e.target === checkbox || e.target === nameLabel) {
                 return;
@@ -703,6 +790,7 @@ function renderCustomSitesList() {
         });
 
         div.appendChild(checkbox);
+        div.appendChild(avatar);
         div.appendChild(nameLabel);
         fragment.appendChild(div);
     });
@@ -916,10 +1004,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeSaveSitesButton();
     perfMark('save_button_init_end');
     perfMeasure('save_button_init_duration', 'save_button_init_start', 'save_button_init_end');
+
+    bindHomepageAgentNameTooltip();
+    window.addEventListener('resize', refreshHomepageAgentNameTooltipEligibility);
     
     // 非关键初始化并行执行，减少首屏等待
     perfMark('non_critical_init_start');
     void Promise.allSettled([
+        measureAsyncStep('agent_catalog_ready_init', () => ensureHomepageAgentCatalogReady()),
         measureAsyncStep('pin_guide_init', () => checkAndShowPinGuide()),
         measureAsyncStep('query_suggestions_init', () => initializeQuerySuggestions()),
         measureAsyncStep('sites_list_init', () => initializeSitesList()),
@@ -1577,7 +1669,7 @@ function initializeSaveSitesButton() {
                     : {};
                 updatedAgentCustomSettings[agent.id] = {
                     ...currentSettings,
-                    defaultEnabled: selectedAgentIds.includes(agent.id)
+                    defaultSelected: selectedAgentIds.includes(agent.id)
                 };
             });
             
@@ -1591,6 +1683,15 @@ function initializeSaveSitesButton() {
                 customSites: updatedCustomSites,
                 agentCustomSettings: updatedAgentCustomSettings
             });
+            if (homepageSitesState.agentCatalog?.agents) {
+                homepageSitesState.agentCatalog = {
+                    ...homepageSitesState.agentCatalog,
+                    agents: homepageSitesState.agentCatalog.agents.map((agent) => ({
+                        ...agent,
+                        defaultSelected: selectedAgentIds.includes(agent.id)
+                    }))
+                };
+            }
             homepageSitesState.customSites = updatedCustomSites;
             homepageSitesState.selectedCustomSites = new Map(
                 updatedCustomSites.map(site => [site.id, site.enabled === true])
@@ -1641,8 +1742,30 @@ document.getElementById('fileUploadButton').addEventListener('click', () => {
     
     // 获取选中的站点列表
     const selectedSites = getSelectedSites();
-    if (selectedSites.length > 0) {
-        urlParams.set('sites', selectedSites.join(','));
+    const selectedCustomSiteIds = getSelectedCustomSiteIds();
+    const selectedAgentIds = getSelectedAgentIds();
+    const selectedSiteConfigs = homepageSitesState.supportedSites.filter(site =>
+        selectedSites.includes(site.name)
+    );
+    const selectedCustomSiteConfigs = (homepageSitesState.customSites || []).filter(site =>
+        selectedCustomSiteIds.includes(site.id)
+    );
+    const iframeSiteNames = selectedSiteConfigs
+        .filter(site => site.supportIframe === true)
+        .map(site => site.name)
+        .filter(Boolean);
+    const customIframeSiteIds = selectedCustomSiteConfigs
+        .filter(site => site.supportIframe === true)
+        .map(site => site.id)
+        .filter(Boolean);
+    if (iframeSiteNames.length > 0) {
+        urlParams.set('sites', iframeSiteNames.join(','));
+    }
+    if (customIframeSiteIds.length > 0) {
+        urlParams.set('customSites', customIframeSiteIds.join(','));
+    }
+    if (selectedAgentIds.length > 0) {
+        urlParams.set('agents', selectedAgentIds.join(','));
     }
     if (homepageSitesState.activeGroup) {
         urlParams.set('type', homepageSitesState.activeGroup);
@@ -1657,6 +1780,8 @@ document.getElementById('fileUploadButton').addEventListener('click', () => {
 
     trackEvent('homepage_upload_click', {
         selected_sites_count: selectedSites.length,
+        custom_sites_count: selectedCustomSiteIds.length,
+        agents_count: selectedAgentIds.length,
         side_panel: isSidePanel
     });
     

@@ -9,6 +9,7 @@
   let activeMessages = {};
   let initialized = false;
   let storageListenerBound = false;
+  let initializationPromise = null;
 
   function normalizeLocale(locale = '') {
     const value = String(locale || '').trim().replace('-', '_');
@@ -107,22 +108,36 @@
   }
 
   async function initializeRuntimeI18n() {
-    const storedLocale = await getStoredLocalePreference();
-    const resolvedLocale = storedLocale === AUTO_VALUE ? getBrowserLocale() : storedLocale;
-    activeLocale = resolvedLocale || DEFAULT_LOCALE;
-    activeMessages = await loadLocaleMessages(activeLocale);
-    initialized = true;
-    bindStorageListener();
-
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      if (root) {
-        root.lang = activeLocale.replace('_', '-');
-        root.dir = getTextDirection(activeLocale);
-      }
+    if (initialized && activeLocale) {
+      return activeLocale;
     }
 
-    return activeLocale;
+    if (!initializationPromise) {
+      initializationPromise = (async () => {
+        const storedLocale = await getStoredLocalePreference();
+        const resolvedLocale = storedLocale === AUTO_VALUE ? getBrowserLocale() : storedLocale;
+        activeLocale = resolvedLocale || DEFAULT_LOCALE;
+        activeMessages = await loadLocaleMessages(activeLocale);
+        initialized = true;
+        bindStorageListener();
+
+        if (typeof document !== 'undefined') {
+          const root = document.documentElement;
+          if (root) {
+            root.lang = activeLocale.replace('_', '-');
+            root.dir = getTextDirection(activeLocale);
+          }
+        }
+
+        return activeLocale;
+      })();
+    }
+
+    try {
+      return await initializationPromise;
+    } finally {
+      initializationPromise = null;
+    }
   }
 
   async function setLocalePreference(nextLocale = AUTO_VALUE) {

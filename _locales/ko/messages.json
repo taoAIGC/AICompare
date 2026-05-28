@@ -1573,6 +1573,12 @@
       }
     }
   },
+  "timelineCopyPreviewSuccessSitesLabel": {
+    "message": "성공 사이트"
+  },
+  "timelineCopyPreviewFailedSitesLabel": {
+    "message": "실패 사이트"
+  },
   "timelineCopyPreviewShare": {
     "message": "공유"
   },
@@ -1862,6 +1868,9 @@
   "timelineCopyPreviewShareNoRelay": {
     "message": "사용 가능한 relay 주소를 찾지 못했습니다. 먼저 설정에서 입력해 주세요."
   },
+  "timelineCopyPreviewOpen": {
+    "message": "열기"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -2037,6 +2046,18 @@
   "agentPanelSendButton": {
     "message": "전송"
   },
+  "agentPanelRemoveAttachment": {
+    "message": "첨부 제거"
+  },
+  "agentPanelAttachmentTooLarge": {
+    "message": "첨부 파일이 너무 큽니다"
+  },
+  "agentAttachmentImagesOnly": {
+    "message": "현재 Skill 모델은 원본 이미지 첨부만 직접 전송할 수 있습니다. 이미지가 아닌 파일은 사이트 패널에서 사용해 주세요."
+  },
+  "agentAttachmentSourceMissing": {
+    "message": "원본 첨부 파일을 더 이상 사용할 수 없습니다. 파일을 다시 첨부해 주세요."
+  },
   "agentRequestFailed": {
     "message": "에이전트 요청에 실패했습니다"
   },
@@ -2069,17 +2090,11 @@
   "agentBuffettName": {
     "message": "버핏"
   },
-  "agentBuffettShortName": {
-    "message": "버"
-  },
   "agentBuffettDescription": {
     "message": "장기 가치, 해자, 자본 배분"
   },
   "agentMungerName": {
     "message": "멍거"
-  },
-  "agentMungerShortName": {
-    "message": "멍"
   },
   "agentMungerDescription": {
     "message": "멘털 모델, 역발상, 어리석음 피하기"
@@ -2087,17 +2102,11 @@
   "agentDuanyongpingName": {
     "message": "단융핑"
   },
-  "agentDuanyongpingShortName": {
-    "message": "단"
-  },
   "agentDuanyongpingDescription": {
     "message": "상식, 사업의 질, 장기 보유"
   },
   "agentElonMuskName": {
     "message": "일론 머스크"
-  },
-  "agentElonMuskShortName": {
-    "message": "일"
   },
   "agentElonMuskDescription": {
     "message": "제1원리, 속도, 엔지니어링 밀도, 극한 최적화"
@@ -2105,17 +2114,11 @@
   "agentSamAltmanName": {
     "message": "Sam Altman"
   },
-  "agentSamAltmanShortName": {
-    "message": "S"
-  },
   "agentSamAltmanDescription": {
     "message": "스타트업, 유통, 플랫폼 전략, 장기 포지셔닝"
   },
   "agentKarpathyName": {
     "message": "Andrej Karpathy"
-  },
-  "agentKarpathyShortName": {
-    "message": "K"
   },
   "agentKarpathyDescription": {
     "message": "AI 직관, 시스템 사고, 학습, 엔지니어링 현실"
@@ -2141,9 +2144,6 @@
   "agentSocraticQuestioningName": {
     "message": "소크라테스식 질문"
   },
-  "agentSocraticQuestioningShortName": {
-    "message": "문"
-  },
   "agentSocraticQuestioningDescription": {
     "message": "소크라테스식 질문으로 가정, 목표, 근거, 모순을 분명히 한다"
   },
@@ -2152,9 +2152,6 @@
   },
   "agentExecutiveRoundtableName": {
     "message": "임원 회의"
-  },
-  "agentExecutiveRoundtableShortName": {
-    "message": "회"
   },
   "agentExecutiveRoundtableDescription": {
     "message": "재무, 감사, 기술, 제품, 영업, 브랜드, 운영, HR 관점에서 같은 이슈를 분석한다"

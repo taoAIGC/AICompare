@@ -1,8 +1,13 @@
-### 2026-05-25
+### 2026-05-29
 - 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
 - The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
+- 多语言和界面文案得到补强，不同语言环境下使用会更自然。
+- 分享链路更清晰，结果转发、留存和协作会更方便。
 
 
+### V4.1.1 | 2026-05-25
+- 支持手动选择界面语言，并新增 Google 云端硬盘同步，跨设备恢复配置更方便；联系页也会直接展示版本更新记录。
+- Manual UI language selection is supported, Google Drive sync makes restoring settings across devices easier, and release notes are now shown on the contact page.
 ### V4.1.0 | 2026-05-21
 - 支持把结果分享成链接，转发、存档和协作都会更方便。
 - Sharing results as links is supported, making forwarding, archiving, and collaboration easier.

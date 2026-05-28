@@ -1573,6 +1573,12 @@
       }
     }
   },
+  "timelineCopyPreviewSuccessSitesLabel": {
+    "message": "Erfolgreiche Sites"
+  },
+  "timelineCopyPreviewFailedSitesLabel": {
+    "message": "Fehlgeschlagene Sites"
+  },
   "timelineCopyPreviewShare": {
     "message": "Teilen"
   },
@@ -1862,6 +1868,9 @@
   "timelineCopyPreviewShareNoRelay": {
     "message": "Keine Relay-Adresse gefunden. Bitte trage sie zuerst in den Einstellungen ein."
   },
+  "timelineCopyPreviewOpen": {
+    "message": "Öffnen"
+  },
   "remoteSearchRelayUnavailable": {
     "message": "Remote relay is offline."
   },
@@ -2037,6 +2046,18 @@
   "agentPanelSendButton": {
     "message": "Senden"
   },
+  "agentPanelRemoveAttachment": {
+    "message": "Anhang entfernen"
+  },
+  "agentPanelAttachmentTooLarge": {
+    "message": "Der Anhang ist zu groß"
+  },
+  "agentAttachmentImagesOnly": {
+    "message": "Das aktuelle Skill-Modell unterstützt nur das direkte Senden ursprünglicher Bildanhänge. Bitte verwende Nicht-Bild-Dateien weiterhin in Website-Panels."
+  },
+  "agentAttachmentSourceMissing": {
+    "message": "Der ursprüngliche Anhang ist nicht mehr verfügbar. Bitte füge die Datei erneut an."
+  },
   "agentRequestFailed": {
     "message": "Agentenanfrage fehlgeschlagen"
   },
@@ -2069,17 +2090,11 @@
   "agentBuffettName": {
     "message": "Buffett"
   },
-  "agentBuffettShortName": {
-    "message": "B"
-  },
   "agentBuffettDescription": {
     "message": "Langfristiger Wert, Burggraben, Kapitalallokation"
   },
   "agentMungerName": {
     "message": "Munger"
-  },
-  "agentMungerShortName": {
-    "message": "M"
   },
   "agentMungerDescription": {
     "message": "Mentale Modelle, Inversion, Dummheit vermeiden"
@@ -2087,17 +2102,11 @@
   "agentDuanyongpingName": {
     "message": "Duan Yongping"
   },
-  "agentDuanyongpingShortName": {
-    "message": "D"
-  },
   "agentDuanyongpingDescription": {
     "message": "Gesunder Menschenverstand, Unternehmensqualitat, langfristiges Halten"
   },
   "agentElonMuskName": {
     "message": "Elon Musk"
-  },
-  "agentElonMuskShortName": {
-    "message": "E"
   },
   "agentElonMuskDescription": {
     "message": "First Principles, Tempo, Engineering-Dichte, extreme Optimierung"
@@ -2105,17 +2114,11 @@
   "agentSamAltmanName": {
     "message": "Sam Altman"
   },
-  "agentSamAltmanShortName": {
-    "message": "S"
-  },
   "agentSamAltmanDescription": {
     "message": "Start-ups, Distribution, Plattformstrategie, langfristige Positionierung"
   },
   "agentKarpathyName": {
     "message": "Andrej Karpathy"
-  },
-  "agentKarpathyShortName": {
-    "message": "K"
   },
   "agentKarpathyDescription": {
     "message": "KI-Intuition, Systemdenken, Lernen, technische Realitat"
@@ -2141,9 +2144,6 @@
   "agentSocraticQuestioningName": {
     "message": "Sokratisches Fragen"
   },
-  "agentSocraticQuestioningShortName": {
-    "message": "F"
-  },
   "agentSocraticQuestioningDescription": {
     "message": "Kläre Annahmen, Ziele, Belege und Widersprüche mit sokratischen Fragen"
   },
@@ -2152,9 +2152,6 @@
   },
   "agentExecutiveRoundtableName": {
     "message": "Führungsrunde"
-  },
-  "agentExecutiveRoundtableShortName": {
-    "message": "R"
   },
   "agentExecutiveRoundtableDescription": {
     "message": "Analysiere ein Thema aus Sicht von Finanzen, Audit, Technik, Produkt, Vertrieb, Marke, Betrieb und HR"
