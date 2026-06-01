@@ -69,6 +69,42 @@
             -->
         </div> <!-- 结束 search-bar-right-buttons 容器 -->
     </div>
+    <section id="liveSummaryCard" class="live-summary-card" hidden aria-live="polite">
+        <div class="live-summary-card-header">
+            <div class="live-summary-card-heading">
+                <div class="live-summary-card-title-row">
+                    <div id="liveSummaryTitle" class="live-summary-card-title" data-i18n="liveSummaryTitle"></div>
+                    <div
+                        id="liveSummaryTabs"
+                        class="live-summary-tabs"
+                        role="tablist"
+                        data-i18n-aria-label="liveSummaryTabsAriaLabel"
+                        aria-label=""
+                    ></div>
+                </div>
+                <div class="live-summary-card-subtitle-row">
+                    <div id="liveSummarySites" class="live-summary-card-sites"></div>
+                    <div id="liveSummaryHint" class="live-summary-card-hint" hidden></div>
+                    <div class="live-summary-card-inline-actions">
+                        <span class="live-summary-analysis-label" data-i18n="liveSummaryAnalysisTemplateLabel"></span>
+                        <select
+                            id="liveSummaryAnalysisTemplateSelect"
+                            class="live-summary-analysis-select"
+                            aria-label=""
+                            data-i18n-aria-label="analysisPromptTemplateSelectLabel"
+                        ></select>
+                    </div>
+                </div>
+                <div id="liveSummaryMeta" class="live-summary-card-meta" hidden></div>
+            </div>
+            <div class="live-summary-card-actions">
+                <button id="liveSummaryToggleButton" class="live-summary-action-btn" type="button" data-i18n="liveSummaryExpand"></button>
+            </div>
+        </div>
+        <div id="liveSummaryCardBody" class="live-summary-card-body">
+            <div id="liveSummaryContent" class="live-summary-card-content"></div>
+        </div>
+    </section>
     <div id="iframes-container">
         <!-- iframes 将被动态插入到这里 -->
     </div>
@@ -90,6 +126,7 @@
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
     <script src="../shared/runtime-i18n.js"></script>
+    <script src="../shared/markdown-renderer.js"></script>
     <script src="../shared/prompt-template-utils.js"></script>
     <script src="../shared/submit-shortcut-utils.js"></script>
     <script src="../shared/textarea-resize-utils.js"></script>

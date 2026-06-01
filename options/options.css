@@ -1996,6 +1996,20 @@ h1 {
   flex-shrink: 0;
 }
 
+.template-default-btn {
+  min-width: 88px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.template-default-btn.is-active {
+  border-color: var(--ai-accent);
+  background: var(--ai-accent-soft);
+  color: var(--ai-accent);
+}
+
 .icon-action-btn {
   width: 32px;
   height: 32px;
@@ -2053,6 +2067,11 @@ h1 {
 
 .template-code.preserve-lines {
   white-space: pre-wrap;
+}
+
+.template-badge-default {
+  background: var(--ai-accent-soft);
+  color: var(--ai-accent);
 }
 
 .state-panel {

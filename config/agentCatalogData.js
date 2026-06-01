@@ -10,7 +10,7 @@
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   const FALLBACK_CATALOG = {
-    version: '2026.05.29',
+    version: '2026.05.29.1',
     categories: [
       {
         id: 'wealth',
@@ -48,7 +48,7 @@
         categoryId: 'startup',
         color: '#d61f26',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'socratic_questioning',
@@ -60,7 +60,7 @@
         categoryId: 'technology',
         color: '#2f6f8f',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'executive_roundtable',
@@ -72,7 +72,7 @@
         categoryId: 'startup',
         color: '#b15d2a',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'systems_thinking',
@@ -84,7 +84,7 @@
         categoryId: 'technology',
         color: '#4f6b95',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'multidisciplinary_thinking',
@@ -96,7 +96,7 @@
         categoryId: 'thinking',
         color: '#5b7cfa',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'six_thinking_hats',
@@ -108,7 +108,7 @@
         categoryId: 'thinking',
         color: '#f59e0b',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'socratic_why_loop',
@@ -120,7 +120,7 @@
         categoryId: 'thinking',
         color: '#0f766e',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       },
       {
         id: 'big_shots_roundtable',
@@ -132,7 +132,7 @@
         categoryId: 'thinking',
         color: '#9333ea',
         enabled: true,
-        defaultSelected: false
+        defaultSelected: true
       }
     ]
   };

@@ -7,6 +7,7 @@ const AgentCatalog = window.AICompareAgentCatalog || {};
 const AgentEngineConfig = window.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = window.AICompareAgentPromptUtils || {};
 const HybridHistoryDB = window.AICompareHybridHistoryDB || {};
+const MarkdownRenderer = window.AICompareMarkdownRenderer || {};
 const SubmitShortcutUtils = window.SubmitShortcutUtils || {};
 const normalizeSendShortcutMode = typeof SubmitShortcutUtils.normalizeSendShortcutMode === 'function'
   ? SubmitShortcutUtils.normalizeSendShortcutMode
@@ -25,12 +26,14 @@ const IFRAME_DEFAULT_SEND_SHORTCUT = 'enter';
 const IFRAME_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
   navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
 );
+const LIVE_SUMMARY_ANALYSIS_STREAM_PORT_NAME = 'standalone-analysis-stream';
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
+const DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY = 'defaultAnalysisTemplateId';
 
 async function ensureIframeAgentCatalogReady() {
   if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
@@ -49,6 +52,33 @@ let isComposing = false;
 let searchBarAutoCollapseArmed = false;
 let searchBarCollapseTimer = null;
 let iframeSubmitShortcutMode = IFRAME_DEFAULT_SEND_SHORTCUT;
+const LIVE_SUMMARY_RECHECK_DELAY_MS = 1200;
+const LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS = 60000;
+const liveSummaryContext = {
+  analysisQuery: '',
+  analysisTemplates: [],
+  selectedAnalysisTemplateId: '',
+  requestGeneration: 0,
+  requestSequenceByEntryKey: new Map(),
+  analysisPortsByEntryKey: new Map()
+};
+const liveSummaryState = {
+  activeEntryKey: '',
+  visibleEntryKeys: [],
+  status: 'hidden',
+  version: 0,
+  displayedVersion: 0,
+  isExpanded: false,
+  isAnalyzing: false,
+  pendingTimer: null,
+  autoAnalysisTimersByEntryKey: new Map(),
+  hintTimer: null,
+  updatedAt: '',
+  readySignature: '',
+  compareSites: [],
+  lastGeneratedEntryKey: '',
+  summariesByEntryKey: new Map()
+};
 
 async function loadIframeSubmitShortcutMode() {
   let nextMode = IFRAME_DEFAULT_SEND_SHORTCUT;
@@ -92,29 +122,48 @@ async function refreshIframeVisibleQuerySuggestions() {
 }
 
 async function refreshOpenAnalysisTemplateSelects() {
+  const previousLiveSummaryTemplateId = String(liveSummaryContext.selectedAnalysisTemplateId || '').trim();
   const overlays = Array.from(document.querySelectorAll('.timeline-copy-preview-overlay'));
-  if (!overlays.length) {
-    return;
-  }
+  const overlayTasks = overlays.length
+    ? overlays.map(async (overlay) => {
+        const selectEl = overlay?.querySelector?.('.timeline-copy-preview-analysis-select');
+        if (!(selectEl instanceof HTMLSelectElement)) {
+          return;
+        }
 
-  await Promise.all(overlays.map(async (overlay) => {
-    const selectEl = overlay?.querySelector?.('.timeline-copy-preview-analysis-select');
-    if (!(selectEl instanceof HTMLSelectElement)) {
-      return;
-    }
+        const selectedTemplateId = String(
+          overlay.__timelineSelectedAnalysisTemplateId
+          || selectEl.value
+          || ''
+        ).trim();
 
-    const selectedTemplateId = String(
-      overlay.__timelineSelectedAnalysisTemplateId
-      || selectEl.value
-      || ''
-    ).trim();
+        try {
+          await hydrateAnalysisTemplateSelect(overlay, selectedTemplateId);
+        } catch (error) {
+          console.warn('Failed to refresh analysis template select:', error);
+        }
+      })
+    : [];
 
+  overlayTasks.push((async () => {
     try {
-      await hydrateAnalysisTemplateSelect(overlay, selectedTemplateId);
+      await hydrateLiveSummaryAnalysisTemplateSelect(liveSummaryContext.selectedAnalysisTemplateId);
     } catch (error) {
-      console.warn('Failed to refresh analysis template select:', error);
+      console.warn('Failed to refresh live summary analysis template select:', error);
     }
-  }));
+  })());
+
+  await Promise.all(overlayTasks);
+
+  const nextLiveSummaryTemplateId = String(liveSummaryContext.selectedAnalysisTemplateId || '').trim();
+  if (previousLiveSummaryTemplateId !== nextLiveSummaryTemplateId) {
+    const query = getLiveSummaryCurrentQuery();
+    if (query) {
+      void refreshLiveSummaryForCurrentQuery({ query }).catch((error) => {
+        console.warn('刷新自动总结分析模板后的结果失败:', error);
+      });
+    }
+  }
 }
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -125,6 +174,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     void refreshIframeVisibleQuerySuggestions();
   }
   if (namespace === 'sync' && changes.analysisPromptTemplates) {
+    void refreshOpenAnalysisTemplateSelects();
+  }
+  if (namespace === 'sync' && changes[DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY]) {
     void refreshOpenAnalysisTemplateSelects();
   }
   if (namespace === 'local' && changes[AGENT_HIDDEN_IDS_STORAGE_KEY]) {
@@ -171,9 +223,32 @@ const timelineBuildEntry = typeof TimelineUtils.buildTimelineEntry === 'function
 const timelineBuildCopyText = typeof TimelineUtils.buildTimelineCopyText === 'function'
   ? TimelineUtils.buildTimelineCopyText
   : ((entry, responses) => JSON.stringify({ entry, responses }, null, 2));
+const timelineBuildEntryKey = typeof TimelineUtils.buildTimelineEntryKey === 'function'
+  ? TimelineUtils.buildTimelineEntryKey
+  : ((entry) => {
+      const normalizedQuery = String(entry?.normalizedQuery || entry?.query || '').trim();
+      const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
+      return normalizedQuery ? `${normalizedQuery}::${occurrenceIndex}` : '';
+    });
+const timelineFindEntryByKey = typeof TimelineUtils.findTimelineEntryByKey === 'function'
+  ? TimelineUtils.findTimelineEntryByKey
+  : ((entries, entryKey) => (Array.isArray(entries) ? entries : []).find((entry) => timelineBuildEntryKey(entry) === String(entryKey || '').trim()) || null);
+const timelineFindEntryByTimelineId = typeof TimelineUtils.findTimelineEntryByTimelineId === 'function'
+  ? TimelineUtils.findTimelineEntryByTimelineId
+  : ((entries, timelineId) => (Array.isArray(entries) ? entries : []).find((entry) => String(entry?.timelineId || '').trim() === String(timelineId || '').trim()) || null);
+const timelineFindEntryByQuery = typeof TimelineUtils.findTimelineEntryByQuery === 'function'
+  ? TimelineUtils.findTimelineEntryByQuery
+  : ((entries, query) => {
+      const normalizedQuery = String(query || '').replace(/\s+/g, ' ').trim();
+      if (!normalizedQuery) return null;
+      return (Array.isArray(entries) ? entries : []).find((entry) => String(entry?.normalizedQuery || entry?.query || '').trim() === normalizedQuery) || null;
+    });
 const timelineMergeSnapshots = typeof TimelineUtils.mergeTimelinePromptSnapshots === 'function'
   ? TimelineUtils.mergeTimelinePromptSnapshots
   : ((snapshots) => snapshots || []);
+const timelineNormalizeQuery = typeof TimelineUtils.normalizeTimelineQuery === 'function'
+  ? TimelineUtils.normalizeTimelineQuery
+  : ((query) => String(query || '').replace(/\s+/g, ' ').trim());
 const timelineExtractPromptsFromMessages = typeof TimelineUtils.extractTimelinePromptsFromMessages === 'function'
   ? TimelineUtils.extractTimelinePromptsFromMessages
   : ((messages) => (Array.isArray(messages) ? messages
@@ -726,6 +801,1912 @@ function t(key, fallback = '', substitutions = undefined) {
   } catch (_) {
     return fallback;
   }
+}
+
+function getLiveSummaryElements() {
+  return {
+    card: document.getElementById('liveSummaryCard'),
+    title: document.getElementById('liveSummaryTitle'),
+    tabs: document.getElementById('liveSummaryTabs'),
+    hint: document.getElementById('liveSummaryHint'),
+    meta: document.getElementById('liveSummaryMeta'),
+    body: document.getElementById('liveSummaryCardBody'),
+    content: document.getElementById('liveSummaryContent'),
+    sites: document.getElementById('liveSummarySites'),
+    analysisTemplateSelect: document.getElementById('liveSummaryAnalysisTemplateSelect'),
+    refreshButton: document.getElementById('liveSummaryRefreshButton'),
+    toggleButton: document.getElementById('liveSummaryToggleButton')
+  };
+}
+
+function clearLiveSummaryPendingTimer() {
+  if (liveSummaryState.pendingTimer) {
+    clearTimeout(liveSummaryState.pendingTimer);
+    liveSummaryState.pendingTimer = null;
+  }
+}
+
+function clearLiveSummaryAutoAnalysisTimer(entryKey = '') {
+  const normalizedEntryKey = String(entryKey || '').trim();
+  if (normalizedEntryKey) {
+    const timer = liveSummaryState.autoAnalysisTimersByEntryKey.get(normalizedEntryKey);
+    if (timer) {
+      clearTimeout(timer);
+      liveSummaryState.autoAnalysisTimersByEntryKey.delete(normalizedEntryKey);
+    }
+    return;
+  }
+
+  liveSummaryState.autoAnalysisTimersByEntryKey.forEach((timer) => {
+    clearTimeout(timer);
+  });
+  liveSummaryState.autoAnalysisTimersByEntryKey.clear();
+}
+
+function getLiveSummaryAutoAnalysisDueAt(query = '', entryKey = '') {
+  const record = getLiveSummaryRecord(query, entryKey);
+  return Math.max(0, Number(record?.autoAnalysisDueAt) || 0);
+}
+
+function setLiveSummaryAutoAnalysisDueAt(query = '', entryKey = '', dueAt = 0) {
+  const normalizedDueAt = Math.max(0, Number(dueAt) || 0);
+  return setLiveSummaryRecord(query, {
+    autoAnalysisDueAt: normalizedDueAt
+  }, entryKey);
+}
+
+function ensureLiveSummaryAutoAnalysisDueAt(query = '', entryKey = '') {
+  const currentDueAt = getLiveSummaryAutoAnalysisDueAt(query, entryKey);
+  if (currentDueAt) {
+    return currentDueAt;
+  }
+  const nextDueAt = Date.now() + LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS;
+  setLiveSummaryAutoAnalysisDueAt(query, entryKey, nextDueAt);
+  return nextDueAt;
+}
+
+function clearLiveSummaryHintTimer() {
+  if (liveSummaryState.hintTimer) {
+    clearInterval(liveSummaryState.hintTimer);
+    liveSummaryState.hintTimer = null;
+  }
+}
+
+function disconnectLiveSummaryAnalysisPort(entryKey = '', reason = 'replaced') {
+  const normalizedEntryKey = String(entryKey || '').trim();
+  if (normalizedEntryKey) {
+    const port = liveSummaryContext.analysisPortsByEntryKey.get(normalizedEntryKey);
+    if (!port) {
+      return;
+    }
+    liveSummaryContext.analysisPortsByEntryKey.delete(normalizedEntryKey);
+    try {
+      port.__aiCompareExpectedDisconnect = true;
+      port.__aiCompareDisconnectReason = String(reason || 'replaced').trim() || 'replaced';
+      port.disconnect();
+    } catch (_) {
+      // ignore
+    }
+    return;
+  }
+
+  liveSummaryContext.analysisPortsByEntryKey.forEach((port, key) => {
+    try {
+      port.__aiCompareExpectedDisconnect = true;
+      port.__aiCompareDisconnectReason = String(reason || 'replaced').trim() || 'replaced';
+      port.disconnect();
+    } catch (_) {
+      // ignore
+    }
+    liveSummaryContext.analysisPortsByEntryKey.delete(key);
+  });
+}
+
+function beginLiveSummaryAnalysisRequest(entryKey = '') {
+  const normalizedEntryKey = String(entryKey || '').trim();
+  if (!normalizedEntryKey) {
+    return {
+      entryKey: '',
+      generation: liveSummaryContext.requestGeneration,
+      sequence: 0
+    };
+  }
+
+  const currentSequence = Math.max(
+    0,
+    Number(liveSummaryContext.requestSequenceByEntryKey.get(normalizedEntryKey)) || 0
+  );
+  const nextSequence = currentSequence + 1;
+  liveSummaryContext.requestSequenceByEntryKey.set(normalizedEntryKey, nextSequence);
+  return {
+    entryKey: normalizedEntryKey,
+    generation: liveSummaryContext.requestGeneration,
+    sequence: nextSequence
+  };
+}
+
+function isLiveSummaryAnalysisRequestCurrent(token = null) {
+  const normalizedEntryKey = String(token?.entryKey || '').trim();
+  if (!normalizedEntryKey) {
+    return false;
+  }
+  if (Number(token?.generation) !== liveSummaryContext.requestGeneration) {
+    return false;
+  }
+  const currentSequence = Math.max(
+    0,
+    Number(liveSummaryContext.requestSequenceByEntryKey.get(normalizedEntryKey)) || 0
+  );
+  return currentSequence === Math.max(0, Number(token?.sequence) || 0);
+}
+
+function normalizeLiveSummaryQuery(query = '') {
+  return timelineNormalizeQuery(query);
+}
+
+function getLiveSummaryEntryKey(entry) {
+  return timelineBuildEntryKey(entry);
+}
+
+function getActiveTimelineEntryKey() {
+  return getLiveSummaryEntryKey(getActiveTimelineEntry());
+}
+
+function getActiveTimelineEntry() {
+  return timelineFindEntryByTimelineId(timelineState.entries, timelineState.activeTimelineId);
+}
+
+function buildLiveSummaryEntry(query = '') {
+  return timelineBuildEntry({
+    query: normalizeLiveSummaryQuery(query)
+  }, []);
+}
+
+function getLiveSummaryRecordQueryByEntryKey(entryKey = '') {
+  const normalizedEntryKey = String(entryKey || '').trim();
+  if (!normalizedEntryKey) {
+    return '';
+  }
+  const existingRecord = liveSummaryState.summariesByEntryKey.get(normalizedEntryKey);
+  return normalizeLiveSummaryQuery(existingRecord?.query || '');
+}
+
+function getLiveSummaryTimelineEntry(query = '', entryKey = '') {
+  const normalizedEntryKey = String(entryKey || '').trim();
+  if (normalizedEntryKey) {
+    const existingEntryByKey = timelineFindEntryByKey(timelineState.entries, normalizedEntryKey);
+    if (existingEntryByKey) {
+      return existingEntryByKey;
+    }
+    const recordQuery = getLiveSummaryRecordQueryByEntryKey(normalizedEntryKey);
+    if (recordQuery) {
+      return buildLiveSummaryEntry(recordQuery);
+    }
+  }
+
+  const normalizedQuery = normalizeLiveSummaryQuery(query);
+  if (!normalizedQuery) {
+    return buildLiveSummaryEntry('');
+  }
+  const existingEntryByQuery = timelineFindEntryByQuery(timelineState.entries, normalizedQuery);
+  if (existingEntryByQuery) {
+    return existingEntryByQuery;
+  }
+  return buildLiveSummaryEntry(normalizedQuery);
+}
+
+function getLiveSummaryEntryQuery(entryKey = '') {
+  return normalizeLiveSummaryQuery(getLiveSummaryTimelineEntry('', entryKey)?.query || '');
+}
+
+function getLiveSummaryCurrentEntryKey() {
+  const candidates = [
+    String(liveSummaryState.activeEntryKey || '').trim(),
+    getActiveTimelineEntryKey(),
+    String(liveSummaryState.lastGeneratedEntryKey || '').trim(),
+    getLiveSummaryEntryKey(getLiveSummaryTimelineEntry(getLiveSummaryQueryFromPanels())),
+    getLiveSummaryEntryKey(getLiveSummaryTimelineEntry(getCurrentSearchInputQuery()))
+  ];
+
+  for (const candidate of candidates) {
+    const normalizedEntryKey = String(candidate || '').trim();
+    if (normalizedEntryKey) {
+      return normalizedEntryKey;
+    }
+  }
+
+  return '';
+}
+
+function syncTimelineSelectionForLiveSummary(entryOrQuery = null, entryKey = '') {
+  const entry = entryOrQuery && typeof entryOrQuery === 'object'
+    ? entryOrQuery
+    : getLiveSummaryTimelineEntry(entryOrQuery, entryKey);
+  const resolvedEntryKey = getLiveSummaryEntryKey(entry);
+  const matchingEntry = resolvedEntryKey
+    ? timelineFindEntryByKey(timelineState.entries, resolvedEntryKey)
+    : null;
+  const fallbackEntry = matchingEntry || timelineFindEntryByQuery(timelineState.entries, entry?.query || '');
+  if (!matchingEntry) {
+    if (!fallbackEntry) {
+      return false;
+    }
+  }
+  const nextEntry = matchingEntry || fallbackEntry;
+  if (timelineState.activeTimelineId !== nextEntry.timelineId) {
+    timelineState.activeTimelineId = nextEntry.timelineId;
+    renderTimeline();
+  }
+  return true;
+}
+
+function buildEmptyLiveSummaryRecord(query = '', entryKey = '') {
+  return {
+    entryKey: String(entryKey || '').trim(),
+    query: normalizeLiveSummaryQuery(query),
+    status: 'collecting',
+    isStreaming: false,
+    summaryText: '',
+    shortSummaryText: '',
+    collectedSummaryText: '',
+    responses: [],
+    successSiteNames: [],
+    failedSiteNames: [],
+    successCount: 0,
+    totalCount: 0,
+    updatedAt: '',
+    readySignature: '',
+    analysisSignature: '',
+    analysisTemplateId: '',
+    analysisTemplateName: '',
+    summarySource: 'analysis',
+    summaryError: '',
+    compareSites: [],
+    autoAnalysisDueAt: 0
+  };
+}
+
+function getLiveSummaryRecord(query = '', entryKey = '') {
+  const normalizedEntryKey = String(entryKey || '').trim();
+  if (normalizedEntryKey) {
+    const existingRecord = liveSummaryState.summariesByEntryKey.get(normalizedEntryKey);
+    if (existingRecord) {
+      return existingRecord;
+    }
+    return buildEmptyLiveSummaryRecord(
+      getLiveSummaryEntryQuery(normalizedEntryKey) || query,
+      normalizedEntryKey
+    );
+  }
+
+  const entry = getLiveSummaryTimelineEntry(query);
+  const resolvedEntryKey = getLiveSummaryEntryKey(entry);
+  if (!resolvedEntryKey) {
+    return buildEmptyLiveSummaryRecord(entry?.query || '');
+  }
+  return liveSummaryState.summariesByEntryKey.get(resolvedEntryKey)
+    || buildEmptyLiveSummaryRecord(entry?.query || '', resolvedEntryKey);
+}
+
+function setLiveSummaryRecord(query = '', nextRecord = {}, entryKey = '') {
+  const requestedEntryKey = String(nextRecord?.entryKey || entryKey || '').trim();
+  const entry = getLiveSummaryTimelineEntry(nextRecord?.query || query, requestedEntryKey);
+  const resolvedEntryKey = requestedEntryKey || getLiveSummaryEntryKey(entry);
+  const normalizedQuery = normalizeLiveSummaryQuery(nextRecord?.query || entry?.query || query);
+  if (!normalizedQuery && !resolvedEntryKey) {
+    return buildEmptyLiveSummaryRecord('');
+  }
+  const merged = {
+    ...buildEmptyLiveSummaryRecord(normalizedQuery, resolvedEntryKey),
+    ...(resolvedEntryKey ? getLiveSummaryRecord(normalizedQuery, resolvedEntryKey) : {}),
+    ...(nextRecord && typeof nextRecord === 'object' ? nextRecord : {}),
+    entryKey: resolvedEntryKey,
+    query: normalizedQuery
+  };
+  if (resolvedEntryKey) {
+    liveSummaryState.summariesByEntryKey.set(resolvedEntryKey, merged);
+  }
+  return merged;
+}
+
+function getActiveLiveSummaryEntry() {
+  return getLiveSummaryTimelineEntry('', getLiveSummaryCurrentEntryKey());
+}
+
+function getActiveLiveSummaryRecord() {
+  const activeEntry = getActiveLiveSummaryEntry();
+  return getLiveSummaryRecord(activeEntry?.query || '', getLiveSummaryEntryKey(activeEntry));
+}
+
+function buildLiveSummaryVisibleEntryKeys() {
+  const ordered = [];
+  const seen = new Set();
+  const pushEntryKey = (value) => {
+    const normalizedEntryKey = String(value || '').trim();
+    if (!normalizedEntryKey || seen.has(normalizedEntryKey)) return;
+    seen.add(normalizedEntryKey);
+    ordered.push(normalizedEntryKey);
+  };
+  const pushEntry = (entry) => {
+    pushEntryKey(getLiveSummaryEntryKey(entry));
+  };
+
+  timelineState.entries.forEach((entry) => {
+    pushEntry(entry);
+  });
+  pushEntryKey(liveSummaryState.activeEntryKey);
+  pushEntryKey(liveSummaryState.lastGeneratedEntryKey);
+  if (!ordered.length) {
+    pushEntry(getLiveSummaryTimelineEntry(getLiveSummaryQueryFromPanels()));
+    pushEntry(getLiveSummaryTimelineEntry(getCurrentSearchInputQuery()));
+  }
+
+  return ordered;
+}
+
+function syncLiveSummaryVisibleEntryKeys(preferredEntryKey = '') {
+  const normalizedPreferredEntryKey = String(preferredEntryKey || '').trim();
+  const visibleEntryKeys = buildLiveSummaryVisibleEntryKeys();
+  const activeTimelineEntryKey = getActiveTimelineEntryKey();
+  const normalizedActiveEntryKey = String(liveSummaryState.activeEntryKey || '').trim();
+  const normalizedLastGeneratedEntryKey = String(liveSummaryState.lastGeneratedEntryKey || '').trim();
+  liveSummaryState.visibleEntryKeys = visibleEntryKeys;
+
+  if (normalizedPreferredEntryKey && visibleEntryKeys.includes(normalizedPreferredEntryKey)) {
+    liveSummaryState.activeEntryKey = normalizedPreferredEntryKey;
+  } else if (normalizedActiveEntryKey && visibleEntryKeys.includes(normalizedActiveEntryKey)) {
+    liveSummaryState.activeEntryKey = normalizedActiveEntryKey;
+  } else if (activeTimelineEntryKey && visibleEntryKeys.includes(activeTimelineEntryKey)) {
+    liveSummaryState.activeEntryKey = activeTimelineEntryKey;
+  } else if (normalizedLastGeneratedEntryKey && visibleEntryKeys.includes(normalizedLastGeneratedEntryKey)) {
+    liveSummaryState.activeEntryKey = normalizedLastGeneratedEntryKey;
+  } else if (!visibleEntryKeys.includes(liveSummaryState.activeEntryKey)) {
+    liveSummaryState.activeEntryKey = visibleEntryKeys[visibleEntryKeys.length - 1] || '';
+  }
+}
+
+function getLiveSummaryTabLabel(query = '') {
+  return truncateLiveSummaryText(String(query || '').trim(), 24) || t('liveSummaryTitle', '自动总结');
+}
+
+function getLiveSummaryTabCountdownSeconds(query = '', entryKey = '') {
+  const dueAt = getLiveSummaryAutoAnalysisDueAt(query, entryKey);
+  if (!dueAt || dueAt <= Date.now()) {
+    return 0;
+  }
+  return Math.max(1, Math.ceil((dueAt - Date.now()) / 1000));
+}
+
+function hasLiveSummaryVisibleCountdown() {
+  const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys) ? liveSummaryState.visibleEntryKeys : [];
+  return visibleEntryKeys.some((entryKey) => {
+    const query = getLiveSummaryEntryQuery(entryKey);
+    return getLiveSummaryTabCountdownSeconds(query, entryKey) > 0;
+  });
+}
+
+function renderLiveSummaryTabs() {
+  const { tabs } = getLiveSummaryElements();
+  if (!(tabs instanceof HTMLElement)) return;
+
+  const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys) ? liveSummaryState.visibleEntryKeys : [];
+  if (!visibleEntryKeys.length) {
+    tabs.innerHTML = '';
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  visibleEntryKeys.forEach((entryKey) => {
+    const entry = getLiveSummaryTimelineEntry('', entryKey);
+    const query = normalizeLiveSummaryQuery(entry?.query || getLiveSummaryEntryQuery(entryKey));
+    const isActive = entryKey === liveSummaryState.activeEntryKey;
+    const countdownSeconds = getLiveSummaryTabCountdownSeconds(query, entryKey);
+    const button = document.createElement('button');
+    button.className = `live-summary-tab${isActive ? ' is-active' : ''}`;
+    button.type = 'button';
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    button.title = query;
+    button.setAttribute('aria-label', countdownSeconds > 0 ? `${query} ${countdownSeconds}s` : query);
+    button.dataset.entryKey = entryKey;
+    const label = document.createElement('span');
+    label.className = 'live-summary-tab-label';
+    label.textContent = getLiveSummaryTabLabel(query);
+    button.appendChild(label);
+    if (countdownSeconds > 0) {
+      const countdown = document.createElement('span');
+      countdown.className = 'live-summary-tab-countdown';
+      countdown.textContent = `${countdownSeconds}s`;
+      button.appendChild(countdown);
+    }
+    fragment.appendChild(button);
+  });
+
+  tabs.innerHTML = '';
+  tabs.appendChild(fragment);
+
+  tabs.querySelectorAll('.live-summary-tab').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const entryKey = String(button.getAttribute('data-entry-key') || '').trim();
+      const entry = getLiveSummaryTimelineEntry('', entryKey);
+      const query = normalizeLiveSummaryQuery(entry?.query || getLiveSummaryEntryQuery(entryKey));
+      const isSameEntry = entryKey === liveSummaryState.activeEntryKey;
+      const shouldExpandCard = !liveSummaryState.isExpanded;
+      if (!entryKey || !query) {
+        return;
+      }
+      if (isSameEntry) {
+        liveSummaryState.isExpanded = shouldExpandCard;
+        renderLiveSummaryCard();
+        return;
+      }
+      if (shouldExpandCard) {
+        liveSummaryState.isExpanded = true;
+      }
+      liveSummaryState.activeEntryKey = entryKey;
+      syncTimelineSelectionForLiveSummary(entry, entryKey);
+      renderLiveSummaryCard();
+      refreshLiveSummaryForCurrentQuery({
+        query,
+        entryKey,
+        source: 'tab'
+      }).catch((error) => {
+        console.warn('切换自动总结标签后刷新失败:', error);
+      });
+    });
+  });
+}
+
+function stripSummaryText(text = '') {
+  return String(text || '')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function normalizeLiveSummaryPreviewSource(text = '') {
+  return String(text || '')
+    .replace(/\r/g, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function splitLiveSummaryTablePreviewRow(line = '') {
+  const rawLine = String(line || '').trim();
+  if (!rawLine.includes('|')) {
+    return [];
+  }
+
+  let content = rawLine;
+  if (content.startsWith('|')) {
+    content = content.slice(1);
+  }
+  if (content.endsWith('|')) {
+    content = content.slice(0, -1);
+  }
+
+  return content
+    .split('|')
+    .map((cell) => String(cell || '').trim())
+    .filter((cell, index, arr) => cell || arr.length > 1);
+}
+
+function isLiveSummaryTableDelimiterLine(line = '') {
+  const cells = splitLiveSummaryTablePreviewRow(line);
+  if (!cells.length) {
+    return false;
+  }
+  return cells.every((cell) => /^:?-{2,}:?$/.test(cell));
+}
+
+function normalizeLiveSummaryPreviewLine(line = '') {
+  let text = String(line || '').trim();
+  if (!text) {
+    return '';
+  }
+
+  const tableCells = splitLiveSummaryTablePreviewRow(text);
+  if (tableCells.length >= 2 && !isLiveSummaryTableDelimiterLine(text)) {
+    text = tableCells.join(' | ');
+  }
+
+  text = text
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^\s*>\s?/, '')
+    .replace(/^\s*[-*+]\s+/, '')
+    .replace(/^\s*\d+\.\s+/, '')
+    .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]*)\)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/_([^_\n]+)_/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return text;
+}
+
+function getLiveSummaryComparableText(text = '') {
+  return stripSummaryText(text).replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function truncateLiveSummaryText(text = '', maxLength = 220) {
+  const normalized = stripSummaryText(text);
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function getLiveSummaryCollapsedText(summaryText = '') {
+  const source = normalizeLiveSummaryPreviewSource(summaryText);
+  if (!source) {
+    return '';
+  }
+
+  const lines = source.split('\n');
+  const previewLines = [];
+  let totalLength = 0;
+  let inCodeBlock = false;
+  const MAX_PREVIEW_LINES = 5;
+  const MAX_PREVIEW_LENGTH = 280;
+
+  const pushPreviewLine = (line) => {
+    const normalizedLine = normalizeLiveSummaryPreviewLine(line);
+    if (!normalizedLine) {
+      return false;
+    }
+
+    const nextLength = totalLength ? totalLength + 1 + normalizedLine.length : normalizedLine.length;
+    if (previewLines.length >= MAX_PREVIEW_LINES || nextLength > MAX_PREVIEW_LENGTH) {
+      if (!previewLines.length) {
+        previewLines.push(truncateLiveSummaryText(normalizedLine, MAX_PREVIEW_LENGTH));
+      } else if (nextLength > MAX_PREVIEW_LENGTH) {
+        const remainLength = Math.max(12, MAX_PREVIEW_LENGTH - totalLength - 1);
+        previewLines.push(truncateLiveSummaryText(normalizedLine, remainLength));
+      }
+      return true;
+    }
+
+    previewLines.push(normalizedLine);
+    totalLength = nextLength;
+    return false;
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = String(lines[index] || '');
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    if (/^(```+|~~~+)/.test(trimmed)) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    if (inCodeBlock || isLiveSummaryTableDelimiterLine(trimmed) || /^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      continue;
+    }
+
+    if (pushPreviewLine(trimmed)) {
+      break;
+    }
+  }
+
+  return previewLines.join('\n');
+}
+
+function buildLiveSummaryAnalysisSignature(query = '', contentSignature = '', templateId = '', entryKey = '') {
+  return [
+    String(entryKey || '').trim(),
+    String(query || '').trim(),
+    String(contentSignature || '').trim(),
+    String(templateId || '').trim()
+  ].join('||');
+}
+
+function shouldDeferLiveSummaryCollection(query = '', requestSource = '', entryKey = '') {
+  const normalizedSource = String(requestSource || '').trim();
+  if (normalizedSource === 'manual-analysis' || normalizedSource === 'auto-analysis') {
+    return false;
+  }
+
+  const currentRecord = getLiveSummaryRecord(query, entryKey);
+  if (currentRecord.status === 'ready' && String(currentRecord.summaryText || '').trim()) {
+    return false;
+  }
+
+  const dueAt = getLiveSummaryAutoAnalysisDueAt(query, entryKey);
+  return dueAt > Date.now();
+}
+
+function finalizeLiveSummaryAnalysisRequest(requestSource = '', query = '', entryKey = '') {
+  const normalizedSource = String(requestSource || '').trim();
+  if (normalizedSource === 'manual-analysis' || normalizedSource === 'auto-analysis') {
+    clearLiveSummaryAutoAnalysisTimer(entryKey);
+    setLiveSummaryAutoAnalysisDueAt(query, entryKey, 0);
+  }
+}
+
+function getSelectedLiveSummaryAnalysisTemplate() {
+  const templates = Array.isArray(liveSummaryContext.analysisTemplates)
+    ? liveSummaryContext.analysisTemplates
+    : [];
+  return templates.find((template) => template.id === liveSummaryContext.selectedAnalysisTemplateId) || null;
+}
+
+function buildLiveSummaryAnalysisPayload({
+  entry = null,
+  summaryText = '',
+  responses = [],
+  question = '',
+  successCount = 0,
+  totalCount = 0,
+  analysisTemplateId = '',
+  analysisTemplateName = '',
+  analysisTemplateQuery = '',
+  compareSites = []
+} = {}) {
+  const payload = analysisBuildPayload({
+    entry,
+    summaryText,
+    responses,
+    question,
+    successCount,
+    totalCount,
+    analysisTemplateId,
+    analysisTemplateName,
+    analysisTemplateQuery
+  });
+  if (Array.isArray(compareSites) && compareSites.length > 0) {
+    payload.compareSites = compareSites.slice();
+  }
+  return payload;
+}
+
+function buildLiveSummaryAnalysisPrompt(payload = {}) {
+  if (typeof AnalysisUtils.buildAnalysisPrompt === 'function') {
+    return AnalysisUtils.buildAnalysisPrompt(payload);
+  }
+  return String(payload?.question || '').trim();
+}
+
+async function requestLiveSummaryAnalysis(prompt = '', options = {}) {
+  const normalizedPrompt = String(prompt || '').trim();
+  if (!normalizedPrompt) {
+    throw new Error('Analysis prompt is required');
+  }
+
+  const normalizedEntryKey = String(options.entryKey || '').trim();
+  const requestId = String(
+    options.requestId
+    || `live-summary-${normalizedEntryKey || 'entry'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  ).trim();
+
+  return new Promise((resolve, reject) => {
+    let port = null;
+    let settled = false;
+    let latestContent = '';
+
+    const cleanup = () => {
+      if (port) {
+        try {
+          port.onMessage.removeListener(handleMessage);
+        } catch (_) {
+          // ignore
+        }
+        try {
+          port.onDisconnect.removeListener(handleDisconnect);
+        } catch (_) {
+          // ignore
+        }
+      }
+      if (normalizedEntryKey && liveSummaryContext.analysisPortsByEntryKey.get(normalizedEntryKey) === port) {
+        liveSummaryContext.analysisPortsByEntryKey.delete(normalizedEntryKey);
+      }
+    };
+
+    const finalizeResolve = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(String(value || ''));
+    };
+
+    const finalizeReject = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error instanceof Error ? error : new Error(String(error || t('agentRequestFailed', 'Skill request failed'))));
+    };
+
+    const handleMessage = (message = {}) => {
+      if (message?.requestId && String(message.requestId).trim() !== requestId) {
+        return;
+      }
+
+      if (message?.type === 'standaloneAnalysisStarted') {
+        if (typeof options.onStart === 'function') {
+          options.onStart({
+            requestId,
+            model: String(message?.model || '').trim(),
+            selectedSource: String(message?.selectedSource || '').trim()
+          });
+        }
+        return;
+      }
+
+      if (message?.type === 'standaloneAnalysisDelta') {
+        latestContent = typeof message?.content === 'string'
+          ? message.content
+          : `${latestContent}${String(message?.delta || '')}`;
+        if (typeof options.onDelta === 'function') {
+          options.onDelta(latestContent, {
+            requestId,
+            delta: String(message?.delta || ''),
+            model: String(message?.model || '').trim(),
+            selectedSource: String(message?.selectedSource || '').trim()
+          });
+        }
+        return;
+      }
+
+      if (message?.type === 'standaloneAnalysisCompleted') {
+        latestContent = typeof message?.content === 'string' ? message.content : latestContent;
+        finalizeResolve(latestContent);
+        return;
+      }
+
+      if (message?.type === 'standaloneAnalysisError') {
+        finalizeReject(new Error(String(message?.error || t('agentRequestFailed', 'Skill request failed'))));
+      }
+    };
+
+    const handleDisconnect = () => {
+      if (settled) {
+        return;
+      }
+      const disconnectReason = String(port?.__aiCompareDisconnectReason || '').trim();
+      const isExpected = port?.__aiCompareExpectedDisconnect === true;
+      const lastErrorMessage = chrome?.runtime?.lastError?.message || '';
+      const error = new Error(
+        disconnectReason
+          || lastErrorMessage
+          || t('agentRequestFailed', 'Skill request failed')
+      );
+      if (isExpected) {
+        error.name = 'AbortError';
+      }
+      finalizeReject(error);
+    };
+
+    try {
+      if (normalizedEntryKey) {
+        disconnectLiveSummaryAnalysisPort(normalizedEntryKey, 'replaced');
+      }
+      port = chrome.runtime.connect({
+        name: LIVE_SUMMARY_ANALYSIS_STREAM_PORT_NAME
+      });
+      if (normalizedEntryKey) {
+        liveSummaryContext.analysisPortsByEntryKey.set(normalizedEntryKey, port);
+      }
+      port.onMessage.addListener(handleMessage);
+      port.onDisconnect.addListener(handleDisconnect);
+      port.postMessage({
+        type: 'startStandaloneAnalysis',
+        requestId,
+        payload: {
+          prompt: normalizedPrompt
+        }
+      });
+    } catch (error) {
+      finalizeReject(error);
+    }
+  });
+}
+
+function escapeLiveSummaryHtml(text = '') {
+  if (typeof MarkdownRenderer.escapeHtml === 'function') {
+    return MarkdownRenderer.escapeHtml(text);
+  }
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderLiveSummaryContentHtml(summaryText = '', summaryError = '') {
+  const normalized = stripSummaryText(summaryText);
+  if (!normalized) {
+    const fallbackText = String(summaryError || '').trim() || t('liveSummaryEmpty', '暂无可展示的总结。');
+    return `<p>${escapeLiveSummaryHtml(fallbackText)}</p>`;
+  }
+
+  if (typeof MarkdownRenderer.renderMarkdownToHtml === 'function') {
+    const rendered = String(MarkdownRenderer.renderMarkdownToHtml(normalized) || '').trim();
+    if (rendered) {
+      return rendered;
+    }
+  }
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.split('\n').map((line) => escapeLiveSummaryHtml(line)).join('<br>')}</p>`)
+    .join('');
+}
+
+function renderLiveSummaryPreviewHtml(summaryText = '', summaryError = '') {
+  const normalized = stripSummaryText(summaryText);
+  if (!normalized) {
+    return renderLiveSummaryContentHtml('', summaryError);
+  }
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.split('\n').map((line) => escapeLiveSummaryHtml(line)).join('<br>')}</p>`)
+    .join('');
+}
+
+function formatLiveSummaryMeta() {
+  const activeRecord = getActiveLiveSummaryRecord();
+  if (activeRecord.status === 'error') {
+    return String(activeRecord.summaryError || t('agentRequestFailed', 'Skill request failed')).trim();
+  }
+  const countText = t('liveSummaryMetaReady', '$1 / $2 个面板已纳入总结', [
+    String(activeRecord.successCount || 0),
+    String(activeRecord.totalCount || 0)
+  ]);
+  if (activeRecord.isStreaming) {
+    const metaParts = [];
+    const templateName = String(activeRecord.analysisTemplateName || '').trim();
+    if (activeRecord.summarySource === 'analysis' && templateName) {
+      metaParts.push(t('liveSummaryMetaTemplateAnalysis', '已使用“$1”分析', [templateName]));
+    }
+    if (countText) {
+      metaParts.push(countText);
+    }
+    return metaParts.join(' · ');
+  }
+  if (activeRecord.status === 'collecting') {
+    if (String(activeRecord.summaryError || '').trim()) {
+      return String(activeRecord.summaryError || '').trim();
+    }
+    return t('liveSummaryCollecting', '正在等待各面板回答稳定后自动总结...');
+  }
+
+  if (activeRecord.status === 'refreshing') {
+    const baseText = t('liveSummaryRefreshing', '已有总结，正在静默刷新...');
+    if (activeRecord.successCount > 0 || activeRecord.totalCount > 0) {
+      return `${baseText} · ${t('liveSummaryMetaReady', '$1 / $2 个面板已纳入总结', [
+        String(activeRecord.successCount || 0),
+        String(activeRecord.totalCount || 0)
+      ])}`;
+    }
+    return baseText;
+  }
+
+  if (liveSummaryState.status === 'hidden') {
+    return '';
+  }
+
+  const updatedAtText = activeRecord.updatedAt
+    ? formatTimelineDateLabel(activeRecord.updatedAt)
+    : '';
+  const metaParts = [];
+  const templateName = String(activeRecord.analysisTemplateName || '').trim();
+  if (activeRecord.summarySource === 'analysis' && templateName) {
+    metaParts.push(t('liveSummaryMetaTemplateAnalysis', '已使用“$1”分析', [templateName]));
+  }
+  metaParts.push(countText);
+  if (updatedAtText) {
+    metaParts.push(updatedAtText);
+  }
+  return metaParts.join(' · ');
+}
+
+function formatLiveSummaryHint() {
+  return '';
+}
+
+function formatLiveSummaryRefreshButtonText(activeRecord = getActiveLiveSummaryRecord()) {
+  if (activeRecord?.isStreaming) {
+    return t('liveSummaryRefresh', '分析');
+  }
+
+  const dueAt = Math.max(0, Number(activeRecord?.autoAnalysisDueAt) || 0);
+  if (dueAt > Date.now()) {
+    const remainingSeconds = Math.max(1, Math.ceil((dueAt - Date.now()) / 1000));
+    return t('liveSummaryRefreshCountdown', '分析（$1s）', [String(remainingSeconds)]);
+  }
+
+  return t('liveSummaryRefresh', '分析');
+}
+
+function getActiveLiveSummaryCountdownSeconds() {
+  const dueAt = Math.max(0, Number(getActiveLiveSummaryRecord()?.autoAnalysisDueAt) || 0);
+  if (!dueAt || dueAt <= Date.now()) {
+    return 0;
+  }
+  return Math.max(1, Math.ceil((dueAt - Date.now()) / 1000));
+}
+
+function formatLiveSummaryAnalysisTemplateOptionLabel(baseLabel = '', countdownSeconds = 0) {
+  const normalizedLabel = String(baseLabel || '').trim();
+  if (!normalizedLabel) {
+    return '';
+  }
+  if (countdownSeconds <= 0) {
+    return normalizedLabel;
+  }
+  return `${normalizedLabel} · ${countdownSeconds}s`;
+}
+
+function refreshLiveSummaryAnalysisTemplateSelectLabel() {
+  const { analysisTemplateSelect } = getLiveSummaryElements();
+  if (!(analysisTemplateSelect instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const selectedTemplateId = String(
+    analysisTemplateSelect.value || liveSummaryContext.selectedAnalysisTemplateId || ''
+  ).trim();
+  const countdownSeconds = selectedTemplateId ? getActiveLiveSummaryCountdownSeconds() : 0;
+
+  Array.from(analysisTemplateSelect.options || []).forEach((option) => {
+    const baseLabel = String(option.dataset.baseLabel || option.textContent || '').trim();
+    if (!option.dataset.baseLabel) {
+      option.dataset.baseLabel = baseLabel;
+    }
+    const isSelected = String(option.value || '').trim() === selectedTemplateId;
+    option.textContent = isSelected
+      ? formatLiveSummaryAnalysisTemplateOptionLabel(option.dataset.baseLabel, countdownSeconds)
+      : option.dataset.baseLabel;
+  });
+
+  const selectedOption = analysisTemplateSelect.selectedOptions?.[0] || null;
+  const selectedBaseLabel = String(selectedOption?.dataset?.baseLabel || selectedOption?.textContent || '').trim();
+  analysisTemplateSelect.title = formatLiveSummaryAnalysisTemplateOptionLabel(selectedBaseLabel, countdownSeconds);
+}
+
+function refreshLiveSummaryHintText() {
+  const { hint, refreshButton } = getLiveSummaryElements();
+  if (hint instanceof HTMLElement) {
+    hint.textContent = '';
+    hint.hidden = true;
+  }
+  renderLiveSummaryTabs();
+  refreshLiveSummaryAnalysisTemplateSelectLabel();
+  if (refreshButton instanceof HTMLButtonElement) {
+    refreshButton.textContent = formatLiveSummaryRefreshButtonText();
+  }
+}
+
+function syncLiveSummaryHintTimer() {
+  clearLiveSummaryHintTimer();
+  if (liveSummaryState.status === 'hidden') {
+    return;
+  }
+
+  refreshLiveSummaryHintText();
+  if (!hasLiveSummaryVisibleCountdown()) {
+    return;
+  }
+
+  liveSummaryState.hintTimer = setInterval(() => {
+    refreshLiveSummaryHintText();
+    if (!hasLiveSummaryVisibleCountdown() || liveSummaryState.status === 'hidden') {
+      clearLiveSummaryHintTimer();
+      refreshLiveSummaryHintText();
+    }
+  }, 1000);
+}
+
+function renderLiveSummarySites() {
+  const { sites } = getLiveSummaryElements();
+  if (!(sites instanceof HTMLElement)) return;
+  const activeRecord = getActiveLiveSummaryRecord();
+  const hasStatuses = activeRecord.successSiteNames.length > 0 || activeRecord.failedSiteNames.length > 0;
+  const shouldShowStatuses = hasStatuses
+    || Boolean(activeRecord.updatedAt)
+    || activeRecord.status === 'ready'
+    || activeRecord.status === 'refreshing'
+    || activeRecord.isStreaming;
+  if (!shouldShowStatuses) {
+    sites.innerHTML = '';
+    return;
+  }
+
+  const chips = [];
+  activeRecord.successSiteNames.forEach((siteName) => {
+    chips.push(`<span class="live-summary-site-chip is-success">${escapeLiveSummaryHtml(siteName)}</span>`);
+  });
+  activeRecord.failedSiteNames.forEach((siteName) => {
+    chips.push(`<span class="live-summary-site-chip is-failed">${escapeLiveSummaryHtml(siteName)}</span>`);
+  });
+  sites.innerHTML = chips.join('');
+}
+
+function renderLiveSummaryCard() {
+  const {
+    card,
+    title,
+    tabs,
+    hint,
+    meta,
+    body,
+    content,
+    analysisTemplateSelect,
+    refreshButton,
+    toggleButton
+  } = getLiveSummaryElements();
+  if (!(card instanceof HTMLElement) || !(meta instanceof HTMLElement) || !(content instanceof HTMLElement) || !(body instanceof HTMLElement)) {
+    return;
+  }
+  if (title instanceof HTMLElement) {
+    title.textContent = t('liveSummaryTitle', 'Auto summary');
+  }
+  const activeRecord = getActiveLiveSummaryRecord();
+  const canCollapseSummary = Boolean(
+    String(activeRecord.summaryText || '').trim()
+    && String(activeRecord.shortSummaryText || '').trim()
+    && activeRecord.shortSummaryText !== activeRecord.summaryText
+  );
+  const shouldRenderCollapsedPreview = canCollapseSummary && !liveSummaryState.isExpanded;
+  const displaySummaryText = String(activeRecord.summaryText || '');
+  const isDisplayEmpty = !String(displaySummaryText || '').trim() && !String(activeRecord.summaryError || '').trim();
+
+  const isVisible = liveSummaryState.status !== 'hidden';
+  card.hidden = !isVisible;
+  if (!isVisible) {
+    return;
+  }
+
+  card.classList.toggle('is-collecting', activeRecord.status === 'collecting');
+  card.classList.toggle('is-expanded', liveSummaryState.isExpanded);
+  card.classList.toggle('is-collapsed', !liveSummaryState.isExpanded);
+  if (hint instanceof HTMLElement) {
+    hint.textContent = '';
+    hint.hidden = true;
+  }
+  syncLiveSummaryHintTimer();
+  if (tabs instanceof HTMLElement) {
+    renderLiveSummaryTabs();
+  }
+  const metaText = formatLiveSummaryMeta();
+  meta.textContent = metaText;
+  meta.hidden = !liveSummaryState.isExpanded || !metaText;
+  body.hidden = !liveSummaryState.isExpanded;
+  content.classList.toggle('is-collapsed', shouldRenderCollapsedPreview);
+  content.classList.toggle('is-preview', shouldRenderCollapsedPreview);
+  content.classList.toggle('is-empty', isDisplayEmpty);
+  content.classList.toggle('is-error', activeRecord.status === 'error' && !String(activeRecord.summaryText || '').trim());
+  content.classList.toggle('is-streaming', activeRecord.isStreaming);
+  content.innerHTML = shouldRenderCollapsedPreview
+    ? renderLiveSummaryPreviewHtml(activeRecord.shortSummaryText, activeRecord.summaryError)
+    : renderLiveSummaryContentHtml(displaySummaryText, activeRecord.summaryError);
+  renderLiveSummarySites();
+
+  const analysisTemplateReady = !(analysisTemplateSelect instanceof HTMLSelectElement)
+    || !analysisTemplateSelect.disabled;
+  if (refreshButton instanceof HTMLButtonElement) {
+    refreshButton.textContent = formatLiveSummaryRefreshButtonText(activeRecord);
+    refreshButton.disabled = liveSummaryState.isAnalyzing
+      || activeRecord.isStreaming
+      || !getLiveSummaryCurrentQuery()
+      || !analysisTemplateReady;
+  }
+  if (analysisTemplateSelect instanceof HTMLSelectElement) {
+    analysisTemplateSelect.disabled = analysisTemplateSelect.options.length <= 1 && !liveSummaryContext.analysisTemplates.length;
+  }
+  if (toggleButton instanceof HTMLButtonElement) {
+    toggleButton.disabled = false;
+    toggleButton.textContent = liveSummaryState.isExpanded
+      ? t('liveSummaryCollapse', '收起')
+      : t('liveSummaryExpand', '展开');
+    toggleButton.setAttribute('aria-expanded', liveSummaryState.isExpanded ? 'true' : 'false');
+    toggleButton.setAttribute('aria-controls', 'liveSummaryCardBody');
+  }
+}
+
+function hideLiveSummaryCard() {
+  liveSummaryContext.requestGeneration += 1;
+  liveSummaryContext.requestSequenceByEntryKey.clear();
+  disconnectLiveSummaryAnalysisPort('', 'hidden');
+  clearLiveSummaryPendingTimer();
+  clearLiveSummaryAutoAnalysisTimer();
+  clearLiveSummaryHintTimer();
+  liveSummaryState.activeEntryKey = '';
+  liveSummaryState.visibleEntryKeys = [];
+  liveSummaryState.status = 'hidden';
+  liveSummaryState.version = 0;
+  liveSummaryState.displayedVersion = 0;
+  liveSummaryState.lastGeneratedEntryKey = '';
+  liveSummaryState.isExpanded = false;
+  liveSummaryState.summariesByEntryKey.clear();
+  renderLiveSummaryCard();
+}
+
+function getLiveSummaryQueryFromPanels() {
+  const queryCounts = new Map();
+  document.querySelectorAll('.iframe-container[data-last-query]').forEach((container) => {
+    const query = String(container?.dataset?.lastQuery || '').trim();
+    if (!query) {
+      return;
+    }
+    queryCounts.set(query, (queryCounts.get(query) || 0) + 1);
+  });
+
+  let bestQuery = '';
+  let bestCount = 0;
+  for (const [query, count] of queryCounts.entries()) {
+    if (count > bestCount) {
+      bestQuery = query;
+      bestCount = count;
+    }
+  }
+
+  return bestQuery;
+}
+
+function markLiveSummaryCollecting(query = '', entryKey = '') {
+  const timelineEntry = getLiveSummaryTimelineEntry(query, entryKey);
+  const normalizedQuery = normalizeLiveSummaryQuery(timelineEntry?.query || '');
+  const resolvedEntryKey = getLiveSummaryEntryKey(timelineEntry);
+  if (!normalizedQuery || !resolvedEntryKey) {
+    hideLiveSummaryCard();
+    return;
+  }
+
+  clearLiveSummaryPendingTimer();
+  const existingRecord = getLiveSummaryRecord(normalizedQuery, resolvedEntryKey);
+  const hasExistingSummary = Boolean(existingRecord.summaryText);
+  const nextDueAt = hasExistingSummary
+    ? 0
+    : (Math.max(0, Number(existingRecord.autoAnalysisDueAt) || 0) || (Date.now() + LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS));
+  setLiveSummaryRecord(normalizedQuery, {
+    ...(hasExistingSummary ? {} : buildEmptyLiveSummaryRecord(normalizedQuery, resolvedEntryKey)),
+    status: hasExistingSummary ? 'refreshing' : 'collecting',
+    isStreaming: false,
+    summaryError: '',
+    autoAnalysisDueAt: nextDueAt
+  }, resolvedEntryKey);
+  if (String(liveSummaryState.activeEntryKey || '').trim() !== resolvedEntryKey) {
+    liveSummaryState.isExpanded = false;
+  }
+  liveSummaryState.activeEntryKey = resolvedEntryKey;
+  syncTimelineSelectionForLiveSummary(timelineEntry, resolvedEntryKey);
+  syncLiveSummaryVisibleEntryKeys(resolvedEntryKey);
+  liveSummaryState.status = 'ready';
+  liveSummaryState.version += 1;
+  liveSummaryState.lastGeneratedEntryKey = resolvedEntryKey;
+  renderLiveSummaryCard();
+  scheduleLiveSummaryAutoAnalysis(normalizedQuery, resolvedEntryKey);
+}
+
+function applyLiveSummaryActiveEntry(entry, options = {}) {
+  const entryKey = getLiveSummaryEntryKey(entry);
+  if (!entryKey) {
+    return '';
+  }
+  const previousEntryKey = String(liveSummaryState.activeEntryKey || '').trim();
+  liveSummaryState.activeEntryKey = entryKey;
+  if (previousEntryKey && previousEntryKey !== entryKey) {
+    liveSummaryState.isExpanded = false;
+  }
+  syncLiveSummaryVisibleEntryKeys(entryKey);
+  if (options.rememberGenerated !== false) {
+    liveSummaryState.lastGeneratedEntryKey = entryKey;
+  }
+  if (options.syncTimeline === true) {
+    syncTimelineSelectionForLiveSummary(entry, entryKey);
+  }
+  return entryKey;
+}
+
+function syncLiveSummaryRefreshSelection(entry, options = {}) {
+  const entryKey = getLiveSummaryEntryKey(entry);
+  if (!entryKey) {
+    return '';
+  }
+
+  if (options.preserveActiveEntry === true) {
+    if (options.rememberGenerated !== false) {
+      liveSummaryState.lastGeneratedEntryKey = entryKey;
+    }
+    syncLiveSummaryVisibleEntryKeys(String(liveSummaryState.activeEntryKey || '').trim() || entryKey);
+    return entryKey;
+  }
+
+  return applyLiveSummaryActiveEntry(entry, options);
+}
+
+function getLiveSummaryCurrentQuery() {
+  const currentEntryKey = getLiveSummaryCurrentEntryKey();
+  if (currentEntryKey) {
+    const query = getLiveSummaryEntryQuery(currentEntryKey);
+    if (query) {
+      return query;
+    }
+  }
+  return normalizeLiveSummaryQuery(getLiveSummaryQueryFromPanels() || getCurrentSearchInputQuery());
+}
+
+function resolveLiveSummaryRefreshTarget(query = '', entryKey = '') {
+  const timelineEntry = getLiveSummaryTimelineEntry(
+    query || getLiveSummaryQueryFromPanels() || getCurrentSearchInputQuery() || '',
+    entryKey || ''
+  );
+
+  return {
+    timelineEntry,
+    query: normalizeLiveSummaryQuery(timelineEntry?.query || ''),
+    entryKey: getLiveSummaryEntryKey(timelineEntry)
+  };
+}
+
+function getCurrentSearchInputQuery() {
+  const searchInput = document.getElementById('searchInput');
+  return searchInput ? String(searchInput.value || '').trim() : '';
+}
+
+function getLatestAgentResponseForLiveSummary(state, query = '') {
+  if (!state || !Array.isArray(state.messages)) {
+    return '';
+  }
+  const normalizedQuery = String(query || '').trim();
+  if (!normalizedQuery) {
+    return '';
+  }
+
+  for (let index = state.messages.length - 1; index >= 0; index -= 1) {
+    const message = state.messages[index];
+    if (message?.role !== 'user') continue;
+    if (String(message?.content || '').trim() !== normalizedQuery) continue;
+    for (let responseIndex = index + 1; responseIndex < state.messages.length; responseIndex += 1) {
+      const response = state.messages[responseIndex];
+      if (response?.role === 'assistant' && String(response?.content || '').trim()) {
+        return String(response.content || '').trim();
+      }
+      if (response?.role === 'user') {
+        break;
+      }
+    }
+    break;
+  }
+
+  return '';
+}
+
+function isLiveSummaryResponseUsable(response) {
+  if (!response || typeof response !== 'object') return false;
+  const answers = Array.isArray(response.answers) ? response.answers : [];
+  if (answers.some((answer) => String(answer || '').trim())) {
+    return true;
+  }
+  const content = String(response.content || '').trim();
+  const error = String(response.error || '').trim();
+  if (!content) {
+    return false;
+  }
+  return !(error && content === error);
+}
+
+function partitionLiveSummaryResponses(responses = []) {
+  const successResponses = [];
+  const successSiteNames = [];
+  const failedSiteNames = [];
+
+  for (const response of Array.isArray(responses) ? responses : []) {
+    const siteName = String(response?.siteName || '').trim();
+    if (!siteName) continue;
+    if (isLiveSummaryResponseUsable(response)) {
+      successResponses.push(response);
+      successSiteNames.push(siteName);
+    } else {
+      failedSiteNames.push(siteName);
+    }
+  }
+
+  return {
+    successResponses,
+    successSiteNames,
+    failedSiteNames
+  };
+}
+
+function getCurrentLiveSummaryResponses(query = '') {
+  const normalizedQuery = String(query || '').trim();
+  const siteIframes = getSiteIframes();
+  const siteNames = siteIframes.map((iframe) => String(iframe.dataset.site || '').trim()).filter(Boolean);
+  const siteSnapshot = window.aiCompareSiteRuntime?.getSnapshot
+    ? window.aiCompareSiteRuntime.getSnapshot(siteNames)
+    : { bySite: {} };
+
+  const siteResponses = siteNames.map((siteName) => {
+    const runtimeEntry = siteSnapshot.bySite?.[siteName] || null;
+    const matchesQuery = !normalizedQuery || String(runtimeEntry?.query || '').trim() === normalizedQuery;
+    if (!matchesQuery) {
+      return null;
+    }
+    const content = String(runtimeEntry?.content || '').trim();
+    const error = String(runtimeEntry?.error || '').trim();
+    return {
+      siteName,
+      answers: content && !(error && content === error) ? [content] : [],
+      content: error && content === error ? '' : content,
+      error
+    };
+  }).filter(Boolean);
+
+  const agentResponses = getOpenedAgentIds().map((agentId) => {
+    const state = getAgentState(agentId);
+    const lastUserMessage = Array.isArray(state?.messages)
+      ? [...state.messages].reverse().find((message) => message?.role === 'user' && String(message?.content || '').trim())
+      : null;
+    const matchesQuery = !normalizedQuery || String(lastUserMessage?.content || '').trim() === normalizedQuery;
+    const content = getLatestAgentResponseForLiveSummary(state, normalizedQuery);
+    const error = String(state?.error || '').trim();
+    const siteName = String(state?.name || agentId).trim();
+    const normalizedContent = error && content === error ? '' : content;
+    if (!matchesQuery && !content) {
+      return null;
+    }
+    return {
+      siteName,
+      answers: normalizedContent ? [normalizedContent] : [],
+      content: normalizedContent || '',
+      error
+    };
+  }).filter(Boolean);
+
+  const responses = [...siteResponses, ...agentResponses];
+  const { successResponses, successSiteNames, failedSiteNames } = partitionLiveSummaryResponses(responses);
+
+  return {
+    responses,
+    successCount: successResponses.length,
+    totalCount: responses.length,
+    successSiteNames,
+    failedSiteNames
+  };
+}
+
+function getLiveSummaryAgentStatuses(query = '') {
+  return getOpenedAgentIds().map((agentId) => {
+    const state = getAgentState(agentId);
+    const lastUserMessage = Array.isArray(state?.messages)
+      ? [...state.messages].reverse().find((message) => message?.role === 'user' && String(message?.content || '').trim())
+      : null;
+    const lastMessage = Array.isArray(state?.messages) ? state.messages[state.messages.length - 1] : null;
+    const assistantContent = getLatestAgentResponseForLiveSummary(state, query);
+    const hasAssistantContent = Boolean(String(assistantContent || '').trim());
+    const isErrored = Boolean(state?.error) || Boolean(lastMessage?.isError);
+    const matchesQuery = !query || String(lastUserMessage?.content || '').trim() === String(query || '').trim();
+    const participates = matchesQuery || hasAssistantContent || Boolean(state?.isLoading);
+    const isReady = participates && (isErrored || (!state?.isLoading && hasAssistantContent));
+    return {
+      agentId,
+      participates,
+      ready: isReady,
+      hasContent: hasAssistantContent,
+      failed: isErrored
+    };
+  });
+}
+
+function getLiveSummarySiteStatuses(query = '') {
+  const iframes = getSiteIframes();
+  const siteNames = iframes.map((iframe) => String(iframe.dataset.site || '').trim()).filter(Boolean);
+  const snapshot = window.aiCompareSiteRuntime?.getSnapshot
+    ? window.aiCompareSiteRuntime.getSnapshot(siteNames)
+    : { bySite: {} };
+  const normalizedQuery = String(query || '').trim();
+
+  return iframes.map((iframe) => {
+    const siteName = String(iframe?.dataset?.site || '').trim();
+    if (!siteName) {
+      return null;
+    }
+    const iframeContainer = iframe.closest('.iframe-container');
+    const panelQuery = String(iframeContainer?.dataset?.lastQuery || '').trim();
+    const entry = snapshot.bySite?.[siteName] || null;
+    const runtimeQuery = String(entry?.query || '').trim();
+    const panelMatchesQuery = Boolean(normalizedQuery) && panelQuery === normalizedQuery;
+    const runtimeMatchesQuery = !normalizedQuery || runtimeQuery === normalizedQuery;
+    const isFinal = entry?.final === true || Number(entry?.stableRounds || 0) >= 2;
+    const hasContent = Boolean(String(entry?.content || '').trim());
+    const failed = entry?.phase === 'error' || Boolean(String(entry?.error || '').trim());
+    const participates = panelMatchesQuery || (runtimeMatchesQuery && Boolean(runtimeQuery));
+    const ready = participates && (failed || isFinal);
+    return {
+      siteName,
+      participates,
+      ready,
+      hasContent,
+      failed
+    };
+  }).filter(Boolean);
+}
+
+function getLiveSummaryStatus(query = '') {
+  const siteStatuses = getLiveSummarySiteStatuses(query);
+  const agentStatuses = getLiveSummaryAgentStatuses(query);
+  const allStatuses = [...siteStatuses, ...agentStatuses].filter((item) => item.participates !== false);
+  const totalCount = allStatuses.length;
+  const readyCount = allStatuses.filter((item) => item.ready).length;
+  const allReady = totalCount > 0 && readyCount === totalCount;
+  return {
+    totalCount,
+    readyCount,
+    allReady
+  };
+}
+
+function scheduleLiveSummaryRefresh(delayMs = LIVE_SUMMARY_RECHECK_DELAY_MS) {
+  clearLiveSummaryPendingTimer();
+  const options = arguments[1] && typeof arguments[1] === 'object'
+    ? arguments[1]
+    : {};
+  const target = resolveLiveSummaryRefreshTarget(options.query || '', options.entryKey || '');
+  if (!target.query || !target.entryKey) {
+    hideLiveSummaryCard();
+    return;
+  }
+  liveSummaryState.pendingTimer = setTimeout(() => {
+    refreshLiveSummaryForCurrentQuery({
+      ...options,
+      query: target.query,
+      entryKey: target.entryKey,
+      preserveActiveEntry: options.preserveActiveEntry !== false
+    }).catch((error) => {
+      console.warn('刷新自动总结失败:', error);
+    });
+  }, Math.max(0, Number(delayMs) || 0));
+}
+
+async function refreshLiveSummaryForCurrentQuery(options = {}) {
+  const timelineEntry = getLiveSummaryTimelineEntry(options.query || getLiveSummaryCurrentQuery() || '', options.entryKey || '');
+  const query = normalizeLiveSummaryQuery(timelineEntry?.query || '');
+  const entryKey = getLiveSummaryEntryKey(timelineEntry);
+  const forceGenerate = options.forceGenerate === true;
+  const preserveActiveEntry = options.preserveActiveEntry === true;
+  const requestSource = String(options.source || '').trim();
+  const skipRuntimeStatusCheck = requestSource === 'tab'
+    || requestSource === 'manual-analysis'
+    || requestSource === 'auto-analysis';
+  if (!query || !entryKey) {
+    hideLiveSummaryCard();
+    return;
+  }
+
+  const existingRecord = getLiveSummaryRecord(query, entryKey);
+  if (existingRecord.isStreaming && !forceGenerate) {
+    applyLiveSummaryActiveEntry(timelineEntry);
+    renderLiveSummaryCard();
+    return;
+  }
+
+  if (shouldDeferLiveSummaryCollection(query, requestSource, entryKey)) {
+    markLiveSummaryCollecting(query, entryKey);
+    return;
+  }
+
+  const status = getLiveSummaryStatus(query);
+  if (!skipRuntimeStatusCheck && !status.totalCount) {
+    hideLiveSummaryCard();
+    return;
+  }
+
+  if (!skipRuntimeStatusCheck && !status.allReady && !forceGenerate) {
+    markLiveSummaryCollecting(query, entryKey);
+    scheduleLiveSummaryRefresh();
+    return;
+  }
+
+  const responseBundle = await collectTimelineEntryResponses(timelineEntry);
+  const responses = Array.isArray(responseBundle?.responses) ? responseBundle.responses : [];
+  const successCount = Number(responseBundle?.successCount || 0) || 0;
+  const totalCount = Number(responseBundle?.totalCount || responses.length) || responses.length;
+  const successSiteNames = Array.isArray(responseBundle?.successSiteNames)
+    ? responseBundle.successSiteNames
+    : partitionLiveSummaryResponses(responses).successSiteNames;
+  const failedSiteNames = Array.isArray(responseBundle?.failedSiteNames)
+    ? responseBundle.failedSiteNames
+    : partitionLiveSummaryResponses(responses).failedSiteNames;
+  const copyText = String(responseBundle?.copyText || '').trim();
+  const compareSites = responses.map((response) => String(response?.siteName || '').trim()).filter(Boolean);
+  const collectedSummaryText = copyText || t('liveSummaryEmpty', '暂时还没有可展示的总结。');
+  const contentSignature = [
+    query,
+    getLiveSummaryComparableText(collectedSummaryText),
+    ...responses.map((response) => {
+      const siteName = String(response?.siteName || '').trim();
+      const content = String(response?.content || '').trim();
+      const error = String(response?.error || '').trim();
+      const firstAnswer = Array.isArray(response?.answers)
+        ? String(response.answers.find((item) => String(item || '').trim()) || '').trim()
+        : '';
+      return `${siteName}:${getLiveSummaryComparableText(firstAnswer || content || error)}`;
+    })
+  ].join('||');
+  if (!liveSummaryContext.analysisTemplates.length) {
+    try {
+      await hydrateLiveSummaryAnalysisTemplateSelect(liveSummaryContext.selectedAnalysisTemplateId);
+    } catch (error) {
+      console.warn('自动总结刷新时加载分析提示词失败:', error);
+    }
+  }
+  let selectedTemplate = getSelectedLiveSummaryAnalysisTemplate();
+  if (!selectedTemplate && Array.isArray(liveSummaryContext.analysisTemplates) && liveSummaryContext.analysisTemplates.length) {
+    try {
+      await hydrateLiveSummaryAnalysisTemplateSelect(liveSummaryContext.selectedAnalysisTemplateId);
+    } catch (error) {
+      console.warn('自动总结刷新时重新解析默认分析提示词失败:', error);
+    }
+    selectedTemplate = getSelectedLiveSummaryAnalysisTemplate();
+  }
+  const selectedTemplateId = String(selectedTemplate?.id || '').trim();
+  const selectedTemplateName = String(selectedTemplate?.name || '').trim();
+  const analysisSignature = buildLiveSummaryAnalysisSignature(query, contentSignature, selectedTemplateId, entryKey);
+  const currentRecord = getLiveSummaryRecord(query, entryKey);
+  const canReuseExistingAnalysis = (
+    !forceGenerate &&
+    currentRecord.status === 'ready' &&
+    currentRecord.analysisSignature === analysisSignature &&
+    String(currentRecord.summaryText || '').trim()
+  );
+
+  if (canReuseExistingAnalysis) {
+    setLiveSummaryRecord(query, {
+      status: 'ready',
+      isStreaming: false,
+      responses,
+      collectedSummaryText,
+      successSiteNames,
+      failedSiteNames,
+      successCount,
+      totalCount,
+      updatedAt: currentRecord.updatedAt || new Date().toISOString(),
+      readySignature: contentSignature,
+      analysisSignature,
+      analysisTemplateId: selectedTemplateId,
+      analysisTemplateName: selectedTemplateName,
+      compareSites
+    }, entryKey);
+    syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
+    liveSummaryState.status = 'ready';
+    liveSummaryState.version += 1;
+    liveSummaryState.displayedVersion = liveSummaryState.version;
+    finalizeLiveSummaryAnalysisRequest(requestSource, query, entryKey);
+    renderLiveSummaryCard();
+    syncLiveSummaryHintTimer();
+    return;
+  }
+
+  const analysisPayload = buildLiveSummaryAnalysisPayload({
+    entry: timelineEntry,
+    summaryText: collectedSummaryText,
+    responses,
+    question: query,
+    successCount,
+    totalCount,
+    analysisTemplateId: selectedTemplateId,
+    analysisTemplateName: selectedTemplateName,
+    analysisTemplateQuery: selectedTemplate?.query || '',
+    compareSites
+  });
+  const analysisPrompt = buildLiveSummaryAnalysisPrompt(analysisPayload);
+  const requestToken = beginLiveSummaryAnalysisRequest(entryKey);
+  const hadExistingSummary = Boolean(stripSummaryText(currentRecord.summaryText));
+  if (!String(analysisPrompt || '').trim()) {
+    setLiveSummaryRecord(query, {
+      status: 'error',
+      isStreaming: false,
+      responses,
+      collectedSummaryText,
+      summaryText: '',
+      shortSummaryText: '',
+      successSiteNames,
+      failedSiteNames,
+      successCount,
+      totalCount,
+      updatedAt: new Date().toISOString(),
+      readySignature: contentSignature,
+      analysisSignature,
+      analysisTemplateId: selectedTemplateId,
+      analysisTemplateName: selectedTemplateName,
+      summarySource: 'analysis',
+      summaryError: t('analysisTemplateEmpty', '暂无分析提示词模板'),
+      compareSites
+    }, entryKey);
+    syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
+    liveSummaryState.status = 'ready';
+    liveSummaryState.version += 1;
+    liveSummaryState.displayedVersion = liveSummaryState.version;
+    finalizeLiveSummaryAnalysisRequest(requestSource, query, entryKey);
+    renderLiveSummaryCard();
+    syncLiveSummaryHintTimer();
+    return;
+  }
+
+  let analyzedSummaryText = '';
+  try {
+    finalizeLiveSummaryAnalysisRequest(requestSource, query, entryKey);
+    setLiveSummaryRecord(query, {
+      status: hadExistingSummary ? 'refreshing' : 'collecting',
+      isStreaming: true,
+      responses,
+      collectedSummaryText,
+      summaryText: '',
+      shortSummaryText: '',
+      successSiteNames,
+      failedSiteNames,
+      successCount,
+      totalCount,
+      updatedAt: '',
+      readySignature: contentSignature,
+      analysisSignature,
+      analysisTemplateId: selectedTemplateId,
+      analysisTemplateName: selectedTemplateName,
+      summarySource: 'analysis',
+      summaryError: '',
+      compareSites
+    }, entryKey);
+    syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
+    liveSummaryState.status = 'ready';
+    renderLiveSummaryCard();
+    syncLiveSummaryHintTimer();
+
+    analyzedSummaryText = await requestLiveSummaryAnalysis(analysisPrompt, {
+      entryKey,
+      onDelta(nextContent) {
+        if (!isLiveSummaryAnalysisRequestCurrent(requestToken)) {
+          return;
+        }
+        const streamingSummaryText = String(nextContent || '');
+        setLiveSummaryRecord(query, {
+          status: hadExistingSummary ? 'refreshing' : 'collecting',
+          isStreaming: true,
+          responses,
+          collectedSummaryText,
+          summaryText: streamingSummaryText,
+          shortSummaryText: getLiveSummaryCollapsedText(streamingSummaryText),
+          successSiteNames,
+          failedSiteNames,
+          successCount,
+          totalCount,
+          updatedAt: '',
+          readySignature: contentSignature,
+          analysisSignature,
+          analysisTemplateId: selectedTemplateId,
+          analysisTemplateName: selectedTemplateName,
+          summarySource: 'analysis',
+          summaryError: '',
+          compareSites
+        }, entryKey);
+        if (String(liveSummaryState.activeEntryKey || '').trim() === entryKey) {
+          renderLiveSummaryCard();
+        }
+      }
+    });
+    if (!isLiveSummaryAnalysisRequestCurrent(requestToken)) {
+      return;
+    }
+  } catch (error) {
+    if (!isLiveSummaryAnalysisRequestCurrent(requestToken)) {
+      return;
+    }
+    const summaryError = String(error?.message || '').trim() || t('agentRequestFailed', 'Skill request failed');
+    console.warn('自动总结分析请求失败:', error);
+    setLiveSummaryRecord(query, {
+      status: 'error',
+      isStreaming: false,
+      responses,
+      collectedSummaryText,
+      summaryText: '',
+      shortSummaryText: '',
+      successSiteNames,
+      failedSiteNames,
+      successCount,
+      totalCount,
+      updatedAt: new Date().toISOString(),
+      readySignature: contentSignature,
+      analysisSignature,
+      analysisTemplateId: selectedTemplateId,
+      analysisTemplateName: selectedTemplateName,
+      summarySource: 'analysis',
+      summaryError,
+      compareSites
+    }, entryKey);
+    syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
+    liveSummaryState.status = 'ready';
+    liveSummaryState.version += 1;
+    liveSummaryState.displayedVersion = liveSummaryState.version;
+    finalizeLiveSummaryAnalysisRequest(requestSource, query, entryKey);
+    renderLiveSummaryCard();
+    syncLiveSummaryHintTimer();
+    return;
+  }
+
+  const finalSummaryText = String(analyzedSummaryText || '').trim();
+  if (!finalSummaryText) {
+    setLiveSummaryRecord(query, {
+      status: 'error',
+      isStreaming: false,
+      responses,
+      collectedSummaryText,
+      summaryText: '',
+      shortSummaryText: '',
+      successSiteNames,
+      failedSiteNames,
+      successCount,
+      totalCount,
+      updatedAt: new Date().toISOString(),
+      readySignature: contentSignature,
+      analysisSignature,
+      analysisTemplateId: selectedTemplateId,
+      analysisTemplateName: selectedTemplateName,
+      summarySource: 'analysis',
+      summaryError: t('agentRequestFailed', 'Skill request failed'),
+      compareSites
+    }, entryKey);
+    syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
+    liveSummaryState.status = 'ready';
+    liveSummaryState.version += 1;
+    liveSummaryState.displayedVersion = liveSummaryState.version;
+    finalizeLiveSummaryAnalysisRequest(requestSource, query, entryKey);
+    renderLiveSummaryCard();
+    syncLiveSummaryHintTimer();
+    return;
+  }
+
+  const shortSummaryText = getLiveSummaryCollapsedText(finalSummaryText);
+
+  setLiveSummaryRecord(query, {
+    status: 'ready',
+    isStreaming: false,
+    responses,
+    collectedSummaryText,
+    summaryText: finalSummaryText,
+    shortSummaryText: shortSummaryText || finalSummaryText,
+    successSiteNames,
+    failedSiteNames,
+    successCount,
+    totalCount,
+    updatedAt: new Date().toISOString(),
+    readySignature: contentSignature,
+    analysisSignature,
+    analysisTemplateId: selectedTemplateId,
+    analysisTemplateName: selectedTemplateName,
+    summarySource: 'analysis',
+    summaryError: '',
+    compareSites
+  }, entryKey);
+  syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
+  liveSummaryState.status = 'ready';
+  liveSummaryState.version += 1;
+  liveSummaryState.displayedVersion = liveSummaryState.version;
+
+  finalizeLiveSummaryAnalysisRequest(requestSource, query, entryKey);
+  renderLiveSummaryCard();
+  syncLiveSummaryHintTimer();
+}
+
+function scheduleLiveSummaryAutoAnalysis(query = '', entryKey = '') {
+  const timelineEntry = getLiveSummaryTimelineEntry(query, entryKey);
+  const normalizedQuery = normalizeLiveSummaryQuery(timelineEntry?.query || '');
+  const resolvedEntryKey = getLiveSummaryEntryKey(timelineEntry);
+  if (!normalizedQuery || !resolvedEntryKey) {
+    return;
+  }
+
+  clearLiveSummaryAutoAnalysisTimer(resolvedEntryKey);
+  const now = Date.now();
+  const dueAt = ensureLiveSummaryAutoAnalysisDueAt(normalizedQuery, resolvedEntryKey);
+  const remainingMs = Math.max(0, dueAt - now);
+  if (!remainingMs) {
+    return;
+  }
+
+  const nextTimer = setTimeout(() => {
+    clearLiveSummaryAutoAnalysisTimer(resolvedEntryKey);
+    refreshLiveSummaryForCurrentQuery({
+      query: normalizedQuery,
+      entryKey: resolvedEntryKey,
+      forceGenerate: true,
+      source: 'auto-analysis',
+      preserveActiveEntry: true
+    }).catch((error) => {
+      console.warn('自动分析前刷新自动总结失败:', error);
+    });
+  }, remainingMs);
+  liveSummaryState.autoAnalysisTimersByEntryKey.set(resolvedEntryKey, nextTimer);
+}
+
+function initializeLiveSummaryCard() {
+  const { refreshButton, toggleButton, analysisTemplateSelect } = getLiveSummaryElements();
+  void hydrateLiveSummaryAnalysisTemplateSelect(liveSummaryContext.selectedAnalysisTemplateId).catch((error) => {
+    console.warn('加载自动总结分析提示词模板失败:', error);
+  });
+
+  if (analysisTemplateSelect instanceof HTMLSelectElement) {
+    analysisTemplateSelect.addEventListener('change', (event) => {
+      liveSummaryContext.selectedAnalysisTemplateId = event.target?.value || '';
+      renderLiveSummaryCard();
+      const query = getLiveSummaryCurrentQuery();
+      if (query) {
+        markLiveSummaryCollecting(query, getLiveSummaryCurrentEntryKey());
+        void refreshLiveSummaryForCurrentQuery({
+          query,
+          forceGenerate: true,
+          source: 'manual-analysis'
+        }).catch((error) => {
+          console.warn('切换自动总结分析提示词后刷新失败:', error);
+        });
+      }
+    });
+  }
+
+  if (refreshButton instanceof HTMLButtonElement) {
+    refreshButton.addEventListener('click', async () => {
+      const query = getLiveSummaryCurrentQuery();
+      const entryKey = getLiveSummaryCurrentEntryKey();
+      if (!query) return;
+      markLiveSummaryCollecting(query, entryKey);
+      liveSummaryState.isAnalyzing = true;
+      renderLiveSummaryCard();
+      try {
+        await waitForNextFrame();
+        await refreshLiveSummaryForCurrentQuery({
+          query,
+          entryKey,
+          forceGenerate: true,
+          source: 'manual-analysis'
+        });
+      } catch (error) {
+        console.warn('手动触发自动总结分析失败:', error);
+      } finally {
+        liveSummaryState.isAnalyzing = false;
+        renderLiveSummaryCard();
+      }
+    });
+  }
+
+  if (toggleButton instanceof HTMLButtonElement) {
+    toggleButton.addEventListener('click', () => {
+      liveSummaryState.isExpanded = !liveSummaryState.isExpanded;
+      renderLiveSummaryCard();
+    });
+  }
+
+  window.addEventListener(AI_COMPARE_RUNTIME_EVENT, () => {
+    const currentSummaryQuery = getLiveSummaryCurrentQuery();
+    if (!currentSummaryQuery) return;
+    scheduleLiveSummaryRefresh(900);
+  });
+}
+
+function startLiveSummaryForQuery(query = '') {
+  const normalizedQuery = normalizeLiveSummaryQuery(query);
+  if (!normalizedQuery) {
+    hideLiveSummaryCard();
+    return;
+  }
+  markLiveSummaryCollecting(normalizedQuery);
+  scheduleLiveSummaryRefresh(800, {
+    query: normalizedQuery,
+    preserveActiveEntry: true
+  });
 }
 
 function refreshIframeControlTitles(root = document) {
@@ -1388,7 +3369,7 @@ async function showTimelineCopyPreviewModal(entry) {
   hideTimelineCopyPreviewTooltip(overlay);
   hideTimelineCopyPreviewSharePanel(overlay);
 
-  const activeEntryKey = String(entry?.timelineId || buildTimelineFavoriteKey(entry));
+  const activeEntryKey = String(entry?.timelineId || getLiveSummaryEntryKey(entry));
   const isSameVisibleEntry = overlay.classList.contains('is-visible')
     && overlay.dataset.activeEntryKey === activeEntryKey;
   if (isSameVisibleEntry && overlay.dataset.loading !== 'true') {
@@ -1554,9 +3535,7 @@ function ensureTimelineEdgeTrigger() {
 }
 
 function buildTimelineFavoriteKey(entry) {
-  const normalizedQuery = String(entry?.normalizedQuery || entry?.query || '').trim();
-  const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
-  return `${normalizedQuery}::${occurrenceIndex}`;
+  return getLiveSummaryEntryKey(entry);
 }
 
 function normalizeRestoreContext(context, fallbackQuery = '') {
@@ -1830,6 +3809,8 @@ function renderTimeline() {
     item.querySelector('.timeline-item-main')?.addEventListener('click', async () => {
       timelineState.activeTimelineId = entry.timelineId;
       renderTimeline();
+      syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(entry));
+      renderLiveSummaryCard();
       if (timelineState.sharePickerActive) {
         closeTimelinePanel();
         await copyTimelineEntryResponses(entry);
@@ -1856,22 +3837,24 @@ function renderTimeline() {
 }
 
 function upsertTimelineEntry(entry, options = {}) {
-  const query = String(entry?.query || '').trim();
+  const query = normalizeLiveSummaryQuery(entry?.query);
   if (!query) return null;
 
   const historyId = entry?.historyId || null;
-  if (historyId && options.dedupeByHistoryId) {
-    const existingEntry = timelineState.entries.find((item) => item.historyId === historyId);
-    if (existingEntry) {
-      existingEntry.query = query;
-      existingEntry.normalizedQuery = query;
-      existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || Date.now();
-      existingEntry.dateLabel = entry?.dateLabel || existingEntry.dateLabel || formatTimelineDateLabel(existingEntry.timestamp);
-      timelineState.activeTimelineId = existingEntry.timelineId;
-      renderTimeline();
-      return existingEntry;
+    if (historyId && options.dedupeByHistoryId) {
+      const existingEntry = timelineState.entries.find((item) => item.historyId === historyId);
+      if (existingEntry) {
+        existingEntry.query = query;
+        existingEntry.normalizedQuery = query;
+        existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || Date.now();
+        existingEntry.dateLabel = entry?.dateLabel || existingEntry.dateLabel || formatTimelineDateLabel(existingEntry.timestamp);
+        timelineState.activeTimelineId = existingEntry.timelineId;
+        renderTimeline();
+        syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(existingEntry));
+        renderLiveSummaryCard();
+        return existingEntry;
+      }
     }
-  }
 
   const normalizedEntry = timelineBuildEntry({
     query,
@@ -1883,6 +3866,8 @@ function upsertTimelineEntry(entry, options = {}) {
   timelineState.entries.push(normalizedEntry);
   timelineState.activeTimelineId = normalizedEntry.timelineId;
   renderTimeline();
+  syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(normalizedEntry));
+  renderLiveSummaryCard();
   return normalizedEntry;
 }
 
@@ -2103,6 +4088,8 @@ function rebuildTimelineEntriesFromSnapshots() {
   }
 
   renderTimeline();
+  syncLiveSummaryVisibleEntryKeys();
+  renderLiveSummaryCard();
 }
 
 function updateTimelineSnapshotFromIframe(siteName, prompts) {
@@ -2556,6 +4543,45 @@ function sortAnalysisPromptTemplates(templates = []) {
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
+async function getStoredDefaultAnalysisTemplateId() {
+  try {
+    const data = await chrome.storage.sync.get(DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY);
+    return String(data?.[DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY] || '').trim();
+  } catch (error) {
+    console.warn('加载默认分析提示词失败:', error);
+    return '';
+  }
+}
+
+async function resolvePreferredAnalysisTemplateId(templates = [], selectedTemplateId = '') {
+  const normalizedTemplates = Array.isArray(templates) ? templates : [];
+  if (!normalizedTemplates.length) {
+    return '';
+  }
+
+  const requestedId = String(selectedTemplateId || '').trim();
+  if (requestedId && normalizedTemplates.some((template) => template.id === requestedId)) {
+    return requestedId;
+  }
+
+  const storedDefaultId = await getStoredDefaultAnalysisTemplateId();
+  if (storedDefaultId && normalizedTemplates.some((template) => template.id === storedDefaultId)) {
+    return storedDefaultId;
+  }
+
+  try {
+    const analysisConfig = await window.AppConfigManager.getAnalysisPromptTemplateConfig();
+    const configuredDefaultId = String(analysisConfig?.defaultTemplateId || '').trim();
+    if (configuredDefaultId && normalizedTemplates.some((template) => template.id === configuredDefaultId)) {
+      return configuredDefaultId;
+    }
+  } catch (error) {
+    console.warn('Failed to load configured default analysis template id:', error);
+  }
+
+  return String(normalizedTemplates[0]?.id || '').trim();
+}
+
 async function loadAnalysisPromptTemplates() {
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
@@ -2593,14 +4619,51 @@ async function hydrateAnalysisTemplateSelect(overlay, selectedTemplateId = '') {
   }).join('');
   selectEl.innerHTML = options;
 
-  const nextSelectedId = templates.some((template) => template.id === selectedTemplateId)
-    ? selectedTemplateId
-    : (templates[0]?.id || '');
+  const nextSelectedId = await resolvePreferredAnalysisTemplateId(templates, selectedTemplateId);
   selectEl.value = nextSelectedId;
   overlay.__timelineSelectedAnalysisTemplateId = nextSelectedId;
   selectEl.disabled = false;
   if (analyzeBtn instanceof HTMLButtonElement) {
     analyzeBtn.disabled = !String(overlay.__timelineCopyPreviewCopyText || '').trim();
+  }
+  return templates;
+}
+
+async function hydrateLiveSummaryAnalysisTemplateSelect(selectedTemplateId = '') {
+  const { analysisTemplateSelect, refreshButton } = getLiveSummaryElements();
+  if (!(analysisTemplateSelect instanceof HTMLSelectElement)) {
+    return [];
+  }
+
+  analysisTemplateSelect.disabled = true;
+  analysisTemplateSelect.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateLoading', '加载分析提示词...'))}</option>`;
+  if (refreshButton instanceof HTMLButtonElement) {
+    refreshButton.disabled = true;
+  }
+
+  const templates = await loadAnalysisPromptTemplates();
+  liveSummaryContext.analysisTemplates = templates;
+
+  if (!templates.length) {
+    analysisTemplateSelect.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateEmpty', '暂无分析提示词模板'))}</option>`;
+    analysisTemplateSelect.disabled = true;
+    return templates;
+  }
+
+  analysisTemplateSelect.innerHTML = templates.map((template) => `
+    <option value="${escapeHtml(template.id)}">${escapeHtml(template.name)}</option>
+  `).join('');
+  Array.from(analysisTemplateSelect.options || []).forEach((option) => {
+    option.dataset.baseLabel = String(option.textContent || '').trim();
+  });
+
+  const nextSelectedId = await resolvePreferredAnalysisTemplateId(templates, selectedTemplateId);
+  analysisTemplateSelect.value = nextSelectedId;
+  analysisTemplateSelect.disabled = false;
+  liveSummaryContext.selectedAnalysisTemplateId = nextSelectedId;
+  refreshLiveSummaryAnalysisTemplateSelectLabel();
+  if (refreshButton instanceof HTMLButtonElement) {
+    refreshButton.disabled = !getLiveSummaryCurrentQuery() || !nextSelectedId;
   }
   return templates;
 }
@@ -3550,6 +5613,7 @@ function createAgentIframe(agent, container) {
   iframeContainer.dataset.siteName = agent.name;
   iframeContainer.dataset.panelKind = PANEL_KIND.AGENT;
   iframeContainer.dataset.agentId = agent.id;
+  iframeContainer.dataset.lastQuery = getLiveSummaryCurrentQuery();
 
   const iframe = document.createElement('iframe');
   iframe.className = 'ai-iframe';
@@ -3593,6 +5657,7 @@ function createAgentIframe(agent, container) {
     iframe.src = buildAgentPanelUrl(agent.id);
     setAgentState(agent.id, buildAgentPanelState(agent));
     rebuildTimelineEntriesFromSnapshots();
+    scheduleLiveSummaryRefresh(200);
   };
 
   openPageBtn.onclick = (event) => {
@@ -3607,6 +5672,7 @@ function createAgentIframe(agent, container) {
     activeAgentPanelStore.delete(String(agent.id || '').trim());
     rebuildTimelineEntriesFromSnapshots();
     syncNavCheckboxStates();
+    scheduleLiveSummaryRefresh(150);
     persistCurrentHybridHistorySession().catch((error) => {
       console.warn('关闭智能体面板后保存历史失败:', error);
     });
@@ -4003,6 +6069,7 @@ function initializeAgentRuntimeMessageBridge() {
         bindAgentRuntimeKeepalivePort(agentId, message.jobId);
       }
       updateAgentLoadingState(agentId, true);
+      scheduleLiveSummaryRefresh(250);
       return;
     }
 
@@ -4028,12 +6095,14 @@ function initializeAgentRuntimeMessageBridge() {
       if (iframe) {
         syncAgentPanelStateToFrame(iframe, nextState);
       }
+      scheduleLiveSummaryRefresh(250);
       return;
     }
 
     if (message.event === 'completed') {
       closeAgentRuntimeKeepalivePort(agentId);
       updateAgentLoadingState(agentId, false);
+      scheduleLiveSummaryRefresh(250);
       return;
     }
 
@@ -4045,12 +6114,14 @@ function initializeAgentRuntimeMessageBridge() {
         content: message.error || t('agentRequestFailed', 'Skill request failed'),
         isError: true
       });
+      scheduleLiveSummaryRefresh(250);
       return;
     }
 
     if (message.event === 'cancelled') {
       closeAgentRuntimeKeepalivePort(agentId);
       updateAgentLoadingState(agentId, false);
+      scheduleLiveSummaryRefresh(250);
     }
   });
 }
@@ -4720,6 +6791,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const analysisQuery = analysisContext && typeof AnalysisUtils.buildAnalysisPrompt === 'function'
       ? AnalysisUtils.buildAnalysisPrompt(analysisContext)
       : '';
+    liveSummaryContext.analysisQuery = String(analysisQuery || '').trim();
     const hasQueryParam = urlParams.has('query') || Boolean(analysisContext);
     const hasSitesParam = urlParams.has('sites');
     const hasCustomSitesParam = urlParams.has('customSites');
@@ -6245,6 +8317,7 @@ function removeSiteIframeByName(siteName) {
   if (!iframeContainer) return false;
   iframeContainer.remove();
   clearTimelineSnapshotForSite(siteName);
+  scheduleLiveSummaryRefresh(150);
   return true;
 }
 
@@ -6600,6 +8673,11 @@ async function createIframes(query, sites, customSites = [], agents = []) {
 
   const hasQuery = query && query.trim() !== '';
   const ratingBatchId = hasQuery ? await startRatingPromptBatch(enabledSites.length) : null;
+  if (hasQuery) {
+    startLiveSummaryForQuery(query);
+  } else {
+    hideLiveSummaryCard();
+  }
   
   // 保持原有的grid布局，但确保支持order属性
   // 不覆盖CSS中定义的display: grid
@@ -6766,6 +8844,13 @@ async function createIframes(query, sites, customSites = [], agents = []) {
       runAgentPrompt(agent.id, query, 'global').catch((error) => {
         console.error('初始化智能体提问失败:', error);
       });
+    });
+  }
+
+  if (hasQuery) {
+    scheduleLiveSummaryRefresh(900, {
+      query,
+      preserveActiveEntry: true
     });
   }
 }
@@ -7988,12 +10073,19 @@ async function runIframeSearchQuery(query, options = {}) {
     preferCurrentPage: options.preferCurrentPage
   });
   if (sent) {
+    startLiveSummaryForQuery(normalizedQuery);
+    scheduleLiveSummaryRefresh(900, {
+      query: normalizedQuery,
+      preserveActiveEntry: true
+    });
     if (clearInputOnSuccess) {
       clearIframeSearchInput();
     }
     if (armCollapseOnSuccess) {
       armSearchBarAutoCollapse();
     }
+  } else if (getLiveSummaryCurrentQuery() === normalizedQuery && getActiveLiveSummaryRecord().status !== 'ready') {
+    hideLiveSummaryCard();
   }
   return sent;
 }
@@ -8083,10 +10175,13 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
                 return;
               }
 
+              const nextUrl = launchTarget.url;
+              if (window.aiCompareSiteRuntime?.queueSiteRuntime) {
+                window.aiCompareSiteRuntime.queueSiteRuntime(siteName, query, { iframeSrc: nextUrl || iframe.src });
+              }
               if (iframeContainer) {
                 setIframeHeaderStatus(iframeContainer, t('iframeStatusNetworkLoading', '网络加载中...'));
               }
-              const nextUrl = launchTarget.url;
               console.log(`为 ${siteName} iframe 生成新的 URL: ${nextUrl}`);
               if (historyId) {
                 const onLoadSendHistoryContext = () => {
@@ -8975,6 +11070,7 @@ function initQuickTooltips() {
 // 在页面加载时调用
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
+  initializeLiveSummaryCard();
   setDeepResearchButtonBusy(false);
   initializeTimelinePanel();
   const deepResearchButton = getDeepResearchButton();
@@ -9011,6 +11107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 if (typeof window !== 'undefined') {
   window.addEventListener('runtime-language-changed', () => {
     initializeI18n();
+    renderLiveSummaryCard();
     void refreshIframeVisibleQuerySuggestions();
     void refreshOpenAnalysisTemplateSelects();
     renderSideNav().catch((error) => {

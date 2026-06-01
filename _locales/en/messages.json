@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - Multi-AI one-click compare & copy results"
+    "message": "AI Compare — Multi-AI compare for GEO & brand answer checks"
   },
   "extDescription": {
-    "message": "AI Compare helps you find the best answer from multiple AI quickly."
+    "message": "Compare answers from ChatGPT, Gemini, Claude and more in one tab—ideal for content QA, brand monitoring, and GEO (Generative Engine Optimization)."
   },
   "configTitle": {
     "message": " AI Sites"
@@ -463,6 +463,12 @@
   },
   "homepageAgentsTitle": {
     "message": "AI skills"
+  },
+  "homepageAgentsSelectAll": {
+    "message": "Select all"
+  },
+  "homepageAgentsClearAll": {
+    "message": "Clear all"
   },
   "homepageAgentCategoriesTitle": {
     "message": "Categories"
@@ -1807,11 +1813,35 @@
   "analysisPromptTemplateBadge": {
     "message": "Analysis"
   },
+  "analysisTemplateSetDefaultButton": {
+    "message": "Set as default"
+  },
+  "analysisTemplateDefaultActiveButton": {
+    "message": "Default"
+  },
+  "analysisTemplateDefaultSaved": {
+    "message": "Default analysis prompt updated"
+  },
+  "analysisTemplateDefaultBadge": {
+    "message": "Default"
+  },
   "defaultAnalysisTemplateConclusionName": {
     "message": "Verdict First"
   },
   "defaultAnalysisTemplateConclusionQuery": {
     "message": "Please give a clear verdict first, then support it with the most important evidence. End with your confidence level and any caveats.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "Summary"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "Turn these panel answers into a summary for further reading.\n\nOutput requirements:\n1. Start with 3-5 bullets covering the shared points that appear repeatedly and are most worth trusting first.\n2. Then point out major differences, conflicts, or differences in focus across sites.\n3. Identify the 1-2 sites that are most worth reading in full, and explain why, for example: more complete, more concrete, better structured, more distinctive, or more credible.\n4. If I can only read one site next, give a single top recommendation and a one-sentence reason.\n5. Keep the result dense and practical so I can quickly decide which site to open next.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "GEO Diagnostic Report"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "These panels contain search results around a brand-related query. Based on them, produce a GEO diagnostic report for the brand (Generative Engine Optimization).\n\nStructure:\n1. One-line diagnosis: summarize the brand's current visibility and recognition across the answers.\n2. Brand visibility: which sites clearly mention the brand, which do not, and which only mention it in passing.\n3. AI brand perception: how the brand is being described, and whether the overall perception is stable, clear, and consistent.\n4. Information gaps and messaging issues: what key information is missing, vague, inconsistent, or diluted by competitors or generic answers.\n5. Opportunity areas: what content the brand should strengthen next to improve GEO, such as brand definition, key selling points, core use cases, comparison pages, FAQ, case studies, or authority signals.\n6. Priority actions: provide P0 / P1 / P2 actions, with the most immediate actions first.\n\nRequirements:\n- Base the diagnosis on patterns and differences found in the answers.\n- Avoid generic SEO advice; focus on how this specific brand is currently represented.\n- Keep the conclusions actionable and product-oriented.\n\n{analysisInput}"
   },
   "defaultAnalysisTemplateDifferenceName": {
     "message": "Comparison Breakdown"
@@ -1826,16 +1856,16 @@
     "message": "Turn this material into a one-page decision memo: start with the recommendation, then explain why it is the best choice, what the risks are, and what to do next. Keep the tone direct and decision-oriented.\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "Risk Analysis"
+    "message": "Risk Review"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "Root cause of the failure:「{query}」"
+    "message": "Review this topic as a risk assessment. Start with the 3-5 biggest risks, then for each one explain: why it matters, what could trigger it, how serious the impact would be, and how to prevent or reduce it. End with the single risk that deserves attention first.\n\nTopic: {query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "Best Practice"
+    "message": "Best Practice Checklist"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "Write a success retrospective report on this project:「{query}」"
+    "message": "Turn this topic into a practical best-practice checklist. Start with the goal and success criteria, then list the most important practices to follow, common mistakes to avoid, and a short step-by-step plan someone can use right away.\n\nTopic: {query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Translate to Chinese"
@@ -2451,5 +2481,107 @@
   },
   "timelineCopyPreviewOpen": {
     "message": "Open"
+  },
+  "homepageBatchModeButton": {
+    "message": "Batch"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "Batch mode"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "Run PK in batch"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "Enter one prompt per line and run them line by line"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "Batch mode requires at least one site or skill that can open in the compare page"
+  },
+  "homepageBatchNoQueries": {
+    "message": "Enter at least one prompt line"
+  },
+  "homepageBatchOpened": {
+    "message": "$1 batch tasks opened"
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "Save"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "No saved batches yet"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "Save batch prompts"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "Enter a name for this batch"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "Please enter a favorite name"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "Saved batch favorite"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "Deleted batch favorite"
+  },
+  "liveSummaryTitle": {
+    "message": "Auto summary"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "Auto summary prompts"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "Analysis template:"
+  },
+  "liveSummaryHint": {
+    "message": "Automatic analysis will run 60 seconds after you ask."
+  },
+  "liveSummaryHintCountdown": {
+    "message": "Automatic analysis will run in $1 seconds."
+  },
+  "liveSummaryRefresh": {
+    "message": "Analyze"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "Analyze ($1s)"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "Continue analysis"
+  },
+  "liveSummaryExpand": {
+    "message": "Expand"
+  },
+  "liveSummaryCollapse": {
+    "message": "Collapse"
+  },
+  "liveSummaryEmpty": {
+    "message": "No summary is available yet."
+  },
+  "liveSummaryNoDivergence": {
+    "message": "The current panels are broadly aligned on the key points."
+  },
+  "liveSummaryPendingSites": {
+    "message": "Panels without a usable answer"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "Consensus"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "Differences"
+  },
+  "liveSummaryCollecting": {
+    "message": "Waiting for all active panels to stabilize before summarizing..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "A summary is already available. Refreshing quietly..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "$1 / $2 panels are included in this summary"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "Analyzed with \"$1\""
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "Failed to open the analysis page. Please try again."
   }
 }

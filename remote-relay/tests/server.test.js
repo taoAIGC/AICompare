@@ -264,6 +264,143 @@ test('share lifecycle supports create and fetch', async () => {
   });
 });
 
+test('share page renders snapshot metadata in chinese locale', async () => {
+  await withRelayServer(async (relayServer) => {
+    await relayServer.store.createShareRecord({
+      shareId: 'share-page-zh',
+      status: 'active',
+      createdAt: '2026-05-29T06:07:08.000Z',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payload: {
+        question: '北京车展',
+        summaryText: '',
+        compareSites: ['Grok', 'ChatGPT'],
+        responses: [
+          {
+            siteName: 'Grok',
+            content: '答案内容'
+          }
+        ]
+      }
+    });
+
+    const response = await fetch(`${relayServer.getAddress()}/share/share-page-zh`, {
+      headers: {
+        'Accept-Language': 'zh-CN,zh;q=0.9'
+      }
+    });
+
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /快照时间（北京时间 UTC\+8）：2026年05月29日 14:07；对比站点：Grok、ChatGPT；快照工具：AICompare/);
+  });
+});
+
+test('share page renders snapshot metadata in english locale', async () => {
+  await withRelayServer(async (relayServer) => {
+    await relayServer.store.createShareRecord({
+      shareId: 'share-page-en',
+      status: 'active',
+      createdAt: '2026-05-29T06:07:08.000Z',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payload: {
+        question: 'Beijing Auto Show',
+        summaryText: '',
+        compareSites: ['Grok', 'ChatGPT'],
+        responses: [
+          {
+            siteName: 'Grok',
+            content: 'Answer content'
+          }
+        ]
+      }
+    });
+
+    const response = await fetch(`${relayServer.getAddress()}/share/share-page-en`, {
+      headers: {
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /Snapshot time \(UTC\+8\): 2026-05-29 14:07; Compared sites: Grok, ChatGPT; Snapshot tool: AICompare/);
+  });
+});
+
+test('share page falls back to response site names when compare sites are absent', async () => {
+  await withRelayServer(async (relayServer) => {
+    await relayServer.store.createShareRecord({
+      shareId: 'share-page-site-fallback',
+      status: 'active',
+      createdAt: '2026-05-29T06:07:08.000Z',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payload: {
+        question: 'Fallback sites',
+        summaryText: '',
+        responses: [
+          {
+            siteName: 'Grok',
+            content: 'Answer content'
+          },
+          {
+            siteName: 'ChatGPT',
+            content: 'Another answer'
+          },
+          {
+            siteName: 'Grok',
+            content: 'Duplicate site should be deduped'
+          }
+        ]
+      }
+    });
+
+    const response = await fetch(`${relayServer.getAddress()}/share/share-page-site-fallback`, {
+      headers: {
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /Compared sites: Grok, ChatGPT/);
+  });
+});
+
+test('share page no longer renders layout switch controls', async () => {
+  await withRelayServer(async (relayServer) => {
+    await relayServer.store.createShareRecord({
+      shareId: 'share-page-no-switch',
+      status: 'active',
+      createdAt: '2026-05-29T06:07:08.000Z',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payload: {
+        question: 'Layout switch',
+        summaryText: 'Should stay on the default share layout.',
+        responses: [
+          {
+            siteName: 'Grok',
+            content: 'Answer content'
+          }
+        ]
+      }
+    });
+
+    const response = await fetch(`${relayServer.getAddress()}/share/share-page-no-switch`, {
+      headers: {
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.doesNotMatch(html, /Share view/);
+    assert.doesNotMatch(html, /Web View/);
+    assert.doesNotMatch(html, /Image View/);
+    assert.doesNotMatch(html, /\?view=image/);
+  });
+});
+
 test('share records persist across store restarts', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-compare-share-store-'));
   const shareStoreFile = path.join(tempRoot, 'shares.json');

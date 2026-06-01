@@ -157,6 +157,31 @@ const AppConfigManager = {
       : ['information'];
   },
 
+  // 获取分析提示词默认配置
+  async getAnalysisPromptTemplateConfig() {
+    const config = await this.loadConfig();
+    const templateConfig = config.analysisPromptTemplatesConfig || {};
+    const defaultTemplateId = String(templateConfig.defaultTemplateId || '').trim();
+    const defaults = Array.isArray(templateConfig.defaults)
+      ? templateConfig.defaults
+          .map((definition, index) => ({
+            id: String(definition?.id || '').trim(),
+            nameKey: String(definition?.nameKey || '').trim(),
+            queryKey: String(definition?.queryKey || '').trim(),
+            fallbackName: String(definition?.fallbackName || '').trim(),
+            fallbackQuery: String(definition?.fallbackQuery || '').trim(),
+            order: Number(definition?.order || 0) || (index + 1)
+          }))
+          .filter((definition) => definition.id && definition.nameKey && definition.queryKey)
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+      : [];
+
+    return {
+      defaultTemplateId,
+      defaults
+    };
+  },
+
   // 获取外部链接配置
   async getExternalLinks() {
     const config = await this.loadConfig();

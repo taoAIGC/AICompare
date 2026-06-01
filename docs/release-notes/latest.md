@@ -1,8 +1,8 @@
 # User Improvement Request Log
 
-Updated at: 2026-05-29 00:10:29
+Updated at: 2026-06-01 22:48:33
 Branch: dev
-Head: 0a94946
+Head: 4925de1
 
 ## Latest User-Facing Improvement Requests
 
@@ -14,8 +14,13 @@ Head: 0a94946
 - skills，增加 1、多学科思维：从经济学、心理学、物理学、生物学等角度分析当前的问题 2、六顶思考帽 3、苏格拉底提问连续追问“为什么？依据是什么？反例呢？” 4、大佬开会：马斯克、巴菲特等等大佬会怎么看待这个问题
 - 在 skills 列表中使用开关样式图标，并支持直接修改每个 skill 的启用状态
 - homepage 页面不再显示 skills 的启用状态，并且只展示已经启用的 skills
-- 中文提问时，skills 默认跟随用户语言返回中文，而不是因为英文 prompt 返回英文
 - 改进 skills 面板只开一个时大模型长时间 thinking 不返回的问题，避免长请求卡住
 - homepage 页面，hover 到每个 skills 上面后，出现 skills 的全称提示更稳定，不再有时显示不出来
 - 改进 homepage skills 名称 hover 提示，长名称现在会稳定显示完整名称，不再时有时无
+- 分享页顶部增加快照时间和快照工具信息，方便用户知道结果生成时间与来源工具
+- 分享页元信息增加对比站点，并明确快照时间按北京时间 UTC+8 展示，减少跨时区访问歧义
+- homepage 页面，增加批量模式：在 searchBar 的 PK 按钮右侧增加批量按钮，弹窗支持逐行输入提示词并用当前选中的 panel 分别打开新的 iframe 对比页执行任务
+- 支持将 homepage 批量输入框替换为开源轻量级文本编辑器，保留行号并避免长文本视觉换行被误认为多条任务
+- 自动总结卡片去掉 updated 状态，并将 refresh 按钮改为分析，点击后会使用旁边选中的提示词模板汇总各 panel 回复并打开 AI 分析页。
+- 在批量提交的弹窗中，增加收藏功能：支持给当前批量提示词命名收藏，顶部展示收藏名，点击可回填，hover 可删除
 <!-- COMMANDS:END -->

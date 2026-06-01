@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - 여러 AI 원클릭 비교 및 결과 복사"
+    "message": "AI Compare — 다중 AI 비교, GEO 및 브랜드 답변 검증"
   },
   "extDescription": {
-    "message": "AI Compare는 여러 AI의 답변 중 최상의 답을 빠르게 찾도록 도와줍니다."
+    "message": "한 번의 질문으로 ChatGPT, Gemini, Claude 등 여러 AI 답변을 비교. 콘텐츠 검증, 브랜드 모니터링, GEO(생성형 엔진 최적화)에 적합."
   },
   "configTitle": {
     "message": "AI 사이트"
@@ -1460,6 +1460,18 @@
   "defaultAnalysisTemplateDifferenceQuery": {
     "message": "각 사이트의 답변을 항목별로 비교하되, 최소한 “공통점 / 차이점 / 충돌점 / 어느 답변이 가장 신뢰할 만한가”의 네 가지 관점으로 정리해 주세요. 가능하면 표나 묶음 형식도 활용해 주세요.\n\n{analysisInput}"
   },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "요약"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "이 패널 답변들을 다음에 무엇을 읽을지 판단하기 위한 요약으로 정리해 주세요.\n\n출력 요구사항:\n1. 먼저 3-5개의 불릿으로 반복해서 등장하고 우선 신뢰할 만한 공통점을 정리해 주세요.\n2. 그다음 사이트별로 큰 차이, 충돌, 혹은 관점 차이를 짚어 주세요.\n3. 전문을 계속 읽어볼 가치가 가장 큰 1-2개 사이트를 골라서, 예를 들어 더 완전함, 더 구체적임, 구조가 더 명확함, 더 독특함, 더 신뢰할 만함 같은 이유를 설명해 주세요.\n4. 다음에 한 사이트만 읽을 수 있다면, 최우선 추천 사이트 하나와 한 문장 이유를 제시해 주세요.\n5. 어떤 사이트를 다음에 열지 빠르게 결정할 수 있도록, 밀도 높고 실용적으로 정리해 주세요.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "GEO 진단 보고서"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "이 패널들은 어떤 브랜드 관련 검색 결과를 담고 있습니다. 이를 바탕으로 해당 브랜드의 GEO 진단 보고서(Generative Engine Optimization)를 작성해 주세요.\n\n구성:\n1. 한 줄 진단: 각 답변 전반에서 이 브랜드의 현재 가시성과 인지도 상태를 요약해 주세요.\n2. 브랜드 노출 현황: 어떤 사이트가 브랜드를 명확히 언급하는지, 어떤 사이트는 언급하지 않는지, 어떤 사이트는 스쳐 지나가듯만 언급하는지 정리해 주세요.\n3. AI 브랜드 인식: 이 브랜드가 주로 어떻게 묘사되는지, 그리고 전반적인 인식이 안정적이고 명확하며 일관적인지 설명해 주세요.\n4. 정보 공백과 메시지 문제: 어떤 핵심 정보가 빠져 있는지, 표현이 모호한지, 일관성이 없는지, 혹은 경쟁사나 일반론적 답변에 의해 희석되는지 짚어 주세요.\n5. 기회 영역: GEO를 높이기 위해 다음으로 어떤 콘텐츠를 강화해야 하는지 제안해 주세요. 예를 들면 브랜드 정의, 핵심 강점, 대표 사용 사례, 비교 콘텐츠, FAQ, 사례 연구, 권위 신호 등이 있습니다.\n6. 우선순위 실행안: P0 / P1 / P2 단계로 행동 제안을 제시하고, 가장 즉시 해야 할 것부터 적어 주세요.\n\n요구사항:\n- 답변들에서 드러나는 공통 패턴과 차이를 근거로 진단해 주세요.\n- 일반적인 SEO 상식은 피하고, 이 브랜드가 현재 결과에서 어떻게 표현되고 있는지에 집중해 주세요.\n- 결론은 실행 가능하고 제품 관점에서 실용적이어야 합니다.\n\n{analysisInput}"
+  },
   "defaultAnalysisTemplateReportName": {
     "message": "의사결정 메모"
   },
@@ -1467,16 +1479,16 @@
     "message": "이 자료를 1페이지 의사결정 메모로 정리해 주세요. 먼저 추천안을 제시하고, 그다음 왜 그 선택이 최선인지, 어떤 리스크가 있는지, 다음에 무엇을 해야 하는지 설명해 주세요. 직접적이고 의사결정 중심의 톤을 유지해 주세요.\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "리스크 분석"
+    "message": "리스크 점검"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "이 실패의 근본 원인을 분석해 주세요:「{query}」"
+    "message": "이 주제를 리스크 평가처럼 검토해 주세요. 먼저 가장 중요한 리스크 3-5가지를 뽑고, 각 항목마다 왜 중요한지, 무엇이 촉발할 수 있는지, 영향이 얼마나 큰지, 그리고 어떻게 예방하거나 줄일 수 있는지를 설명해 주세요. 마지막에는 지금 가장 먼저 관리해야 할 리스크 하나를 짚어 주세요.\n\n주제: {query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "베스트 프랙티스"
+    "message": "실행 체크리스트"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "이 프로젝트에 대한 성공 회고 보고서를 작성해 주세요:「{query}」"
+    "message": "이 주제를 바로 실행할 수 있는 베스트 프랙티스 체크리스트로 정리해 주세요. 먼저 목표와 성공 기준을 적고, 그다음 꼭 지켜야 할 핵심 실천 항목, 자주 하는 실수, 그리고 바로 따라 할 수 있는 짧은 단계별 실행 순서를 제시해 주세요.\n\n주제: {query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "중국어로 번역"
@@ -1915,6 +1927,12 @@
   "homepageAgentsTitle": {
     "message": "AI 에이전트"
   },
+  "homepageAgentsSelectAll": {
+    "message": "전체 선택"
+  },
+  "homepageAgentsClearAll": {
+    "message": "선택 해제"
+  },
   "homepageAgentCategoriesTitle": {
     "message": "카테고리"
   },
@@ -2251,5 +2269,107 @@
   },
   "agentImportDialogTitle": {
     "message": "URL에서 에이전트 가져오기"
+  },
+  "homepageBatchModeButton": {
+    "message": "일괄"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "일괄 모드"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "일괄 PK 실행"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "한 줄에 프롬프트 하나씩 입력하고 줄마다 실행"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "일괄 모드를 사용하려면 비교 페이지에서 열 수 있는 사이트 또는 스킬을 최소 하나 선택해야 합니다"
+  },
+  "homepageBatchNoQueries": {
+    "message": "프롬프트를 한 줄 이상 입력하세요"
+  },
+  "homepageBatchOpened": {
+    "message": "$1개의 일괄 작업을 열었습니다"
+  },
+  "liveSummaryTitle": {
+    "message": "자동 요약"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "자동 요약 탭"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "분석 템플릿:"
+  },
+  "liveSummaryHint": {
+    "message": "질문 후 60초가 지나면 자동 분석이 실행됩니다."
+  },
+  "liveSummaryHintCountdown": {
+    "message": "질문 후 $1초가 지나면 자동 분석이 실행됩니다."
+  },
+  "liveSummaryRefresh": {
+    "message": "분석"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "분석 ($1초)"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "계속 분석"
+  },
+  "liveSummaryExpand": {
+    "message": "펼치기"
+  },
+  "liveSummaryCollapse": {
+    "message": "접기"
+  },
+  "liveSummaryEmpty": {
+    "message": "아직 표시할 요약이 없습니다."
+  },
+  "liveSummaryNoDivergence": {
+    "message": "현재 패널들은 핵심 포인트에서 대체로 일치합니다."
+  },
+  "liveSummaryPendingSites": {
+    "message": "사용 가능한 답변이 없는 패널"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "공통점"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "차이점"
+  },
+  "liveSummaryCollecting": {
+    "message": "활성 패널의 답변이 모두 안정되면 자동으로 요약합니다..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "이미 요약이 있습니다. 조용히 새로고침하는 중..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "이 요약에는 $1 / $2 패널이 포함되었습니다"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "\"$1\"으로 분석됨"
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "분석 페이지를 열지 못했습니다. 다시 시도해 주세요."
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "저장"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "아직 저장된 배치가 없습니다"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "배치 프롬프트 저장"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "이 배치의 이름을 입력하세요"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "즐겨찾기 이름을 입력하세요"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "배치 즐겨찾기를 저장했습니다"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "배치 즐겨찾기를 삭제했습니다"
   }
 }

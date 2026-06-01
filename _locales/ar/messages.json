@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - مقارنة عدة ذكاءات اصطناعية بنقرة ونسخ النتائج"
+    "message": "AI Compare — مقارنة عدة ذكاءات اصطناعية لـ GEO وإجابات العلامة"
   },
   "extDescription": {
-    "message": "يساعدك AI Compare على العثور بسرعة على أفضل إجابة من عدة نماذج ذكاء اصطناعي."
+    "message": "سؤال واحد، قارن إجابات ChatGPT وGemini وClaude والمزيد في تبويب واحد — مناسب لمراجعة المحتوى ومراقبة العلامة وGEO (تحسين محركات التوليد)."
   },
   "configTitle": {
     "message": "مواقع الذكاء الاصطناعي"
@@ -1460,6 +1460,18 @@
   "defaultAnalysisTemplateDifferenceQuery": {
     "message": "قارن الإجابات بندًا بندًا وغطِّ على الأقل أربعة جوانب: نقاط التشابه، الفروقات، التعارضات، وأي إجابة أكثر موثوقية. استخدم جدولًا أو أقسامًا مجمعة إن أمكن.\n\n{analysisInput}"
   },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "ملخص"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "حوّل إجابات هذه اللوحات إلى ملخص يساعدني على تقرير ما الذي ينبغي قراءته بعد ذلك.\n\nمتطلبات الإخراج:\n1. ابدأ بـ 3 إلى 5 نقاط تلخص القواسم المشتركة المتكررة والأكثر جدارة بالثقة أولًا.\n2. ثم أوضح الفروقات المهمة أو التعارضات أو اختلافات التركيز بين المواقع.\n3. حدّد الموقعين أو الموقعين الأكثر استحقاقًا للقراءة الكاملة، واشرح السبب، مثل: معلومات أكثر اكتمالًا، أمثلة أكثر تحديدًا، بنية أوضح، رؤية أكثر تميزًا، أو موثوقية أعلى.\n4. إذا كان بإمكاني قراءة موقع واحد فقط بعد ذلك، فاعطِ توصية أولى واحدة مع سبب في جملة واحدة.\n5. اجعل النتيجة كثيفة وعملية حتى أستطيع أن أقرر بسرعة أي موقع أفتحه بعد ذلك.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "تقرير تشخيص GEO"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "تحتوي هذه اللوحات على نتائج بحث مرتبطة باستعلام يتعلق بعلامة تجارية. وبالاستناد إليها، أنشئ تقرير تشخيص GEO لهذه العلامة التجارية (Generative Engine Optimization).\n\nالبنية:\n1. تشخيص في سطر واحد: لخّص مستوى ظهور العلامة التجارية وحضورها الذهني الحالي عبر الإجابات.\n2. الظهور الخاص بالعلامة التجارية: ما المواقع التي تذكر العلامة بوضوح، وما المواقع التي لا تذكرها، وما المواقع التي تذكرها بشكل عابر فقط.\n3. صورة العلامة في إدراك الذكاء الاصطناعي: كيف يتم وصف العلامة، وهل الصورة العامة مستقرة وواضحة ومتسقة.\n4. فجوات المعلومات ومشكلات الرسائل: ما المعلومات الأساسية المفقودة أو الغامضة أو غير المتسقة، أو التي تم تمييعها بسبب المنافسين أو الإجابات العامة.\n5. فرص التحسين: ما اتجاهات المحتوى التي ينبغي للعلامة تقويتها لاحقًا لتحسين GEO، مثل تعريف العلامة، ونقاط البيع الأساسية، وحالات الاستخدام النموذجية، وصفحات المقارنة، والأسئلة الشائعة، ودراسات الحالة، وإشارات الموثوقية.\n6. إجراءات حسب الأولوية: قدّم إجراءات P0 / P1 / P2، مع وضع الإجراءات الأكثر إلحاحًا أولًا.\n\nالمتطلبات:\n- ابنِ التشخيص على الأنماط والفروقات الظاهرة في الإجابات.\n- تجنّب نصائح SEO العامة؛ وركّز على كيفية تمثيل هذه العلامة التجارية تحديدًا في النتائج الحالية.\n- اجعل الاستنتاجات عملية وموجهة نحو المنتج.\n\n{analysisInput}"
+  },
   "defaultAnalysisTemplateReportName": {
     "message": "مذكرة قرار"
   },
@@ -1467,16 +1479,16 @@
     "message": "حوّل هذه المادة إلى مذكرة قرار من صفحة واحدة: ابدأ بالتوصية، ثم اشرح لماذا هي الخيار الأفضل، وما المخاطر، وما الذي يجب فعله بعد ذلك. اجعل النبرة مباشرة وموجهة للقرار.\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "تحليل المخاطر"
+    "message": "مراجعة المخاطر"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "حلل السبب الجذري لهذا الفشل:「{query}」"
+    "message": "حلل هذا الموضوع على أنه تقييم للمخاطر. ابدأ بأهم 3 إلى 5 مخاطر، ثم اشرح لكل منها: لماذا هي مهمة، وما الذي قد يسببها، وما حجم أثرها، وكيف يمكن الوقاية منها أو تقليلها. اختم بذكر الخطر الوحيد الذي يستحق الاهتمام أولًا.\n\nالموضوع: {query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "أفضل الممارسات"
+    "message": "قائمة أفضل الممارسات"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "اكتب تقرير مراجعة نجاح لهذا المشروع:「{query}」"
+    "message": "حوّل هذا الموضوع إلى قائمة عملية لأفضل الممارسات. ابدأ بالهدف ومعايير النجاح، ثم اذكر أهم الممارسات الواجب اتباعها، والأخطاء الشائعة التي يجب تجنبها، وخطة قصيرة خطوة بخطوة يمكن استخدامها فورًا.\n\nالموضوع: {query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "الترجمة إلى الصينية"
@@ -1915,6 +1927,12 @@
   "homepageAgentsTitle": {
     "message": "وكلاء الذكاء الاصطناعي"
   },
+  "homepageAgentsSelectAll": {
+    "message": "تحديد الكل"
+  },
+  "homepageAgentsClearAll": {
+    "message": "إلغاء تحديد الكل"
+  },
   "homepageAgentCategoriesTitle": {
     "message": "الفئات"
   },
@@ -2251,5 +2269,107 @@
   },
   "agentImportDialogTitle": {
     "message": "استيراد وكيل من URL"
+  },
+  "homepageBatchModeButton": {
+    "message": "دفعة"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "وضع الدفعات"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "تشغيل PK على دفعات"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "اكتب مطالبة في كل سطر وسيتم تشغيلها سطرًا بسطر"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "يتطلب وضع الدفعات تحديد موقع أو مهارة واحدة على الأقل يمكن فتحها في صفحة المقارنة"
+  },
+  "homepageBatchNoQueries": {
+    "message": "أدخل سطر مطالبة واحدًا على الأقل"
+  },
+  "homepageBatchOpened": {
+    "message": "تم فتح $1 مهمة دفعية"
+  },
+  "liveSummaryTitle": {
+    "message": "ملخص تلقائي"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "علامات تبويب الملخص التلقائي"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "قالب التحليل:"
+  },
+  "liveSummaryHint": {
+    "message": "سيتم تشغيل التحليل التلقائي بعد 60 ثانية من طرح السؤال."
+  },
+  "liveSummaryHintCountdown": {
+    "message": "سيتم تشغيل التحليل التلقائي بعد $1 ثانية."
+  },
+  "liveSummaryRefresh": {
+    "message": "تحليل"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "تحليل ($1ث)"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "متابعة التحليل"
+  },
+  "liveSummaryExpand": {
+    "message": "توسيع"
+  },
+  "liveSummaryCollapse": {
+    "message": "طي"
+  },
+  "liveSummaryEmpty": {
+    "message": "لا يوجد ملخص متاح بعد."
+  },
+  "liveSummaryNoDivergence": {
+    "message": "تتفق اللوحات الحالية إلى حد كبير على النقاط الأساسية."
+  },
+  "liveSummaryPendingSites": {
+    "message": "لوحات بلا إجابة قابلة للاستخدام"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "نقاط الاتفاق"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "نقاط الاختلاف"
+  },
+  "liveSummaryCollecting": {
+    "message": "جارٍ انتظار استقرار جميع إجابات اللوحات النشطة قبل التلخيص التلقائي..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "يوجد ملخص بالفعل. جارٍ التحديث بهدوء..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "تم تضمين $1 من أصل $2 لوحة في هذا الملخص"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "تم التحليل باستخدام \"$1\""
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "تعذر فتح صفحة التحليل. يرجى المحاولة مرة أخرى."
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "حفظ"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "لا توجد دفعات محفوظة بعد"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "حفظ موجّهات الدفعة"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "أدخل اسمًا لهذه الدفعة"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "يرجى إدخال اسم للمفضلة"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "تم حفظ الدفعة المفضلة"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "تم حذف الدفعة المفضلة"
   }
 }

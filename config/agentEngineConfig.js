@@ -14,7 +14,7 @@
     OFFICIAL: 'official',
     CUSTOM: 'custom'
   });
-  const DEFAULT_DAILY_FREE_LIMIT = 3;
+  const DEFAULT_DAILY_FREE_LIMIT = 100;
   const DEFAULT_CHECKOUT_PLAN = 'yearly';
 
   function xorTransform(input, key) {
@@ -81,7 +81,6 @@
     model: 'glm-5.1',
     concurrency: 10,
     systemPrompt: '',
-    officialDailyFreeLimit: DEFAULT_DAILY_FREE_LIMIT,
     defaultCheckoutPlan: DEFAULT_CHECKOUT_PLAN
   });
 
@@ -101,7 +100,6 @@
       model: DEFAULTS.model,
       concurrency: DEFAULTS.concurrency,
       systemPrompt: DEFAULTS.systemPrompt,
-      officialDailyFreeLimit: DEFAULTS.officialDailyFreeLimit,
       defaultCheckoutPlan: DEFAULTS.defaultCheckoutPlan
     };
   }
@@ -114,7 +112,6 @@
       custom: {
         ...CUSTOM_DEFAULTS
       },
-      officialDailyFreeLimit: DEFAULTS.officialDailyFreeLimit,
       defaultCheckoutPlan: DEFAULTS.defaultCheckoutPlan,
       baseUrl: official.baseUrl,
       apiKey: official.apiKey,

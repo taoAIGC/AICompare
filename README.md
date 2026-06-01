@@ -32,6 +32,7 @@
 
 - **Open**: Click the extension icon or press **⌘+M** (Mac) / **Ctrl+M** (Windows).
 - **Search & compare**: Type a query, select AI sites, click PK to open the multi-AI comparison page (iframe-capable sites only).
+- **Batch compare**: Click the Batch button next to PK, enter one prompt per line, and open one new comparison tab per line with the current selected panels.
 - **Save favorite sites**: Select sites and save as “favorite sites” for quick access.
 - **Pin guide**: Optional reminder to pin the extension to the toolbar for faster access.
 - **Shortcuts**: Links to Settings, History, Favorites, Feedback. Optional file upload button.
@@ -155,7 +156,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
 - Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
-- Shared result pages now support two modes from the same share record: the default multi-panel web view and an image-style poster view at the same URL with `?view=image`.
+- Shared result pages now stay on one fixed multi-panel web layout, without a separate image-mode layout switch.
 - The timeline copy preview's copy button now keeps the Responses summary modal open after copying.
 - The preview body now only shows copyable site responses; failed sites stay in the summary header.
 - Copy/share actions in the Responses summary modal now show feedback next to the clicked button instead of using the top toast.
@@ -173,6 +174,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Timeline copy preview now preserves list markers like `•` when the source answer contains bullet lists.
 - The timeline copy preview now has a new-tab analysis path: the preview modal can open the default extension compare page, pass the question/summary/raw answers through `chrome.storage.session`, and reuse the existing compare flow without going through OpenClaw.
 - The timeline copy preview also supports selectable analysis prompt templates, and the Settings page includes a matching analysis prompt template manager with default presets.
+- The Auto summary card now lets you pick an analysis prompt template inline and use the `Analyze` button to gather the latest panel replies into a dedicated AI analysis page.
 - ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, `debug/verify-metaso-live.js`, `debug/verify-ai-studio-live.js`, `debug/verify-yuanbao-live.js`, `debug/verify-qianwen-live.js`, and `debug/verify-qwen-live.js`.
 - Yuanbao / Qwen / 千问 verifiers now follow the explicit send-button or new-chat bootstrap paths exposed by the live pages, instead of relying on Enter alone.
@@ -217,7 +219,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - When using Hermes API Server as the custom browser-extension API, remember that command-line checks and browser-extension checks are different: `curl` can succeed while the extension still gets `HTTP 403` if Hermes has not allowed the extension origin. Because the options page calls Hermes from `chrome-extension://...`, Hermes must include the extension origin in `API_SERVER_CORS_ORIGINS`, for example `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi`. A working minimal setup is `baseUrl=http://localhost:8642/v1`, `model=hermes-agent`, `Authorization: Bearer <API_SERVER_KEY>`, plus the matching `API_SERVER_CORS_ORIGINS` entry and a Hermes gateway restart after config changes.
 - GitHub packaging now maintains two release-note docs before producing the zip artifact:
   `docs/release-notes/latest.md` stores the running user-facing improvement request log, and `docs/release-notes/history.md` appends one user-facing version summary per packaged build.
-- Local git commits now auto-refresh the release-note docs in `.githooks/pre-commit`, and `.githooks/post-commit` pushes the committed branch to `origin` so updated `README.md`, privacy docs, and `history.md` sync to GitHub immediately.
+- Local git commits now auto-refresh the release-note docs in `.githooks/pre-commit`, and `.githooks/post-commit` first validates that `scripts/package-extension.sh` still matches the current runtime file set before pushing the committed branch to `origin`, so updated `README.md`, privacy docs, `history.md`, and the release zip recipe stay in sync.
 
 ---
 
@@ -249,6 +251,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 - **打开方式**：点击扩展图标，或快捷键 **⌘+M**（Mac）/ **Ctrl+M**（Windows）。
 - **搜索与对比**：输入问题、勾选 AI 站点，点击 PK 打开多 AI 对比页（仅加载支持 iframe 的站点）。
+- **批量对比**：点击 PK 旁边的批量按钮，每行输入一个提示词，即可按当前选中的面板逐行打开新的对比页。
 - **保存常用站点**：勾选站点后可保存为「常用站点」，下次一键使用。
 - **skills 名称提示**：内置 skills 名称过长被省略时，鼠标悬停会立即显示完整名称，不再依赖浏览器原生 `title` 的延迟提示。
 - **固定引导**：可选提示用户将扩展固定到工具栏，方便打开。
@@ -390,6 +393,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 时间线复制现在会先显示“复制中...”，如果 `navigator.clipboard.writeText` 失败，会自动回退到 `execCommand('copy')`。
 - 时间线复制预览现在支持新标签页分析：可以把问题、汇总结果和各站原始答案通过 `chrome.storage.session` 传到默认的扩展 compare 页，再复用现有对比流程继续跑多模型分析，不走 OpenClaw。
 - 时间线复制预览现在还能选择分析提示词模板；设置页里也新增了对应的“分析提示词”管理入口和默认预置项。
+- 内置分析提示词列表及默认分析提示词 id 现在统一由 `config/appConfig.json` 驱动，`background`、设置页和 iframe 会共享同一份配置。
 - 面向真实 Chrome 的定期巡检可通过 `node debug/run-live-site-checks.js --group core --write-report` 执行。
 - `--group core` 适合每天跑核心站点烟雾检查；`--group full` 会额外跑更广的 verifier 以及逻辑 / 配置探针。
 - 汇总报告会同时给出通过 / 失败状态、登录失效 / 限额等软失败分类，以及“当前哪些已配置站点还没有专用 live verifier 覆盖”的缺口清单。
@@ -423,9 +427,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-05-29 00:18:56 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-02 00:05:03 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `.githooks/post-commit`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -437,45 +442,42 @@ Last auto-update / 最近自动更新：2026-05-29 00:18:56 UTC+08:00
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
-- `M` `config/agentCatalog.js`
-- `A` `config/agentCatalog.json`
+- `M` `config/agentCatalog.json`
 - `M` `config/agentCatalogData.js`
 - `M` `config/agentEngineConfig.js`
 - `M` `config/appConfig.json`
 - `M` `config/baseConfig.js`
-- `A` `docs/hermes-openclaw-plugin-compat.md`
-- `M` `docs/release-notes/history.md`
+- `M` `data/shares.json`
 - `M` `docs/release-notes/latest.md`
 - `M` `homepage/homepage.css`
 - `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
-- `M` `homepage/site-indicator-utils.js`
-- `A` `icons/globe.svg`
+- `A` `icons/list-start.svg`
 - `M` `iframe/agent-panel.css`
 - `M` `iframe/agent-panel.html`
 - `M` `iframe/agent-panel.js`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
+- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
 - `M` `options/options.css`
-- `M` `options/options.html`
 - `M` `options/options.js`
-- `M` `scripts/generate-release-notes.js`
-- `A` `scripts/package-extension.sh`
-- `M` `shared/agent-prompt-utils.js`
-- `M` `shared/runtime-i18n.js`
-- `M` `shared/sidebar.js`
-- `A` `tests/agent-catalog.test.js`
-- `A` `tests/agent-prompt-utils.test.js`
-- `A` `tests/hermes-ai-compare-plugin.test.js`
+- `M` `remote-relay/src/server.js`
+- `M` `remote-relay/tests/server.test.js`
+- `A` `scripts/package-extension.config.js`
+- `M` `scripts/package-extension.sh`
+- `A` `scripts/validate-package-config.js`
+- `A` `shared/markdown-renderer.js`
+- `A` `vendor/ace/LICENSE`
+- `A` `vendor/ace/ace.js`
 
 ### Recent commits / 最近提交
+- `4925de1` 2026-05-29 V4.1.2 优化 skills 的交互和把默认的skills 变成讨论类的 skills
 - `0a94946` 2026-05-25 V4.1.1 支持语言选择，支持谷歌网盘同步，支持展示更新记录
 - `dfa6433` 2026-05-22 chore: verify auto sync hooks
 - `2a720e3` 2026-05-21 V4.1.0 支持分享到链接
 - `f79a148` 2026-05-18 V4.0.1 修复小 bug
-- `63e4f41` 2026-05-18 V4.0.0 支持智能体
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

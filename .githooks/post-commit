@@ -6,6 +6,11 @@ repo_root="$(git rev-parse --show-toplevel)"
 
 cd "$repo_root"
 
+if ! node scripts/validate-package-config.js; then
+  echo "Post-commit package validation failed. Please update scripts/package-extension.config.js or runtime references before the next release zip." >&2
+  exit 1
+fi
+
 current_branch="$(git branch --show-current)"
 
 if [ -z "$current_branch" ]; then

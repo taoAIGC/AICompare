@@ -29,7 +29,10 @@ const DRIVE_SYNC_CONFIG_KEY = 'googleDriveSyncConfig';
 const DRIVE_SYNC_FILENAME = 'multiAI-settings.json';
 const DRIVE_SYNC_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 let googleDriveConnectInFlight = null;
-const OFFICIAL_AGENT_DAILY_FREE_LIMIT = Math.max(0, Number(AgentEngineConfig.DEFAULT_DAILY_FREE_LIMIT) || 3);
+const OFFICIAL_AGENT_DAILY_FREE_LIMIT = Math.max(
+  0,
+  Number(AgentEngineConfig.DEFAULT_DAILY_FREE_LIMIT ?? 0) || 0
+);
 
 function getDefaultAgentEngineConfig() {
   const bundledDefaults = typeof AgentEngineConfig.getDefaults === 'function'
@@ -49,6 +52,7 @@ function getDefaultAgentEngineConfig() {
 
 const DEFAULT_AGENT_ENGINE_CONFIG = Object.freeze(getDefaultAgentEngineConfig());
 const AGENT_RUNTIME_KEEPALIVE_PORT_NAME = 'agent-runtime-keepalive';
+const STANDALONE_ANALYSIS_STREAM_PORT_NAME = 'standalone-analysis-stream';
 const AGENT_RUNTIME_KEEPALIVE_INTERVAL_MS = 20000;
 const agentRuntimeState = {
   activeCount: 0,
@@ -535,15 +539,17 @@ function cancelAgentJob(panelId, reason = 'replaced') {
   }
 }
 
-async function consumeAgentStream(job, response) {
+async function readChatCompletionStream(response, handlers = {}) {
+  const onDelta = typeof handlers.onDelta === 'function'
+    ? handlers.onDelta
+    : () => {};
   const reader = response.body?.getReader?.();
   if (!reader) {
     const data = await response.json();
     const text = data?.choices?.[0]?.message?.content || '';
-    sendAgentRuntimeEvent(job, {
-      event: 'delta',
-      delta: text
-    });
+    if (text) {
+      onDelta(text);
+    }
     return text;
   }
 
@@ -577,14 +583,121 @@ async function consumeAgentStream(job, response) {
         || '';
       if (!delta) continue;
       content += delta;
+      onDelta(delta, content);
+    }
+  }
+
+  return content;
+}
+
+async function consumeAgentStream(job, response) {
+  return readChatCompletionStream(response, {
+    onDelta(delta) {
       sendAgentRuntimeEvent(job, {
         event: 'delta',
         delta
       });
     }
+  });
+}
+
+function postStandaloneAnalysisStreamEvent(port, message = {}) {
+  try {
+    port.postMessage(message);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function streamStandaloneAnalysis(port, payload = {}, requestId = '') {
+  const config = await getAgentEngineConfig();
+  const normalizedPrompt = String(payload?.prompt || '').trim();
+  const normalizedSystemPrompt = String(payload?.systemPrompt || config.systemPrompt || '').trim();
+  const normalizedRequestId = String(requestId || '').trim();
+
+  if (!normalizedPrompt) {
+    throw new Error('Analysis prompt is required');
+  }
+  if (!config.apiKey || !config.baseUrl || !config.model) {
+    throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
+  }
+  if ((config.selectedSource || 'official') === 'official') {
+    await consumeOfficialUsageQuota();
   }
 
-  return content;
+  const abortController = new AbortController();
+  let disconnected = false;
+  port.onDisconnect.addListener(() => {
+    disconnected = true;
+    abortController.abort();
+  });
+
+  const messages = [];
+  if (normalizedSystemPrompt) {
+    messages.push({
+      role: 'system',
+      content: normalizedSystemPrompt
+    });
+  }
+  messages.push({
+    role: 'user',
+    content: normalizedPrompt
+  });
+
+  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`
+    },
+    body: JSON.stringify({
+      model: config.model,
+      stream: true,
+      thinking: {
+        type: 'disabled'
+      },
+      messages
+    }),
+    signal: abortController.signal
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseAgentErrorMessage(response));
+  }
+
+  postStandaloneAnalysisStreamEvent(port, {
+    type: 'standaloneAnalysisStarted',
+    requestId: normalizedRequestId,
+    model: config.model,
+    selectedSource: config.selectedSource || 'official'
+  });
+
+  let latestContent = '';
+  const content = await readChatCompletionStream(response, {
+    onDelta(delta, nextContent = '') {
+      latestContent = String(nextContent || (latestContent + delta));
+      if (disconnected) {
+        return;
+      }
+      postStandaloneAnalysisStreamEvent(port, {
+        type: 'standaloneAnalysisDelta',
+        requestId: normalizedRequestId,
+        delta,
+        content: latestContent
+      });
+    }
+  });
+
+  if (!disconnected) {
+    postStandaloneAnalysisStreamEvent(port, {
+      type: 'standaloneAnalysisCompleted',
+      requestId: normalizedRequestId,
+      content,
+      model: config.model,
+      selectedSource: config.selectedSource || 'official'
+    });
+  }
 }
 
 async function parseAgentErrorMessage(response) {
@@ -624,6 +737,77 @@ async function parseAgentErrorMessage(response) {
   } catch (_) {
     return fallback;
   }
+}
+
+async function runStandaloneAnalysis(payload = {}) {
+  const config = await getAgentEngineConfig();
+  const normalizedPrompt = String(payload?.prompt || '').trim();
+  const normalizedSystemPrompt = String(payload?.systemPrompt || config.systemPrompt || '').trim();
+
+  if (!normalizedPrompt) {
+    throw new Error('Analysis prompt is required');
+  }
+  if (!config.apiKey || !config.baseUrl || !config.model) {
+    throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
+  }
+  if ((config.selectedSource || 'official') === 'official') {
+    await consumeOfficialUsageQuota();
+  }
+
+  const messages = [];
+  if (normalizedSystemPrompt) {
+    messages.push({
+      role: 'system',
+      content: normalizedSystemPrompt
+    });
+  }
+  messages.push({
+    role: 'user',
+    content: normalizedPrompt
+  });
+
+  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`
+    },
+    body: JSON.stringify({
+      model: config.model,
+      stream: false,
+      thinking: {
+        type: 'disabled'
+      },
+      messages
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseAgentErrorMessage(response));
+  }
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (_) {
+    data = null;
+  }
+
+  const content = String(
+    data?.choices?.[0]?.message?.content
+    || data?.choices?.[0]?.text
+    || ''
+  ).trim();
+
+  if (!content) {
+    throw new Error(t('agentRequestFailed', 'Skill request failed'));
+  }
+
+  return {
+    content,
+    model: config.model,
+    selectedSource: config.selectedSource || 'official'
+  };
 }
 
 async function executeAgentJob(job) {
@@ -744,6 +928,33 @@ async function enqueueAgentJob(payload) {
 }
 
 chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === STANDALONE_ANALYSIS_STREAM_PORT_NAME) {
+    let started = false;
+    port.onMessage.addListener((message) => {
+      if (started || message?.type !== 'startStandaloneAnalysis') {
+        return;
+      }
+      started = true;
+      streamStandaloneAnalysis(port, message.payload || {}, message.requestId || '')
+        .catch((error) => {
+          if (error?.name === 'AbortError') {
+            return;
+          }
+          postStandaloneAnalysisStreamEvent(port, {
+            type: 'standaloneAnalysisError',
+            requestId: String(message.requestId || '').trim(),
+            error: error?.message || String(error)
+          });
+        })
+        .finally(() => {
+          try {
+            port.disconnect();
+          } catch (_) {}
+        });
+    });
+    return;
+  }
+
   if (port.name !== AGENT_RUNTIME_KEEPALIVE_PORT_NAME) {
     return;
   }
@@ -828,16 +1039,16 @@ function getDefaultPromptTemplates() {
   return [
     {
       id: 'risk_analysis',
-      name: chrome.i18n.getMessage('defaultTemplateRiskAnalysisName') || 'RiskAnalysis',
-      query: chrome.i18n.getMessage('defaultTemplateRiskAnalysisQuery') || 'Root cause of the failure:「{query}」',
+      name: chrome.i18n.getMessage('defaultTemplateRiskAnalysisName') || 'Risk Review',
+      query: chrome.i18n.getMessage('defaultTemplateRiskAnalysisQuery') || 'Review this topic as a risk assessment. Start with the 3-5 biggest risks, then for each one explain: why it matters, what could trigger it, how serious the impact would be, and how to prevent or reduce it. End with the single risk that deserves attention first.\n\nTopic: {query}',
       type: 'information',
       order: 1,
       isDefault: true
     },
     {
       id: 'best_practice',
-      name: chrome.i18n.getMessage('defaultTemplateBestPracticeName') || 'BestPractice',
-      query: chrome.i18n.getMessage('defaultTemplateBestPracticeQuery') || 'Write a success retrospective report on this project:「{query}」',
+      name: chrome.i18n.getMessage('defaultTemplateBestPracticeName') || 'Best Practice Checklist',
+      query: chrome.i18n.getMessage('defaultTemplateBestPracticeQuery') || 'Turn this topic into a practical best-practice checklist. Start with the goal and success criteria, then list the most important practices to follow, common mistakes to avoid, and a short step-by-step plan someone can use right away.\n\nTopic: {query}',
       type: 'information',
       order: 2,
       isDefault: true
@@ -853,6 +1064,102 @@ function getDefaultPromptTemplates() {
   ];
 }
 
+const LEGACY_PROMPT_TEMPLATE_SIGNATURES = {
+  risk_analysis: [
+    {
+      name: 'RiskAnalysis',
+      query: 'Root cause of the failure:「{query}」'
+    },
+    {
+      name: 'Risk Analysis',
+      query: 'Root cause of the failure:「{query}」'
+    },
+    {
+      name: '风险分析',
+      query: '导致失败的根本原因：「{query}」'
+    },
+    {
+      name: '風險分析',
+      query: '導致失敗的根本原因：「{query}」'
+    },
+    {
+      name: 'リスク分析',
+      query: 'この失敗の根本原因を分析してください:「{query}」'
+    },
+    {
+      name: '리스크 분석',
+      query: '이 실패의 근본 원인을 분석해 주세요:「{query}」'
+    },
+    {
+      name: 'Análisis de riesgos',
+      query: 'Analiza la causa raíz de este fallo:「{query}」'
+    },
+    {
+      name: 'Analyse des risques',
+      query: 'Analyse la cause racine de cet échec :「{query}」'
+    },
+    {
+      name: 'Risikoanalyse',
+      query: 'Analysiere die Grundursache dieses Scheiterns:「{query}」'
+    },
+    {
+      name: 'Análise de risco',
+      query: 'Analise a causa raiz desta falha:「{query}」'
+    },
+    {
+      name: 'تحليل المخاطر',
+      query: 'حلل السبب الجذري لهذا الفشل:「{query}」'
+    }
+  ],
+  best_practice: [
+    {
+      name: 'BestPractice',
+      query: 'Write a success retrospective report on this project:「{query}」'
+    },
+    {
+      name: 'Best Practice',
+      query: 'Write a success retrospective report on this project:「{query}」'
+    },
+    {
+      name: '最佳实践',
+      query: '围绕这个项目写一份成功复盘报告：「{query}」'
+    },
+    {
+      name: '最佳實踐',
+      query: '圍繞這個專案寫一份成功復盤報告：「{query}」'
+    },
+    {
+      name: 'ベストプラクティス',
+      query: 'このプロジェクトの成功レトロスペクティブレポートを書いてください:「{query}」'
+    },
+    {
+      name: '베스트 프랙티스',
+      query: '이 프로젝트에 대한 성공 회고 보고서를 작성해 주세요:「{query}」'
+    },
+    {
+      name: 'Buenas prácticas',
+      query: 'Escribe un informe de retrospectiva de éxito para este proyecto:「{query}」'
+    },
+    {
+      name: 'Bonnes pratiques',
+      query: 'Rédige un rapport de rétrospective de réussite pour ce projet :「{query}」'
+    },
+    {
+      name: 'Best Practices',
+      query: 'Schreibe einen Erfolgs-Retrospektivenbericht für dieses Projekt:「{query}」'
+    },
+    {
+      name: 'Boas práticas',
+      query: 'Escreva um relatório de retrospectiva de sucesso para este projeto:「{query}」'
+    },
+    {
+      name: 'أفضل الممارسات',
+      query: 'اكتب تقرير مراجعة نجاح لهذا المشروع:「{query}」'
+    }
+  ],
+  translate_to_chinese: []
+};
+
 async function initializeDefaultPromptTemplates() {
   try {
     const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
@@ -864,14 +1171,55 @@ async function initializeDefaultPromptTemplates() {
         .filter(Boolean)
     );
     const missingTemplates = defaultTemplates.filter(template => !existingTemplateIds.has(template.id));
+    const migratedTemplates = existingTemplates.map((template) => {
+      const desiredTemplate = defaultTemplates.find((item) => item.id === template?.id);
+      if (!desiredTemplate) {
+        return template;
+      }
+
+      const legacySignatures = LEGACY_PROMPT_TEMPLATE_SIGNATURES[template.id] || [];
+      const matchesKnownDefault = legacySignatures.some((signature) => {
+        return String(signature?.name || '').trim() === String(template?.name || '').trim()
+          && String(signature?.query || '').trim() === String(template?.query || '').trim();
+      });
+
+      if (!matchesKnownDefault) {
+        return template;
+      }
+
+      const needsUpdate = (
+        String(template?.name || '').trim() !== desiredTemplate.name
+        || String(template?.query || '').trim() !== desiredTemplate.query
+        || String(template?.type || '').trim() !== desiredTemplate.type
+        || Number(template?.order || 0) !== desiredTemplate.order
+        || template?.isDefault !== true
+      );
+
+      if (!needsUpdate) {
+        return template;
+      }
+
+      return {
+        ...template,
+        name: desiredTemplate.name,
+        query: desiredTemplate.query,
+        type: desiredTemplate.type,
+        order: desiredTemplate.order,
+        isDefault: true
+      };
+    });
+    const migrationChanged = JSON.stringify(migratedTemplates) !== JSON.stringify(existingTemplates);
 
     if (existingTemplates.length === 0) {
       await chrome.storage.sync.set({ promptTemplates: defaultTemplates });
       console.log('已初始化默认提示词模板');
-    } else if (missingTemplates.length > 0) {
-      const mergedTemplates = [...existingTemplates, ...missingTemplates]
+    } else if (migrationChanged || missingTemplates.length > 0) {
+      const mergedTemplates = [...migratedTemplates, ...missingTemplates]
         .sort((a, b) => (a.order || 0) - (b.order || 0));
       await chrome.storage.sync.set({ promptTemplates: mergedTemplates });
+      if (migrationChanged) {
+        console.log('已迁移旧版默认提示词模板');
+      }
       console.log('已补充缺失的默认提示词模板:', missingTemplates.map(template => template.id));
     } else {
       console.log('提示词模板已存在，跳过初始化');
@@ -879,32 +1227,6 @@ async function initializeDefaultPromptTemplates() {
   } catch (error) {
     console.error('初始化默认提示词模板失败:', error);
   }
-}
-
-function getDefaultAnalysisPromptTemplates() {
-  return [
-    {
-      id: 'analysis_conclusion_first',
-      name: chrome.i18n.getMessage('defaultAnalysisTemplateConclusionName') || '结论先行',
-      query: chrome.i18n.getMessage('defaultAnalysisTemplateConclusionQuery') || '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}',
-      order: 1,
-      isDefault: true
-    },
-    {
-      id: 'analysis_difference_focus',
-      name: chrome.i18n.getMessage('defaultAnalysisTemplateDifferenceName') || '对比拆解',
-      query: chrome.i18n.getMessage('defaultAnalysisTemplateDifferenceQuery') || '请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}',
-      order: 2,
-      isDefault: true
-    },
-    {
-      id: 'analysis_report',
-      name: chrome.i18n.getMessage('defaultAnalysisTemplateReportName') || '决策备忘录',
-      query: chrome.i18n.getMessage('defaultAnalysisTemplateReportQuery') || '请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}',
-      order: 3,
-      isDefault: true
-    }
-  ];
 }
 
 const ANALYSIS_TEMPLATE_LOCALE_DIRS = [
@@ -922,7 +1244,37 @@ const ANALYSIS_TEMPLATE_LOCALE_DIRS = [
 
 let analysisTemplateSignaturesCache = null;
 
+async function getDefaultAnalysisTemplateConfig() {
+  try {
+    const templateConfig = await self.AppConfigManager.getAnalysisPromptTemplateConfig();
+    const definitions = Array.isArray(templateConfig?.defaults) ? templateConfig.defaults : [];
+    return {
+      defaultTemplateId: String(templateConfig?.defaultTemplateId || '').trim(),
+      definitions
+    };
+  } catch (error) {
+    console.error('读取分析提示词配置失败:', error);
+    return {
+      defaultTemplateId: '',
+      definitions: []
+    };
+  }
+}
+
+async function buildRuntimeDefaultAnalysisTemplates() {
+  const { definitions } = await getDefaultAnalysisTemplateConfig();
+  return definitions.map((definition) => ({
+    id: definition.id,
+    name: chrome.i18n.getMessage(definition.nameKey) || definition.fallbackName,
+    query: chrome.i18n.getMessage(definition.queryKey) || definition.fallbackQuery,
+    order: definition.order,
+    isDefault: true
+  }));
+}
+
 const LEGACY_ANALYSIS_TEMPLATE_SIGNATURES = {
+  analysis_summary: [],
+  analysis_geo_diagnostic: [],
   analysis_conclusion_first: [
     {
       name: 'Conclusion First',
@@ -964,31 +1316,26 @@ async function getLegacyAnalysisTemplateSignatures() {
     return analysisTemplateSignaturesCache;
   }
 
-  const signatureMap = {
-    analysis_conclusion_first: [],
-    analysis_difference_focus: [],
-    analysis_report: []
-  };
+  const { definitions } = await getDefaultAnalysisTemplateConfig();
+  const signatureMap = {};
+  definitions.forEach(({ id }) => {
+    signatureMap[id] = [];
+  });
+  signatureMap.analysis_conclusion_first = [];
 
   Object.entries(LEGACY_ANALYSIS_TEMPLATE_SIGNATURES).forEach(([id, signatures]) => {
+    if (!signatureMap[id]) {
+      signatureMap[id] = [];
+    }
     signatureMap[id].push(...signatures);
   });
 
   const keyMappings = [
+    ...definitions.map(({ id, nameKey, queryKey }) => ({ id, nameKey, queryKey })),
     {
       id: 'analysis_conclusion_first',
       nameKey: 'defaultAnalysisTemplateConclusionName',
       queryKey: 'defaultAnalysisTemplateConclusionQuery'
-    },
-    {
-      id: 'analysis_difference_focus',
-      nameKey: 'defaultAnalysisTemplateDifferenceName',
-      queryKey: 'defaultAnalysisTemplateDifferenceQuery'
-    },
-    {
-      id: 'analysis_report',
-      nameKey: 'defaultAnalysisTemplateReportName',
-      queryKey: 'defaultAnalysisTemplateReportQuery'
     }
   ];
 
@@ -1039,16 +1386,20 @@ function shouldMigrateAnalysisTemplate(template, desiredTemplate, legacySignatur
 async function initializeDefaultAnalysisPromptTemplates() {
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
-    const defaultTemplates = getDefaultAnalysisPromptTemplates();
+    const defaultTemplates = await buildRuntimeDefaultAnalysisTemplates();
+    const { defaultTemplateId: configuredDefaultTemplateId } = await getDefaultAnalysisTemplateConfig();
     const legacySignatures = await getLegacyAnalysisTemplateSignatures();
     const existingTemplates = Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [];
+    const existingWithoutRemovedDefaults = existingTemplates.filter((template) => {
+      return template?.id !== 'analysis_conclusion_first';
+    });
     const existingTemplateIds = new Set(
-      existingTemplates
+      existingWithoutRemovedDefaults
         .map(template => template?.id)
         .filter(Boolean)
     );
     const missingTemplates = defaultTemplates.filter(template => !existingTemplateIds.has(template.id));
-    const migratedTemplates = existingTemplates.map((template) => {
+    const migratedTemplates = existingWithoutRemovedDefaults.map((template) => {
       const desiredTemplate = defaultTemplates.find((item) => item.id === template?.id);
       const legacyTemplateSignatures = legacySignatures[template?.id] || [];
       if (!shouldMigrateAnalysisTemplate(template, desiredTemplate, legacyTemplateSignatures)) {
@@ -1063,15 +1414,27 @@ async function initializeDefaultAnalysisPromptTemplates() {
         isDefault: true
       };
     });
-    const migrationChanged = JSON.stringify(migratedTemplates) !== JSON.stringify(existingTemplates);
+    const removedDeprecatedDefaults = existingWithoutRemovedDefaults.length !== existingTemplates.length;
+    const migrationChanged = JSON.stringify(migratedTemplates) !== JSON.stringify(existingWithoutRemovedDefaults);
 
-    if (existingTemplates.length === 0) {
+    if (existingWithoutRemovedDefaults.length === 0) {
       await chrome.storage.sync.set({ analysisPromptTemplates: defaultTemplates });
+      const { defaultAnalysisTemplateId = '' } = await chrome.storage.sync.get('defaultAnalysisTemplateId');
+      if (!String(defaultAnalysisTemplateId || '').trim() && configuredDefaultTemplateId) {
+        await chrome.storage.sync.set({ defaultAnalysisTemplateId: configuredDefaultTemplateId });
+      }
       console.log('已初始化默认分析提示词模板');
-    } else if (migrationChanged || missingTemplates.length > 0) {
+    } else if (removedDeprecatedDefaults || migrationChanged || missingTemplates.length > 0) {
       const mergedTemplates = [...migratedTemplates, ...missingTemplates]
         .sort((a, b) => (a.order || 0) - (b.order || 0));
       await chrome.storage.sync.set({ analysisPromptTemplates: mergedTemplates });
+      const { defaultAnalysisTemplateId = '' } = await chrome.storage.sync.get('defaultAnalysisTemplateId');
+      if (!String(defaultAnalysisTemplateId || '').trim() && configuredDefaultTemplateId) {
+        await chrome.storage.sync.set({ defaultAnalysisTemplateId: configuredDefaultTemplateId });
+      }
+      if (removedDeprecatedDefaults) {
+        console.log('已移除废弃的默认分析提示词模板: analysis_conclusion_first');
+      }
       if (migrationChanged) {
         console.log('已迁移旧版默认分析提示词模板');
       }
@@ -1501,6 +1864,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   else if (message.action === 'agentChat') {
     enqueueAgentJob(message.payload || {}).then((result) => {
+      sendResponse({ success: true, result });
+    }).catch((error) => {
+      sendResponse({ success: false, error: error.message });
+    });
+    return true;
+  }
+  else if (message.action === 'runStandaloneAnalysis') {
+    runStandaloneAnalysis(message.payload || {}).then((result) => {
       sendResponse({ success: true, result });
     }).catch((error) => {
       sendResponse({ success: false, error: error.message });

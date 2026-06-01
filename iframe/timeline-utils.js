@@ -46,12 +46,42 @@
     };
   }
 
+  function buildTimelineEntryKey(entry) {
+    const normalizedQuery = normalizeTimelineQuery(entry?.normalizedQuery || entry?.query);
+    const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
+    return normalizedQuery ? `${normalizedQuery}::${occurrenceIndex}` : '';
+  }
+
+  function findTimelineEntryByQuery(entries = [], query = '') {
+    const normalizedQuery = normalizeTimelineQuery(query);
+    if (!normalizedQuery) {
+      return null;
+    }
+    return (Array.isArray(entries) ? entries : []).find((entry) => entry?.normalizedQuery === normalizedQuery) || null;
+  }
+
+  function findTimelineEntryByKey(entries = [], entryKey = '') {
+    const normalizedEntryKey = String(entryKey || '').trim();
+    if (!normalizedEntryKey) {
+      return null;
+    }
+    return (Array.isArray(entries) ? entries : []).find((entry) => buildTimelineEntryKey(entry) === normalizedEntryKey) || null;
+  }
+
+  function findTimelineEntryByTimelineId(entries = [], timelineId = '') {
+    const normalizedTimelineId = String(timelineId || '').trim();
+    if (!normalizedTimelineId) {
+      return null;
+    }
+    return (Array.isArray(entries) ? entries : []).find((entry) => String(entry?.timelineId || '').trim() === normalizedTimelineId) || null;
+  }
+
   function buildTimelineCopyText(entry, responses = []) {
     const lines = [];
     const query = normalizeTimelineQuery(entry?.query);
     const dateLabel = String(entry?.dateLabel || '').trim();
 
-    lines.push(query || '未命名提问');
+    lines.push(`问题：${query || '未命名提问'}`);
     if (dateLabel) {
       lines.push(`时间：${dateLabel}`);
     }
@@ -129,7 +159,11 @@
   return {
     buildTimelineCopyText,
     buildTimelineEntry,
+    buildTimelineEntryKey,
     extractTimelinePromptsFromMessages,
+    findTimelineEntryByKey,
+    findTimelineEntryByTimelineId,
+    findTimelineEntryByQuery,
     mergeTimelinePromptSnapshots,
     normalizeTimelineQuery
   };

@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare - 複数AIをワンクリック比較・結果をコピー"
+    "message": "AI Compare — 複数AI比較、GEO・ブランド回答の一括検証"
   },
   "extDescription": {
-    "message": "AI Compareは複数のAIの回答から最適な答えをすばやく見つけるのに役立ちます。"
+    "message": "1回の質問で ChatGPT、Gemini、Claude など複数AIの回答を比較。コンテンツ検証、ブランド監視、GEO（生成型エンジン最適化）に。"
   },
   "configTitle": {
     "message": "AI サイト"
@@ -1460,6 +1460,18 @@
   "defaultAnalysisTemplateDifferenceQuery": {
     "message": "各サイトの回答を項目ごとに比較し、少なくとも「共通点 / 相違点 / 矛盾点 / どれが最も信頼できるか」の4つの観点で整理してください。可能なら表やグループ分けも使ってください。\n\n{analysisInput}"
   },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "要約"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "これらのパネル回答を、次にどのサイトを読むべきか判断するための要約にしてください。\n\n出力要件:\n1. まず 3〜5 個の箇条書きで、繰り返し現れていて最初に信頼しやすい共通点をまとめてください。\n2. 次に、サイト間の大きな違い、矛盾、または注目点の違いを指摘してください。\n3. 全文を読む価値が最も高い 1〜2 サイトを挙げ、それぞれについて、情報がより網羅的、具体的、構成が明快、視点が独自、信頼性が高いなどの理由を説明してください。\n4. 次に 1 サイトしか読めないなら、最優先の 1 サイトを明示し、理由を 1 文で述べてください。\n5. どのサイトを次に開くべきか素早く判断できるよう、情報密度が高く実用的にまとめてください。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "GEO 診断レポート"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "これらのパネルには、あるブランドに関連する検索クエリの結果が含まれています。これらをもとに、そのブランドの GEO 診断レポート（Generative Engine Optimization）を作成してください。\n\n構成:\n1. 一文診断: 各回答の中でのブランドの現在の可視性と認知状態を要約してください。\n2. ブランド露出状況: どのサイトがそのブランドを明確に言及しているか、どのサイトが言及していないか、どのサイトがついでに触れているだけかを整理してください。\n3. AI によるブランド認知像: ブランドがどのように説明されているか、また全体として安定的で明確かつ一貫した認知が形成されているかを示してください。\n4. 情報不足と表現上の問題: どの重要情報が欠けているか、曖昧か、不整合か、あるいは競合や汎用的な回答に埋もれているかを示してください。\n5. 機会領域: GEO を高めるために、次に強化すべき内容領域は何かを示してください。たとえば、ブランド定義、主要な訴求点、代表的なユースケース、比較コンテンツ、FAQ、事例、権威性シグナルなどです。\n6. 優先度付きアクション: P0 / P1 / P2 の3段階で施策を提示し、まず最優先で取り組むべきものから書いてください。\n\n要件:\n- 各回答に見られる共通パターンや違いを根拠に診断してください。\n- 一般論の SEO アドバイスではなく、このブランドが現在どのように表現されているかに焦点を当ててください。\n- 結論は実行可能で、プロダクト的な観点を持たせてください。\n\n{analysisInput}"
+  },
   "defaultAnalysisTemplateReportName": {
     "message": "意思決定メモ"
   },
@@ -1467,16 +1479,16 @@
     "message": "この素材を1ページの意思決定メモにしてください。まず推奨案を示し、次にそれが最適な理由、リスク、次にやるべきことを説明してください。直接的で意思決定向けの口調でお願いします。\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "リスク分析"
+    "message": "リスク評価"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "この失敗の根本原因を分析してください:「{query}」"
+    "message": "このテーマをリスク評価として整理してください。まず重要度の高いリスクを 3〜5 個挙げ、その後それぞれについて、重要な理由、想定される引き金、影響の大きさ、予防策または軽減策を説明してください。最後に、今もっとも優先して対処すべきリスクを 1 つ示してください。\n\nテーマ: {query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "ベストプラクティス"
+    "message": "実践チェックリスト"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "このプロジェクトの成功レトロスペクティブレポートを書いてください:「{query}」"
+    "message": "このテーマを、すぐ実行できるベストプラクティスのチェックリストに変換してください。最初に目的と成功条件を示し、その後に重要な実践項目、避けるべき典型的な失敗、そしてすぐ使える短い手順リストをまとめてください。\n\nテーマ: {query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "中国語に翻訳"
@@ -1915,6 +1927,12 @@
   "homepageAgentsTitle": {
     "message": "AI エージェント"
   },
+  "homepageAgentsSelectAll": {
+    "message": "すべて選択"
+  },
+  "homepageAgentsClearAll": {
+    "message": "選択を解除"
+  },
   "homepageAgentCategoriesTitle": {
     "message": "カテゴリ"
   },
@@ -2251,5 +2269,107 @@
   },
   "agentImportDialogTitle": {
     "message": "URL からエージェントをインポート"
+  },
+  "homepageBatchModeButton": {
+    "message": "一括"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "一括モード"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "一括で PK を実行"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "1 行に 1 つのプロンプトを書いて、行ごとに実行"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "一括モードを使うには、比較ページで開けるサイトまたはスキルを少なくとも 1 つ選択してください"
+  },
+  "homepageBatchNoQueries": {
+    "message": "少なくとも 1 行はプロンプトを入力してください"
+  },
+  "homepageBatchOpened": {
+    "message": "$1 件の一括タスクを開きました"
+  },
+  "liveSummaryTitle": {
+    "message": "自動要約"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "自動要約タブ"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "分析テンプレート:"
+  },
+  "liveSummaryHint": {
+    "message": "質問してから 60 秒後に自動分析が実行されます。"
+  },
+  "liveSummaryHintCountdown": {
+    "message": "質問してから $1 秒後に自動分析が実行されます。"
+  },
+  "liveSummaryRefresh": {
+    "message": "分析"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "分析（$1秒）"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "分析を続ける"
+  },
+  "liveSummaryExpand": {
+    "message": "展開"
+  },
+  "liveSummaryCollapse": {
+    "message": "折りたたむ"
+  },
+  "liveSummaryEmpty": {
+    "message": "まだ表示できる要約はありません。"
+  },
+  "liveSummaryNoDivergence": {
+    "message": "現在のパネルは主要なポイントでほぼ一致しています。"
+  },
+  "liveSummaryPendingSites": {
+    "message": "有効な回答がないパネル"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "共通点"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "相違点"
+  },
+  "liveSummaryCollecting": {
+    "message": "すべてのアクティブなパネルの回答が安定するまで待ってから自動要約します..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "要約はすでにあります。静かに更新中..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "この要約には $1 / $2 パネルが含まれています"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "「$1」で分析済み"
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "分析ページを開けませんでした。もう一度お試しください。"
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "保存"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "まだ保存されたバッチはありません"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "バッチ用プロンプトを保存"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "このバッチの名前を入力"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "お気に入り名を入力してください"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "バッチのお気に入りを保存しました"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "バッチのお気に入りを削除しました"
   }
 }

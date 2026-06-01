@@ -17,6 +17,43 @@
     "agents",
     "translate"
   ],
+  "analysisPromptTemplatesConfig": {
+    "defaultTemplateId": "analysis_summary",
+    "defaults": [
+      {
+        "id": "analysis_summary",
+        "nameKey": "defaultAnalysisTemplateSummaryName",
+        "queryKey": "defaultAnalysisTemplateSummaryQuery",
+        "fallbackName": "汇总",
+        "fallbackQuery": "请把这些站点的答案做成一份“进一步阅读前的汇总”。\n\n输出要求：\n1. 先用 3-5 条列出各站答案的共性，也就是反复出现、最值得先相信的信息。\n2. 再指出明显的分歧、冲突或各站关注重点的差异。\n3. 判断“最值得继续深入看”的 1-2 个站点，并分别说明原因，例如：信息更完整、例子更具体、结构更清楚、观点更独特、来源更可信。\n4. 如果只能先读一个站点，请明确给出首选站点，并说一句理由。\n5. 整体追求高信息密度，帮助我快速决定下一步看哪个站点。\n\n{analysisInput}",
+        "order": 1
+      },
+      {
+        "id": "analysis_geo_diagnostic",
+        "nameKey": "defaultAnalysisTemplateGeoName",
+        "queryKey": "defaultAnalysisTemplateGeoQuery",
+        "fallbackName": "GEO 诊断报告",
+        "fallbackQuery": "当前这些 panels 是围绕某个品牌相关 query 的搜索结果。请基于它们生成一份该品牌的 GEO 诊断报告（Generative Engine Optimization）。\n\n输出结构：\n1. 一句话诊断：先总结这个品牌当前在各站答案中的整体可见度与认知状态。\n2. 品牌曝光概况：哪些站点明确提到该品牌，哪些没有提到，哪些只是顺带提到。\n3. AI 认知画像：这些答案主要把品牌描述成什么，是否形成稳定、清晰、一致的品牌认知。\n4. 信息缺口与表达问题：哪些关键信息缺失、表述模糊、定位不清，或者被竞品或泛化答案稀释掉。\n5. 机会点：为了提升 GEO，接下来最值得补强的内容方向是什么，例如品牌定义、核心卖点、典型场景、对比内容、FAQ、案例、权威背书等。\n6. 优先级行动建议：给出 P0 / P1 / P2 三层建议，优先写最值得马上做的动作。\n\n要求：\n- 尽量引用各站答案里的共性与差异来下判断。\n- 不要空泛地讲 SEO 常识，要围绕“这个品牌在当前结果里的表现”来诊断。\n- 结论要偏产品化、可执行。\n\n{analysisInput}",
+        "order": 2
+      },
+      {
+        "id": "analysis_difference_focus",
+        "nameKey": "defaultAnalysisTemplateDifferenceName",
+        "queryKey": "defaultAnalysisTemplateDifferenceQuery",
+        "fallbackName": "对比拆解",
+        "fallbackQuery": "请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}",
+        "order": 3
+      },
+      {
+        "id": "analysis_report",
+        "nameKey": "defaultAnalysisTemplateReportName",
+        "queryKey": "defaultAnalysisTemplateReportQuery",
+        "fallbackName": "决策备忘录",
+        "fallbackQuery": "请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}",
+        "order": 4
+      }
+    ]
+  },
   "externalLinks": {
     "reviewLink": "https://chromewebstore.google.com/detail/dkhpgbbhlnmjbkihoeniojpkggkabbbl/reviews",
     "uninstallSurvey": "https://wenjuan.feishu.cn/m?t=sxcO29Fz913i-1ad4",

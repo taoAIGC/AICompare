@@ -26,6 +26,279 @@
       },
       "createdAt": "2026-05-22T15:35:19.262Z",
       "updatedAt": "2026-05-22T15:35:19.262Z"
+    },
+    {
+      "shareId": "share-1780068045529-1hf2fudx",
+      "status": "active",
+      "expiresAt": "2026-06-28T15:20:45.529Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-29T15:20:45.529Z",
+      "updatedAt": "2026-05-29T15:20:45.529Z"
+    },
+    {
+      "shareId": "share-page-zh",
+      "status": "active",
+      "createdAt": "2026-05-29T06:07:08.000Z",
+      "expiresAt": "2099-01-01T00:00:00.000Z",
+      "payload": {
+        "question": "北京车展",
+        "summaryText": "",
+        "compareSites": [
+          "Grok",
+          "ChatGPT"
+        ],
+        "responses": [
+          {
+            "siteName": "Grok",
+            "content": "答案内容"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-30T16:52:46.343Z"
+    },
+    {
+      "shareId": "share-page-en",
+      "status": "active",
+      "createdAt": "2026-05-29T06:07:08.000Z",
+      "expiresAt": "2099-01-01T00:00:00.000Z",
+      "payload": {
+        "question": "Beijing Auto Show",
+        "summaryText": "",
+        "compareSites": [
+          "Grok",
+          "ChatGPT"
+        ],
+        "responses": [
+          {
+            "siteName": "Grok",
+            "content": "Answer content"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-30T16:52:46.374Z"
+    },
+    {
+      "shareId": "share-1780068309492-4wsmvf32",
+      "status": "active",
+      "expiresAt": "2026-06-28T15:25:09.492Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-29T15:25:09.492Z",
+      "updatedAt": "2026-05-29T15:25:09.492Z"
+    },
+    {
+      "shareId": "share-1780068494095-ow68so5z",
+      "status": "active",
+      "expiresAt": "2026-06-28T15:28:14.095Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-29T15:28:14.095Z",
+      "updatedAt": "2026-05-29T15:28:14.095Z"
+    },
+    {
+      "shareId": "share-1780068577679-lgac6pjs",
+      "status": "active",
+      "expiresAt": "2026-06-28T15:29:37.679Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-29T15:29:37.679Z",
+      "updatedAt": "2026-05-29T15:29:37.679Z"
+    },
+    {
+      "shareId": "share-1780070315956-56ur105y",
+      "status": "active",
+      "expiresAt": "2026-06-28T15:58:35.956Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-29T15:58:35.956Z",
+      "updatedAt": "2026-05-29T15:58:35.956Z"
+    },
+    {
+      "shareId": "share-1780157175427-3yqndlfv",
+      "status": "active",
+      "expiresAt": "2026-06-29T16:06:15.427Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-30T16:06:15.427Z",
+      "updatedAt": "2026-05-30T16:06:15.427Z"
+    },
+    {
+      "shareId": "share-page-no-switch",
+      "status": "active",
+      "createdAt": "2026-05-29T06:07:08.000Z",
+      "expiresAt": "2099-01-01T00:00:00.000Z",
+      "payload": {
+        "question": "Layout switch",
+        "summaryText": "Should stay on the default share layout.",
+        "responses": [
+          {
+            "siteName": "Grok",
+            "content": "Answer content"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-30T16:52:46.379Z"
+    },
+    {
+      "shareId": "share-1780159966340-10gw29a2",
+      "status": "active",
+      "expiresAt": "2026-06-29T16:52:46.340Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-05-30T16:52:46.340Z",
+      "updatedAt": "2026-05-30T16:52:46.340Z"
+    },
+    {
+      "shareId": "share-page-site-fallback",
+      "status": "active",
+      "createdAt": "2026-05-29T06:07:08.000Z",
+      "expiresAt": "2099-01-01T00:00:00.000Z",
+      "payload": {
+        "question": "Fallback sites",
+        "summaryText": "",
+        "responses": [
+          {
+            "siteName": "Grok",
+            "content": "Answer content"
+          },
+          {
+            "siteName": "ChatGPT",
+            "content": "Another answer"
+          },
+          {
+            "siteName": "Grok",
+            "content": "Duplicate site should be deduped"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-30T16:52:46.376Z"
     }
   ]
 }

@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PACKAGE_CONFIG_PATH="${SCRIPT_DIR}/package-extension.config.js"
 
 INCLUDE_DEBUG=0
 OUTPUT_ZIP=""
@@ -52,6 +53,11 @@ if ! command -v zip >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ ! -f "${PACKAGE_CONFIG_PATH}" ]]; then
+  echo "Missing package config: ${PACKAGE_CONFIG_PATH}" >&2
+  exit 1
+fi
+
 VERSION="$(cd "${REPO_ROOT}" && node -p "require('./manifest.json').version")"
 
 if [[ -z "${OUTPUT_ZIP}" ]]; then
@@ -64,29 +70,35 @@ OUTPUT_DIR="$(dirname "${OUTPUT_ZIP}")"
 mkdir -p "${OUTPUT_DIR}"
 rm -f "${OUTPUT_ZIP}"
 
-PACKAGE_ITEMS=(
-  "manifest.json"
-  "background.js"
-  "_locales"
-  "config"
-  "contact"
-  "content-scripts"
-  "docs/release-notes"
-  "favorites"
-  "firebase"
-  "history"
-  "homepage"
-  "icons"
-  "iframe"
-  "options"
-  "remote"
-  "shared"
-  "siteIcons"
-)
+PACKAGE_ITEMS_OUTPUT="$(
+  PACKAGE_INCLUDE_DEBUG="${INCLUDE_DEBUG}" PACKAGE_CONFIG_PATH="${PACKAGE_CONFIG_PATH}" node <<'EOF'
+const {
+  defaultEntries,
+  optionalEntries
+} = require(process.env.PACKAGE_CONFIG_PATH);
 
-if [[ "${INCLUDE_DEBUG}" -eq 1 ]]; then
-  PACKAGE_ITEMS+=("debug")
-fi
+const includeDebug = process.env.PACKAGE_INCLUDE_DEBUG === '1';
+const packageItems = [...defaultEntries];
+
+if (includeDebug) {
+  packageItems.push(...(optionalEntries.debug || []));
+}
+
+for (const item of packageItems) {
+  console.log(item);
+}
+EOF
+)
+"
+
+PACKAGE_ITEMS=()
+while IFS= read -r packageItem; do
+  if [[ -n "${packageItem}" ]]; then
+    PACKAGE_ITEMS+=("${packageItem}")
+  fi
+done <<EOF
+${PACKAGE_ITEMS_OUTPUT}
+EOF
 
 (
   cd "${REPO_ROOT}"

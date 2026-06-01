@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare – Mehrere KIs per Klick vergleichen, Ergebnisse kopieren"
+    "message": "AI Compare – Multi-KI-Vergleich für GEO & Markenantworten"
   },
   "extDescription": {
-    "message": "AI Compare hilft dir, schnell die beste Antwort aus mehreren KI zu finden."
+    "message": "Eine Frage, Antworten von ChatGPT, Gemini, Claude u. a. im Vergleich – für Content-QA, Markenmonitoring und GEO (Generative Engine Optimization)."
   },
   "configTitle": {
     "message": "KI-Seiten"
@@ -1460,6 +1460,18 @@
   "defaultAnalysisTemplateDifferenceQuery": {
     "message": "Vergleiche die Antworten Punkt für Punkt und beleuchte mindestens vier Aspekte: Gemeinsamkeiten, Unterschiede, Widersprüche und welche Antwort am zuverlässigsten ist. Nutze nach Möglichkeit eine Tabelle oder gruppierte Abschnitte.\n\n{analysisInput}"
   },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "Zusammenfassung"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "Fasse diese Panel-Antworten zu einer Übersicht für die weitere Lektüre zusammen.\n\nAusgabeanforderungen:\n1. Beginne mit 3-5 Stichpunkten zu den gemeinsamen Aussagen, die sich wiederholen und denen man zuerst am ehesten vertrauen sollte.\n2. Nenne danach wichtige Unterschiede, Widersprüche oder Unterschiede im Fokus zwischen den Seiten.\n3. Benenne die 1-2 Seiten, die es am meisten wert sind, vollständig gelesen zu werden, und erkläre warum, zum Beispiel: vollständiger, konkreter, besser strukturiert, eigenständiger oder glaubwürdiger.\n4. Wenn ich als Nächstes nur eine Seite lesen kann, gib genau eine Top-Empfehlung mit einem kurzen Grund.\n5. Halte das Ergebnis dicht und praktisch, damit ich schnell entscheiden kann, welche Seite ich als Nächstes öffnen soll.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "GEO-Diagnosebericht"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "Diese Panels enthalten Suchergebnisse zu einer markenbezogenen Anfrage. Erstelle daraus einen GEO-Diagnosebericht für die Marke (Generative Engine Optimization).\n\nStruktur:\n1. Diagnose in einer Zeile: Fasse die aktuelle Sichtbarkeit und Wahrnehmung der Marke in den Antworten zusammen.\n2. Markensichtbarkeit: Welche Seiten nennen die Marke klar, welche nicht und welche erwähnen sie nur nebenbei.\n3. Markenwahrnehmung durch KI: Wie die Marke beschrieben wird und ob das Gesamtbild stabil, klar und konsistent ist.\n4. Informationslücken und Messaging-Probleme: Welche wichtigen Informationen fehlen, unklar oder inkonsistent sind oder durch Wettbewerber bzw. generische Antworten verwässert werden.\n5. Chancenfelder: Welche Inhalte die Marke als Nächstes stärken sollte, um GEO zu verbessern, zum Beispiel Markendefinition, zentrale Vorteile, Kernanwendungsfälle, Vergleichsseiten, FAQ, Fallstudien oder Autoritätssignale.\n6. Priorisierte Maßnahmen: Gib Maßnahmen in den Stufen P0 / P1 / P2 an, mit den unmittelbar wichtigsten zuerst.\n\nAnforderungen:\n- Leite die Diagnose aus Mustern und Unterschieden in den Antworten ab.\n- Vermeide generische SEO-Ratschläge; konzentriere dich darauf, wie genau diese Marke derzeit dargestellt wird.\n- Halte die Schlussfolgerungen umsetzbar und produktorientiert.\n\n{analysisInput}"
+  },
   "defaultAnalysisTemplateReportName": {
     "message": "Entscheidungsmemo"
   },
@@ -1467,16 +1479,16 @@
     "message": "Verwandle dieses Material in ein einseitiges Entscheidungsmemo: beginne mit der Empfehlung, erkläre dann, warum sie die beste Wahl ist, welche Risiken bestehen und was als Nächstes zu tun ist. Der Ton soll direkt und entscheidungsorientiert sein.\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "Risikoanalyse"
+    "message": "Risiko-Review"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "Analysiere die Grundursache dieses Scheiterns:「{query}」"
+    "message": "Bewerte dieses Thema als Risikoanalyse. Nenne zuerst die 3-5 wichtigsten Risiken und erkläre dann für jedes: warum es relevant ist, was es auslösen könnte, wie schwer die Auswirkungen wären und wie man es vermeiden oder abmildern kann. Schließe mit dem einen Risiko ab, das zuerst Aufmerksamkeit bekommen sollte.\n\nThema: {query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "Best Practices"
+    "message": "Best-Practice-Checkliste"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "Schreibe einen Erfolgs-Retrospektivenbericht für dieses Projekt:「{query}」"
+    "message": "Verwandle dieses Thema in eine praktische Best-Practice-Checkliste. Beginne mit Ziel und Erfolgskriterien, liste dann die wichtigsten Vorgehensweisen, typische Fehler, die man vermeiden sollte, und einen kurzen Schritt-für-Schritt-Plan auf, den man sofort anwenden kann.\n\nThema: {query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Ins Chinesische übersetzen"
@@ -1915,6 +1927,12 @@
   "homepageAgentsTitle": {
     "message": "KI-Agenten"
   },
+  "homepageAgentsSelectAll": {
+    "message": "Alle auswählen"
+  },
+  "homepageAgentsClearAll": {
+    "message": "Auswahl aufheben"
+  },
   "homepageAgentCategoriesTitle": {
     "message": "Kategorien"
   },
@@ -2251,5 +2269,107 @@
   },
   "agentImportDialogTitle": {
     "message": "Agent per URL importieren"
+  },
+  "homepageBatchModeButton": {
+    "message": "Batch"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "Batch-Modus"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "PK im Batch ausführen"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "Geben Sie pro Zeile einen Prompt ein und führen Sie ihn zeilenweise aus"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "Für den Batch-Modus muss mindestens eine Site oder ein Skill ausgewählt sein, die bzw. das sich auf der Vergleichsseite öffnen lässt"
+  },
+  "homepageBatchNoQueries": {
+    "message": "Geben Sie mindestens eine Prompt-Zeile ein"
+  },
+  "homepageBatchOpened": {
+    "message": "$1 Batch-Aufgaben geöffnet"
+  },
+  "liveSummaryTitle": {
+    "message": "Automatische Zusammenfassung"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "Tabs der automatischen Zusammenfassung"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "Analysevorlage:"
+  },
+  "liveSummaryHint": {
+    "message": "Die automatische Analyse startet 60 Sekunden nach deiner Frage."
+  },
+  "liveSummaryHintCountdown": {
+    "message": "Die automatische Analyse startet in $1 Sekunden."
+  },
+  "liveSummaryRefresh": {
+    "message": "Analysieren"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "Analysieren ($1s)"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "Weiter analysieren"
+  },
+  "liveSummaryExpand": {
+    "message": "Ausklappen"
+  },
+  "liveSummaryCollapse": {
+    "message": "Einklappen"
+  },
+  "liveSummaryEmpty": {
+    "message": "Es ist noch keine Zusammenfassung verfügbar."
+  },
+  "liveSummaryNoDivergence": {
+    "message": "Die aktuellen Panels stimmen in den wichtigsten Punkten weitgehend überein."
+  },
+  "liveSummaryPendingSites": {
+    "message": "Panels ohne nutzbare Antwort"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "Gemeinsamkeiten"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "Unterschiede"
+  },
+  "liveSummaryCollecting": {
+    "message": "Es wird gewartet, bis sich alle aktiven Panels stabilisiert haben, bevor zusammengefasst wird..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "Eine Zusammenfassung ist bereits vorhanden. Sie wird unauffällig aktualisiert..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "$1 / $2 Panels sind in dieser Zusammenfassung enthalten"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "Mit \"$1\" analysiert"
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "Die Analyseseite konnte nicht geöffnet werden. Bitte versuche es erneut."
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "Speichern"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "Noch keine gespeicherten Stapel"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "Batch-Prompts speichern"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "Gib einen Namen für diesen Stapel ein"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "Bitte einen Favoritennamen eingeben"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "Batch-Favorit gespeichert"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "Batch-Favorit gelöscht"
   }
 }

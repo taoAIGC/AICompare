@@ -1,6 +1,7 @@
 (function() {
     const AgentCatalog = window.AICompareAgentCatalog || {};
     const AgentPromptUtils = window.AICompareAgentPromptUtils || {};
+    const MarkdownRenderer = window.AICompareMarkdownRenderer || {};
     const state = {
         agentId: '',
         panelId: '',
@@ -245,7 +246,10 @@
             return '';
         }
         if (role === 'assistant' && !message.isError) {
-            return `<div class="agent-message-content agent-markdown">${renderMarkdownToHtml(content)}</div>`;
+            const renderMarkdown = typeof MarkdownRenderer.renderMarkdownToHtml === 'function'
+                ? MarkdownRenderer.renderMarkdownToHtml
+                : renderMarkdownToHtml;
+            return `<div class="agent-message-content agent-markdown">${renderMarkdown(content)}</div>`;
         }
         return `<div class="agent-message-content">${escapeHtml(content)}</div>`;
     }

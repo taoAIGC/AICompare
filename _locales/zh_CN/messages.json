@@ -3,10 +3,10 @@
     "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI Compare-多 AI 一键对比、复制结果"
+    "message": "AI 比一比 — 多 AI 对比，GEO 与品牌答案一键实测"
   },
   "extDescription": {
-    "message": "帮你从十多个AI中快速找到最佳答案。"
+    "message": "一次提问，同时在 ChatGPT、Gemini、Claude 等 AI 中对比回答，用于内容验证、品牌监测与 GEO（生成式引擎优化）。"
   },
   "configTitle": {
     "message": "AI站点设置"
@@ -458,6 +458,12 @@
   },
   "homepageAgentsTitle": {
     "message": "AI Skills"
+  },
+  "homepageAgentsSelectAll": {
+    "message": "全选"
+  },
+  "homepageAgentsClearAll": {
+    "message": "取消全选"
   },
   "homepageAgentCategoriesTitle": {
     "message": "分类"
@@ -1802,11 +1808,35 @@
   "analysisPromptTemplateBadge": {
     "message": "分析"
   },
+  "analysisTemplateSetDefaultButton": {
+    "message": "设为默认"
+  },
+  "analysisTemplateDefaultActiveButton": {
+    "message": "默认中"
+  },
+  "analysisTemplateDefaultSaved": {
+    "message": "默认分析提示词已更新"
+  },
+  "analysisTemplateDefaultBadge": {
+    "message": "默认"
+  },
   "defaultAnalysisTemplateConclusionName": {
     "message": "结论先行"
   },
   "defaultAnalysisTemplateConclusionQuery": {
     "message": "请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "汇总"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "请把这些站点的答案做成一份“进一步阅读前的汇总”。\n\n输出要求：\n1. 先用 3-5 条列出各站答案的共性，也就是反复出现、最值得先相信的信息。\n2. 再指出明显的分歧、冲突或各站关注重点的差异。\n3. 判断“最值得继续深入看”的 1-2 个站点，并分别说明原因，例如：信息更完整、例子更具体、结构更清楚、观点更独特、来源更可信。\n4. 如果只能先读一个站点，请明确给出首选站点，并说一句理由。\n5. 整体追求高信息密度，帮助我快速决定下一步看哪个站点。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "GEO 诊断报告"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "当前这些 panels 是围绕某个品牌相关 query 的搜索结果。请基于它们生成一份该品牌的 GEO 诊断报告（Generative Engine Optimization）。\n\n输出结构：\n1. 一句话诊断：先总结这个品牌当前在各站答案中的整体可见度与认知状态。\n2. 品牌曝光概况：哪些站点明确提到该品牌，哪些没有提到，哪些只是顺带提到。\n3. AI 认知画像：这些答案主要把品牌描述成什么，是否形成稳定、清晰、一致的品牌认知。\n4. 信息缺口与表达问题：哪些关键信息缺失、表述模糊、定位不清，或者被竞品或泛化答案稀释掉。\n5. 机会点：为了提升 GEO，接下来最值得补强的内容方向是什么，例如品牌定义、核心卖点、典型场景、对比内容、FAQ、案例、权威背书等。\n6. 优先级行动建议：给出 P0 / P1 / P2 三层建议，优先写最值得马上做的动作。\n\n要求：\n- 尽量引用各站答案里的共性与差异来下判断。\n- 不要空泛地讲 SEO 常识，要围绕“这个品牌在当前结果里的表现”来诊断。\n- 结论要偏产品化、可执行。\n\n{analysisInput}"
   },
   "defaultAnalysisTemplateDifferenceName": {
     "message": "对比拆解"
@@ -1821,16 +1851,16 @@
     "message": "请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "风险分析"
+    "message": "风险评估"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "导致失败的根本原因：「{query}」"
+    "message": "请把这个主题当作一次风险评估来分析。先列出最值得关注的 3-5 个风险，再分别说明：为什么它重要、可能由什么触发、影响有多大、以及可以怎样预防或降低。最后给出当前最该优先处理的一个风险。\n\n主题：{query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "最佳实践"
+    "message": "实践清单"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "围绕这个项目写一份成功复盘报告：「{query}」"
+    "message": "请把这个主题整理成一份可直接执行的最佳实践清单。先说明目标和判断成功的标准，再列出最重要的做法、常见误区，以及一份可以马上照着做的简短步骤清单。\n\n主题：{query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "翻译成中文"
@@ -2446,5 +2476,107 @@
   },
   "timelineCopyPreviewOpen": {
     "message": "打开"
+  },
+  "homepageBatchModeButton": {
+    "message": "批量"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "批量模式"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "批量运行 PK"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "每行写一个提示词，逐行运行"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "批量模式至少需要选择一个可在对比页打开的站点或 Skill"
+  },
+  "homepageBatchNoQueries": {
+    "message": "请至少输入一行提示词"
+  },
+  "homepageBatchOpened": {
+    "message": "已打开 $1 个批量任务"
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "收藏"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "还没有收藏的批量提示词"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "收藏这组批量提示词"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "给这组提示词起个名字"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "请输入收藏名称"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "已收藏这组批量提示词"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "已删除这组批量提示词"
+  },
+  "liveSummaryTitle": {
+    "message": "自动总结"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "自动总结标签"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "分析模板:"
+  },
+  "liveSummaryHint": {
+    "message": "提问 60 秒后，会进行自动的分析。"
+  },
+  "liveSummaryHintCountdown": {
+    "message": "提问 $1 秒后，会进行自动的分析。"
+  },
+  "liveSummaryRefresh": {
+    "message": "分析"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "分析（$1s）"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "继续分析"
+  },
+  "liveSummaryExpand": {
+    "message": "展开"
+  },
+  "liveSummaryCollapse": {
+    "message": "收起"
+  },
+  "liveSummaryEmpty": {
+    "message": "暂时还没有可展示的总结。"
+  },
+  "liveSummaryNoDivergence": {
+    "message": "当前各面板的关键观点基本一致。"
+  },
+  "liveSummaryPendingSites": {
+    "message": "暂未形成可用回答的面板"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "共识"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "分歧"
+  },
+  "liveSummaryCollecting": {
+    "message": "正在等待所有活跃面板回答稳定后自动总结..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "已有总结，正在静默刷新..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "已纳入总结 $1 / $2 个面板"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "已使用“$1”分析"
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "打开分析页失败，请重试"
   }
 }

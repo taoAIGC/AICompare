@@ -22,6 +22,7 @@ const HOMEPAGE_DEFAULT_SEND_SHORTCUT = 'enter';
 const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
     navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
 );
+const HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY = 'homepageBatchFavorites';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
@@ -49,6 +50,9 @@ let homepageSubmitShortcutMode = HOMEPAGE_DEFAULT_SEND_SHORTCUT;
 let remoteSearchHomepageState = null;
 let remoteSearchHomepageListenerBound = false;
 let homepageAgentNameTooltipController = null;
+let homepageBatchModeEditor = null;
+let homepageBatchFavorites = [];
+let homepageActiveBatchFavoriteId = '';
 
 async function ensureHomepageAgentCatalogReady() {
     if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
@@ -109,6 +113,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
     if (namespace === 'sync' && changes.promptTemplates) {
         void refreshHomepageVisibleQuerySuggestions();
+    }
+    if (namespace === 'sync' && changes[HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY]) {
+        homepageBatchFavorites = normalizeHomepageBatchFavorites(changes[HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY].newValue);
+        if (homepageActiveBatchFavoriteId && !homepageBatchFavorites.some(item => item.id === homepageActiveBatchFavoriteId)) {
+            homepageActiveBatchFavoriteId = '';
+        }
+        renderBatchModeFavorites();
     }
 });
 
@@ -209,6 +220,9 @@ function refreshHomepageDynamicI18n() {
         renderRemoteSearchHomepageCard(remoteSearchHomepageState);
     }
 
+    refreshBatchModeEditorI18n();
+    refreshBatchModeFavoriteNameI18n();
+    renderBatchModeFavorites();
     renderSiteTypeTabs();
 }
 
@@ -682,6 +696,36 @@ function renderAgentsList() {
     refreshHomepageAgentNameTooltipEligibility();
 }
 
+function updateHomepageAgentSelection(checked) {
+    (homepageSitesState.agentCatalog?.agents || []).forEach((agent) => {
+        homepageSitesState.selectedAgents.set(agent.id, checked);
+    });
+    renderAgentsList();
+}
+
+function initializeAgentSelectionActions() {
+    const selectAllButton = document.getElementById('selectAllAgentsBtn');
+    const clearAllButton = document.getElementById('clearAllAgentsBtn');
+
+    if (selectAllButton) {
+        selectAllButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            updateHomepageAgentSelection(true);
+            trackEvent('homepage_agents_select_all');
+        });
+    }
+
+    if (clearAllButton) {
+        clearAllButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            updateHomepageAgentSelection(false);
+            trackEvent('homepage_agents_clear_all');
+        });
+    }
+}
+
 async function initializeAgentsList() {
     try {
         const [syncData, localStorageData] = await Promise.all([
@@ -1005,6 +1049,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     perfMark('save_button_init_end');
     perfMeasure('save_button_init_duration', 'save_button_init_start', 'save_button_init_end');
 
+    initializeAgentSelectionActions();
+    initializeBatchModeModal();
+
     bindHomepageAgentNameTooltip();
     window.addEventListener('resize', refreshHomepageAgentNameTooltipEligibility);
     
@@ -1073,6 +1120,14 @@ function initializeI18n() {
                 // 对于其他元素，设置文本内容
                 element.textContent = message;
             }
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        const message = t(key);
+        if (message) {
+            element.placeholder = message;
         }
     });
     
@@ -1270,18 +1325,14 @@ function showPinGuide() {
     }
 }
 
-async function handleQuery(query) {
-    // 解析输入文本（如果有前缀，去掉前缀）
-    const processedQuery = query.replace(/^ai\s+/, '').trim();
-    
-    // 获取选中的站点列表
+function normalizeHomepageQuery(query) {
+    return String(query || '').replace(/^ai\s+/i, '').trim();
+}
+
+function getHomepageSelectionContext() {
     const selectedSites = getSelectedSites();
     const selectedCustomSiteIds = getSelectedCustomSiteIds();
     const selectedAgentIds = getSelectedAgentIds();
-    if (selectedSites.length === 0 && selectedCustomSiteIds.length === 0 && selectedAgentIds.length === 0) {
-        showToast(t('homepageNoPanelsSelected', 'Select at least one site or agent'));
-        return;
-    }
     const selectedSiteConfigs = homepageSitesState.supportedSites.filter(site =>
         selectedSites.includes(site.name)
     );
@@ -1304,59 +1355,596 @@ async function handleQuery(query) {
         .filter(site => site.supportIframe !== true)
         .map(site => site.id)
         .filter(Boolean);
-    
-    // 检查当前页面是否在侧边栏中
     const urlParams = new URLSearchParams(window.location.search);
     const isSidePanel = urlParams.get('side_panel') === 'true';
-    
-    // 构建 URL 参数
+
+    return {
+        selectedSites,
+        selectedCustomSiteIds,
+        selectedAgentIds,
+        iframeSiteNames,
+        externalSiteNames,
+        customIframeSiteIds,
+        customExternalSiteIds,
+        isSidePanel,
+        hasAnySelectedPanels: selectedSites.length > 0 || selectedCustomSiteIds.length > 0 || selectedAgentIds.length > 0,
+        hasRunnableIframePanels: iframeSiteNames.length > 0 || customIframeSiteIds.length > 0 || selectedAgentIds.length > 0
+    };
+}
+
+function buildHomepageIframeSearchUrl(query, options = {}) {
+    const {
+        selectionContext = getHomepageSelectionContext(),
+        includeSidePanelParam = true
+    } = options;
     const params = new URLSearchParams();
+    const processedQuery = normalizeHomepageQuery(query);
+
     if (processedQuery) {
         params.set('query', processedQuery);
     }
-    if (iframeSiteNames.length > 0) {
-        params.set('sites', iframeSiteNames.join(','));
+    if (selectionContext.iframeSiteNames.length > 0) {
+        params.set('sites', selectionContext.iframeSiteNames.join(','));
     }
-    if (customIframeSiteIds.length > 0) {
-        params.set('customSites', customIframeSiteIds.join(','));
+    if (selectionContext.customIframeSiteIds.length > 0) {
+        params.set('customSites', selectionContext.customIframeSiteIds.join(','));
     }
-    if (selectedAgentIds.length > 0) {
-        params.set('agents', selectedAgentIds.join(','));
+    if (selectionContext.selectedAgentIds.length > 0) {
+        params.set('agents', selectionContext.selectedAgentIds.join(','));
     }
     if (homepageSitesState.activeGroup) {
         params.set('type', homepageSitesState.activeGroup);
     }
-    // 如果当前页面在侧边栏中，也传递 side_panel 参数
-    if (isSidePanel) {
+    if (includeSidePanelParam && selectionContext.isSidePanel) {
         params.set('side_panel', 'true');
+    }
+
+    let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
+    if (params.toString()) {
+        searchUrl += '?' + params.toString();
+    }
+    return searchUrl;
+}
+
+function getBatchModeElements() {
+    return {
+        modal: document.getElementById('batchModeModal'),
+        backdrop: document.getElementById('batchModeBackdrop'),
+        editorHost: document.getElementById('batchModeEditor'),
+        favoritesList: document.getElementById('batchModeFavoritesList'),
+        saveFavoriteButton: document.getElementById('batchModeSaveFavoriteButton'),
+        openButton: document.getElementById('batchModeButton'),
+        cancelButton: document.getElementById('batchModeCancelButton'),
+        submitButton: document.getElementById('batchModeSubmitButton'),
+        nameModal: document.getElementById('batchModeFavoriteNameModal'),
+        nameBackdrop: document.getElementById('batchModeFavoriteNameBackdrop'),
+        nameInput: document.getElementById('batchModeFavoriteNameInput'),
+        nameCancelButton: document.getElementById('batchModeFavoriteNameCancelButton'),
+        nameConfirmButton: document.getElementById('batchModeFavoriteNameConfirmButton')
+    };
+}
+
+function getBatchModeEditorValue() {
+    return homepageBatchModeEditor?.getValue?.() || '';
+}
+
+function setBatchModeEditorValue(value, cursorToEnd = false) {
+    if (!homepageBatchModeEditor?.session) {
+        return;
+    }
+    homepageBatchModeEditor.session.setValue(String(value || ''));
+    if (cursorToEnd) {
+        homepageBatchModeEditor.navigateFileEnd();
+    }
+}
+
+function refreshBatchModeEditorI18n() {
+    const { editorHost } = getBatchModeElements();
+    const placeholder = t(
+        'homepageBatchTextareaPlaceholder',
+        'Enter one prompt per line and run them line by line'
+    );
+
+    if (editorHost) {
+        editorHost.setAttribute('aria-label', placeholder);
+    }
+
+    if (homepageBatchModeEditor) {
+        homepageBatchModeEditor.setOption('placeholder', placeholder);
+    }
+}
+
+function refreshBatchModeFavoriteNameI18n() {
+    const { nameInput } = getBatchModeElements();
+    if (nameInput) {
+        nameInput.placeholder = t(
+            'homepageBatchFavoriteNamePlaceholder',
+            'Enter a name for this batch'
+        );
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function createBatchFavoriteId() {
+    return `batch_fav_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeHomepageBatchFavorites(list = []) {
+    return (Array.isArray(list) ? list : [])
+        .map((item) => {
+            const id = String(item?.id || '').trim() || createBatchFavoriteId();
+            const name = String(item?.name || '').trim();
+            const prompts = String(item?.prompts || '').replace(/\r\n?/g, '\n').trim();
+            const updatedAt = Number(item?.updatedAt) || Date.now();
+            if (!name || !prompts) {
+                return null;
+            }
+            return {
+                id,
+                name,
+                prompts,
+                updatedAt
+            };
+        })
+        .filter(Boolean)
+        .sort((left, right) => right.updatedAt - left.updatedAt);
+}
+
+async function loadHomepageBatchFavorites() {
+    try {
+        const stored = await chrome.storage.sync.get(HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY);
+        homepageBatchFavorites = normalizeHomepageBatchFavorites(stored[HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY]);
+        renderBatchModeFavorites();
+    } catch (error) {
+        console.error('Failed to load homepage batch favorites:', error);
+    }
+}
+
+async function persistHomepageBatchFavorites() {
+    await chrome.storage.sync.set({
+        [HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY]: homepageBatchFavorites
+    });
+}
+
+function renderBatchModeFavorites() {
+    const { favoritesList } = getBatchModeElements();
+    if (!favoritesList) {
+        return;
+    }
+
+    if (homepageBatchFavorites.length === 0) {
+        favoritesList.innerHTML = `<div class="batch-mode-favorites-empty">${escapeHtml(t('homepageBatchFavoritesEmpty', 'No saved batches yet'))}</div>`;
+        return;
+    }
+
+    const deleteTitle = t('favoriteItemDeleteTitle', 'Delete favorite prompt');
+    const deleteAlt = t('favoriteItemDeleteAlt', deleteTitle);
+    favoritesList.innerHTML = homepageBatchFavorites.map((item) => {
+        const activeClass = item.id === homepageActiveBatchFavoriteId ? ' is-active' : '';
+        return `
+            <div class="batch-mode-favorite-item${activeClass}" data-batch-favorite-id="${escapeHtml(item.id)}">
+                <button
+                    type="button"
+                    class="batch-mode-favorite-trigger"
+                    data-batch-favorite-id="${escapeHtml(item.id)}"
+                    title="${escapeHtml(item.name)}"
+                >
+                    <span class="batch-mode-favorite-name">${escapeHtml(item.name)}</span>
+                </button>
+                <button
+                    type="button"
+                    class="batch-mode-favorite-delete"
+                    data-batch-favorite-delete="${escapeHtml(item.id)}"
+                    title="${escapeHtml(deleteTitle)}"
+                    aria-label="${escapeHtml(deleteTitle)}"
+                >
+                    <img src="../icons/trash.svg" alt="${escapeHtml(deleteAlt)}">
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+function closeBatchFavoriteNameModal() {
+    const { nameModal, nameInput } = getBatchModeElements();
+    if (!nameModal) {
+        return;
+    }
+    nameModal.hidden = true;
+    if (nameInput) {
+        nameInput.value = '';
+    }
+}
+
+function openBatchFavoriteNameModal() {
+    const { nameModal, nameInput } = getBatchModeElements();
+    if (!nameModal) {
+        return;
+    }
+
+    nameModal.hidden = false;
+    requestAnimationFrame(() => {
+        nameInput?.focus();
+        nameInput?.select();
+    });
+}
+
+async function handleSaveBatchFavorite() {
+    const prompts = getBatchModeEditorValue().trim();
+    if (!prompts) {
+        showToast(t('homepageBatchNoQueries', 'Enter at least one prompt line'));
+        return;
+    }
+    openBatchFavoriteNameModal();
+}
+
+async function confirmSaveBatchFavorite() {
+    const { nameInput } = getBatchModeElements();
+    const name = String(nameInput?.value || '').trim();
+    const prompts = getBatchModeEditorValue().trim();
+
+    if (!prompts) {
+        showToast(t('homepageBatchNoQueries', 'Enter at least one prompt line'));
+        return;
+    }
+    if (!name) {
+        showToast(t('homepageBatchFavoriteNameRequired', 'Please enter a favorite name'));
+        nameInput?.focus();
+        return;
+    }
+
+    const existingIndex = homepageBatchFavorites.findIndex(item => item.name === name);
+    const now = Date.now();
+    const nextItem = {
+        id: existingIndex >= 0 ? homepageBatchFavorites[existingIndex].id : createBatchFavoriteId(),
+        name,
+        prompts,
+        updatedAt: now
+    };
+
+    if (existingIndex >= 0) {
+        homepageBatchFavorites.splice(existingIndex, 1, nextItem);
+    } else {
+        homepageBatchFavorites.unshift(nextItem);
+    }
+    homepageBatchFavorites = normalizeHomepageBatchFavorites(homepageBatchFavorites);
+    homepageActiveBatchFavoriteId = nextItem.id;
+
+    try {
+        await persistHomepageBatchFavorites();
+        renderBatchModeFavorites();
+        closeBatchFavoriteNameModal();
+        showToast(t('homepageBatchFavoriteSaved', 'Saved batch favorite'));
+        trackEvent('homepage_batch_favorite_save', {
+            name_length: name.length,
+            prompt_count: getBatchModeQueries().length
+        });
+    } catch (error) {
+        console.error('Failed to save homepage batch favorite:', error);
+        showToast(t('saveFailed', '保存失败，请重试'));
+    }
+}
+
+function applyBatchFavoriteById(favoriteId) {
+    const target = homepageBatchFavorites.find(item => item.id === favoriteId);
+    if (!target) {
+        return;
+    }
+
+    homepageActiveBatchFavoriteId = target.id;
+    setBatchModeEditorValue(target.prompts, true);
+    renderBatchModeFavorites();
+    requestAnimationFrame(() => {
+        homepageBatchModeEditor?.focus();
+    });
+    trackEvent('homepage_batch_favorite_apply', {
+        name_length: target.name.length
+    });
+}
+
+async function deleteBatchFavoriteById(favoriteId) {
+    const target = homepageBatchFavorites.find(item => item.id === favoriteId);
+    if (!target) {
+        return;
+    }
+
+    const confirmMessage = t('deleteConfirm', 'Delete this item?');
+    if (!window.confirm(confirmMessage)) {
+        return;
+    }
+
+    homepageBatchFavorites = homepageBatchFavorites.filter(item => item.id !== favoriteId);
+    if (homepageActiveBatchFavoriteId === favoriteId) {
+        homepageActiveBatchFavoriteId = '';
+    }
+
+    try {
+        await persistHomepageBatchFavorites();
+        renderBatchModeFavorites();
+        showToast(t('homepageBatchFavoriteDeleted', 'Deleted batch favorite'));
+        trackEvent('homepage_batch_favorite_delete', {
+            name_length: target.name.length
+        });
+    } catch (error) {
+        console.error('Failed to delete homepage batch favorite:', error);
+        showToast(t('saveFailed', '保存失败，请重试'));
+    }
+}
+
+function closeBatchModeModal() {
+    const { modal } = getBatchModeElements();
+    if (!modal) {
+        return;
+    }
+
+    modal.hidden = true;
+    document.body.classList.remove('batch-mode-modal-open');
+    closeBatchFavoriteNameModal();
+}
+
+function openBatchModeModal() {
+    const { modal } = getBatchModeElements();
+    if (!modal || !homepageBatchModeEditor) {
+        return;
+    }
+
+    if (!getBatchModeEditorValue().trim()) {
+        const searchInput = document.getElementById('searchInput');
+        const seededQuery = normalizeHomepageQuery(searchInput?.value || '');
+        if (seededQuery) {
+            setBatchModeEditorValue(seededQuery);
+        }
+    }
+
+    modal.hidden = false;
+    document.body.classList.add('batch-mode-modal-open');
+
+    requestAnimationFrame(() => {
+        homepageBatchModeEditor.resize(true);
+        homepageBatchModeEditor.focus();
+        homepageBatchModeEditor.navigateFileEnd();
+    });
+}
+
+function getBatchModeQueries() {
+    return getBatchModeEditorValue()
+        .split(/\r?\n/)
+        .map(line => normalizeHomepageQuery(line))
+        .filter(Boolean);
+}
+
+function normalizeBatchPastedText(text) {
+    const normalizedText = String(text || '').replace(/\r\n?/g, '\n');
+    const nonEmptyLines = normalizedText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    if (nonEmptyLines.length <= 1) {
+        return normalizedText;
+    }
+
+    const totalLength = nonEmptyLines.reduce((sum, line) => sum + line.length, 0);
+    const averageLineLength = totalLength / nonEmptyLines.length;
+    const shortLineCount = nonEmptyLines.filter(line => line.length <= 40).length;
+    const looksLikeBatchList = nonEmptyLines.length >= 4
+        || shortLineCount >= Math.ceil(nonEmptyLines.length * 0.6);
+
+    // Long copied paragraphs sometimes arrive with unintended hard wraps.
+    if (!looksLikeBatchList && averageLineLength >= 45) {
+        return nonEmptyLines.join(' ');
+    }
+
+    return normalizedText;
+}
+
+async function handleBatchModeSubmit() {
+    const selectionContext = getHomepageSelectionContext();
+    if (!selectionContext.hasAnySelectedPanels) {
+        showToast(t('homepageNoPanelsSelected', 'Select at least one site or agent'));
+        return;
+    }
+    if (!selectionContext.hasRunnableIframePanels) {
+        showToast(t('homepageBatchNoIframePanels', 'Batch mode requires at least one site or skill that can open in the compare page'));
+        return;
+    }
+
+    const queries = getBatchModeQueries();
+    if (queries.length === 0) {
+        showToast(t('homepageBatchNoQueries', 'Enter at least one prompt line'));
+        return;
+    }
+
+    trackEvent('homepage_batch_submit', {
+        query_count: queries.length,
+        selected_sites_count: selectionContext.selectedSites.length,
+        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
+        agents_count: selectionContext.selectedAgentIds.length
+    });
+
+    try {
+        for (let index = 0; index < queries.length; index += 1) {
+            const iframeUrl = buildHomepageIframeSearchUrl(queries[index], {
+                selectionContext,
+                includeSidePanelParam: false
+            });
+            await chrome.tabs.create({
+                url: iframeUrl,
+                active: index === 0
+            });
+        }
+
+        closeBatchModeModal();
+        showToast(interpolateMessage(t('homepageBatchOpened', 'Opened $1 batch tasks'), [queries.length]));
+    } catch (error) {
+        console.error('homepage 批量查询处理失败:', error);
+        showToast(t('homepageSearchFailed', '搜索启动失败，请重试'));
+    }
+}
+
+function initializeBatchModeModal() {
+    const {
+        modal,
+        backdrop,
+        editorHost,
+        favoritesList,
+        saveFavoriteButton,
+        openButton,
+        cancelButton,
+        submitButton,
+        nameModal,
+        nameBackdrop,
+        nameInput,
+        nameCancelButton,
+        nameConfirmButton
+    } = getBatchModeElements();
+
+    if (!modal || !editorHost || !favoritesList || !saveFavoriteButton || !openButton || !cancelButton || !submitButton) {
+        return;
+    }
+    if (modal.dataset.bound === '1') {
+        return;
+    }
+    modal.dataset.bound = '1';
+
+    if (!homepageBatchModeEditor && window.ace && editorHost) {
+        homepageBatchModeEditor = window.ace.edit(editorHost);
+        homepageBatchModeEditor.setTheme('ace/theme/textmate');
+        homepageBatchModeEditor.session.setMode('ace/mode/text');
+        homepageBatchModeEditor.setOptions({
+            fontSize: '14px',
+            showPrintMargin: false,
+            highlightActiveLine: true,
+            highlightGutterLine: true,
+            displayIndentGuides: false,
+            wrap: false,
+            tabSize: 2,
+            useSoftTabs: true,
+            newLineMode: 'unix'
+        });
+        homepageBatchModeEditor.renderer.setPadding(16);
+        homepageBatchModeEditor.renderer.setScrollMargin(14, 14, 0, 0);
+        homepageBatchModeEditor.session.setUseWrapMode(false);
+        homepageBatchModeEditor.setShowFoldWidgets(false);
+        homepageBatchModeEditor.setBehavioursEnabled(false);
+        homepageBatchModeEditor.setHighlightSelectedWord(false);
+        homepageBatchModeEditor.setOption('cursorStyle', 'smooth');
+        homepageBatchModeEditor.setOption('useWorker', false);
+        homepageBatchModeEditor.commands.addCommand({
+            name: 'submitBatchMode',
+            bindKey: { win: 'Ctrl-Enter', mac: 'Command-Enter' },
+            exec: () => {
+                void handleBatchModeSubmit();
+            }
+        });
+        homepageBatchModeEditor.on('paste', (event) => {
+            if (event && typeof event.text === 'string') {
+                event.text = normalizeBatchPastedText(event.text);
+            }
+        });
+        refreshBatchModeEditorI18n();
+    }
+
+    openButton.addEventListener('click', () => {
+        openBatchModeModal();
+    });
+    saveFavoriteButton.addEventListener('click', () => {
+        void handleSaveBatchFavorite();
+    });
+    favoritesList.addEventListener('click', (event) => {
+        const deleteTarget = event.target.closest('[data-batch-favorite-delete]');
+        if (deleteTarget) {
+            event.stopPropagation();
+            void deleteBatchFavoriteById(deleteTarget.getAttribute('data-batch-favorite-delete'));
+            return;
+        }
+
+        const favoriteTarget = event.target.closest('[data-batch-favorite-id]');
+        if (favoriteTarget) {
+            applyBatchFavoriteById(favoriteTarget.getAttribute('data-batch-favorite-id'));
+        }
+    });
+    cancelButton.addEventListener('click', () => {
+        closeBatchModeModal();
+    });
+    submitButton.addEventListener('click', () => {
+        void handleBatchModeSubmit();
+    });
+    backdrop?.addEventListener('click', () => {
+        closeBatchModeModal();
+    });
+    nameCancelButton?.addEventListener('click', () => {
+        closeBatchFavoriteNameModal();
+    });
+    nameBackdrop?.addEventListener('click', () => {
+        closeBatchFavoriteNameModal();
+    });
+    nameConfirmButton?.addEventListener('click', () => {
+        void confirmSaveBatchFavorite();
+    });
+    nameInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            void confirmSaveBatchFavorite();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && nameModal?.hidden !== true) {
+            closeBatchFavoriteNameModal();
+            return;
+        }
+        if (event.key === 'Escape' && modal.hidden !== true) {
+            closeBatchModeModal();
+        }
+    });
+
+    void loadHomepageBatchFavorites();
+    renderBatchModeFavorites();
+}
+
+async function handleQuery(query) {
+    const processedQuery = normalizeHomepageQuery(query);
+    const selectionContext = getHomepageSelectionContext();
+
+    if (!selectionContext.hasAnySelectedPanels) {
+        showToast(t('homepageNoPanelsSelected', 'Select at least one site or agent'));
+        return;
     }
 
     trackEvent('homepage_search_submit', {
         query_length: processedQuery.length,
-        selected_sites_count: selectedSites.length,
-        selected_sites: selectedSites,
-        custom_sites_count: selectedCustomSiteIds.length,
-        custom_sites: selectedCustomSiteIds,
-        agents_count: selectedAgentIds.length,
-        agents: selectedAgentIds,
-        iframe_sites_count: iframeSiteNames.length,
-        external_sites_count: externalSiteNames.length,
-        custom_iframe_sites_count: customIframeSiteIds.length,
-        custom_external_sites_count: customExternalSiteIds.length,
-        side_panel: isSidePanel,
+        selected_sites_count: selectionContext.selectedSites.length,
+        selected_sites: selectionContext.selectedSites,
+        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
+        custom_sites: selectionContext.selectedCustomSiteIds,
+        agents_count: selectionContext.selectedAgentIds.length,
+        agents: selectionContext.selectedAgentIds,
+        iframe_sites_count: selectionContext.iframeSiteNames.length,
+        external_sites_count: selectionContext.externalSiteNames.length,
+        custom_iframe_sites_count: selectionContext.customIframeSiteIds.length,
+        custom_external_sites_count: selectionContext.customExternalSiteIds.length,
+        side_panel: selectionContext.isSidePanel,
         has_query: Boolean(processedQuery)
     });
     
     try {
-        if (externalSiteNames.length > 0 || customExternalSiteIds.length > 0) {
+        if (selectionContext.externalSiteNames.length > 0 || selectionContext.customExternalSiteIds.length > 0) {
             const externalSearchPromise = chrome.runtime.sendMessage({
                 action: 'processQuery',
                 query: processedQuery,
-                sites: externalSiteNames,
-                customSiteIds: customExternalSiteIds,
+                sites: selectionContext.externalSiteNames,
+                customSiteIds: selectionContext.customExternalSiteIds,
                 openIframePage: false
             });
-            if (iframeSiteNames.length > 0 || customIframeSiteIds.length > 0) {
+            if (selectionContext.hasRunnableIframePanels) {
                 externalSearchPromise.catch((error) => {
                     console.error('homepage 外部站点查询处理失败:', error);
                 });
@@ -1368,13 +1956,11 @@ async function handleQuery(query) {
             }
         }
 
-        if (iframeSiteNames.length > 0 || customIframeSiteIds.length > 0 || selectedAgentIds.length > 0) {
-            let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
-            if (params.toString()) {
-                searchUrl += '?' + params.toString();
-            }
-
-            window.location.href = searchUrl;
+        if (selectionContext.hasRunnableIframePanels) {
+            window.location.href = buildHomepageIframeSearchUrl(processedQuery, {
+                selectionContext,
+                includeSidePanelParam: true
+            });
         }
     } catch (error) {
         console.error('homepage 查询处理失败:', error);

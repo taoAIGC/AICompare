@@ -77,11 +77,65 @@
                             <button id="fileUploadButton" class="file-upload-btn" data-i18n-title="fileUploadButtonTitle" title="">
                                 <img src="../icons/attachment.svg" data-i18n-alt="fileUploadButtonAlt" alt="">
                             </button>
+                            <button
+                                id="batchModeButton"
+                                type="button"
+                                class="file-upload-btn batch-mode-btn"
+                                data-i18n-title="homepageBatchModeButtonTitle"
+                                title=""
+                                aria-haspopup="dialog"
+                            >
+                                <img src="../icons/list-start.svg" alt="">
+                            </button>
                             <button id="searchButton" class="search-btn" data-i18n="startCompare"></button>
                         </div>
                     </div>
                     <div id="querySuggestions" class="query-suggestions" style="display: none;">
                         <!-- queryItem.name 将显示在这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="batchModeModal" class="batch-mode-modal" hidden>
+                <div id="batchModeBackdrop" class="batch-mode-modal-backdrop"></div>
+                <div class="batch-mode-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="batchModeModalTitle">
+                    <div class="batch-mode-modal-header">
+                        <h2 id="batchModeModalTitle" class="batch-mode-modal-title" data-i18n="homepageBatchDialogTitle"></h2>
+                        <div class="batch-mode-toolbar">
+                            <div id="batchModeFavoritesList" class="batch-mode-favorites" aria-live="polite"></div>
+                            <button
+                                id="batchModeSaveFavoriteButton"
+                                type="button"
+                                class="batch-mode-save-btn"
+                                data-i18n="homepageBatchFavoriteAction"
+                            ></button>
+                        </div>
+                    </div>
+                    <div class="batch-mode-editor">
+                        <div id="batchModeEditor" class="batch-mode-editor-host" aria-label=""></div>
+                    </div>
+                    <div class="batch-mode-modal-footer">
+                        <button id="batchModeCancelButton" type="button" class="batch-mode-modal-btn batch-mode-modal-btn-secondary" data-i18n="cancel"></button>
+                        <button id="batchModeSubmitButton" type="button" class="batch-mode-modal-btn batch-mode-modal-btn-primary" data-i18n="startCompare"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="batchModeFavoriteNameModal" class="batch-mode-name-modal" hidden>
+                <div id="batchModeFavoriteNameBackdrop" class="batch-mode-name-modal-backdrop"></div>
+                <div class="batch-mode-name-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="batchModeFavoriteNameTitle">
+                    <h3 id="batchModeFavoriteNameTitle" class="batch-mode-name-modal-title" data-i18n="homepageBatchFavoriteDialogTitle"></h3>
+                    <input
+                        id="batchModeFavoriteNameInput"
+                        type="text"
+                        class="batch-mode-name-input"
+                        maxlength="40"
+                        data-i18n-placeholder="homepageBatchFavoriteNamePlaceholder"
+                        placeholder=""
+                    >
+                    <div class="batch-mode-name-modal-footer">
+                        <button id="batchModeFavoriteNameCancelButton" type="button" class="batch-mode-modal-btn batch-mode-modal-btn-secondary" data-i18n="cancel"></button>
+                        <button id="batchModeFavoriteNameConfirmButton" type="button" class="batch-mode-modal-btn batch-mode-modal-btn-primary" data-i18n="saveButton"></button>
                     </div>
                 </div>
             </div>
@@ -143,6 +197,10 @@
                 <div id="agentsSection" class="selection-group agents-section">
                     <div class="selection-group-header">
                         <h4 class="selection-group-title" data-i18n="homepageAgentsTitle"></h4>
+                        <div class="selection-group-actions">
+                            <button id="selectAllAgentsBtn" type="button" class="selection-group-action-btn" data-i18n="homepageAgentsSelectAll">全选</button>
+                            <button id="clearAllAgentsBtn" type="button" class="selection-group-action-btn" data-i18n="homepageAgentsClearAll">取消全选</button>
+                        </div>
                     </div>
                     <div id="agentsList" class="sites-list"></div>
                 </div>
@@ -184,6 +242,7 @@
     <script src="../shared/sidebar.js"></script>
     <script src="../config/agentCatalogData.js"></script>
     <script src="../config/agentCatalog.js"></script>
+    <script src="../vendor/ace/ace.js"></script>
     <script src="site-indicator-utils.js"></script>
     <script src="homepage.js"></script>
 </body>

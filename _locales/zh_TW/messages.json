@@ -3,10 +3,10 @@
     "message": "AI 比一比"
   },
   "appName": {
-    "message": "AI Compare-多 AI 一鍵對比、複製結果"
+    "message": "AI 比一比 — 多 AI 對比，GEO 與品牌答案一鍵實測"
   },
   "extDescription": {
-    "message": "幫你從十多個 AI 中快速找到最佳答案。"
+    "message": "一次提問，同時在 ChatGPT、Gemini、Claude 等 AI 中對比回答，用於內容驗證、品牌監測與 GEO（生成式引擎優化）。"
   },
   "configTitle": {
     "message": "AI站點設定"
@@ -410,6 +410,12 @@
   },
   "homepageAgentsTitle": {
     "message": "AI Skills"
+  },
+  "homepageAgentsSelectAll": {
+    "message": "全選"
+  },
+  "homepageAgentsClearAll": {
+    "message": "取消全選"
   },
   "homepageAgentCategoriesTitle": {
     "message": "分類"
@@ -1676,11 +1682,35 @@
   "analysisPromptTemplateBadge": {
     "message": "分析"
   },
+  "analysisTemplateSetDefaultButton": {
+    "message": "設為預設"
+  },
+  "analysisTemplateDefaultActiveButton": {
+    "message": "預設中"
+  },
+  "analysisTemplateDefaultSaved": {
+    "message": "預設分析提示詞已更新"
+  },
+  "analysisTemplateDefaultBadge": {
+    "message": "預設"
+  },
   "defaultAnalysisTemplateConclusionName": {
     "message": "結論先行"
   },
   "defaultAnalysisTemplateConclusionQuery": {
     "message": "請先給出一個明確判斷，再用最關鍵的證據支撐它。最後補充你的置信度和可能例外。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "彙總"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "請把這些站點的答案整理成一份「進一步閱讀前的彙總」。\n\n輸出要求：\n1. 先用 3-5 條列出各站答案的共性，也就是反覆出現、最值得先相信的資訊。\n2. 再指出明顯的分歧、衝突或各站關注重點的差異。\n3. 判斷「最值得繼續深入看」的 1-2 個站點，並分別說明原因，例如：資訊更完整、例子更具體、結構更清楚、觀點更獨特、來源更可信。\n4. 如果只能先讀一個站點，請明確給出首選站點，並說一句理由。\n5. 整體追求高資訊密度，幫助我快速決定下一步看哪個站點。\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "GEO 診斷報告"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "目前這些 panels 是圍繞某個品牌相關 query 的搜尋結果。請基於它們生成一份該品牌的 GEO 診斷報告（Generative Engine Optimization）。\n\n輸出結構：\n1. 一句話診斷：先總結這個品牌目前在各站答案中的整體可見度與認知狀態。\n2. 品牌曝光概況：哪些站點明確提到該品牌，哪些沒有提到，哪些只是順帶提到。\n3. AI 認知畫像：這些答案主要把品牌描述成什麼，是否形成穩定、清晰、一致的品牌認知。\n4. 資訊缺口與表達問題：哪些關鍵資訊缺失、表述模糊、定位不清，或者被競品或泛化答案稀釋掉。\n5. 機會點：為了提升 GEO，接下來最值得補強的內容方向是什麼，例如品牌定義、核心賣點、典型場景、對比內容、FAQ、案例、權威背書等。\n6. 優先級行動建議：給出 P0 / P1 / P2 三層建議，優先寫最值得馬上做的動作。\n\n要求：\n- 盡量引用各站答案裡的共性與差異來下判斷。\n- 不要空泛地講 SEO 常識，要圍繞「這個品牌在當前結果裡的表現」來診斷。\n- 結論要偏產品化、可執行。\n\n{analysisInput}"
   },
   "defaultAnalysisTemplateDifferenceName": {
     "message": "對比拆解"
@@ -1695,16 +1725,16 @@
     "message": "請把這份材料寫成一頁決策備忘錄：先給建議，再說明為什麼這麼選、有什麼風險、下一步怎麼做。語氣直接，面向實際決策。\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "風險分析"
+    "message": "風險評估"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "導致失敗的根本原因：「{query}」"
+    "message": "請把這個主題當成一次風險評估來分析。先列出最值得關注的 3-5 個風險，再分別說明：為什麼它重要、可能由什麼觸發、影響有多大，以及可以怎樣預防或降低。最後給出目前最該優先處理的一個風險。\n\n主題：{query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "最佳實踐"
+    "message": "實踐清單"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "圍繞這個專案寫一份成功復盤報告：「{query}」"
+    "message": "請把這個主題整理成一份可直接執行的最佳實踐清單。先說明目標和判斷成功的標準，再列出最重要的做法、常見誤區，以及一份可以馬上照著做的簡短步驟清單。\n\n主題：{query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "翻譯成中文"
@@ -2302,5 +2332,107 @@
   },
   "agentEngineEmptyValue": {
     "message": "未配置"
+  },
+  "homepageBatchModeButton": {
+    "message": "批量"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "批量模式"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "批量執行 PK"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "每行寫一個提示詞，逐行運行"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "批量模式至少需要選擇一個可在對比頁開啟的站點或 Skill"
+  },
+  "homepageBatchNoQueries": {
+    "message": "請至少輸入一行提示詞"
+  },
+  "homepageBatchOpened": {
+    "message": "已開啟 $1 個批量任務"
+  },
+  "liveSummaryTitle": {
+    "message": "自動總結"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "自動總結標籤"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "分析模板:"
+  },
+  "liveSummaryHint": {
+    "message": "提問 60 秒後，會進行自動分析。"
+  },
+  "liveSummaryHintCountdown": {
+    "message": "提問 $1 秒後，會進行自動分析。"
+  },
+  "liveSummaryRefresh": {
+    "message": "分析"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "分析（$1s）"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "繼續分析"
+  },
+  "liveSummaryExpand": {
+    "message": "展開"
+  },
+  "liveSummaryCollapse": {
+    "message": "收起"
+  },
+  "liveSummaryEmpty": {
+    "message": "暫時還沒有可顯示的總結。"
+  },
+  "liveSummaryNoDivergence": {
+    "message": "目前各面板的重點觀點大致一致。"
+  },
+  "liveSummaryPendingSites": {
+    "message": "尚未形成可用回答的面板"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "共識"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "分歧"
+  },
+  "liveSummaryCollecting": {
+    "message": "正在等待所有活躍面板回答穩定後自動總結..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "已有總結，正在靜默更新..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "已納入總結 $1 / $2 個面板"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "已使用「$1」分析"
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "開啟分析頁失敗，請再試一次"
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "收藏"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "還沒有收藏的批量提示詞"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "收藏這組批量提示詞"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "給這組提示詞起個名字"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "請輸入收藏名稱"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "已收藏這組批量提示詞"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "已刪除這組批量提示詞"
   }
 }

@@ -12,6 +12,7 @@ const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
+const DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY = 'defaultAnalysisTemplateId';
 const GOOGLE_DRIVE_SYNC_STORAGE_KEY = 'googleDriveSyncConfig';
 const LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders', AGENT_ENGINE_SECRET_STORAGE_KEY, CUSTOM_AGENTS_STORAGE_KEY, AGENT_HIDDEN_IDS_STORAGE_KEY];
 const SYNC_KEYS = [
@@ -22,6 +23,7 @@ const SYNC_KEYS = [
   'disabledSites',
   'promptTemplates',
   'analysisPromptTemplates',
+  DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY,
   'favoritePrompts',
   'favoriteSites',
   AGENT_ENGINE_STORAGE_KEY,
@@ -2805,8 +2807,8 @@ const PROMPT_TEMPLATE_DEFAULT_DEFINITIONS = [
     id: 'risk_analysis',
     nameKey: 'defaultTemplateRiskAnalysisName',
     queryKey: 'defaultTemplateRiskAnalysisQuery',
-    fallbackName: 'RiskAnalysis',
-    fallbackQuery: 'Root cause of the failure:「{query}」',
+    fallbackName: 'Risk Review',
+    fallbackQuery: 'Review this topic as a risk assessment. Start with the 3-5 biggest risks, then for each one explain: why it matters, what could trigger it, how serious the impact would be, and how to prevent or reduce it. End with the single risk that deserves attention first.\n\nTopic: {query}',
     type: 'information',
     order: 1
   },
@@ -2814,8 +2816,8 @@ const PROMPT_TEMPLATE_DEFAULT_DEFINITIONS = [
     id: 'best_practice',
     nameKey: 'defaultTemplateBestPracticeName',
     queryKey: 'defaultTemplateBestPracticeQuery',
-    fallbackName: 'BestPractice',
-    fallbackQuery: 'Write a success retrospective report on this project:「{query}」',
+    fallbackName: 'Best Practice Checklist',
+    fallbackQuery: 'Turn this topic into a practical best-practice checklist. Start with the goal and success criteria, then list the most important practices to follow, common mistakes to avoid, and a short step-by-step plan someone can use right away.\n\nTopic: {query}',
     type: 'information',
     order: 2
   },
@@ -2834,45 +2836,102 @@ const LEGACY_PROMPT_TEMPLATE_SIGNATURES = {
     {
       name: 'RiskAnalysis',
       query: 'Root cause of the failure:「{query}」'
+    },
+    {
+      name: 'Risk Analysis',
+      query: 'Root cause of the failure:「{query}」'
+    },
+    {
+      name: '风险分析',
+      query: '导致失败的根本原因：「{query}」'
+    },
+    {
+      name: '風險分析',
+      query: '導致失敗的根本原因：「{query}」'
+    },
+    {
+      name: 'リスク分析',
+      query: 'この失敗の根本原因を分析してください:「{query}」'
+    },
+    {
+      name: '리스크 분석',
+      query: '이 실패의 근본 원인을 분석해 주세요:「{query}」'
+    },
+    {
+      name: 'Análisis de riesgos',
+      query: 'Analiza la causa raíz de este fallo:「{query}」'
+    },
+    {
+      name: 'Analyse des risques',
+      query: 'Analyse la cause racine de cet échec :「{query}」'
+    },
+    {
+      name: 'Risikoanalyse',
+      query: 'Analysiere die Grundursache dieses Scheiterns:「{query}」'
+    },
+    {
+      name: 'Análise de risco',
+      query: 'Analise a causa raiz desta falha:「{query}」'
+    },
+    {
+      name: 'تحليل المخاطر',
+      query: 'حلل السبب الجذري لهذا الفشل:「{query}」'
     }
   ],
   best_practice: [
     {
       name: 'BestPractice',
       query: 'Write a success retrospective report on this project:「{query}」'
+    },
+    {
+      name: 'Best Practice',
+      query: 'Write a success retrospective report on this project:「{query}」'
+    },
+    {
+      name: '最佳实践',
+      query: '围绕这个项目写一份成功复盘报告：「{query}」'
+    },
+    {
+      name: '最佳實踐',
+      query: '圍繞這個專案寫一份成功復盤報告：「{query}」'
+    },
+    {
+      name: 'ベストプラクティス',
+      query: 'このプロジェクトの成功レトロスペクティブレポートを書いてください:「{query}」'
+    },
+    {
+      name: '베스트 프랙티스',
+      query: '이 프로젝트에 대한 성공 회고 보고서를 작성해 주세요:「{query}」'
+    },
+    {
+      name: 'Buenas prácticas',
+      query: 'Escribe un informe de retrospectiva de éxito para este proyecto:「{query}」'
+    },
+    {
+      name: 'Bonnes pratiques',
+      query: 'Rédige un rapport de rétrospective de réussite pour ce projet :「{query}」'
+    },
+    {
+      name: 'Best Practices',
+      query: 'Schreibe einen Erfolgs-Retrospektivenbericht für dieses Projekt:「{query}」'
+    },
+    {
+      name: 'Boas práticas',
+      query: 'Escreva um relatório de retrospectiva de sucesso para este projeto:「{query}」'
+    },
+    {
+      name: 'أفضل الممارسات',
+      query: 'اكتب تقرير مراجعة نجاح لهذا المشروع:「{query}」'
     }
   ],
   translate_to_chinese: []
 };
 let promptTemplateSignatureMapPromise = null;
 const ANALYSIS_TEMPLATE_LOCALE_DIRS = ['ar', 'de', 'en', 'es', 'fr', 'ja', 'ko', 'pt_BR', 'zh_CN', 'zh_TW'];
-const ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS = [
-  {
-    id: 'analysis_conclusion_first',
-    nameKey: 'defaultAnalysisTemplateConclusionName',
-    queryKey: 'defaultAnalysisTemplateConclusionQuery',
-    fallbackName: '结论先行',
-    fallbackQuery: '请先给出一个明确判断，再用最关键的证据支撑它。最后补充你的置信度和可能例外。\n\n{analysisInput}',
-    order: 1
-  },
-  {
-    id: 'analysis_difference_focus',
-    nameKey: 'defaultAnalysisTemplateDifferenceName',
-    queryKey: 'defaultAnalysisTemplateDifferenceQuery',
-    fallbackName: '对比拆解',
-    fallbackQuery: '请把各站答案做逐项对比，至少从“共同点 / 分歧点 / 互相矛盾 / 谁更可靠”四个角度分析，并尽量用表格或分组方式呈现。\n\n{analysisInput}',
-    order: 2
-  },
-  {
-    id: 'analysis_report',
-    nameKey: 'defaultAnalysisTemplateReportName',
-    queryKey: 'defaultAnalysisTemplateReportQuery',
-    fallbackName: '决策备忘录',
-    fallbackQuery: '请把这份材料写成一页决策备忘录：先给建议，再说明为什么这么选、有什么风险、下一步怎么做。语气直接，面向实际决策。\n\n{analysisInput}',
-    order: 3
-  }
-];
+let analysisTemplateDefaultDefinitionsPromise = null;
 const LEGACY_ANALYSIS_TEMPLATE_SIGNATURES = {
+  analysis_summary: [],
+  analysis_geo_diagnostic: [],
   analysis_conclusion_first: [
     {
       name: 'Conclusion First',
@@ -3057,8 +3116,23 @@ async function initializeAnalysisPromptTemplates() {
   }
 }
 
-function buildRuntimeDefaultAnalysisTemplates() {
-  return ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS.map((definition) => ({
+async function getAnalysisTemplateDefaultConfig() {
+  if (!analysisTemplateDefaultDefinitionsPromise) {
+    analysisTemplateDefaultDefinitionsPromise = (async () => {
+      const config = await window.AppConfigManager.getAnalysisPromptTemplateConfig();
+      return {
+        defaultTemplateId: String(config?.defaultTemplateId || '').trim(),
+        definitions: Array.isArray(config?.defaults) ? config.defaults : []
+      };
+    })();
+  }
+
+  return analysisTemplateDefaultDefinitionsPromise;
+}
+
+async function buildRuntimeDefaultAnalysisTemplates() {
+  const { definitions } = await getAnalysisTemplateDefaultConfig();
+  return definitions.map((definition) => ({
     id: definition.id,
     name: getMessage(definition.nameKey) || definition.fallbackName,
     query: getMessage(definition.queryKey) || definition.fallbackQuery,
@@ -3074,8 +3148,9 @@ async function getAnalysisTemplateSignatureMap() {
 
   analysisTemplateSignatureMapPromise = (async () => {
     const signatureMap = {};
+    const { definitions } = await getAnalysisTemplateDefaultConfig();
 
-    ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS.forEach(({ id }) => {
+    definitions.forEach(({ id }) => {
       signatureMap[id] = [...(LEGACY_ANALYSIS_TEMPLATE_SIGNATURES[id] || [])];
     });
 
@@ -3087,7 +3162,7 @@ async function getAnalysisTemplateSignatureMap() {
         }
 
         const localeMessages = await response.json();
-        ANALYSIS_TEMPLATE_DEFAULT_DEFINITIONS.forEach(({ id, nameKey, queryKey }) => {
+        definitions.forEach(({ id, nameKey, queryKey }) => {
           const name = String(localeMessages?.[nameKey]?.message || '').trim();
           const query = String(localeMessages?.[queryKey]?.message || '').trim();
           if (!name || !query) {
@@ -3115,16 +3190,21 @@ async function getAnalysisTemplateSignatureMap() {
 async function syncDefaultAnalysisPromptTemplatesToRuntimeLanguage() {
   const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
   const existingTemplates = Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [];
-  if (existingTemplates.length === 0) {
+  const filteredTemplates = existingTemplates.filter((template) => template?.id !== 'analysis_conclusion_first');
+  const removedDeprecatedDefaults = filteredTemplates.length !== existingTemplates.length;
+  if (filteredTemplates.length === 0) {
+    if (removedDeprecatedDefaults) {
+      await chrome.storage.sync.set({ analysisPromptTemplates: [] });
+    }
     return false;
   }
 
-  const desiredTemplates = buildRuntimeDefaultAnalysisTemplates();
+  const desiredTemplates = await buildRuntimeDefaultAnalysisTemplates();
   const desiredById = new Map(desiredTemplates.map((template) => [template.id, template]));
   const signaturesById = await getAnalysisTemplateSignatureMap();
 
-  let changed = false;
-  const nextTemplates = existingTemplates.map((template) => {
+  let changed = removedDeprecatedDefaults;
+  const nextTemplates = filteredTemplates.map((template) => {
     const desired = desiredById.get(template?.id);
     if (!desired || template?.isDefault !== true) {
       return template;
@@ -3162,6 +3242,12 @@ async function syncDefaultAnalysisPromptTemplatesToRuntimeLanguage() {
 
   if (changed) {
     await chrome.storage.sync.set({ analysisPromptTemplates: nextTemplates });
+  }
+
+  const { defaultTemplateId: configuredDefaultTemplateId } = await getAnalysisTemplateDefaultConfig();
+  const storedDefaultId = await getStoredDefaultAnalysisTemplateId();
+  if (!storedDefaultId && configuredDefaultTemplateId && nextTemplates.some((template) => template?.id === configuredDefaultTemplateId)) {
+    await setDefaultAnalysisTemplateId(configuredDefaultTemplateId);
   }
 
   return changed;
@@ -3467,6 +3553,48 @@ async function getNextAnalysisOrder() {
   }
 }
 
+async function getStoredDefaultAnalysisTemplateId() {
+  try {
+    const data = await chrome.storage.sync.get(DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY);
+    return String(data?.[DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY] || '').trim();
+  } catch (error) {
+    console.warn('读取默认分析提示词失败:', error);
+    return '';
+  }
+}
+
+async function resolveDefaultAnalysisTemplateId(templates = []) {
+  const normalizedTemplates = Array.isArray(templates) ? templates : [];
+  if (!normalizedTemplates.length) {
+    return '';
+  }
+
+  const storedDefaultId = await getStoredDefaultAnalysisTemplateId();
+  if (storedDefaultId && normalizedTemplates.some((template) => template?.id === storedDefaultId)) {
+    return storedDefaultId;
+  }
+
+  const { defaultTemplateId: configuredDefaultTemplateId } = await getAnalysisTemplateDefaultConfig();
+  if (configuredDefaultTemplateId && normalizedTemplates.some((template) => template?.id === configuredDefaultTemplateId)) {
+    return configuredDefaultTemplateId;
+  }
+
+  return String(normalizedTemplates[0]?.id || '').trim();
+}
+
+async function setDefaultAnalysisTemplateId(templateId = '') {
+  const normalizedId = String(templateId || '').trim();
+  try {
+    await chrome.storage.sync.set({
+      [DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY]: normalizedId
+    });
+    return normalizedId;
+  } catch (error) {
+    console.error('保存默认分析提示词失败:', error);
+    throw error;
+  }
+}
+
 async function loadAnalysisTemplatesList() {
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
@@ -3476,6 +3604,7 @@ async function loadAnalysisTemplatesList() {
     const sortedTemplates = (Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [])
       .filter(template => template?.name && template?.query)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
+    const defaultTemplateId = await resolveDefaultAnalysisTemplateId(sortedTemplates);
 
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
@@ -3495,9 +3624,14 @@ async function loadAnalysisTemplatesList() {
             <div class="template-meta">
               <span>${getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
               <span class="template-badge">${getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
+              ${template.id === defaultTemplateId ? `<span class="template-badge template-badge-default">${getMessage('analysisTemplateDefaultBadge') || 'Default'}</span>` : ''}
             </div>
           </div>
           <div class="template-actions">
+            ${template.id === defaultTemplateId
+              ? `<button class="btn-secondary template-default-btn is-active" type="button" data-template-id="${template.id}" disabled>${getMessage('analysisTemplateDefaultActiveButton') || '默认中'}</button>`
+              : `<button class="btn-secondary template-default-btn" type="button" data-template-id="${template.id}">${getMessage('analysisTemplateSetDefaultButton') || '设为默认'}</button>`
+            }
             <button class="edit-analysis-template-btn icon-action-btn" data-template-id="${template.id}" title="${getMessage('editButton')}" aria-label="${getMessage('editButton')}">
               <img src="../icons/edit.svg" alt="">
             </button>
@@ -3599,6 +3733,7 @@ async function saveAnalysisTemplate() {
 
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    let createdTemplateId = '';
 
     if (currentEditingAnalysisTemplateId) {
       const index = analysisPromptTemplates.findIndex(t => t.id === currentEditingAnalysisTemplateId);
@@ -3611,8 +3746,9 @@ async function saveAnalysisTemplate() {
         };
       }
     } else {
+      createdTemplateId = generateAnalysisTemplateId();
       analysisPromptTemplates.push({
-        id: generateAnalysisTemplateId(),
+        id: createdTemplateId,
         name,
         query,
         order,
@@ -3621,6 +3757,12 @@ async function saveAnalysisTemplate() {
     }
 
     await chrome.storage.sync.set({ analysisPromptTemplates });
+    if (createdTemplateId) {
+      const existingDefaultId = await getStoredDefaultAnalysisTemplateId();
+      if (!existingDefaultId) {
+        await setDefaultAnalysisTemplateId(createdTemplateId);
+      }
+    }
     hideAnalysisTemplateDialog();
     await loadAnalysisTemplatesList();
     showToast(getMessage('templateSavedSuccess'));
@@ -3653,6 +3795,11 @@ async function deleteAnalysisTemplate(templateId) {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
     const filteredTemplates = analysisPromptTemplates.filter(t => t.id !== templateId);
     await chrome.storage.sync.set({ analysisPromptTemplates: filteredTemplates });
+    const storedDefaultId = await getStoredDefaultAnalysisTemplateId();
+    if (storedDefaultId === templateId) {
+      const nextDefaultId = filteredTemplates[0]?.id ? String(filteredTemplates[0].id) : '';
+      await setDefaultAnalysisTemplateId(nextDefaultId);
+    }
     await loadAnalysisTemplatesList();
     showToast(getMessage('templateDeletedSuccess'));
   } catch (error) {
@@ -3661,11 +3808,31 @@ async function deleteAnalysisTemplate(templateId) {
   }
 }
 
+async function setAnalysisTemplateAsDefault(templateId) {
+  const normalizedId = String(templateId || '').trim();
+  if (!normalizedId) {
+    return;
+  }
+
+  try {
+    await setDefaultAnalysisTemplateId(normalizedId);
+    await loadAnalysisTemplatesList();
+    showToast(getMessage('analysisTemplateDefaultSaved') || '默认分析提示词已更新');
+  } catch (error) {
+    console.error('设置默认分析提示词失败:', error);
+    showToast(getMessageWithFallback('saveFailedGeneric', 'Save failed. Please try again.'));
+  }
+}
+
 async function handleAnalysisTemplateListClick(event) {
+  const defaultBtn = event.target.closest('.template-default-btn');
   const editBtn = event.target.closest('.edit-analysis-template-btn');
   const deleteBtn = event.target.closest('.delete-analysis-template-btn');
 
-  if (editBtn) {
+  if (defaultBtn) {
+    const templateId = defaultBtn.getAttribute('data-template-id');
+    if (templateId) await setAnalysisTemplateAsDefault(templateId);
+  } else if (editBtn) {
     const templateId = editBtn.getAttribute('data-template-id');
     if (templateId) await editAnalysisTemplate(templateId);
   } else if (deleteBtn) {

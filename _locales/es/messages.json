@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare: comparar varias IAs en un clic y copiar resultados"
+    "message": "AI Compare — Comparar varias IA para GEO y respuestas de marca"
   },
   "extDescription": {
-    "message": "AI Compare te ayuda a encontrar rápidamente la mejor respuesta entre múltiples IA."
+    "message": "Una consulta, compara ChatGPT, Gemini, Claude y más en una pestaña: ideal para validación de contenido, monitoreo de marca y GEO (Generative Engine Optimization)."
   },
   "configTitle": {
     "message": "Sitios de IA"
@@ -1460,6 +1460,18 @@
   "defaultAnalysisTemplateDifferenceQuery": {
     "message": "Compara las respuestas punto por punto y cubre al menos cuatro ángulos: puntos en común, diferencias, contradicciones y cuál respuesta es más fiable. Usa una tabla o secciones agrupadas si es posible.\n\n{analysisInput}"
   },
+  "defaultAnalysisTemplateSummaryName": {
+    "message": "Resumen"
+  },
+  "defaultAnalysisTemplateSummaryQuery": {
+    "message": "Convierte estas respuestas de los paneles en un resumen para decidir qué leer después.\n\nRequisitos de salida:\n1. Empieza con 3-5 viñetas que recojan los puntos en común que se repiten y que más conviene creer primero.\n2. Luego señala las diferencias importantes, conflictos o diferencias de enfoque entre sitios.\n3. Identifica los 1-2 sitios que más merece la pena leer completos y explica por qué, por ejemplo: más completos, más concretos, mejor estructurados, más distintivos o más fiables.\n4. Si solo pudiera leer un sitio a continuación, da una única recomendación principal y una razón en una frase.\n5. Mantén el resultado denso y práctico para que pueda decidir rápidamente qué sitio abrir después.\n\n{analysisInput}"
+  },
+  "defaultAnalysisTemplateGeoName": {
+    "message": "Informe de diagnóstico GEO"
+  },
+  "defaultAnalysisTemplateGeoQuery": {
+    "message": "Estos paneles contienen resultados de búsqueda relacionados con una marca. A partir de ellos, genera un informe de diagnóstico GEO para la marca (Generative Engine Optimization).\n\nEstructura:\n1. Diagnóstico en una línea: resume la visibilidad y el reconocimiento actuales de la marca en las respuestas.\n2. Visibilidad de la marca: qué sitios mencionan claramente la marca, cuáles no y cuáles solo la mencionan de pasada.\n3. Percepción de marca por la IA: cómo se describe la marca y si la percepción general es estable, clara y coherente.\n4. Vacíos de información y problemas de mensaje: qué información clave falta, es vaga, inconsistente o queda diluida por competidores o respuestas genéricas.\n5. Áreas de oportunidad: qué contenidos debería reforzar la marca a continuación para mejorar su GEO, como definición de marca, propuestas clave de valor, casos de uso principales, comparativas, FAQ, casos de éxito o señales de autoridad.\n6. Acciones prioritarias: propone acciones P0 / P1 / P2, poniendo primero las más inmediatas.\n\nRequisitos:\n- Basa el diagnóstico en los patrones y diferencias encontrados en las respuestas.\n- Evita consejos genéricos de SEO; céntrate en cómo se representa actualmente esta marca en concreto.\n- Mantén las conclusiones accionables y orientadas al producto.\n\n{analysisInput}"
+  },
   "defaultAnalysisTemplateReportName": {
     "message": "Memorando de decisión"
   },
@@ -1467,16 +1479,16 @@
     "message": "Convierte este material en un memorando de decisión de una página: empieza con la recomendación, luego explica por qué es la mejor opción, cuáles son los riesgos y qué hacer después. Mantén un tono directo y orientado a la decisión.\n\n{analysisInput}"
   },
   "defaultTemplateRiskAnalysisName": {
-    "message": "Análisis de riesgos"
+    "message": "Revisión de riesgos"
   },
   "defaultTemplateRiskAnalysisQuery": {
-    "message": "Analiza la causa raíz de este fallo:「{query}」"
+    "message": "Analiza este tema como una evaluación de riesgos. Empieza con los 3-5 riesgos más importantes y, para cada uno, explica por qué importa, qué podría activarlo, cuál sería el impacto y cómo prevenirlo o mitigarlo. Termina indicando cuál es el riesgo que merece atención primero.\n\nTema: {query}"
   },
   "defaultTemplateBestPracticeName": {
-    "message": "Buenas prácticas"
+    "message": "Checklist de buenas prácticas"
   },
   "defaultTemplateBestPracticeQuery": {
-    "message": "Escribe un informe de retrospectiva de éxito para este proyecto:「{query}」"
+    "message": "Convierte este tema en un checklist práctico de buenas prácticas. Empieza con el objetivo y los criterios de éxito, luego enumera las prácticas más importantes, los errores comunes que hay que evitar y un plan breve paso a paso que alguien pueda aplicar de inmediato.\n\nTema: {query}"
   },
   "defaultTemplateTranslateToChineseName": {
     "message": "Traducir al chino"
@@ -1915,6 +1927,12 @@
   "homepageAgentsTitle": {
     "message": "Agentes de IA"
   },
+  "homepageAgentsSelectAll": {
+    "message": "Seleccionar todo"
+  },
+  "homepageAgentsClearAll": {
+    "message": "Borrar selección"
+  },
   "homepageAgentCategoriesTitle": {
     "message": "Categorías"
   },
@@ -2251,5 +2269,107 @@
   },
   "agentImportDialogTitle": {
     "message": "Importar agente desde URL"
+  },
+  "homepageBatchModeButton": {
+    "message": "Lote"
+  },
+  "homepageBatchModeButtonTitle": {
+    "message": "Modo por lotes"
+  },
+  "homepageBatchDialogTitle": {
+    "message": "Ejecutar PK por lotes"
+  },
+  "homepageBatchTextareaPlaceholder": {
+    "message": "Escribe un prompt por línea y ejecútalos línea por línea"
+  },
+  "homepageBatchNoIframePanels": {
+    "message": "El modo por lotes requiere al menos un sitio o skill que pueda abrirse en la página de comparación"
+  },
+  "homepageBatchNoQueries": {
+    "message": "Escribe al menos una línea de prompt"
+  },
+  "homepageBatchOpened": {
+    "message": "Se abrieron $1 tareas por lotes"
+  },
+  "liveSummaryTitle": {
+    "message": "Resumen automático"
+  },
+  "liveSummaryTabsAriaLabel": {
+    "message": "Pestañas del resumen automático"
+  },
+  "liveSummaryAnalysisTemplateLabel": {
+    "message": "Plantilla de analisis:"
+  },
+  "liveSummaryHint": {
+    "message": "El análisis automático se ejecutará 60 segundos después de tu pregunta."
+  },
+  "liveSummaryHintCountdown": {
+    "message": "El análisis automático se ejecutará en $1 segundos."
+  },
+  "liveSummaryRefresh": {
+    "message": "Analizar"
+  },
+  "liveSummaryRefreshCountdown": {
+    "message": "Analizar ($1s)"
+  },
+  "liveSummaryContinueAnalysis": {
+    "message": "Seguir analizando"
+  },
+  "liveSummaryExpand": {
+    "message": "Expandir"
+  },
+  "liveSummaryCollapse": {
+    "message": "Contraer"
+  },
+  "liveSummaryEmpty": {
+    "message": "Todavía no hay un resumen disponible."
+  },
+  "liveSummaryNoDivergence": {
+    "message": "Los paneles actuales coinciden en gran medida en los puntos clave."
+  },
+  "liveSummaryPendingSites": {
+    "message": "Paneles sin una respuesta útil"
+  },
+  "liveSummaryConsensusLabel": {
+    "message": "Consenso"
+  },
+  "liveSummaryDivergenceLabel": {
+    "message": "Diferencias"
+  },
+  "liveSummaryCollecting": {
+    "message": "Esperando a que todas las respuestas activas se estabilicen antes de resumir automáticamente..."
+  },
+  "liveSummaryRefreshing": {
+    "message": "Ya hay un resumen disponible. Actualizando en segundo plano..."
+  },
+  "liveSummaryMetaReady": {
+    "message": "$1 / $2 paneles están incluidos en este resumen"
+  },
+  "liveSummaryMetaTemplateAnalysis": {
+    "message": "Analizado con \"$1\""
+  },
+  "liveSummaryAnalyzeFailed": {
+    "message": "No se pudo abrir la página de análisis. Inténtalo de nuevo."
+  },
+  "homepageBatchFavoriteAction": {
+    "message": "Guardar"
+  },
+  "homepageBatchFavoritesEmpty": {
+    "message": "Todavía no hay lotes guardados"
+  },
+  "homepageBatchFavoriteDialogTitle": {
+    "message": "Guardar prompts por lote"
+  },
+  "homepageBatchFavoriteNamePlaceholder": {
+    "message": "Escribe un nombre para este lote"
+  },
+  "homepageBatchFavoriteNameRequired": {
+    "message": "Introduce un nombre para el favorito"
+  },
+  "homepageBatchFavoriteSaved": {
+    "message": "Lote favorito guardado"
+  },
+  "homepageBatchFavoriteDeleted": {
+    "message": "Lote favorito eliminado"
   }
 }
