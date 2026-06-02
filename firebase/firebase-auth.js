@@ -8,6 +8,68 @@ const FIREBASE_AUTH_STORAGE_KEYS = {
   refreshToken: 'firebase_refreshToken',
   expiresAt: 'firebase_expiresAt',
 };
+const FIREBASE_AUTH_RATE_LIMIT_PATTERNS = [
+  /rate exceeded/i,
+  /too many requests/i,
+  /too many attempts/i,
+  /too_many_attempts_try_later/i,
+  /resource[_\s-]*exhausted/i,
+  /quota exceeded/i,
+];
+
+async function ensureFirebaseAuthI18nReady() {
+  try {
+    if (typeof window !== 'undefined' && typeof window.RuntimeI18n?.initializeRuntimeI18n === 'function') {
+      await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+  } catch (_) {
+    // Ignore i18n initialization failures and fall back to browser locale text below.
+  }
+}
+
+function getFirebaseAuthMessage(key, fallback = '', substitutions = undefined) {
+  try {
+    if (typeof window !== 'undefined' && typeof window.RuntimeI18n?.getMessage === 'function') {
+      return window.RuntimeI18n.getMessage(key, substitutions) || fallback;
+    }
+    if (typeof chrome !== 'undefined' && chrome.i18n?.getMessage) {
+      return chrome.i18n.getMessage(key, substitutions) || fallback;
+    }
+  } catch (_) {
+    // Ignore i18n lookup failures and fall back to the provided text.
+  }
+  return fallback;
+}
+
+function isFirebaseAuthRateLimited(message = '') {
+  const text = String(message || '').trim();
+  if (!text) {
+    return false;
+  }
+  return FIREBASE_AUTH_RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+async function normalizeFirebaseAuthError(error, fallback = 'Authentication failed') {
+  const rawMessage = String(error?.message || error || '').trim();
+  if (isFirebaseAuthRateLimited(rawMessage)) {
+    await ensureFirebaseAuthI18nReady();
+    return new Error(
+      getFirebaseAuthMessage(
+        'firebaseAuthRateLimited',
+        'Sign-in requests are temporarily rate limited. Please wait a few minutes and try again.'
+      )
+    );
+  }
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(rawMessage || fallback);
+}
+
+async function createFirebaseApiError(data, fallback = 'Authentication failed') {
+  const rawMessage = String(data?.error?.message || data?.error || '').trim();
+  return normalizeFirebaseAuthError(rawMessage ? new Error(rawMessage) : new Error(fallback), fallback);
+}
 
 async function getStoredAuth() {
   const result = await chrome.storage.local.get([
@@ -104,7 +166,7 @@ async function firebaseSignUp(email, password) {
   });
   const data = await res.json();
   if (data.error) {
-    throw new Error(data.error.message || '注册失败');
+    throw await createFirebaseApiError(data, '注册失败');
   }
   await setStoredAuth(data.localId, data.idToken, data.refreshToken, parseInt(data.expiresIn, 10) || 3600, data.email || null);
   return { uid: data.localId, email: data.email };
@@ -130,7 +192,7 @@ async function firebaseSignIn(email, password) {
   });
   const data = await res.json();
   if (data.error) {
-    throw new Error(data.error.message || '登录失败');
+    throw await createFirebaseApiError(data, '登录失败');
   }
   await setStoredAuth(data.localId, data.idToken, data.refreshToken, parseInt(data.expiresIn, 10) || 3600, data.email || null);
   return { uid: data.localId, email: data.email };
@@ -167,7 +229,7 @@ async function firebaseSignInWithGoogle() {
       });
     });
   } catch (e) {
-    throw e;
+    throw await normalizeFirebaseAuthError(e, '谷歌登录失败');
   }
   if (!callbackUrl || !callbackUrl.startsWith(redirectUri)) {
     throw new Error('谷歌登录未返回有效结果');
@@ -190,7 +252,7 @@ async function firebaseSignInWithGoogle() {
   });
   const data = await res.json();
   if (data.error) {
-    throw new Error(data.error.message || 'Firebase 登录失败');
+    throw await createFirebaseApiError(data, 'Firebase 登录失败');
   }
   const email = (data.email != null) ? data.email : (data.user?.email) || null;
   await setStoredAuth(data.localId, data.idToken, data.refreshToken, parseInt(data.expiresIn, 10) || 3600, email);

@@ -581,18 +581,23 @@
 
   function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
     const normalizedQuery = normalizeTimelineComparableText(query);
+    const requestedOccurrenceIndex = Math.max(0, Number(occurrenceIndex) || 0);
     if (!normalizedQuery) return null;
 
     const exactMatches = (promptRecords || []).filter((item) => item.normalizedText === normalizedQuery);
     if (exactMatches.length > 0) {
-      return exactMatches[Math.min(Math.max(occurrenceIndex || 0, 0), exactMatches.length - 1)];
+      return requestedOccurrenceIndex < exactMatches.length
+        ? exactMatches[requestedOccurrenceIndex]
+        : null;
     }
 
     const fuzzyMatches = (promptRecords || []).filter((item) => {
       return item.normalizedText.includes(normalizedQuery) || normalizedQuery.includes(item.normalizedText);
     });
     if (fuzzyMatches.length > 0) {
-      return fuzzyMatches[Math.min(Math.max(occurrenceIndex || 0, 0), fuzzyMatches.length - 1)];
+      return requestedOccurrenceIndex < fuzzyMatches.length
+        ? fuzzyMatches[requestedOccurrenceIndex]
+        : null;
     }
 
     const compactQuery = normalizeTimelineMatchText(query);
@@ -603,10 +608,26 @@
       return compactText.includes(compactQuery) || compactQuery.includes(compactText);
     });
     if (compactMatches.length > 0) {
-      return compactMatches[Math.min(Math.max(occurrenceIndex || 0, 0), compactMatches.length - 1)];
+      return requestedOccurrenceIndex < compactMatches.length
+        ? compactMatches[requestedOccurrenceIndex]
+        : null;
     }
 
     return null;
+  }
+
+  function shouldAllowTimelineLatestVisibleFallback(promptRecords, matchedPrompt, nextPrompt) {
+    const normalizedPromptRecords = Array.isArray(promptRecords) ? promptRecords : [];
+    if (normalizedPromptRecords.length === 0) {
+      return true;
+    }
+    if (!matchedPrompt) {
+      return false;
+    }
+    if (normalizedPromptRecords.length > 1) {
+      return false;
+    }
+    return !nextPrompt;
   }
 
   function collectTimelineResponseCandidates(doc, contentExtractor) {
@@ -661,6 +682,40 @@
     return segments;
   }
 
+  async function extractTimelineContentFromMessageContainers(nodes, contentExtractor) {
+    const innerSelectors = toArray(contentExtractor?.contentSelectors);
+    const segments = [];
+    const seenText = new Set();
+
+    for (const node of nodes || []) {
+      const targetNodes = [];
+
+      if (innerSelectors.length > 0) {
+        innerSelectors.forEach((selector) => {
+          safeQueryAll(node, selector).forEach((innerNode) => {
+            targetNodes.push(innerNode);
+          });
+        });
+      }
+
+      if (targetNodes.length === 0) {
+        targetNodes.push(node);
+      }
+
+      for (const targetNode of targetNodes) {
+        await waitForContentLoad(targetNode, 300);
+        const rawText = await extractElementContent(targetNode);
+        const comparableText = normalizeTimelineComparableText(rawText);
+        const displayText = normalizeTimelineDisplayText(rawText);
+        if (!comparableText || !displayText || seenText.has(comparableText)) continue;
+        seenText.add(comparableText);
+        segments.push(displayText);
+      }
+    }
+
+    return segments;
+  }
+
   async function extractTimelineResponseFallback(doc, siteConfig) {
     const fullConfig = siteConfig || {};
     const contentExtractor = fullConfig.contentExtractor || {};
@@ -688,7 +743,7 @@
     const matchedPrompt = findTimelinePromptRecord(promptRecords, query, occurrenceIndex);
 
     if (!matchedPrompt) {
-      if (promptRecords.length === 0) {
+      if (shouldAllowTimelineLatestVisibleFallback(promptRecords, null, null)) {
         const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
         if (fallbackResult) {
           return fallbackResult;
@@ -726,19 +781,26 @@
     }
 
     if (responseCandidates.length === 0) {
-      const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
-      if (fallbackResult) {
-        return fallbackResult;
+      if (shouldAllowTimelineLatestVisibleFallback(promptRecords, matchedPrompt, nextPrompt)) {
+        const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
+        if (fallbackResult) {
+          return fallbackResult;
+        }
       }
     }
 
-    const answers = await extractTimelineContentFromNodes(responseCandidates);
+    let answers = await extractTimelineContentFromNodes(responseCandidates);
+    if (answers.length === 0 && toArray(contentExtractor?.messageContainer).length > 0) {
+      answers = await extractTimelineContentFromMessageContainers(responseCandidates, contentExtractor);
+    }
     const content = answers.join('\n\n').trim();
 
     if (!content && !nextPrompt) {
-      const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
-      if (fallbackResult) {
-        return fallbackResult;
+      if (shouldAllowTimelineLatestVisibleFallback(promptRecords, matchedPrompt, nextPrompt)) {
+        const fallbackResult = await extractTimelineResponseFallback(doc, fullConfig);
+        if (fallbackResult) {
+          return fallbackResult;
+        }
       }
     }
 

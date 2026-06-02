@@ -225,6 +225,34 @@ function truncateText(text, maxLength = 220) {
   return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
+function stripShareSummaryRawAnswerSection(summaryText) {
+  const source = String(summaryText || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const cutMarkers = [
+    /\n{2,}各站原始答案汇总：/i,
+    /\n{2,}各站原始答案:/i,
+    /\n{2,}各站原始答案：/i,
+    /\n{2,}原始答案汇总：/i,
+    /\n{2,}Raw answers:/i,
+    /\n{2,}Responses summary:/i,
+    /\n{2,}【[^】]+】\n/,
+    /\n{2,}\[[^\]]+\]\n/
+  ];
+
+  let endIndex = source.length;
+  for (const pattern of cutMarkers) {
+    const match = source.match(pattern);
+    if (match && typeof match.index === 'number' && match.index < endIndex) {
+      endIndex = match.index;
+    }
+  }
+
+  return source.slice(0, endIndex).trim();
+}
+
 function createRelayServer(options = {}) {
   const logger = options.logger || console;
   const publicBaseUrl = String(options.publicBaseUrl || process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
@@ -318,6 +346,7 @@ function createRelayServer(options = {}) {
         snapshotTimeLabel: '快照时间（北京时间 UTC+8）',
         compareSitesLabel: '对比站点',
         snapshotToolLabel: '快照工具',
+        summaryTitle: '总结分析',
         snapshotTimeUnknown: '未知',
         snapshotToolName: 'AICompare',
         metaSeparator: '；',
@@ -330,6 +359,7 @@ function createRelayServer(options = {}) {
       snapshotTimeLabel: 'Snapshot time (UTC+8)',
       compareSitesLabel: 'Compared sites',
       snapshotToolLabel: 'Snapshot tool',
+      summaryTitle: 'Summary analysis',
       snapshotTimeUnknown: 'Unknown',
       snapshotToolName: 'AICompare',
       metaSeparator: '; ',
@@ -391,6 +421,7 @@ function createRelayServer(options = {}) {
     const messages = getSharePageMessages(locale);
     const responses = normalizeShareResponses(shareRecord?.payload?.responses);
     const questionText = String(shareRecord?.payload?.question || '').trim();
+    const summaryText = stripShareSummaryRawAnswerSection(shareRecord?.payload?.summaryText || '');
     const snapshotTimeText = formatShareSnapshotTime(shareRecord?.createdAt, locale) || messages.snapshotTimeUnknown;
     const compareSiteNames = uniqueNonEmptyStrings(
       Array.isArray(shareRecord?.payload?.compareSites) && shareRecord.payload.compareSites.length
@@ -422,6 +453,14 @@ function createRelayServer(options = {}) {
         </section>`;
       }).join('\n')
       : '<p class="share-empty">暂无可展示的回答</p>';
+    const summaryCard = summaryText
+      ? `<section class="share-summary-card iframe-container">
+          <div class="share-panel-header iframe-header">
+            <div class="site-name">${escapeHtml(messages.summaryTitle)}</div>
+          </div>
+          <div class="share-panel-body snapshot-panel markdown">${renderMarkdownToHtml(summaryText)}</div>
+        </section>`
+      : '';
 
     return `<!doctype html>
 <html lang="${escapeHtml(locale)}">
@@ -456,8 +495,17 @@ function createRelayServer(options = {}) {
       margin:0 auto;
       padding:20px 16px 24px;
     }
-    .share-query-bar{
+    .share-sticky-header{
+      position:sticky;
+      top:0;
+      z-index:40;
       margin:0 0 16px;
+      padding:12px 0 10px;
+      background:linear-gradient(180deg, rgba(247,248,251,0.98) 0%, rgba(247,248,251,0.96) 76%, rgba(247,248,251,0) 100%);
+      backdrop-filter:blur(14px);
+    }
+    .share-query-bar{
+      margin:0;
       padding:14px 18px;
       border:1px solid var(--share-border);
       border-radius:12px;
@@ -476,6 +524,8 @@ function createRelayServer(options = {}) {
     }
     .share-query{
       margin:0;
+      display:flex;
+      align-items:center;
       font-size:18px;
       line-height:1.45;
       font-weight:700;
@@ -485,7 +535,7 @@ function createRelayServer(options = {}) {
       min-width:0;
     }
     .share-meta-bar{
-      margin:-4px 0 16px;
+      margin:10px 0 0;
       padding:0 6px;
       font-size:13px;
       line-height:1.5;
@@ -517,9 +567,73 @@ function createRelayServer(options = {}) {
     }
     .share-panels{
       display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns:repeat(auto-fit, minmax(500px, 1fr));
       gap:var(--share-gap);
       align-items:start;
+    }
+    .share-summary-card{
+      margin-bottom:16px;
+      border-radius:18px;
+      border-color:rgba(17, 17, 17, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 248, 248, 0.98)),
+        radial-gradient(circle at top right, rgba(17, 17, 17, 0.05), transparent 42%);
+      box-shadow:0 12px 28px rgba(15, 23, 42, 0.06);
+      backdrop-filter:blur(12px);
+      overflow:hidden;
+    }
+    .share-summary-card .iframe-header{
+      align-items:center;
+      min-height:unset;
+      padding:16px 18px 10px;
+      background:transparent;
+      border-bottom:none;
+    }
+    .share-summary-card .iframe-header .site-name{
+      font-size:16px;
+      line-height:1.2;
+      font-weight:600;
+      color:#111111;
+    }
+    .share-summary-card .snapshot-panel{
+      min-height:auto;
+      padding:0 18px 18px;
+      background:transparent;
+    }
+    .share-summary-card .markdown{
+      font-size:14px;
+      line-height:1.76;
+      color:#1f2328;
+    }
+    .share-summary-card .markdown > :first-child{
+      margin-top:0;
+    }
+    .share-summary-card .markdown > :last-child{
+      margin-bottom:0;
+    }
+    .share-summary-card .markdown h1,
+    .share-summary-card .markdown h2,
+    .share-summary-card .markdown h3,
+    .share-summary-card .markdown h4,
+    .share-summary-card .markdown h5,
+    .share-summary-card .markdown h6{
+      font-size:15px;
+      line-height:1.45;
+      font-weight:700;
+      color:#111111;
+    }
+    .share-summary-card .markdown blockquote{
+      border-left-color:rgba(17, 17, 17, 0.14);
+      color:#5f5f5f;
+      padding-left:14px;
+    }
+    .share-summary-card .markdown pre{
+      background:rgba(255,255,255,0.64);
+      border-color:rgba(17, 17, 17, 0.08);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.68);
+    }
+    .share-summary-card .markdown code{
+      background:rgba(17, 17, 17, 0.05);
     }
     .share-footer-actions{
       display:flex;
@@ -606,9 +720,12 @@ function createRelayServer(options = {}) {
     }
     @media (max-width: 640px){
       .share-page{padding:14px 12px 20px}
+      .share-sticky-header{padding:10px 0 8px}
       .share-query-bar{padding:12px 14px;flex-direction:column;align-items:stretch}
       .share-query{font-size:16px}
-      .share-meta-bar{margin:-2px 0 14px;padding:0 2px;font-size:12px}
+      .share-meta-bar{margin:8px 0 0;padding:0 2px;font-size:12px}
+      .share-summary-card .iframe-header{padding:14px 14px 8px}
+      .share-summary-card .snapshot-panel{padding:0 14px 14px}
       .share-query-actions{flex-direction:column;align-items:stretch}
       .share-continue-btn{width:100%}
       .share-panels{grid-template-columns:1fr}
@@ -619,13 +736,16 @@ function createRelayServer(options = {}) {
 </head>
 <body>
   <div class="share-page">
-    <div class="share-query-bar">
-      <div class="share-query">${escapeHtml(questionText)}</div>
-      <div class="share-query-actions">
-        <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
+    <div class="share-sticky-header">
+      <div class="share-query-bar">
+        <div class="share-query">${escapeHtml(questionText)}</div>
+        <div class="share-query-actions">
+          <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
+        </div>
       </div>
+      <div class="share-meta-bar">${escapeHtml(snapshotMetaText)}</div>
     </div>
-    <div class="share-meta-bar">${escapeHtml(snapshotMetaText)}</div>
+    ${summaryCard}
     <div class="share-panels">
       ${responseCards}
     </div>

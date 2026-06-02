@@ -368,3 +368,207 @@ test('extractPromptResponseForTimeline falls back to latest visible response for
   assert.equal(JSON.stringify(result.answers), JSON.stringify(['DeepSeek 的最新回答']));
   assert.equal(result.fallbackUsed, 'latestVisibleResponse');
 });
+
+test('extractPromptResponseForTimeline uses messageContainer fallback when selector candidates are empty after a matched prompt', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const userText = createElement(doc, '你好世界');
+  const userMessage = createElement(doc, '', {
+    '.user-text': [userText]
+  });
+  userMessage.__order = 1;
+  userMessage.closest = (selector) => {
+    if (selector === '.user-message') return userMessage;
+    return null;
+  };
+
+  const answerContent = createElement(doc, '豆包真实回答');
+  const answerContainer = createElement(doc, '', {
+    '.answer-content': [answerContent]
+  });
+  answerContainer.__order = 2;
+
+  selectorMap.set('.user-message', [userMessage]);
+  selectorMap.set('.missing-answer-selector', []);
+  selectorMap.set('.answer-container', [answerContainer]);
+
+  const extraction = loadExtractionCore(doc);
+  const result = await extraction.extractPromptResponseForTimeline(
+    doc,
+    {
+      userPrompt: {
+        containerSelector: '.user-message',
+        textSelector: '.user-text'
+      },
+      contentExtractor: {
+        selectors: ['.missing-answer-selector'],
+        messageContainer: '.answer-container',
+        contentSelectors: ['.answer-content']
+      }
+    },
+    '你好世界',
+    0
+  );
+
+  assert.equal(result.found, true);
+  assert.equal(result.content, '豆包真实回答');
+  assert.equal(JSON.stringify(result.answers), JSON.stringify(['豆包真实回答']));
+});
+
+test('extractPromptResponseForTimeline falls back to latestVisibleResponse when prompt nodes are missing but Grok answer is present', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const assistantMarkdown = createElement(doc, '你好，世界！我是 Grok。');
+  assistantMarkdown.__textNodes = [
+    {
+      textContent: '你好，世界！我是 Grok。',
+      parentElement: assistantMarkdown
+    }
+  ];
+
+  selectorMap.set('#missing-user-prompt', []);
+  selectorMap.set(
+    '#last-reply-container [id^="response-"][class*="items-start"] .response-content-markdown.markdown, #last-reply-container [id^="response-"][class*="items-start"] .response-content-markdown, [id^="response-"][class*="items-start"] .response-content-markdown.markdown, [id^="response-"][class*="items-start"] .response-content-markdown',
+    [assistantMarkdown]
+  );
+
+  const extraction = loadExtractionCore(doc);
+  const result = await extraction.extractPromptResponseForTimeline(
+    doc,
+    {
+      userPrompt: {
+        containerSelector: '#missing-user-prompt',
+        textSelector: '.user-text',
+        messageNodeSelector: '[id^="response-"]',
+        requireMessageNode: true
+      },
+      contentExtractor: {
+        latestVisibleResponse: {
+          messageSelector: '#last-reply-container [id^="response-"][class*="items-start"] .response-content-markdown.markdown, #last-reply-container [id^="response-"][class*="items-start"] .response-content-markdown, [id^="response-"][class*="items-start"] .response-content-markdown.markdown, [id^="response-"][class*="items-start"] .response-content-markdown'
+        }
+      }
+    },
+    '你好世界',
+    0
+  );
+
+  assert.equal(result.found, true);
+  assert.equal(result.content, '你好，世界！我是 Grok。');
+  assert.equal(JSON.stringify(result.answers), JSON.stringify(['你好，世界！我是 Grok。']));
+  assert.equal(result.fallbackUsed, 'latestVisibleResponse');
+});
+
+test('extractPromptResponseForTimeline falls back to latestVisibleResponse when a single prompt record exists but query text does not match', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const userText = createElement(doc, '你好 世界');
+  const userMessage = createElement(doc, '', {
+    '.user-text': [userText]
+  });
+  userMessage.__order = 1;
+  userMessage.closest = (selector) => {
+    if (selector === '[id^="response-"]') return userMessage;
+    return null;
+  };
+
+  const assistantMarkdown = createElement(doc, 'Grok 的最新回答');
+  assistantMarkdown.__textNodes = [
+    {
+      textContent: 'Grok 的最新回答',
+      parentElement: assistantMarkdown
+    }
+  ];
+
+  selectorMap.set('.user-message', [userMessage]);
+  selectorMap.set('.assistant-latest', [assistantMarkdown]);
+
+  const extraction = loadExtractionCore(doc);
+  const result = await extraction.extractPromptResponseForTimeline(
+    doc,
+    {
+      userPrompt: {
+        containerSelector: '.user-message',
+        textSelector: '.user-text',
+        messageNodeSelector: '[id^="response-"]',
+        requireMessageNode: true
+      },
+      contentExtractor: {
+        latestVisibleResponse: {
+          messageSelector: '.assistant-latest'
+        }
+      }
+    },
+    '完全不同的问题',
+    0
+  );
+
+  assert.equal(result.found, true);
+  assert.equal(result.content, 'Grok 的最新回答');
+  assert.equal(JSON.stringify(result.answers), JSON.stringify(['Grok 的最新回答']));
+  assert.equal(result.fallbackUsed, 'latestVisibleResponse');
+});
+
+test('collectTimelinePromptRecords keeps Doubao prompt matching scoped to the user text node', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const doubaoPromptText = createElement(doc, '豆包提问');
+  doubaoPromptText.__order = 1;
+  const doubaoPromptRow = createElement(doc, '', {
+    '.doubao-user-prompt-text': [doubaoPromptText]
+  });
+  doubaoPromptRow.__order = 1;
+  doubaoPromptText.closest = (selector) => {
+    if (selector === '.doubao-message-row') return doubaoPromptRow;
+    return null;
+  };
+
+  const doubaoAnswerSharedText = createElement(doc, '豆包回答正文');
+  doubaoAnswerSharedText.__order = 2;
+  const doubaoAnswerContent = createElement(doc, '豆包回答正文');
+  doubaoAnswerContent.__order = 2;
+  const doubaoAnswerRow = createElement(doc, '', {
+    '.doubao-answer-content': [doubaoAnswerContent],
+    '.whitespace-pre-wrap': [doubaoAnswerSharedText]
+  });
+  doubaoAnswerRow.__order = 2;
+
+  selectorMap.set('.doubao-user-prompt-text', [doubaoPromptText]);
+  selectorMap.set('.doubao-message-row', [doubaoPromptRow, doubaoAnswerRow]);
+  selectorMap.set('.doubao-answer-content', [doubaoAnswerContent]);
+
+  const extraction = loadExtractionCore(doc);
+  const promptRecords = extraction.collectTimelinePromptRecords(doc, {
+    userPrompt: {
+      containerSelector: '.doubao-user-prompt-text',
+      messageNodeSelector: '.doubao-message-row',
+      requireMessageNode: true
+    }
+  });
+
+  assert.equal(promptRecords.length, 1);
+  assert.equal(promptRecords[0].text, '豆包提问');
+
+  const result = await extraction.extractPromptResponseForTimeline(
+    doc,
+    {
+      userPrompt: {
+        containerSelector: '.doubao-user-prompt-text',
+        messageNodeSelector: '.doubao-message-row',
+        requireMessageNode: true
+      },
+      contentExtractor: {
+        selectors: ['.doubao-answer-content']
+      }
+    },
+    '豆包提问',
+    0
+  );
+
+  assert.equal(result.found, true);
+  assert.equal(result.content, '豆包回答正文');
+  assert.equal(JSON.stringify(result.answers), JSON.stringify(['豆包回答正文']));
+});

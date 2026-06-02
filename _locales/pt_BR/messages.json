@@ -1909,6 +1909,18 @@
   "stripePortalOpenFailed": {
     "message": "Não foi possível abrir a página de gerenciamento da assinatura."
   },
+  "stripeServiceUnavailable": {
+    "message": "O serviço de pagamento está temporariamente indisponível (HTTP $1). Tente novamente mais tarde. Se continuar falhando, entre em contato com $2."
+  },
+  "stripeServiceRateLimited": {
+    "message": "As solicitações de pagamento estão temporariamente limitadas. Tente novamente em instantes. Se continuar falhando, entre em contato com $1."
+  },
+  "stripeServiceTimeout": {
+    "message": "O serviço de pagamento excedeu o tempo limite. Tente novamente em instantes. Se continuar falhando, entre em contato com $1."
+  },
+  "firebaseAuthRateLimited": {
+    "message": "As solicitações de login estão temporariamente limitadas. Aguarde alguns minutos e tente novamente."
+  },
   "clipboardPermissionDenied": {
     "message": "Permissão da área de transferência negada"
   },
@@ -2306,11 +2318,17 @@
   "liveSummaryHintCountdown": {
     "message": "A análise automática será executada em $1 segundos."
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "Aviso: não foi possível extrair as respostas de $1"
+  },
   "liveSummaryRefresh": {
     "message": "Analisar"
   },
   "liveSummaryRefreshCountdown": {
     "message": "Analisar ($1s)"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "Resumir agora"
   },
   "liveSummaryContinueAnalysis": {
     "message": "Continuar análise"
@@ -2323,6 +2341,9 @@
   },
   "liveSummaryEmpty": {
     "message": "Ainda não há um resumo disponível."
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "O resumo ainda não começou."
   },
   "liveSummaryNoDivergence": {
     "message": "Os painéis atuais estão amplamente alinhados nos pontos principais."

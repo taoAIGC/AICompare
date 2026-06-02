@@ -1909,6 +1909,18 @@
   "stripePortalOpenFailed": {
     "message": "구독 관리 페이지를 열지 못했습니다."
   },
+  "stripeServiceUnavailable": {
+    "message": "결제 서비스가 일시적으로 사용할 수 없습니다(HTTP $1). 잠시 후 다시 시도해 주세요. 계속 실패하면 $2 로 문의해 주세요."
+  },
+  "stripeServiceRateLimited": {
+    "message": "결제 요청이 일시적으로 많습니다. 잠시 후 다시 시도해 주세요. 계속 실패하면 $1 로 문의해 주세요."
+  },
+  "stripeServiceTimeout": {
+    "message": "결제 서비스 요청 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요. 계속 실패하면 $1 로 문의해 주세요."
+  },
+  "firebaseAuthRateLimited": {
+    "message": "로그인 요청이 일시적으로 너무 많습니다. 몇 분 후 다시 시도해 주세요."
+  },
   "clipboardPermissionDenied": {
     "message": "클립보드 권한이 거부되었습니다"
   },
@@ -2306,11 +2318,17 @@
   "liveSummaryHintCountdown": {
     "message": "질문 후 $1초가 지나면 자동 분석이 실행됩니다."
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "주의: $1 답변을 가져오지 못했습니다"
+  },
   "liveSummaryRefresh": {
     "message": "분석"
   },
   "liveSummaryRefreshCountdown": {
     "message": "분석 ($1초)"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "지금 요약"
   },
   "liveSummaryContinueAnalysis": {
     "message": "계속 분석"
@@ -2323,6 +2341,9 @@
   },
   "liveSummaryEmpty": {
     "message": "아직 표시할 요약이 없습니다."
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "아직 요약이 시작되지 않았습니다."
   },
   "liveSummaryNoDivergence": {
     "message": "현재 패널들은 핵심 포인트에서 대체로 일치합니다."

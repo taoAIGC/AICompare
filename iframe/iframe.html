@@ -81,24 +81,71 @@
                         data-i18n-aria-label="liveSummaryTabsAriaLabel"
                         aria-label=""
                     ></div>
+                    <div class="live-summary-actions-cluster">
+                        <div class="live-summary-template-cluster">
+                            <select
+                                id="liveSummaryAnalysisTemplateSelect"
+                                class="live-summary-analysis-select"
+                                aria-label=""
+                                data-i18n-aria-label="analysisPromptTemplateSelectLabel"
+                            ></select>
+                        </div>
+                        <div class="live-summary-tools-cluster">
+                            <div class="timeline-copy-preview-export-actions live-summary-export-actions">
+                                <button
+                                    id="liveSummaryShareButton"
+                                    class="timeline-copy-preview-share"
+                                    type="button"
+                                    aria-label=""
+                                    data-i18n-aria-label="timelineCopyPreviewShare"
+                                >
+                                    <img src="../icons/link.svg" alt="" aria-hidden="true">
+                                </button>
+                                <button
+                                    id="liveSummaryDownloadButton"
+                                    class="timeline-copy-preview-download"
+                                    type="button"
+                                    aria-label=""
+                                    data-i18n-aria-label="timelineCopyPreviewDownload"
+                                >
+                                    <img src="../icons/download.svg" alt="" aria-hidden="true">
+                                </button>
+                                <button
+                                    id="liveSummaryCopyButton"
+                                    class="timeline-copy-preview-confirm"
+                                    type="button"
+                                    aria-label=""
+                                    data-i18n-aria-label="timelineCopyPreviewConfirm"
+                                >
+                                    <img src="../icons/copy.svg" alt="" aria-hidden="true">
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="live-summary-card-subtitle-row">
-                    <div id="liveSummarySites" class="live-summary-card-sites"></div>
-                    <div id="liveSummaryHint" class="live-summary-card-hint" hidden></div>
-                    <div class="live-summary-card-inline-actions">
-                        <span class="live-summary-analysis-label" data-i18n="liveSummaryAnalysisTemplateLabel"></span>
-                        <select
-                            id="liveSummaryAnalysisTemplateSelect"
-                            class="live-summary-analysis-select"
-                            aria-label=""
-                            data-i18n-aria-label="analysisPromptTemplateSelectLabel"
-                        ></select>
+                    <div class="live-summary-status-cluster">
+                        <div class="live-summary-sites-cluster">
+                            <div id="liveSummarySites" class="live-summary-card-sites"></div>
+                            <div id="liveSummaryHint" class="live-summary-card-hint" hidden></div>
+                        </div>
+                        <div id="liveSummaryRetryCluster" class="live-summary-retry-cluster" hidden>
+                            <button
+                                id="liveSummaryImmediateAnalyzeButton"
+                                class="live-summary-action-btn live-summary-toolbar-icon-btn"
+                                type="button"
+                                data-i18n-title="liveSummaryRefresh"
+                                data-i18n-aria-label="liveSummaryRefresh"
+                                hidden
+                                title=""
+                                aria-label=""
+                            >
+                                <img src="../icons/refresh-cw.svg" alt="" aria-hidden="true">
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div id="liveSummaryMeta" class="live-summary-card-meta" hidden></div>
-            </div>
-            <div class="live-summary-card-actions">
-                <button id="liveSummaryToggleButton" class="live-summary-action-btn" type="button" data-i18n="liveSummaryExpand"></button>
             </div>
         </div>
         <div id="liveSummaryCardBody" class="live-summary-card-body">

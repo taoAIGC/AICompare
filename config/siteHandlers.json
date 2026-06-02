@@ -469,6 +469,28 @@
         ]
       },
       "contentExtractor": {
+        "latestVisibleResponse": {
+          "messageSelector": "#last-reply-container [id^=\"response-\"][class*=\"items-start\"] .response-content-markdown.markdown, #last-reply-container [id^=\"response-\"][class*=\"items-start\"] .response-content-markdown, [id^=\"response-\"][class*=\"items-start\"] .response-content-markdown.markdown, [id^=\"response-\"][class*=\"items-start\"] .response-content-markdown",
+          "ignoredAncestorSelectors": [
+            ".thinking-container",
+            "[data-testid*=\"thinking\"]",
+            ".action-buttons",
+            "button",
+            "[class*=\"copy\"]",
+            "nav",
+            "header",
+            "footer"
+          ],
+          "ignoredTextPatterns": [
+            "^Copy$",
+            "^Copied$",
+            "^Share$",
+            "^Retry$",
+            "^Edit image$",
+            "^Reasoning$",
+            "^Thinking$"
+          ]
+        },
         "containerSelector": "#last-reply-container",
         "messageContainer": "#last-reply-container [id^=\"response-\"]",
         "contentSelectors": [
@@ -492,6 +514,7 @@
         "thinkingBlockFilters": [
           "[class*=\"thinking\"]",
           "[data-testid*=\"thinking\"]",
+          ".thinking-container",
           ".transition-all.rounded-lg",
           "[class*=\"internal\"]"
         ],
@@ -533,8 +556,15 @@
         "urlFeature": "/c/"
       },
       "userPrompt": {
-        "containerSelector": "#last-reply-container [id^=\"response-\"][class*=\"items-end\"]",
-        "textSelector": ".response-content-markdown.markdown, .response-content-markdown"
+        "containerSelector": [
+          "#last-reply-container [id^=\"response-\"][class*=\"items-end\"] div[data-testid=\"user-message\"]",
+          "#last-reply-container [id^=\"response-\"][class*=\"items-end\"]",
+          "[id^=\"response-\"][class*=\"items-end\"] div[data-testid=\"user-message\"]",
+          "[id^=\"response-\"][class*=\"items-end\"]"
+        ],
+        "textSelector": "div[data-testid=\"user-message\"], .response-content-markdown.markdown, .response-content-markdown",
+        "messageNodeSelector": "[id^=\"response-\"]",
+        "requireMessageNode": true
       },
       "icon": "grok.com.png",
       "type": "information"
@@ -1205,7 +1235,7 @@
       },
       "contentExtractor": {
         "latestVisibleResponse": {
-          "messageSelector": ".inner-item-w21SQO [class*=\"flow-markdown-body\"], .inner-item-w21SQO [class*=\"markdown-body\"]",
+          "messageSelector": ".message-list-zLoNs1 [data-message-id] .container-enLQFx, .message-list-zLoNs1 [data-message-id] .container-qX9Csx, .message-list-zLoNs1 [data-message-id] .container-h3Yzeb",
           "ignoredAncestorSelectors": [
             "[class*=\"suggest-message\"]",
             "[class*=\"copy\"]",
@@ -1217,22 +1247,21 @@
             "^下载电脑版$"
           ]
         },
-        "containerSelector": "div[aria-label=\"doc_editor\"]",
+        "containerSelector": ".message-list-zLoNs1",
+        "messageContainer": ".message-list-zLoNs1 [data-message-id]",
         "contentSelectors": [
-          ".inner-item-w21SQO [class*=\"flow-markdown-body\"]",
-          ".inner-item-w21SQO [class*=\"markdown-body\"]",
-          ".container-PvPoAn:not(:has(.whitespace-pre-wrap))",
-          ".item-kDun2N:not(:has(.whitespace-pre-wrap))",
-          ".w-full.inner-item-w21SQO:not(:has(.whitespace-pre-wrap))"
+          ".container-enLQFx",
+          ".container-fBOrXO",
+          ".container-qX9Csx",
+          ".container-h3Yzeb"
         ],
         "fallbackSelectors": [
-          ".content-Xv_Zw0",
-          ".message-list-S2Fv2S",
-          ".scroll-view-OEiNXD.container-gkoWqI",
-          "main"
+          ".message-list-zLoNs1 [data-message-id] .container-enLQFx",
+          ".message-list-zLoNs1 [data-message-id] .container-qX9Csx",
+          ".message-list-zLoNs1 [data-message-id] .container-fBOrXO",
+          ".message-list-zLoNs1 [data-message-id] .container-h3Yzeb"
         ],
         "excludeSelectors": [
-          "[data-plugin-identifier=\"block_type:10000\"]",
           "nav",
           "header",
           "footer",
@@ -1252,15 +1281,19 @@
           "[data-testid*=\"input\"]",
           "[data-testid*=\"send\"]"
         ],
-        "userMessageSelector": "[data-plugin-identifier=\"block_type:10000\"]",
+        "userMessageSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]",
         "exportLatestOnly": true
       },
       "historyHandler": {
         "urlFeature": "/chat/"
       },
       "userPrompt": {
-        "containerSelector": "[data-plugin-identifier=\"block_type:10000\"].flex.justify-end, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]",
-        "textSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-testid=\"message_text_content\"]"
+        "containerSelector": [
+          "[data-message-id] [data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap",
+          "[data-message-id] [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]"
+        ],
+        "messageNodeSelector": "[data-message-id]",
+        "requireMessageNode": true
       },
       "icon": "doubao.com.png",
       "type": "information"

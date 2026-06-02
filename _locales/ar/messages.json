@@ -1909,6 +1909,18 @@
   "stripePortalOpenFailed": {
     "message": "تعذر فتح صفحة إدارة الاشتراك."
   },
+  "stripeServiceUnavailable": {
+    "message": "خدمة الدفع غير متاحة مؤقتًا (HTTP $1). يُرجى المحاولة مرة أخرى لاحقًا. وإذا استمر الفشل، فتواصل مع $2."
+  },
+  "stripeServiceRateLimited": {
+    "message": "طلبات الدفع محدودة مؤقتًا. يُرجى المحاولة مرة أخرى بعد قليل. وإذا استمر الفشل، فتواصل مع $1."
+  },
+  "stripeServiceTimeout": {
+    "message": "انتهت مهلة طلب خدمة الدفع. يُرجى المحاولة مرة أخرى بعد قليل. وإذا استمر الفشل، فتواصل مع $1."
+  },
+  "firebaseAuthRateLimited": {
+    "message": "طلبات تسجيل الدخول محدودة مؤقتًا. يُرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى."
+  },
   "clipboardPermissionDenied": {
     "message": "تم رفض إذن الحافظة"
   },
@@ -2306,11 +2318,17 @@
   "liveSummaryHintCountdown": {
     "message": "سيتم تشغيل التحليل التلقائي بعد $1 ثانية."
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "ملاحظة: تعذر استخراج الإجابات من $1"
+  },
   "liveSummaryRefresh": {
     "message": "تحليل"
   },
   "liveSummaryRefreshCountdown": {
     "message": "تحليل ($1ث)"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "لخّص الآن"
   },
   "liveSummaryContinueAnalysis": {
     "message": "متابعة التحليل"
@@ -2323,6 +2341,9 @@
   },
   "liveSummaryEmpty": {
     "message": "لا يوجد ملخص متاح بعد."
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "لم يبدأ التلخيص بعد."
   },
   "liveSummaryNoDivergence": {
     "message": "تتفق اللوحات الحالية إلى حد كبير على النقاط الأساسية."

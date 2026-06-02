@@ -157,6 +157,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
 - Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
 - Shared result pages now stay on one fixed multi-panel web layout, without a separate image-mode layout switch.
+- Public share pages now also render the generated summary-analysis block near the top when the copied share payload includes summary text.
 - The timeline copy preview's copy button now keeps the Responses summary modal open after copying.
 - The preview body now only shows copyable site responses; failed sites stay in the summary header.
 - Copy/share actions in the Responses summary modal now show feedback next to the clicked button instead of using the top toast.
@@ -427,10 +428,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-02 00:05:03 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-03 00:20:05 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.githooks/post-commit`
+- `M` `AGENTS.md`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -441,43 +442,30 @@ Last auto-update / 最近自动更新：2026-06-02 00:05:03 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
-- `M` `config/agentCatalog.json`
-- `M` `config/agentCatalogData.js`
-- `M` `config/agentEngineConfig.js`
-- `M` `config/appConfig.json`
-- `M` `config/baseConfig.js`
-- `M` `data/shares.json`
-- `M` `docs/release-notes/latest.md`
+- `M` `config/siteHandlers.json`
+- `M` `firebase/firebase-auth.js`
+- `M` `firebase/stripe-payment.js`
 - `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `A` `icons/list-start.svg`
-- `M` `iframe/agent-panel.css`
-- `M` `iframe/agent-panel.html`
-- `M` `iframe/agent-panel.js`
+- `A` `icons/copy.svg`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
+- `A` `iframe/live-summary-utils.mjs`
 - `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
-- `M` `options/options.css`
 - `M` `options/options.js`
 - `M` `remote-relay/src/server.js`
-- `M` `remote-relay/tests/server.test.js`
-- `A` `scripts/package-extension.config.js`
-- `M` `scripts/package-extension.sh`
-- `A` `scripts/validate-package-config.js`
-- `A` `shared/markdown-renderer.js`
-- `A` `vendor/ace/LICENSE`
-- `A` `vendor/ace/ace.js`
+- `M` `shared/extraction-core.js`
+- `M` `tests/extraction-core.test.js`
+- `M` `tests/iframe-timeline-utils.test.js`
+- `A` `tests/live-summary-utils.test.js`
 
 ### Recent commits / 最近提交
+- `1014a57` 2026-06-02 V4.2.0 增加批量提交模式和对比答案总结功能
 - `4925de1` 2026-05-29 V4.1.2 优化 skills 的交互和把默认的skills 变成讨论类的 skills
 - `0a94946` 2026-05-25 V4.1.1 支持语言选择，支持谷歌网盘同步，支持展示更新记录
 - `dfa6433` 2026-05-22 chore: verify auto sync hooks
 - `2a720e3` 2026-05-21 V4.1.0 支持分享到链接
-- `f79a148` 2026-05-18 V4.0.1 修复小 bug
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

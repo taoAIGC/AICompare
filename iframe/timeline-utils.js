@@ -27,9 +27,14 @@
 
   function buildTimelineEntry(entry, existingEntries = []) {
     const normalizedQuery = normalizeTimelineQuery(entry?.query);
-    const occurrenceIndex = (Array.isArray(existingEntries) ? existingEntries : []).filter((item) => {
-      return item && item.normalizedQuery === normalizedQuery;
-    }).length;
+    const explicitOccurrenceIndex = Number.isFinite(Number(entry?.occurrenceIndex))
+      ? Math.max(0, Number(entry.occurrenceIndex) || 0)
+      : null;
+    const occurrenceIndex = explicitOccurrenceIndex !== null
+      ? explicitOccurrenceIndex
+      : (Array.isArray(existingEntries) ? existingEntries : []).filter((item) => {
+          return item && item.normalizedQuery === normalizedQuery;
+        }).length;
 
     return {
       timelineId: String(
@@ -111,26 +116,32 @@
     return lines.join('\n').trim();
   }
 
-  function mergeTimelinePromptSnapshots(snapshots = []) {
+  function mergeTimelinePromptSnapshots(snapshots = [], previousEntries = []) {
     const mergedEntries = [];
-    const entryByQuery = new Map();
+    const entryByPromptKey = new Map();
 
     for (const snapshot of Array.isArray(snapshots) ? snapshots : []) {
       const siteName = String(snapshot?.siteName || '').trim();
       const prompts = Array.isArray(snapshot?.prompts) ? snapshot.prompts : [];
+      const occurrenceByQuery = new Map();
 
       for (const prompt of prompts) {
         const query = normalizeTimelineQuery(prompt?.text);
         if (!query) continue;
 
-        let entry = entryByQuery.get(query);
+        const occurrenceIndex = occurrenceByQuery.get(query) || 0;
+        occurrenceByQuery.set(query, occurrenceIndex + 1);
+        const promptKey = `${query}::${occurrenceIndex}`;
+
+        let entry = entryByPromptKey.get(promptKey);
         if (!entry) {
           entry = {
             query,
             normalizedQuery: query,
+            occurrenceIndex,
             sourceSites: []
           };
-          entryByQuery.set(query, entry);
+          entryByPromptKey.set(promptKey, entry);
           mergedEntries.push(entry);
         }
 
@@ -140,7 +151,44 @@
       }
     }
 
-    return mergedEntries;
+    const previousEntryKeySet = new Set(
+      (Array.isArray(previousEntries) ? previousEntries : [])
+        .map((entry) => buildTimelineEntryKey(entry))
+        .filter(Boolean)
+    );
+    const previousOrderByKey = new Map(
+      (Array.isArray(previousEntries) ? previousEntries : [])
+        .map((entry, index) => [buildTimelineEntryKey(entry), index])
+        .filter(([entryKey]) => entryKey)
+    );
+
+    return mergedEntries
+      .filter((entry) => {
+        const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
+        if (occurrenceIndex === 0) {
+          return true;
+        }
+        const entryKey = buildTimelineEntryKey(entry);
+        if (entryKey && previousEntryKeySet.has(entryKey)) {
+          return true;
+        }
+        return Array.isArray(entry?.sourceSites) && entry.sourceSites.length > 1;
+      })
+      .map((entry, index) => ({ entry, index }))
+      .sort((left, right) => {
+        const leftOrder = previousOrderByKey.has(buildTimelineEntryKey(left.entry))
+          ? previousOrderByKey.get(buildTimelineEntryKey(left.entry))
+          : Number.POSITIVE_INFINITY;
+        const rightOrder = previousOrderByKey.has(buildTimelineEntryKey(right.entry))
+          ? previousOrderByKey.get(buildTimelineEntryKey(right.entry))
+          : Number.POSITIVE_INFINITY;
+
+        if (leftOrder !== rightOrder) {
+          return leftOrder - rightOrder;
+        }
+        return left.index - right.index;
+      })
+      .map(({ entry }) => entry);
   }
 
   function extractTimelinePromptsFromMessages(messages = []) {

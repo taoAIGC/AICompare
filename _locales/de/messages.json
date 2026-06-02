@@ -1909,6 +1909,18 @@
   "stripePortalOpenFailed": {
     "message": "Die Verwaltungsseite für Abonnements konnte nicht geöffnet werden."
   },
+  "stripeServiceUnavailable": {
+    "message": "Der Zahlungsdienst ist vorübergehend nicht verfügbar (HTTP $1). Bitte versuche es später erneut. Wenn es weiter fehlschlägt, kontaktiere $2."
+  },
+  "stripeServiceRateLimited": {
+    "message": "Zahlungsanfragen sind vorübergehend limitiert. Bitte versuche es gleich noch einmal. Wenn es weiter fehlschlägt, kontaktiere $1."
+  },
+  "stripeServiceTimeout": {
+    "message": "Die Anfrage an den Zahlungsdienst hat ein Zeitlimit erreicht. Bitte versuche es gleich noch einmal. Wenn es weiter fehlschlägt, kontaktiere $1."
+  },
+  "firebaseAuthRateLimited": {
+    "message": "Anmeldeanfragen sind vorübergehend limitiert. Bitte warte ein paar Minuten und versuche es erneut."
+  },
   "clipboardPermissionDenied": {
     "message": "Zwischenablage-Berechtigung verweigert"
   },
@@ -2306,11 +2318,17 @@
   "liveSummaryHintCountdown": {
     "message": "Die automatische Analyse startet in $1 Sekunden."
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "Hinweis: Antworten von $1 konnten nicht extrahiert werden"
+  },
   "liveSummaryRefresh": {
     "message": "Analysieren"
   },
   "liveSummaryRefreshCountdown": {
     "message": "Analysieren ($1s)"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "Jetzt zusammenfassen"
   },
   "liveSummaryContinueAnalysis": {
     "message": "Weiter analysieren"
@@ -2323,6 +2341,9 @@
   },
   "liveSummaryEmpty": {
     "message": "Es ist noch keine Zusammenfassung verfügbar."
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "Die Zusammenfassung wurde noch nicht gestartet."
   },
   "liveSummaryNoDivergence": {
     "message": "Die aktuellen Panels stimmen in den wichtigsten Punkten weitgehend überein."

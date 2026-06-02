@@ -224,7 +224,7 @@
     "message": "填写自己的 API"
   },
   "agentEngineOfficialFreeHint": {
-    "message": "免费每天用 3 次"
+    "message": "免费每天用 $1 次"
   },
   "agentEngineUpgradeButton": {
     "message": "立即升级 PRO"
@@ -242,7 +242,7 @@
     "message": "填写自己的 API，智能体将使用你的额度"
   },
   "agentEngineOfficialMetaFree": {
-    "message": "使用内置 API，每天免费 3 次。"
+    "message": "使用内置 API，每天免费 $1 次。"
   },
   "agentEngineOfficialMetaPro": {
     "message": "当前套餐：PRO"
@@ -1610,6 +1610,9 @@
   "membershipGoogleLoginUnavailable": {
     "message": "当前暂时无法使用谷歌登录"
   },
+  "firebaseAuthRateLimited": {
+    "message": "登录请求过于频繁，请等待几分钟后重试"
+  },
   "membershipGoogleLoginFailed": {
     "message": "谷歌登录失败"
   },
@@ -2260,6 +2263,15 @@
   "stripePortalOpenFailed": {
     "message": "无法打开订阅管理页"
   },
+  "stripeServiceUnavailable": {
+    "message": "支付服务暂时不可用（HTTP $1）。请稍后重试；如果持续失败，请联系 $2"
+  },
+  "stripeServiceRateLimited": {
+    "message": "支付请求过于频繁，请稍等片刻后重试；如果持续失败，请联系 $1"
+  },
+  "stripeServiceTimeout": {
+    "message": "支付服务请求超时。请稍后再试；如果持续失败，请联系 $1"
+  },
   "clipboardPermissionDenied": {
     "message": "剪贴板权限被拒绝"
   },
@@ -2534,11 +2546,20 @@
   "liveSummaryHintCountdown": {
     "message": "提问 $1 秒后，会进行自动的分析。"
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "注意：$1 抓取答案失败"
+  },
   "liveSummaryRefresh": {
     "message": "分析"
   },
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1s）"
+  },
+  "liveSummaryAnalyzeNow": {
+    "message": "立即分析"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "立即总结"
   },
   "liveSummaryContinueAnalysis": {
     "message": "继续分析"
@@ -2551,6 +2572,9 @@
   },
   "liveSummaryEmpty": {
     "message": "暂时还没有可展示的总结。"
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "还未开始总结，"
   },
   "liveSummaryNoDivergence": {
     "message": "当前各面板的关键观点基本一致。"

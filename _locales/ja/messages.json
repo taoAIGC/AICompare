@@ -1909,6 +1909,18 @@
   "stripePortalOpenFailed": {
     "message": "サブスクリプション管理ページを開けませんでした。"
   },
+  "stripeServiceUnavailable": {
+    "message": "決済サービスが一時的に利用できません（HTTP $1）。しばらくしてから再試行してください。解消しない場合は $2 までご連絡ください。"
+  },
+  "stripeServiceRateLimited": {
+    "message": "決済リクエストが一時的に集中しています。少し待ってから再試行してください。解消しない場合は $1 までご連絡ください。"
+  },
+  "stripeServiceTimeout": {
+    "message": "決済サービスの応答がタイムアウトしました。少し待ってから再試行してください。解消しない場合は $1 までご連絡ください。"
+  },
+  "firebaseAuthRateLimited": {
+    "message": "ログイン要求が一時的に多すぎます。数分待ってからもう一度お試しください。"
+  },
   "clipboardPermissionDenied": {
     "message": "クリップボード権限が拒否されました"
   },
@@ -2306,11 +2318,17 @@
   "liveSummaryHintCountdown": {
     "message": "質問してから $1 秒後に自動分析が実行されます。"
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "注意：$1 の回答取得に失敗しました"
+  },
   "liveSummaryRefresh": {
     "message": "分析"
   },
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1秒）"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "今すぐ要約"
   },
   "liveSummaryContinueAnalysis": {
     "message": "分析を続ける"
@@ -2323,6 +2341,9 @@
   },
   "liveSummaryEmpty": {
     "message": "まだ表示できる要約はありません。"
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "まだ要約は開始されていません。"
   },
   "liveSummaryNoDivergence": {
     "message": "現在のパネルは主要なポイントでほぼ一致しています。"

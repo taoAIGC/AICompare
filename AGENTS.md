@@ -411,6 +411,36 @@ Verification environment:
 - Verified icon source:
   the favicon can be resolved from the live browser context at `https://agent.minimax.io/assets/logo/favicon_v2.png?v=4`; the local icon asset should be stored as `siteIcons/agent.minimax.io.png`.
 
+## Doubao Flow
+
+- Site: `豆包`
+  URL: `https://www.doubao.com/chat`
+- Validation must run in the real user Chrome profile because the homepage, active chat route, and message-list DOM differ materially between landing state and post-submit chat state.
+- Landing behavior:
+  the root `/chat` page may first render a greeting/home shell. A valid automation run is only confirmed after the page transitions to a concrete chat URL such as `/chat/<id>`.
+- Verified prompt input:
+  `textarea[placeholder="发消息..."]`
+- Verified submit path:
+  sending Enter from the textarea successfully created a new chat during validation and redirected from `/chat` to `/chat/<id>`.
+- Verified post-submit transition:
+  after sending `你好世界`, the page URL changed to `https://www.doubao.com/chat/<id>` and the conversation body contained both the user prompt and the assistant reply.
+- Old-selector warning:
+  historical selectors such as `.inner-item-w21SQO`, `.content-Xv_Zw0`, and `.message-list-S2Fv2S` were observed as fully absent on 2026-06-02 in the real browser and should be treated as obsolete.
+- Verified current message-list root:
+  `.message-list-zLoNs1`
+- Verified current user prompt structure:
+  each message row has `data-message-id`, and the user prompt lives under
+  `[data-message-id] [data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap`
+- Verified current assistant content structure:
+  the assistant answer body lives under the same `data-message-id` row and can be extracted from
+  `.container-enLQFx`, with stable fallback wrappers `.container-fBOrXO`, `.container-qX9Csx`, and `.container-h3Yzeb`
+- Extraction guidance:
+  prefer `messageContainer: ".message-list-zLoNs1 [data-message-id]"` and then extract answer text from the container-scoped selectors above. Do not rely on page-wide shell text because the page includes greeting cards, capability chips, and footer hints that contaminate fallback extraction.
+- Timeline extraction guidance:
+  for time-based or prompt-based extraction, keep `userPrompt.messageNodeSelector` aligned to `[data-message-id]` so a matched user prompt can be paired with the following assistant row inside the same virtualized message list.
+- Verified runtime symptom of old config:
+  when old selectors are used, `LIST_USER_PROMPTS` may still succeed but `EXTRACT_PROMPT_RESPONSE` returns `found: true` with `answers: []`, while `EXTRACT_CONTENT` falls back to shell text such as `问候`, `内容由豆包 AI 生成，请仔细甄别`, and input suggestions.
+
 ## Extension ID For Testing
 
 - The current user-Chrome extension id for this workspace is `hhkhgpadepocnmjfpohcmjdcgkmfnadi`.

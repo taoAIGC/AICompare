@@ -17,6 +17,40 @@ const STRIPE_PRICES = {
   monthly: 'price_1SzxyyEKxBtGZOjfNr23r21W',
   yearly:  'price_1SzyXqEKxBtGZOjfLUxTMV3q',
 };
+const STRIPE_REQUEST_TIMEOUT_MS = 15000;
+const STRIPE_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
+const STRIPE_RATE_LIMIT_PATTERNS = [
+  /rate exceeded/i,
+  /too many requests/i,
+  /too many attempts/i,
+  /too_many_attempts_try_later/i,
+  /resource[_\s-]*exhausted/i,
+  /quota exceeded/i,
+];
+
+async function ensureStripeI18nReady() {
+  try {
+    if (typeof window !== 'undefined' && typeof window.RuntimeI18n?.initializeRuntimeI18n === 'function') {
+      await window.RuntimeI18n.initializeRuntimeI18n();
+    }
+  } catch (_) {
+    // Ignore i18n initialization failures and fall back to browser locale text below.
+  }
+}
+
+function getStripeMessage(key, fallback = '', substitutions = undefined) {
+  try {
+    if (typeof window !== 'undefined' && typeof window.RuntimeI18n?.getMessage === 'function') {
+      return window.RuntimeI18n.getMessage(key, substitutions) || fallback;
+    }
+    if (typeof chrome !== 'undefined' && chrome.i18n?.getMessage) {
+      return chrome.i18n.getMessage(key, substitutions) || fallback;
+    }
+  } catch (_) {
+    // Ignore lookup errors and fall back to the provided text.
+  }
+  return fallback;
+}
 
 /**
  * 从 firebaseConfig.js 获取 Cloud Functions base URL
@@ -59,6 +93,175 @@ async function getFirebaseUid() {
   }
   const stored = await chrome.storage.local.get('firebase_uid');
   return stored.firebase_uid || null;
+}
+
+async function getStripeSupportEmail() {
+  try {
+    if (typeof window !== 'undefined' && typeof window.AppConfigManager?.getContactInfo === 'function') {
+      const contactInfo = await window.AppConfigManager.getContactInfo();
+      const email = String(contactInfo?.email || '').trim();
+      if (email) {
+        return email;
+      }
+    }
+  } catch (_) {
+    // Ignore config lookup failures and fall back to the bundled address below.
+  }
+  return 'AIShortcuts@outlook.com';
+}
+
+async function parseFetchResponse(response) {
+  const rawText = await response.text().catch(() => '');
+  if (!rawText) {
+    return { rawText: '', data: null };
+  }
+
+  try {
+    return {
+      rawText,
+      data: JSON.parse(rawText)
+    };
+  } catch (_) {
+    return {
+      rawText,
+      data: null
+    };
+  }
+}
+
+function getResponseErrorMessage(payload = {}) {
+  const data = payload?.data;
+  return String(
+    data?.error?.message
+    || data?.error
+    || data?.message
+    || data?.detail
+    || payload?.rawText
+    || ''
+  ).trim();
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createStripeHttpError(status, message = '') {
+  const error = new Error(message || `HTTP ${status}`);
+  error.status = Number(status) || 0;
+  return error;
+}
+
+function shouldRetryStripeError(error) {
+  const status = Number(error?.status || 0);
+  return STRIPE_RETRYABLE_STATUS_CODES.has(status) || error?.name === 'AbortError';
+}
+
+function isStripeRateLimited(error) {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || error || '').trim();
+  if (status === 429) {
+    return true;
+  }
+  return STRIPE_RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+async function normalizeStripeRequestError(error) {
+  const supportEmail = await getStripeSupportEmail();
+  const status = Number(error?.status || 0);
+  await ensureStripeI18nReady();
+
+  if (error?.name === 'AbortError') {
+    return new Error(
+      getStripeMessage(
+        'stripeServiceTimeout',
+        `Payment service timed out. Please try again in a moment. If it keeps failing, contact ${supportEmail}.`,
+        [supportEmail]
+      )
+    );
+  }
+
+  if (isStripeRateLimited(error)) {
+    return new Error(
+      getStripeMessage(
+        'stripeServiceRateLimited',
+        `Payment requests are temporarily rate limited. Please wait a moment and try again. If it keeps failing, contact ${supportEmail}.`,
+        [supportEmail]
+      )
+    );
+  }
+
+  if (status >= 500) {
+    return new Error(
+      getStripeMessage(
+        'stripeServiceUnavailable',
+        `Payment service is temporarily unavailable (HTTP ${status}). Please try again later. If it keeps failing, contact ${supportEmail}.`,
+        [String(status), supportEmail]
+      )
+    );
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(String(error || 'Unknown error'));
+}
+
+async function fetchStripeFunctionJson(path, {
+  method = 'GET',
+  idToken = '',
+  body = undefined,
+  timeoutMs = STRIPE_REQUEST_TIMEOUT_MS,
+  retries = 1
+} = {}) {
+  const baseUrl = getCloudFunctionsBaseUrl();
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const response = await fetch(`${baseUrl}${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {})
+        },
+        body,
+        signal: controller?.signal
+      });
+
+      const payload = await parseFetchResponse(response);
+      if (response.ok) {
+        return payload.data || {};
+      }
+
+      const error = createStripeHttpError(
+        response.status,
+        getResponseErrorMessage(payload) || `HTTP ${response.status}`
+      );
+      lastError = error;
+      if (attempt < retries && shouldRetryStripeError(error)) {
+        await sleep(400 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries && shouldRetryStripeError(error)) {
+        await sleep(400 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  throw lastError || new Error('Unknown checkout error');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,22 +347,19 @@ async function startCheckout(priceId) {
     throw new Error('请先登录谷歌账号后再升级 Pro');
   }
 
-  const baseUrl = getCloudFunctionsBaseUrl();
-  const res = await fetch(`${baseUrl}/createCheckoutSession`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ priceId }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+  let response = null;
+  try {
+    response = await fetchStripeFunctionJson('/createCheckoutSession', {
+      method: 'POST',
+      idToken,
+      body: JSON.stringify({ priceId }),
+      retries: 1
+    });
+  } catch (error) {
+    throw await normalizeStripeRequestError(error);
   }
 
-  const { url } = await res.json();
+  const url = String(response?.url || '').trim();
   if (!url) throw new Error('No checkout URL returned from server');
 
   // Chrome 扩展中用 chrome.tabs.create 打开付款页
@@ -178,21 +378,18 @@ async function openCustomerPortal() {
   const idToken = await getFirebaseIdToken();
   if (!idToken) throw new Error('请先登录');
 
-  const baseUrl = getCloudFunctionsBaseUrl();
-  const res = await fetch(`${baseUrl}/createPortalSession`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+  let response = null;
+  try {
+    response = await fetchStripeFunctionJson('/createPortalSession', {
+      method: 'POST',
+      idToken,
+      retries: 1
+    });
+  } catch (error) {
+    throw await normalizeStripeRequestError(error);
   }
 
-  const { url } = await res.json();
+  const url = String(response?.url || '').trim();
   if (typeof chrome !== 'undefined' && chrome.tabs) {
     chrome.tabs.create({ url });
   } else {

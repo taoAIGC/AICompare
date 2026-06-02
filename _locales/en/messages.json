@@ -3,10 +3,10 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare — Multi-AI compare for GEO & brand answer checks"
+    "message": "AI Compare — Multi-AI compare for QA & GEO "
   },
   "extDescription": {
-    "message": "Compare answers from ChatGPT, Gemini, Claude and more in one tab—ideal for content QA, brand monitoring, and GEO (Generative Engine Optimization)."
+    "message": "Compare answers from ChatGPT, Gemini, Claude and more in one tab—for content QA, brand monitoring, and GEO optimization."
   },
   "configTitle": {
     "message": " AI Sites"
@@ -229,7 +229,7 @@
     "message": "Use your own API"
   },
   "agentEngineOfficialFreeHint": {
-    "message": "Free 3 times per day"
+    "message": "Free $1 times per day"
   },
   "agentEngineUpgradeButton": {
     "message": "Upgrade to PRO"
@@ -247,7 +247,7 @@
     "message": "Use your own API and your own quota"
   },
   "agentEngineOfficialMetaFree": {
-    "message": "Use the built-in API, free 3 times per day."
+    "message": "Use the built-in API, free $1 times per day."
   },
   "agentEngineOfficialMetaPro": {
     "message": "Current plan: PRO"
@@ -1615,6 +1615,9 @@
   "membershipGoogleLoginUnavailable": {
     "message": "Google sign-in is unavailable right now."
   },
+  "firebaseAuthRateLimited": {
+    "message": "Sign-in requests are temporarily rate limited. Please wait a few minutes and try again."
+  },
   "membershipGoogleLoginFailed": {
     "message": "Failed to sign in with Google."
   },
@@ -2265,6 +2268,15 @@
   "stripePortalOpenFailed": {
     "message": "Failed to open the subscription management page."
   },
+  "stripeServiceUnavailable": {
+    "message": "Payment service is temporarily unavailable (HTTP $1). Please try again later. If it keeps failing, contact $2."
+  },
+  "stripeServiceRateLimited": {
+    "message": "Payment requests are temporarily rate limited. Please wait a moment and try again. If it keeps failing, contact $1."
+  },
+  "stripeServiceTimeout": {
+    "message": "Payment service timed out. Please try again in a moment. If it keeps failing, contact $1."
+  },
   "clipboardPermissionDenied": {
     "message": "Clipboard permission denied"
   },
@@ -2539,11 +2551,20 @@
   "liveSummaryHintCountdown": {
     "message": "Automatic analysis will run in $1 seconds."
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "Note: Failed to extract answers from $1"
+  },
   "liveSummaryRefresh": {
     "message": "Analyze"
   },
   "liveSummaryRefreshCountdown": {
     "message": "Analyze ($1s)"
+  },
+  "liveSummaryAnalyzeNow": {
+    "message": "Analyze now"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "Summarize now"
   },
   "liveSummaryContinueAnalysis": {
     "message": "Continue analysis"
@@ -2556,6 +2577,9 @@
   },
   "liveSummaryEmpty": {
     "message": "No summary is available yet."
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "Summary has not started yet,"
   },
   "liveSummaryNoDivergence": {
     "message": "The current panels are broadly aligned on the key points."

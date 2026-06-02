@@ -1909,6 +1909,18 @@
   "stripePortalOpenFailed": {
     "message": "Impossible d’ouvrir la page de gestion de l’abonnement."
   },
+  "stripeServiceUnavailable": {
+    "message": "Le service de paiement est temporairement indisponible (HTTP $1). Réessayez plus tard. Si le problème persiste, contactez $2."
+  },
+  "stripeServiceRateLimited": {
+    "message": "Les demandes de paiement sont temporairement limitées. Réessayez dans un instant. Si le problème persiste, contactez $1."
+  },
+  "stripeServiceTimeout": {
+    "message": "Le service de paiement a expiré. Réessayez dans un instant. Si le problème persiste, contactez $1."
+  },
+  "firebaseAuthRateLimited": {
+    "message": "Les demandes de connexion sont temporairement limitées. Attendez quelques minutes puis réessayez."
+  },
   "clipboardPermissionDenied": {
     "message": "Autorisation du presse-papiers refusée"
   },
@@ -2306,11 +2318,17 @@
   "liveSummaryHintCountdown": {
     "message": "L’analyse automatique démarrera dans $1 secondes."
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "Remarque : impossible d'extraire les réponses de $1"
+  },
   "liveSummaryRefresh": {
     "message": "Analyser"
   },
   "liveSummaryRefreshCountdown": {
     "message": "Analyser ($1s)"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "Résumer maintenant"
   },
   "liveSummaryContinueAnalysis": {
     "message": "Continuer l’analyse"
@@ -2323,6 +2341,9 @@
   },
   "liveSummaryEmpty": {
     "message": "Aucun résumé n’est encore disponible."
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "Le résumé n’a pas encore commencé."
   },
   "liveSummaryNoDivergence": {
     "message": "Les panneaux actuels sont globalement alignés sur les points clés."

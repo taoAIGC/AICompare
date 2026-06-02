@@ -2128,6 +2128,18 @@
   "stripePortalOpenFailed": {
     "message": "無法開啟訂閱管理頁"
   },
+  "stripeServiceUnavailable": {
+    "message": "付款服務暫時不可用（HTTP $1）。請稍後重試；如果持續失敗，請聯絡 $2"
+  },
+  "stripeServiceRateLimited": {
+    "message": "付款請求過於頻繁，請稍候再試；如果持續失敗，請聯絡 $1"
+  },
+  "stripeServiceTimeout": {
+    "message": "付款服務請求逾時。請稍後再試；如果持續失敗，請聯絡 $1"
+  },
+  "firebaseAuthRateLimited": {
+    "message": "登入請求過於頻繁，請等待幾分鐘後再試"
+  },
   "clipboardPermissionDenied": {
     "message": "剪貼簿權限被拒絕"
   },
@@ -2369,11 +2381,20 @@
   "liveSummaryHintCountdown": {
     "message": "提問 $1 秒後，會進行自動分析。"
   },
+  "liveSummaryFailedSiteHint": {
+    "message": "注意：$1 擷取答案失敗"
+  },
   "liveSummaryRefresh": {
     "message": "分析"
   },
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1s）"
+  },
+  "liveSummaryAnalyzeNow": {
+    "message": "立即分析"
+  },
+  "liveSummarySummarizeNow": {
+    "message": "立即總結"
   },
   "liveSummaryContinueAnalysis": {
     "message": "繼續分析"
@@ -2386,6 +2407,9 @@
   },
   "liveSummaryEmpty": {
     "message": "暫時還沒有可顯示的總結。"
+  },
+  "liveSummaryEmptyPrompt": {
+    "message": "還未開始總結，"
   },
   "liveSummaryNoDivergence": {
     "message": "目前各面板的重點觀點大致一致。"

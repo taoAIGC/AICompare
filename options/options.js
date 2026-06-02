@@ -396,6 +396,14 @@ function getAgentEngineUpgradePriceId() {
   return window.STRIPE_PRICES?.yearly || window.STRIPE_PRICES?.monthly || '';
 }
 
+function getOfficialAgentEngineDailyFreeLimit() {
+  const rawLimit = Number(window.AICompareAgentEngineConfig?.DEFAULT_DAILY_FREE_LIMIT);
+  if (!Number.isFinite(rawLimit)) {
+    return 0;
+  }
+  return Math.max(0, Math.trunc(rawLimit));
+}
+
 async function getCurrentMembershipPlanInfo() {
   try {
     if (typeof window.getUserPlan === 'function') {
@@ -459,10 +467,15 @@ async function refreshOfficialAgentEngineMeta() {
 
   const planInfo = await getCurrentMembershipPlanInfo();
   const isPro = planInfo?.plan === 'pro';
+  const dailyFreeLimit = getOfficialAgentEngineDailyFreeLimit();
+  upgradeButton.dataset.plan = isPro ? 'pro' : 'free';
 
   officialMeta.textContent = isPro
     ? getMessageWithFallback('agentEngineOfficialMetaPro', 'Current plan: PRO')
-    : getMessageWithFallback('agentEngineOfficialMetaFree', 'Use the built-in API, free 3 times per day.');
+    : (
+      getMessage('agentEngineOfficialMetaFree', [String(dailyFreeLimit)])
+      || `Use the built-in API, free ${dailyFreeLimit} times per day.`
+    );
   upgradeButton.textContent = isPro
     ? getMessageWithFallback('agentEngineManageProButton', '管理 PRO')
     : getMessageWithFallback('agentEngineUpgradeButton', '立即升级 PRO');
@@ -722,20 +735,6 @@ async function initializeAgentEngineSettings() {
     return;
   }
 
-  try {
-    const config = await loadAgentEngineConfig();
-    const editableConfig = config.customConfig || {};
-    baseUrlInput.value = editableConfig.baseUrl || '';
-    apiKeyInput.value = editableConfig.apiKey || '';
-    modelInput.value = editableConfig.model || '';
-    concurrencyInput.value = String(editableConfig.concurrency || 10);
-    renderAgentEngineCard(config);
-    await refreshOfficialAgentEngineMeta();
-  } catch (error) {
-    console.error('加载智能体引擎设置失败:', error);
-    showToast(getMessageWithFallback('agentEngineLoadFailed', 'Failed to load agent engine settings'));
-  }
-
   if (editButton.dataset.bound !== 'true') {
     editButton.dataset.bound = 'true';
     editButton.addEventListener('click', (event) => {
@@ -783,8 +782,8 @@ async function initializeAgentEngineSettings() {
     officialUpgradeButton.dataset.bound = 'true';
     officialUpgradeButton.addEventListener('click', async (event) => {
       event.stopPropagation();
-      const planInfo = await getCurrentMembershipPlanInfo();
-      if (planInfo?.plan === 'pro') {
+      const currentPlan = String(officialUpgradeButton.dataset.plan || '').trim();
+      if (currentPlan === 'pro') {
         if (typeof window.openCustomerPortal === 'function') {
           officialUpgradeButton.disabled = true;
           try {
@@ -852,6 +851,20 @@ async function initializeAgentEngineSettings() {
       toggleApiKeyButton.setAttribute('aria-label', toggleLabel);
       toggleApiKeyButton.setAttribute('title', toggleLabel);
     });
+  }
+
+  try {
+    const config = await loadAgentEngineConfig();
+    const editableConfig = config.customConfig || {};
+    baseUrlInput.value = editableConfig.baseUrl || '';
+    apiKeyInput.value = editableConfig.apiKey || '';
+    modelInput.value = editableConfig.model || '';
+    concurrencyInput.value = String(editableConfig.concurrency || 10);
+    renderAgentEngineCard(config);
+    await refreshOfficialAgentEngineMeta();
+  } catch (error) {
+    console.error('加载智能体引擎设置失败:', error);
+    showToast(getMessageWithFallback('agentEngineLoadFailed', 'Failed to load agent engine settings'));
   }
 }
 

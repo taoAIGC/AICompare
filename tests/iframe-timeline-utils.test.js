@@ -102,6 +102,41 @@ test('mergeTimelinePromptSnapshots uses iframe prompts as source and deduplicate
   assert.deepEqual(entries[1].sourceSites, ['ChatGPT', 'Gemini']);
 });
 
+test('mergeTimelinePromptSnapshots preserves previous prompt order when one snapshot temporarily misses a middle prompt', () => {
+  const previousEntries = [
+    buildTimelineEntry({ query: 'FDE 转型', occurrenceIndex: 0 }, []),
+    buildTimelineEntry({ query: 'FDE 工程师是什么', occurrenceIndex: 0 }, []),
+    buildTimelineEntry({ query: 'FDE 工资怎么样', occurrenceIndex: 0 }, [])
+  ];
+
+  const entries = mergeTimelinePromptSnapshots(
+    [
+      {
+        siteName: 'ChatGPT',
+        prompts: [
+          { text: 'FDE 转型' },
+          { text: 'FDE 工资怎么样' }
+        ]
+      },
+      {
+        siteName: 'Gemini',
+        prompts: [
+          { text: 'FDE 转型' },
+          { text: 'FDE 工程师是什么' },
+          { text: 'FDE 工资怎么样' }
+        ]
+      }
+    ],
+    previousEntries
+  );
+
+  assert.deepEqual(
+    entries.map((item) => item.query),
+    ['FDE 转型', 'FDE 工程师是什么', 'FDE 工资怎么样']
+  );
+  assert.deepEqual(entries[1].sourceSites, ['Gemini']);
+});
+
 test('extractTimelinePromptsFromMessages keeps agent user turns in order', () => {
   const prompts = extractTimelinePromptsFromMessages([
     { role: 'assistant', content: '先给一个结论' },

@@ -511,7 +511,7 @@ body.search-bar-bottom .query-suggestions {
     transform: translateY(-50%);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 0;
     background: transparent;
     flex-shrink: 0;
@@ -561,9 +561,10 @@ body.search-bar-bottom .query-suggestions {
     background: transparent;
     border: 1px solid transparent;
     cursor: pointer;
-    width: 36px;
+    width: auto;
+    min-width: 24px;
     height: 36px;
-    padding: 0;
+    padding: 0 4px;
     border-radius: 12px;
     transition: background-color var(--ai-transition), border-color var(--ai-transition), transform var(--ai-transition), box-shadow var(--ai-transition);
     display: flex;
