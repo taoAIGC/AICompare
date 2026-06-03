@@ -2343,7 +2343,7 @@
     "message": "아직 표시할 요약이 없습니다."
   },
   "liveSummaryEmptyPrompt": {
-    "message": "아직 요약이 시작되지 않았습니다."
+    "message": "카운트다운이 끝나면 모든 답변을 자동으로 요약합니다."
   },
   "liveSummaryNoDivergence": {
     "message": "현재 패널들은 핵심 포인트에서 대체로 일치합니다."

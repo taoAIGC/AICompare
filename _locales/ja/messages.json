@@ -2343,7 +2343,7 @@
     "message": "まだ表示できる要約はありません。"
   },
   "liveSummaryEmptyPrompt": {
-    "message": "まだ要約は開始されていません。"
+    "message": "カウントダウン終了後、すべての回答を自動で要約します。"
   },
   "liveSummaryNoDivergence": {
     "message": "現在のパネルは主要なポイントでほぼ一致しています。"

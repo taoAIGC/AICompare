@@ -2343,7 +2343,7 @@
     "message": "Es ist noch keine Zusammenfassung verfügbar."
   },
   "liveSummaryEmptyPrompt": {
-    "message": "Die Zusammenfassung wurde noch nicht gestartet."
+    "message": "Nach Ablauf des Countdowns werden alle Antworten automatisch zusammengefasst."
   },
   "liveSummaryNoDivergence": {
     "message": "Die aktuellen Panels stimmen in den wichtigsten Punkten weitgehend überein."

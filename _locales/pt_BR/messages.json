@@ -2343,7 +2343,7 @@
     "message": "Ainda não há um resumo disponível."
   },
   "liveSummaryEmptyPrompt": {
-    "message": "O resumo ainda não começou."
+    "message": "Quando a contagem regressiva terminar, todas as respostas serão resumidas automaticamente."
   },
   "liveSummaryNoDivergence": {
     "message": "Os painéis atuais estão amplamente alinhados nos pontos principais."

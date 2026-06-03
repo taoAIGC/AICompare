@@ -2579,7 +2579,7 @@
     "message": "No summary is available yet."
   },
   "liveSummaryEmptyPrompt": {
-    "message": "Summary has not started yet,"
+    "message": "After the countdown ends, all responses will be summarized automatically."
   },
   "liveSummaryNoDivergence": {
     "message": "The current panels are broadly aligned on the key points."

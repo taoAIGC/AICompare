@@ -2756,7 +2756,7 @@ async function fetchGoogleProfile(accessToken) {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
   if (!res.ok) {
-    throw new Error(`Failed to load Google account: HTTP ${res.status}`);
+    throw new Error(await buildGoogleApiErrorMessage(res, 'Failed to load Google account'));
   }
   const profile = await res.json();
   return {
@@ -3046,6 +3046,47 @@ async function googleDriveRequest(path, options = {}, { interactive = false } = 
   return res;
 }
 
+async function buildGoogleApiErrorMessage(res, fallbackPrefix) {
+  const prefix = String(fallbackPrefix || 'Google API request failed').trim();
+  const status = Number(res?.status) || 0;
+  const baseMessage = status ? `${prefix}: HTTP ${status}` : prefix;
+
+  if (!res) {
+    return baseMessage;
+  }
+
+  try {
+    const cloned = typeof res.clone === 'function' ? res.clone() : res;
+    const payload = await cloned.json();
+    const reason = String(payload?.error?.errors?.[0]?.reason || payload?.error?.status || '').trim();
+    const message = String(payload?.error?.message || '').trim();
+
+    if (reason && message && !message.includes(reason)) {
+      return `${baseMessage} (${reason}): ${message}`;
+    }
+    if (message) {
+      return `${baseMessage}: ${message}`;
+    }
+    if (reason) {
+      return `${baseMessage}: ${reason}`;
+    }
+  } catch (_) {
+    // Ignore JSON parse failures and fall back to text/status.
+  }
+
+  try {
+    const cloned = typeof res.clone === 'function' ? res.clone() : res;
+    const text = String(await cloned.text()).trim();
+    if (text) {
+      return `${baseMessage}: ${text.slice(0, 300)}`;
+    }
+  } catch (_) {
+    // Ignore text parse failures and return the status-based fallback.
+  }
+
+  return baseMessage;
+}
+
 async function findGoogleDriveSyncFileId({ interactive = false } = {}) {
   const query = encodeURIComponent(`name='${DRIVE_SYNC_FILENAME}' and 'appDataFolder' in parents and trashed=false`);
   const res = await googleDriveRequest(
@@ -3054,7 +3095,7 @@ async function findGoogleDriveSyncFileId({ interactive = false } = {}) {
     { interactive }
   );
   if (!res.ok) {
-    throw new Error(`Failed to query Drive sync file: HTTP ${res.status}`);
+    throw new Error(await buildGoogleApiErrorMessage(res, 'Failed to query Drive sync file'));
   }
   const json = await res.json();
   return json.files?.[0] || null;
@@ -3098,7 +3139,7 @@ async function googleDriveUpload({ interactive = false } = {}) {
     }, { interactive });
 
     if (!res.ok) {
-      throw new Error(`Failed to upload Drive sync data: HTTP ${res.status}`);
+      throw new Error(await buildGoogleApiErrorMessage(res, 'Failed to upload Drive sync data'));
     }
 
     await setGoogleDriveConfig({
@@ -3135,7 +3176,7 @@ async function googleDriveDownload(options = {}) {
       { interactive }
     );
     if (!res.ok) {
-      throw new Error(`Failed to download Drive sync data: HTTP ${res.status}`);
+      throw new Error(await buildGoogleApiErrorMessage(res, 'Failed to download Drive sync data'));
     }
     const data = await res.json();
     await applyUnifiedSyncPayload(data);

@@ -2343,7 +2343,7 @@
     "message": "Aucun résumé n’est encore disponible."
   },
   "liveSummaryEmptyPrompt": {
-    "message": "Le résumé n’a pas encore commencé."
+    "message": "Une fois le compte à rebours terminé, toutes les réponses seront résumées automatiquement."
   },
   "liveSummaryNoDivergence": {
     "message": "Les panneaux actuels sont globalement alignés sur les points clés."

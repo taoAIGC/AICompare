@@ -2574,7 +2574,7 @@
     "message": "暂时还没有可展示的总结。"
   },
   "liveSummaryEmptyPrompt": {
-    "message": "还未开始总结，"
+    "message": "倒计时结束后，自动总结所有回答"
   },
   "liveSummaryNoDivergence": {
     "message": "当前各面板的关键观点基本一致。"

@@ -58,7 +58,7 @@ html {
   overflow: hidden;
 }
 
-.live-summary-card:not(:hover):not(:focus-within) .live-summary-actions-cluster {
+.live-summary-card:not(.is-actions-visible) .live-summary-actions-cluster {
   display: none;
 }
 

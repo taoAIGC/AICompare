@@ -2409,7 +2409,7 @@
     "message": "暫時還沒有可顯示的總結。"
   },
   "liveSummaryEmptyPrompt": {
-    "message": "還未開始總結，"
+    "message": "倒數結束後，自動總結所有回答"
   },
   "liveSummaryNoDivergence": {
     "message": "目前各面板的重點觀點大致一致。"
