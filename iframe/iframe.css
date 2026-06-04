@@ -64,7 +64,8 @@ html {
 
 .live-summary-card.is-collapsed .live-summary-card-subtitle-row,
 .live-summary-card.is-collapsed .live-summary-card-meta,
-.live-summary-card.is-collapsed .live-summary-card-body {
+.live-summary-card.is-collapsed .live-summary-card-body,
+.live-summary-card.is-collapsed .live-summary-actions-cluster {
   display: none !important;
 }
 
@@ -184,6 +185,35 @@ html {
   display: none;
 }
 
+.live-summary-pending-summarize-btn {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: #9a3412;
+  padding: 0 2px;
+  font: 600 12px/1.2 var(--ai-font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s ease, opacity 0.18s ease;
+}
+
+.live-summary-pending-summarize-btn[hidden] {
+  display: none !important;
+}
+
+.live-summary-pending-summarize-btn:hover:not(:disabled),
+.live-summary-pending-summarize-btn:focus-visible {
+  color: #7c2d12;
+  text-decoration: underline;
+  outline: none;
+}
+
+.live-summary-pending-summarize-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  text-decoration: none;
+}
+
 .live-summary-tab {
   flex: 0 0 auto;
   border: none;
@@ -209,15 +239,6 @@ html {
   color: #8a8a8a;
 }
 
-.live-summary-tab-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #d93025;
-  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
-  flex: 0 0 auto;
-}
-
 .live-summary-tab:hover {
   background: rgba(255, 255, 255, 0.56);
   color: #1f1f1f;
@@ -239,10 +260,6 @@ html {
 
 .live-summary-tab.is-active .live-summary-tab-countdown {
   color: #4f4f4f;
-}
-
-.live-summary-tab.is-active .live-summary-tab-dot {
-  background: #c5221f;
 }
 
 .live-summary-card-hint {
@@ -444,6 +461,15 @@ html {
 .live-summary-card-content.is-empty,
 .live-summary-card-content.is-empty p {
   color: #666;
+}
+
+.live-summary-card-content.is-thinking,
+.live-summary-card-content .live-summary-thinking {
+  color: #666;
+}
+
+.live-summary-thinking {
+  font-style: italic;
 }
 
 .live-summary-empty-state {

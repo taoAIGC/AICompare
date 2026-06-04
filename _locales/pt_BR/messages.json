@@ -2342,6 +2342,9 @@
   "liveSummaryEmpty": {
     "message": "Ainda não há um resumo disponível."
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "Quando a contagem regressiva terminar, todas as respostas serão resumidas automaticamente."
   },

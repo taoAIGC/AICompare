@@ -428,7 +428,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-03 23:52:11 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-04 19:29:35 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `_locales/ar/messages.json`
@@ -441,17 +441,18 @@ Last auto-update / 最近自动更新：2026-06-03 23:52:11 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `background.js`
 - `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
+- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
 
 ### Recent commits / 最近提交
+- `b93fdb3` 2026-06-03 V4.2.2 修复 Google drive，优化总结答案的体验
 - `9a0949c` 2026-06-03 V4.2.1 优化分析过程的体验
 - `1014a57` 2026-06-02 V4.2.0 增加批量提交模式和对比答案总结功能
 - `4925de1` 2026-05-29 V4.1.2 优化 skills 的交互和把默认的skills 变成讨论类的 skills
 - `0a94946` 2026-05-25 V4.1.1 支持语言选择，支持谷歌网盘同步，支持展示更新记录
-- `dfa6433` 2026-05-22 chore: verify auto sync hooks
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

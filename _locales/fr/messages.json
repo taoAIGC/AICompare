@@ -2342,6 +2342,9 @@
   "liveSummaryEmpty": {
     "message": "Aucun résumé n’est encore disponible."
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "Une fois le compte à rebours terminé, toutes les réponses seront résumées automatiquement."
   },

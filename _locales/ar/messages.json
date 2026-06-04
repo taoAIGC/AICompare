@@ -2342,6 +2342,9 @@
   "liveSummaryEmpty": {
     "message": "لا يوجد ملخص متاح بعد."
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "بعد انتهاء العد التنازلي، سيتم تلخيص جميع الردود تلقائيًا."
   },

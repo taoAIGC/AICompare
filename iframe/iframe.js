@@ -80,7 +80,6 @@ const liveSummaryState = {
   readySignature: '',
   compareSites: [],
   lastGeneratedEntryKey: '',
-  tabAttentionMarkersByEntryKey: new Map(),
   summariesByEntryKey: new Map()
 };
 
@@ -826,6 +825,7 @@ function getLiveSummaryElements() {
     card: document.getElementById('liveSummaryCard'),
     title: document.getElementById('liveSummaryTitle'),
     tabs: document.getElementById('liveSummaryTabs'),
+    pendingSummarizeButton: document.getElementById('liveSummaryPendingSummarizeButton'),
     hint: document.getElementById('liveSummaryHint'),
     meta: document.getElementById('liveSummaryMeta'),
     body: document.getElementById('liveSummaryCardBody'),
@@ -878,33 +878,6 @@ function clearLiveSummaryAutoAnalysisTimer(entryKey = '') {
 function getLiveSummaryAutoAnalysisDueAt(query = '', entryKey = '') {
   const record = getLiveSummaryRecord(query, entryKey);
   return Math.max(0, Number(record?.autoAnalysisDueAt) || 0);
-}
-
-function clearLiveSummaryTabAttention(entryKey = '') {
-  const normalizedEntryKey = String(entryKey || '').trim();
-  if (normalizedEntryKey) {
-    return liveSummaryState.tabAttentionMarkersByEntryKey.delete(normalizedEntryKey);
-  }
-  liveSummaryState.tabAttentionMarkersByEntryKey.clear();
-  return true;
-}
-
-function markLiveSummaryTabAttention(entryKey = '', marker = '') {
-  const normalizedEntryKey = String(entryKey || '').trim();
-  const normalizedMarker = String(marker || '').trim();
-  if (!normalizedEntryKey || !normalizedMarker) {
-    return false;
-  }
-  liveSummaryState.tabAttentionMarkersByEntryKey.set(normalizedEntryKey, normalizedMarker);
-  return true;
-}
-
-function hasLiveSummaryTabAttention(entryKey = '') {
-  const normalizedEntryKey = String(entryKey || '').trim();
-  if (!normalizedEntryKey) {
-    return false;
-  }
-  return liveSummaryState.tabAttentionMarkersByEntryKey.has(normalizedEntryKey);
 }
 
 function isLiveSummaryEntryExpanded(entryKey = '') {
@@ -1288,11 +1261,6 @@ function syncLiveSummaryVisibleEntryKeys(preferredEntryKey = '') {
   const normalizedLastGeneratedEntryKey = String(liveSummaryState.lastGeneratedEntryKey || '').trim();
   liveSummaryState.visibleEntryKeys = visibleEntryKeys;
   const visibleEntryKeySet = new Set(visibleEntryKeys);
-  Array.from(liveSummaryState.tabAttentionMarkersByEntryKey.keys()).forEach((entryKey) => {
-    if (!visibleEntryKeySet.has(entryKey)) {
-      liveSummaryState.tabAttentionMarkersByEntryKey.delete(entryKey);
-    }
-  });
   Array.from(liveSummaryState.expandedEntryKeys).forEach((entryKey) => {
     if (!visibleEntryKeySet.has(entryKey)) {
       liveSummaryState.expandedEntryKeys.delete(entryKey);
@@ -1342,6 +1310,84 @@ function hasLiveSummaryVisibleCountdown() {
   });
 }
 
+function getLiveSummaryPendingCountdownTargets() {
+  const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys) ? liveSummaryState.visibleEntryKeys : [];
+  const analysisTemplateReady = isLiveSummaryAnalysisTemplateReady();
+  const targets = [];
+
+  visibleEntryKeys.forEach((entryKey, index) => {
+    const entry = getLiveSummaryTimelineEntry('', entryKey);
+    const query = normalizeLiveSummaryQuery(entry?.query || getLiveSummaryEntryQuery(entryKey));
+    const dueAt = getLiveSummaryAutoAnalysisDueAt(query, entryKey);
+    if (!query || !dueAt || dueAt <= Date.now()) {
+      return;
+    }
+    if (!canTriggerLiveSummaryImmediateAnalysis(query, entryKey, {
+      activeRecord: getLiveSummaryRecord(query, entryKey),
+      analysisTemplateReady,
+      isAnalyzing: isLiveSummaryEntryAnalyzing(entryKey)
+    })) {
+      return;
+    }
+    targets.push({
+      entry,
+      entryKey,
+      query,
+      dueAt,
+      order: index
+    });
+  });
+
+  return targets.sort((left, right) => (
+    (left.dueAt - right.dueAt)
+    || (left.order - right.order)
+  ));
+}
+
+function getLiveSummarySoonestPendingCountdownTarget() {
+  return getLiveSummaryPendingCountdownTargets()[0] || null;
+}
+
+function refreshLiveSummaryPendingSummarizeButton() {
+  const { pendingSummarizeButton } = getLiveSummaryElements();
+  if (!(pendingSummarizeButton instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const label = t('liveSummarySummarizeNow', '立即总结');
+  const target = getLiveSummarySoonestPendingCountdownTarget();
+  pendingSummarizeButton.textContent = label;
+  pendingSummarizeButton.title = label;
+  pendingSummarizeButton.setAttribute('aria-label', label);
+  pendingSummarizeButton.hidden = !target;
+  pendingSummarizeButton.disabled = !target;
+  pendingSummarizeButton.dataset.entryKey = target?.entryKey || '';
+}
+
+async function triggerLiveSummarySoonestPendingAnalysis() {
+  const target = getLiveSummarySoonestPendingCountdownTarget();
+  if (!target) {
+    return;
+  }
+
+  clearLiveSummaryAutoAnalysisTimer(target.entryKey);
+  clearLiveSummaryPendingTimer(target.entryKey);
+  setLiveSummaryAutoAnalysisDueAt(target.query, target.entryKey, 0);
+  liveSummaryState.activeEntryKey = target.entryKey;
+  syncTimelineSelectionForLiveSummary(target.entry, target.entryKey);
+  syncLiveSummaryVisibleEntryKeys(target.entryKey);
+  setLiveSummaryEntryExpanded(target.entryKey, true);
+  renderLiveSummaryCard();
+
+  await refreshLiveSummaryForCurrentQuery({
+    query: target.query,
+    entryKey: target.entryKey,
+    forceGenerate: true,
+    source: 'auto-analysis',
+    preserveActiveEntry: true
+  });
+}
+
 function renderLiveSummaryTabs() {
   const { tabs } = getLiveSummaryElements();
   if (!(tabs instanceof HTMLElement)) return;
@@ -1358,9 +1404,8 @@ function renderLiveSummaryTabs() {
     const query = normalizeLiveSummaryQuery(entry?.query || getLiveSummaryEntryQuery(entryKey));
     const isActive = entryKey === liveSummaryState.activeEntryKey;
     const countdownSeconds = getLiveSummaryTabCountdownSeconds(query, entryKey);
-    const hasAttention = countdownSeconds <= 0 && hasLiveSummaryTabAttention(entryKey);
     const button = document.createElement('button');
-    button.className = `live-summary-tab${isActive ? ' is-active' : ''}${hasAttention ? ' has-attention' : ''}`;
+    button.className = `live-summary-tab${isActive ? ' is-active' : ''}`;
     button.type = 'button';
     button.setAttribute('role', 'tab');
     button.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -1376,11 +1421,6 @@ function renderLiveSummaryTabs() {
       countdown.className = 'live-summary-tab-countdown';
       countdown.textContent = `${countdownSeconds}s`;
       button.appendChild(countdown);
-    } else if (hasAttention) {
-      const dot = document.createElement('span');
-      dot.className = 'live-summary-tab-dot';
-      dot.setAttribute('aria-hidden', 'true');
-      button.appendChild(dot);
     }
     fragment.appendChild(button);
   });
@@ -1404,13 +1444,11 @@ function renderLiveSummaryTabs() {
         return;
       }
       if (isSameEntry) {
-        clearLiveSummaryTabAttention(entryKey);
         setLiveSummaryEntryExpanded(entryKey, !isLiveSummaryEntryExpanded(entryKey));
         renderLiveSummaryCard();
         return;
       }
       clearLiveSummaryPendingTimer(entryKey);
-      clearLiveSummaryTabAttention(entryKey);
       liveSummaryState.activeEntryKey = entryKey;
       if (shouldExpandOnTabSwitch) {
         setLiveSummaryEntryExpanded(entryKey, true);
@@ -1816,6 +1854,9 @@ function renderLiveSummaryContentHtml(summaryText = '', summaryError = '', optio
   const normalized = stripSummaryText(summaryText);
   if (!normalized) {
     const normalizedError = String(summaryError || '').trim();
+    if (!normalizedError && options.showThinking) {
+      return `<p class="live-summary-thinking">${escapeLiveSummaryHtml(t('liveSummaryThinking', 'thinking'))}</p>`;
+    }
     if (!normalizedError && options.showEmptyAction) {
       return renderLiveSummaryEmptyStateHtml(options);
     }
@@ -2251,6 +2292,7 @@ function refreshLiveSummaryHintText() {
     }
   }
   renderLiveSummaryTabs();
+  refreshLiveSummaryPendingSummarizeButton();
   refreshLiveSummaryAnalysisTemplateSelectLabel();
 }
 
@@ -2286,6 +2328,7 @@ function renderLiveSummaryCard() {
     card,
     title,
     tabs,
+    pendingSummarizeButton,
     hint,
     meta,
     body,
@@ -2323,6 +2366,11 @@ function renderLiveSummaryCard() {
   );
   const shouldRenderCollapsedPreview = canCollapseSummary && !isExpanded;
   const displaySummaryText = String(activeRecord.summaryText || '');
+  const shouldShowThinking = Boolean(
+    activeRecord.isStreaming
+    && !String(displaySummaryText || '').trim()
+    && !String(activeRecord.summaryError || '').trim()
+  );
   const isDisplayEmpty = !String(displaySummaryText || '').trim() && !String(activeRecord.summaryError || '').trim();
   const showEmptyAction = shouldShowLiveSummaryEmptyAction(activeRecord);
   const hasFailedSiteHint = Array.isArray(activeRecord?.failedSiteNames)
@@ -2340,10 +2388,16 @@ function renderLiveSummaryCard() {
   card.classList.toggle('is-collecting', activeRecord.status === 'collecting');
   card.classList.toggle('is-expanded', isExpanded);
   card.classList.toggle('is-collapsed', !isExpanded);
+  if (!isExpanded) {
+    card.classList.remove('is-actions-visible');
+  }
   card.classList.toggle('has-failed-sites', hasFailedSiteHint);
   syncLiveSummaryHintTimer();
   if (tabs instanceof HTMLElement) {
     renderLiveSummaryTabs();
+  }
+  if (pendingSummarizeButton instanceof HTMLButtonElement) {
+    refreshLiveSummaryPendingSummarizeButton();
   }
   const metaText = formatLiveSummaryMeta();
   meta.textContent = metaText;
@@ -2354,9 +2408,11 @@ function renderLiveSummaryCard() {
   content.classList.toggle('is-empty', isDisplayEmpty);
   content.classList.toggle('is-error', activeRecord.status === 'error' && !String(activeRecord.summaryText || '').trim());
   content.classList.toggle('is-streaming', activeRecord.isStreaming);
+  content.classList.toggle('is-thinking', shouldShowThinking);
   content.innerHTML = shouldRenderCollapsedPreview
     ? renderLiveSummaryPreviewHtml(activeRecord.shortSummaryText, activeRecord.summaryError)
     : renderLiveSummaryContentHtml(displaySummaryText, activeRecord.summaryError, {
+      showThinking: shouldShowThinking,
       showEmptyAction,
       actionDisabled: showEmptyAction && !canTriggerImmediateAnalysis
     });
@@ -2397,7 +2453,6 @@ function hideLiveSummaryCard() {
   disconnectLiveSummaryAnalysisPort('', 'hidden');
   clearLiveSummaryPendingTimer();
   clearLiveSummaryAutoAnalysisTimer();
-  clearLiveSummaryTabAttention();
   clearLiveSummaryHintTimer();
   liveSummaryState.activeEntryKey = '';
   liveSummaryState.visibleEntryKeys = [];
@@ -2449,7 +2504,6 @@ function markLiveSummaryCollecting(query = '', entryKey = '', options = {}) {
     shouldArmAutoAnalysis,
     delayMs: LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS
   });
-  clearLiveSummaryTabAttention(resolvedEntryKey);
   setLiveSummaryRecord(normalizedQuery, {
     ...(hasExistingSummary ? {} : buildEmptyLiveSummaryRecord(normalizedQuery, resolvedEntryKey)),
     status: hasExistingSummary ? 'refreshing' : 'collecting',
@@ -3123,7 +3177,6 @@ function scheduleLiveSummaryAutoAnalysis(query = '', entryKey = '') {
 
   const nextTimer = setTimeout(() => {
     clearLiveSummaryAutoAnalysisTimer(resolvedEntryKey);
-    markLiveSummaryTabAttention(resolvedEntryKey, String(dueAt));
     renderLiveSummaryCard();
     refreshLiveSummaryForCurrentQuery({
       query: normalizedQuery,
@@ -3146,6 +3199,7 @@ function initializeLiveSummaryCard() {
     downloadButton,
     copyButton,
     immediateAnalyzeButton,
+    pendingSummarizeButton,
     analysisTemplateSelect,
     content
   } = getLiveSummaryElements();
@@ -3154,13 +3208,38 @@ function initializeLiveSummaryCard() {
   });
 
   if (card instanceof HTMLElement && card.dataset.actionsVisibilityBound !== '1') {
-    const showActions = () => {
-      if (!card.hidden) {
-        card.classList.add('is-actions-visible');
+    const ACTIONS_HIDE_DELAY_MS = 220;
+    let hideActionsTimer = null;
+    const canShowActions = () => {
+      if (card.hidden) {
+        return false;
+      }
+      const activeEntryKey = String(getLiveSummaryCurrentEntryKey() || '').trim();
+      return Boolean(activeEntryKey && isLiveSummaryEntryExpanded(activeEntryKey));
+    };
+    const clearHideActionsTimer = () => {
+      if (hideActionsTimer) {
+        window.clearTimeout(hideActionsTimer);
+        hideActionsTimer = null;
       }
     };
+    const showActions = () => {
+      clearHideActionsTimer();
+      if (!canShowActions()) return;
+      card.classList.add('is-actions-visible');
+    };
     const hideActions = () => {
+      clearHideActionsTimer();
       card.classList.remove('is-actions-visible');
+    };
+    const scheduleHideActions = () => {
+      clearHideActionsTimer();
+      hideActionsTimer = window.setTimeout(() => {
+        hideActionsTimer = null;
+        if (!hasInteractiveFocus() && !hasInteractiveHover()) {
+          hideActions();
+        }
+      }, ACTIONS_HIDE_DELAY_MS);
     };
     const isInsideInteractiveArea = (target) => {
       if (!(target instanceof Node)) {
@@ -3184,7 +3263,7 @@ function initializeLiveSummaryCard() {
         if (isInsideInteractiveArea(event.relatedTarget)) {
           return;
         }
-        hideActions();
+        scheduleHideActions();
       });
     }
 
@@ -3195,7 +3274,7 @@ function initializeLiveSummaryCard() {
         if (isInsideInteractiveArea(event.relatedTarget)) {
           return;
         }
-        hideActions();
+        scheduleHideActions();
       });
     }
 
@@ -3299,6 +3378,12 @@ function initializeLiveSummaryCard() {
   if (immediateAnalyzeButton instanceof HTMLButtonElement) {
     immediateAnalyzeButton.addEventListener('click', async () => {
       await triggerLiveSummaryImmediateAnalysis();
+    });
+  }
+
+  if (pendingSummarizeButton instanceof HTMLButtonElement) {
+    pendingSummarizeButton.addEventListener('click', async () => {
+      await triggerLiveSummarySoonestPendingAnalysis();
     });
   }
 
@@ -4843,8 +4928,7 @@ function rebuildTimelineEntriesFromSnapshots() {
     if (entryKey && previousEntryKeySet.has(entryKey)) {
       return true;
     }
-    const sourceSiteCount = Array.isArray(entry?.sourceSites) ? entry.sourceSites.length : 0;
-    return sourceSiteCount > 1;
+    return false;
   });
 
   const nextEntries = [];

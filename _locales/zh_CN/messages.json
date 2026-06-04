@@ -2573,6 +2573,9 @@
   "liveSummaryEmpty": {
     "message": "暂时还没有可展示的总结。"
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "倒计时结束后，自动总结所有回答"
   },

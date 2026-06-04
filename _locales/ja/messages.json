@@ -2342,6 +2342,9 @@
   "liveSummaryEmpty": {
     "message": "まだ表示できる要約はありません。"
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "カウントダウン終了後、すべての回答を自動で要約します。"
   },

@@ -2342,6 +2342,9 @@
   "liveSummaryEmpty": {
     "message": "아직 표시할 요약이 없습니다."
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "카운트다운이 끝나면 모든 답변을 자동으로 요약합니다."
   },

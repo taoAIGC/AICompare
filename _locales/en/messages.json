@@ -2578,6 +2578,9 @@
   "liveSummaryEmpty": {
     "message": "No summary is available yet."
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "After the countdown ends, all responses will be summarized automatically."
   },

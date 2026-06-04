@@ -172,7 +172,7 @@
         if (entryKey && previousEntryKeySet.has(entryKey)) {
           return true;
         }
-        return Array.isArray(entry?.sourceSites) && entry.sourceSites.length > 1;
+        return false;
       })
       .map((entry, index) => ({ entry, index }))
       .sort((left, right) => {

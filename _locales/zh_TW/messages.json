@@ -2408,6 +2408,9 @@
   "liveSummaryEmpty": {
     "message": "暫時還沒有可顯示的總結。"
   },
+  "liveSummaryThinking": {
+    "message": "thinking"
+  },
   "liveSummaryEmptyPrompt": {
     "message": "倒數結束後，自動總結所有回答"
   },
