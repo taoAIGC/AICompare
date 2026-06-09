@@ -8,9 +8,534 @@ const crypto = require('crypto');
 const app = express();
 const port = Number(process.env.PORT || 8790);
 const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 100) || 100);
+const adminUids = parseCsvEnv(process.env.ADMIN_UIDS);
+const adminEmails = parseCsvEnv(process.env.ADMIN_EMAILS);
+const adminSessionOrigin = String(process.env.ADMIN_SESSION_ORIGIN || '').trim();
+const adminSessionSecret = String(process.env.ADMIN_SESSION_SECRET || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+const adminSessionCookieName = 'ai_compare_admin_session';
+const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 12 * 60 * 60) || (12 * 60 * 60));
+const ADMIN_CLIENT_SCRIPT = String.raw`
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      case "'": return '&#39;';
+      default: return char;
+    }
+  });
+}
+
+async function fetchAdminJson(url) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json'
+    }
+  });
+  if (response.status === 401) {
+    throw new Error('请先提供管理员 Firebase ID Token。');
+  }
+  if (response.status === 403) {
+    throw new Error('当前账号不在管理员白名单中。');
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || ('请求失败: HTTP ' + response.status));
+  }
+  return response.json();
+}
+
+async function createAdminSession(idToken) {
+  const response = await fetch('/api/admin/session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ idToken })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error || ('登录失败: HTTP ' + response.status));
+  }
+  return payload;
+}
+
+async function destroyAdminSession() {
+  const response = await fetch('/api/admin/session', {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' }
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || ('退出失败: HTTP ' + response.status));
+  }
+}
+
+function getNextPath() {
+  const next = new URLSearchParams(window.location.search).get('next') || '/admin';
+  return next.startsWith('/admin') ? next : '/admin';
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString('zh-CN');
+}
+
+function formatAmount(value, currency = 'usd') {
+  const amount = Number(value || 0) / 100;
+  const normalizedCurrency = String(currency || 'usd').toUpperCase();
+  return normalizedCurrency + ' ' + amount.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function renderCards(items) {
+  return items.map((item) => (
+    '<section class="card stat-card">'
+      + '<div class="label">' + escapeHtml(item.label) + '</div>'
+      + '<div class="value">' + escapeHtml(item.value) + '</div>'
+      + (item.note ? '<div class="note">' + escapeHtml(item.note) + '</div>' : '')
+    + '</section>'
+  )).join('');
+}
+
+function renderEmptyRow(message, colSpan) {
+  return '<tr><td colspan="' + colSpan + '" class="empty-cell">' + escapeHtml(message) + '</td></tr>';
+}
+
+async function loadOverview() {
+  const [orderSummary, apiSummary] = await Promise.all([
+    fetchAdminJson('/api/admin/orders/summary'),
+    fetchAdminJson('/api/admin/api-usage/summary')
+  ]);
+  const cards = [
+    { label: '当前有效 Pro', value: formatNumber(orderSummary.activeProUsers), note: '含 trialing / active' },
+    { label: '近 30 天付费订单', value: formatNumber(orderSummary.thirtyDayPaidOrders), note: '按已支付发票统计' },
+    { label: '今日 API 请求', value: formatNumber(apiSummary.today.totalRequests), note: 'free + pro + anonymous' },
+    { label: '近 30 天 API 请求', value: formatNumber(apiSummary.last30Days.totalRequests), note: '事件聚合结果' }
+  ];
+  document.getElementById('overviewCards').innerHTML = renderCards(cards);
+  document.getElementById('overviewJson').textContent = JSON.stringify({ orderSummary, apiSummary }, null, 2);
+}
+
+async function loadOrdersPage() {
+  const [summary, listPayload, trendPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/orders/summary'),
+    fetchAdminJson('/api/admin/orders/list?limit=20'),
+    fetchAdminJson('/api/admin/orders/trend?days=30')
+  ]);
+  document.getElementById('ordersCards').innerHTML = renderCards([
+    { label: '总会员档案', value: formatNumber(summary.totalMembers) },
+    { label: '有效 Pro', value: formatNumber(summary.activeProUsers) },
+    { label: '已取消未到期', value: formatNumber(summary.cancelingUsers) },
+    { label: '已过期', value: formatNumber(summary.expiredUsers) },
+    { label: 'MRR 预估', value: formatAmount(summary.mrrEstimate, summary.currency) },
+    { label: 'ARR 预估', value: formatAmount(summary.arrEstimate, summary.currency) }
+  ]);
+
+  const orders = Array.isArray(listPayload.orders) ? listPayload.orders : [];
+  document.getElementById('ordersTableBody').innerHTML = orders.length
+    ? orders.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.uid || '-') + '</td>'
+        + '<td>' + escapeHtml(item.email || '-') + '</td>'
+        + '<td>' + escapeHtml(item.plan || '-') + '</td>'
+        + '<td>' + escapeHtml(item.subscriptionStatus || '-') + '</td>'
+        + '<td>' + escapeHtml(item.invoiceStatus || '-') + '</td>'
+        + '<td>' + escapeHtml(item.invoicePaid ? '是' : '否') + '</td>'
+        + '<td>' + escapeHtml(formatAmount(item.amountPaid, item.currency)) + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.invoiceCreatedAt || item.planExpiresAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无订单数据', 8);
+
+  const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('ordersTrendBody').innerHTML = trend.length
+    ? trend.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.newSubscriptions)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.renewedSubscriptions)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.canceledSubscriptions)) + '</td>'
+        + '<td>' + escapeHtml(formatAmount(item.revenueAmount, trendPayload.currency)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('近 30 天没有 Stripe 趋势数据', 5);
+}
+
+async function loadApiUsagePage() {
+  const [summary, trendPayload, topDaysPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/api-usage/summary'),
+    fetchAdminJson('/api/admin/api-usage/trend?days=30'),
+    fetchAdminJson('/api/admin/api-usage/top-days?limit=10')
+  ]);
+  document.getElementById('apiCards').innerHTML = renderCards([
+    { label: '今日总请求', value: formatNumber(summary.today.totalRequests) },
+    { label: '今日活跃登录用户', value: formatNumber(summary.today.activeUsers) },
+    { label: '今日活跃匿名设备', value: formatNumber(summary.today.activeAnonymousClients) },
+    { label: '近 30 天总请求', value: formatNumber(summary.last30Days.totalRequests) }
+  ]);
+
+  const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('apiTrendBody').innerHTML = trend.length
+    ? trend.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.free.requests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.pro.requests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.anonymous.requests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无 API 趋势数据', 7);
+
+  const topDays = Array.isArray(topDaysPayload.days) ? topDaysPayload.days : [];
+  document.getElementById('apiTopDaysBody').innerHTML = topDays.length
+    ? topDays.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.free.requests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.pro.requests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.anonymous.requests)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无峰值日数据', 5);
+}
+
+async function bootAdminPage(pageName) {
+  const tokenInput = document.getElementById('tokenInput');
+  const saveButton = document.getElementById('saveTokenButton');
+  const clearButton = document.getElementById('clearTokenButton');
+  const statusEl = document.getElementById('tokenStatus');
+
+  saveButton.addEventListener('click', async () => {
+    try {
+      statusEl.textContent = '正在登录...';
+      await createAdminSession(tokenInput.value.trim());
+      statusEl.textContent = '管理员登录成功，正在刷新页面。';
+      window.location.reload();
+    } catch (error) {
+      statusEl.textContent = error.message || String(error);
+    }
+  });
+  clearButton.addEventListener('click', async () => {
+    try {
+      statusEl.textContent = '正在退出...';
+      await destroyAdminSession();
+      statusEl.textContent = '管理员会话已清空。';
+    } catch (error) {
+      statusEl.textContent = error.message || String(error);
+    }
+    tokenInput.value = '';
+  });
+
+  try {
+    if (pageName === 'overview') await loadOverview();
+    if (pageName === 'orders') await loadOrdersPage();
+    if (pageName === 'apiUsage') await loadApiUsagePage();
+    statusEl.textContent = '数据已刷新，管理员会话有效。';
+  } catch (error) {
+    statusEl.textContent = error.message || String(error);
+  }
+}
+
+async function bootAdminLoginPage() {
+  const tokenInput = document.getElementById('tokenInput');
+  const saveButton = document.getElementById('saveTokenButton');
+  const clearButton = document.getElementById('clearTokenButton');
+  const statusEl = document.getElementById('tokenStatus');
+
+  saveButton.addEventListener('click', async () => {
+    try {
+      statusEl.textContent = '正在登录...';
+      await createAdminSession(tokenInput.value.trim());
+      statusEl.textContent = '管理员登录成功，正在跳转。';
+      window.location.href = getNextPath();
+    } catch (error) {
+      statusEl.textContent = error.message || String(error);
+    }
+  });
+
+  clearButton.addEventListener('click', async () => {
+    tokenInput.value = '';
+    try {
+      await destroyAdminSession();
+    } catch (_) {
+      // Ignore logout errors on login screen.
+    }
+    statusEl.textContent = '已清空输入，并尝试退出旧会话。';
+  });
+}
+`;
+
+const ADMIN_STYLES = `
+  :root {
+    --bg: #f5efe3;
+    --panel: rgba(255, 252, 247, 0.9);
+    --panel-strong: #fffaf2;
+    --text: #24190f;
+    --muted: #7f6853;
+    --accent: #b65a2d;
+    --accent-soft: rgba(182, 90, 45, 0.14);
+    --border: rgba(85, 58, 36, 0.12);
+    --shadow: 0 18px 50px rgba(77, 50, 31, 0.10);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Avenir Next", "PingFang SC", "Helvetica Neue", sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(255, 201, 153, 0.28), transparent 32%),
+      radial-gradient(circle at top right, rgba(246, 170, 116, 0.24), transparent 24%),
+      linear-gradient(180deg, #f8f2e8 0%, #f2eadc 100%);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+  .shell {
+    width: min(1200px, calc(100vw - 40px));
+    margin: 0 auto;
+    padding: 32px 0 48px;
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+    align-items: stretch;
+    margin-bottom: 22px;
+  }
+  .hero-panel, .token-panel, .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+  }
+  .hero-panel {
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-panel::after {
+    content: "";
+    position: absolute;
+    inset: auto -40px -40px auto;
+    width: 180px;
+    height: 180px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(182, 90, 45, 0.22), transparent 70%);
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 16px 0 10px;
+    font-size: 40px;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+  .hero-copy {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 54ch;
+  }
+  .hero-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .nav-link, button {
+    border: 0;
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 12px 18px;
+    font-size: 14px;
+    transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  }
+  .nav-link {
+    background: #fff;
+    border: 1px solid var(--border);
+  }
+  .nav-link.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(182, 90, 45, 0.22);
+  }
+  .nav-link:hover, button:hover {
+    transform: translateY(-1px);
+  }
+  .token-panel {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .token-panel h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .token-panel p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  .token-panel code {
+    background: rgba(36, 25, 15, 0.06);
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 128px;
+    resize: vertical;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    padding: 16px;
+    font: inherit;
+    background: var(--panel-strong);
+    color: var(--text);
+  }
+  .token-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .token-actions button:first-child {
+    background: var(--accent);
+    color: #fff;
+  }
+  .token-actions button:last-child {
+    background: #fff;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .status {
+    min-height: 22px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .section-title {
+    margin: 28px 0 14px;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .stat-card {
+    padding: 18px 18px 16px;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .stat-card .value {
+    margin-top: 10px;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+  .stat-card .note {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .panel {
+    padding: 20px;
+    margin-top: 14px;
+  }
+  .panel h3 {
+    margin: 0 0 14px;
+    font-size: 17px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .empty-cell {
+    color: var(--muted);
+    text-align: center;
+    padding: 24px;
+  }
+  pre {
+    margin: 0;
+    background: #20150d;
+    color: #f6efe6;
+    border-radius: 20px;
+    padding: 18px;
+    font-size: 12px;
+    overflow: auto;
+  }
+  .footer-note {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .shell {
+      width: min(100vw - 24px, 1200px);
+      padding-top: 18px;
+    }
+    h1 {
+      font-size: 32px;
+    }
+  }
+`;
 
 let adminInitialized = false;
 let db = null;
+
+function parseCsvEnv(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 function initializeFirebaseAdmin() {
   if (adminInitialized) return true;
@@ -69,6 +594,9 @@ app.use((req, res, next) => {
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-AI-Compare-Locale, X-AI-Compare-Client-Id');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (adminSessionOrigin) {
+    res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${adminSessionOrigin}`);
+  }
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
@@ -87,6 +615,103 @@ function asyncRoute(handler) {
       res.status(error.status || 500).json({ error: error.message || String(error) });
     }
   };
+}
+
+function parseCookieHeader(cookieHeader = '') {
+  return String(cookieHeader || '')
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .reduce((acc, item) => {
+      const separatorIndex = item.indexOf('=');
+      if (separatorIndex <= 0) return acc;
+      const key = item.slice(0, separatorIndex).trim();
+      const value = item.slice(separatorIndex + 1).trim();
+      acc[key] = decodeURIComponent(value);
+      return acc;
+    }, {});
+}
+
+function toBase64Url(value) {
+  return Buffer.from(String(value || ''), 'utf8').toString('base64url');
+}
+
+function fromBase64Url(value) {
+  return Buffer.from(String(value || ''), 'base64url').toString('utf8');
+}
+
+function signAdminSessionPayload(payload) {
+  if (!adminSessionSecret) {
+    const error = new Error('ADMIN_SESSION_SECRET is not configured');
+    error.status = 500;
+    throw error;
+  }
+  return crypto
+    .createHmac('sha256', adminSessionSecret)
+    .update(String(payload || ''))
+    .digest('base64url');
+}
+
+function createAdminSessionToken(claims) {
+  const payload = toBase64Url(JSON.stringify(claims));
+  const signature = signAdminSessionPayload(payload);
+  return `${payload}.${signature}`;
+}
+
+function parseAdminSessionToken(token) {
+  const normalizedToken = String(token || '').trim();
+  if (!normalizedToken || !normalizedToken.includes('.')) {
+    return null;
+  }
+  const [payload, signature] = normalizedToken.split('.');
+  if (!payload || !signature) {
+    return null;
+  }
+  const expectedSignature = signAdminSessionPayload(payload);
+  if (signature !== expectedSignature) {
+    return null;
+  }
+  try {
+    const claims = JSON.parse(fromBase64Url(payload));
+    if (!claims || typeof claims !== 'object') {
+      return null;
+    }
+    if (Number(claims.exp || 0) <= Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+    return claims;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setAdminSessionCookie(res, token) {
+  const maxAge = Math.max(300, Math.floor(adminSessionTtlSeconds));
+  const cookieParts = [
+    `${adminSessionCookieName}=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${maxAge}`
+  ];
+  if (process.env.NODE_ENV === 'production') {
+    cookieParts.push('Secure');
+  }
+  res.setHeader('Set-Cookie', cookieParts.join('; '));
+}
+
+function clearAdminSessionCookie(res) {
+  const cookieParts = [
+    `${adminSessionCookieName}=`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=0'
+  ];
+  if (process.env.NODE_ENV === 'production') {
+    cookieParts.push('Secure');
+  }
+  res.setHeader('Set-Cookie', cookieParts.join('; '));
 }
 
 async function requireUser(req) {
@@ -122,6 +747,28 @@ async function getOptionalUser(req) {
   }
 }
 
+async function verifyAdminIdentity(user) {
+  const normalizedEmail = String(user?.email || '').trim().toLowerCase();
+  const isAllowedUid = adminUids.includes(String(user?.uid || '').trim());
+  const isAllowedEmail = adminEmails.includes(normalizedEmail);
+  if (!isAllowedUid && !isAllowedEmail) {
+    const error = new Error('Admin access required');
+    error.status = 403;
+    throw error;
+  }
+  return user;
+}
+
+async function requireAdmin(req) {
+  const cookies = parseCookieHeader(req.headers.cookie || '');
+  const sessionClaims = parseAdminSessionToken(cookies[adminSessionCookieName] || '');
+  if (sessionClaims) {
+    return verifyAdminIdentity(sessionClaims);
+  }
+  const user = await requireUser(req);
+  return verifyAdminIdentity(user);
+}
+
 function getAnonymousClientId(req) {
   return String(req.headers['x-ai-compare-client-id'] || req.body?.anonymousClientId || '').trim();
 }
@@ -145,12 +792,74 @@ function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getDateKey(date = new Date()) {
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+function getRecentDateKeys(days, endDate = new Date()) {
+  const safeDays = Math.max(1, Number(days) || 1);
+  const end = new Date(endDate);
+  end.setUTCHours(0, 0, 0, 0);
+  const result = [];
+  for (let index = safeDays - 1; index >= 0; index -= 1) {
+    const current = new Date(end);
+    current.setUTCDate(current.getUTCDate() - index);
+    result.push(getDateKey(current));
+  }
+  return result;
+}
+
 function getTimestampSeconds(value) {
   if (!value) return 0;
   if (typeof value.toDate === 'function') return Math.floor(value.toDate().getTime() / 1000);
   if (typeof value.seconds === 'number') return value.seconds;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : 0;
+}
+
+function timestampToIso(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate().toISOString();
+  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000).toISOString();
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
+function toUnixSeconds(value) {
+  if (!value) return 0;
+  if (typeof value === 'number') return Math.floor(value);
+  if (typeof value.toDate === 'function') return Math.floor(value.toDate().getTime() / 1000);
+  if (typeof value.seconds === 'number') return value.seconds;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : 0;
+}
+
+function startOfDayUnix(dateKey) {
+  return Math.floor(new Date(`${dateKey}T00:00:00.000Z`).getTime() / 1000);
+}
+
+function endOfDayUnix(dateKey) {
+  return Math.floor(new Date(`${dateKey}T23:59:59.999Z`).getTime() / 1000);
+}
+
+function parseInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function parseDateRange(req, defaultDays = 30) {
+  const dateTo = String(req.query?.dateTo || '').trim() || getTodayKey();
+  const dateFrom = String(req.query?.dateFrom || '').trim()
+    || getDateKey(Date.now() - (Math.max(1, defaultDays) - 1) * 24 * 60 * 60 * 1000);
+  return { dateFrom, dateTo };
+}
+
+function isDateKeyInRange(dateKey, dateFrom, dateTo) {
+  return String(dateKey || '') >= String(dateFrom || '') && String(dateKey || '') <= String(dateTo || '');
 }
 
 async function getUserPlan(uid) {
@@ -168,7 +877,7 @@ async function getUserPlan(uid) {
 
 async function consumeOfficialApiUsage(uid, locale) {
   if (!shouldMeterLocale(locale)) {
-    return { billingEnabled: false, limit: dailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
+    return { billingEnabled: false, plan: 'free', limit: dailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
   }
 
   const plan = await getUserPlan(uid);
@@ -243,6 +952,20 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
   });
 }
 
+async function recordOfficialApiEvent({ uid = '', clientHash = '', userType = 'free', locale = '', model = '' } = {}) {
+  requireFirebaseAdmin();
+  const normalizedUserType = ['free', 'pro', 'anonymous'].includes(userType) ? userType : 'free';
+  await db.collection('officialApiEvents').add({
+    dateKey: getTodayKey(),
+    uid: String(uid || ''),
+    clientHash: String(clientHash || ''),
+    userType: normalizedUserType,
+    locale: String(locale || '').trim(),
+    model: String(model || '').trim(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+}
+
 function getSuccessUrl() {
   return process.env.STRIPE_SUCCESS_URL || 'https://example.com/payment-success';
 }
@@ -272,8 +995,705 @@ function getBasicHealth() {
     ok: true,
     firebaseAdminConfigured,
     stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
-    officialApiConfigured: Boolean(process.env.OFFICIAL_AGENT_API_BASE_URL && process.env.OFFICIAL_AGENT_API_KEY)
+    officialApiConfigured: Boolean(process.env.OFFICIAL_AGENT_API_BASE_URL && process.env.OFFICIAL_AGENT_API_KEY),
+    adminConfigured: adminUids.length > 0 || adminEmails.length > 0
   };
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      case '\'': return '&#39;';
+      default: return char;
+    }
+  });
+}
+
+function createAdminPage({ pageName, title, description, content }) {
+  const active = {
+    overview: pageName === 'overview' ? 'active' : '',
+    orders: pageName === 'orders' ? 'active' : '',
+    apiUsage: pageName === 'apiUsage' ? 'active' : ''
+  };
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)} · AI Compare Admin</title>
+  <style>${ADMIN_STYLES}</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <article class="hero-panel">
+        <div class="eyebrow">AI Compare Admin</div>
+        <h1>${escapeHtml(title)}</h1>
+        <p class="hero-copy">${escapeHtml(description)}</p>
+        <nav class="hero-links">
+          <a class="nav-link ${active.overview}" href="/admin">总览</a>
+          <a class="nav-link ${active.orders}" href="/admin/orders">会员订单</a>
+          <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">API 使用</a>
+        </nav>
+      </article>
+      <aside class="token-panel">
+        <h2>管理员访问令牌</h2>
+        <p>粘贴 Firebase 管理员 ID Token。页面会通过 <code>Authorization: Bearer ...</code> 调用后台接口，只在当前浏览器本地保存。</p>
+        <textarea id="tokenInput" placeholder="在这里粘贴 Firebase ID Token"></textarea>
+        <div class="token-actions">
+          <button id="saveTokenButton" type="button">保存 Token</button>
+          <button id="clearTokenButton" type="button">清空</button>
+        </div>
+        <div class="status" id="tokenStatus"></div>
+      </aside>
+    </section>
+    ${content}
+    <p class="footer-note">说明：会员订单统计优先使用 Stripe 发票/订阅数据；API 统计只覆盖官方代理接口 <code>/officialAgentChat</code>。历史 Pro 数据从事件埋点上线日开始完整。</p>
+  </main>
+  <script>${ADMIN_CLIENT_SCRIPT}</script>
+  <script>bootAdminPage(${JSON.stringify(pageName)});</script>
+</body>
+</html>`;
+}
+
+function getOverviewPageHtml() {
+  return createAdminPage({
+    pageName: 'overview',
+    title: '运营总览',
+    description: '查看当前有效 Pro、近 30 天订单和官方代理 API 请求概览。',
+    content: `
+      <h2 class="section-title">概览卡片</h2>
+      <section id="overviewCards" class="grid"></section>
+      <section class="card panel">
+        <h3>原始汇总 JSON</h3>
+        <pre id="overviewJson">等待加载...</pre>
+      </section>
+    `
+  });
+}
+
+function getAdminLoginPageHtml() {
+  return createAdminPage({
+    pageName: 'login',
+    title: '管理员登录',
+    description: '使用 Firebase 管理员 ID Token 换取后台会话 Cookie，登录成功后才可访问统计后台。',
+    content: `
+      <section class="card panel">
+        <h3>登录说明</h3>
+        <p class="footer-note">请使用已加入 <code>ADMIN_UIDS</code> 或 <code>ADMIN_EMAILS</code> 白名单的 Firebase 账号。登录成功后，会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
+      </section>
+    `
+  }).replace(
+    `<script>bootAdminPage(${JSON.stringify('login')});</script>`,
+    `<script>bootAdminLoginPage();</script>`
+  );
+}
+
+function getOrdersPageHtml() {
+  return createAdminPage({
+    pageName: 'orders',
+    title: '会员订单后台',
+    description: '查看会员总量、订阅状态、近期订单与近 30 天收入趋势。',
+    content: `
+      <h2 class="section-title">核心指标</h2>
+      <section id="ordersCards" class="grid"></section>
+      <section class="card panel">
+        <h3>最近订单 / 订阅</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>UID</th>
+              <th>邮箱</th>
+              <th>计划</th>
+              <th>订阅状态</th>
+              <th>发票状态</th>
+              <th>已支付</th>
+              <th>金额</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>近 30 天订单趋势</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>新增订阅</th>
+              <th>续费成功</th>
+              <th>取消</th>
+              <th>收入</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTrendBody">
+            <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getApiUsagePageHtml() {
+  return createAdminPage({
+    pageName: 'apiUsage',
+    title: 'API 使用后台',
+    description: '按天查看 free / pro / anonymous 三类官方代理 API 请求量与活跃数。',
+    content: `
+      <h2 class="section-title">核心指标</h2>
+      <section id="apiCards" class="grid"></section>
+      <section class="card panel">
+        <h3>近 30 天趋势</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>免费请求</th>
+              <th>Pro 请求</th>
+              <th>匿名请求</th>
+              <th>总请求</th>
+              <th>活跃登录用户</th>
+              <th>活跃匿名设备</th>
+            </tr>
+          </thead>
+          <tbody id="apiTrendBody">
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>峰值日期</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>总请求</th>
+              <th>免费</th>
+              <th>Pro</th>
+              <th>匿名</th>
+            </tr>
+          </thead>
+          <tbody id="apiTopDaysBody">
+            <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function createEmptyUsageDay(dateKey) {
+  return {
+    date: dateKey,
+    free: { requests: 0, activeUsers: 0 },
+    pro: { requests: 0, activeUsers: 0 },
+    anonymous: { requests: 0, activeUsers: 0 },
+    totalRequests: 0,
+    activeUsers: 0,
+    activeAnonymousClients: 0
+  };
+}
+
+async function getUserDirectory() {
+  requireFirebaseAdmin();
+  const snapshot = await db.collection('users').get();
+  const byUid = new Map();
+  snapshot.forEach((doc) => {
+    const data = doc.data() || {};
+    byUid.set(doc.id, {
+      uid: doc.id,
+      email: String(data.email || data.googleEmail || data.lastLoginEmail || '').trim(),
+      plan: String(data.plan || 'free').trim() || 'free',
+      planExpiresAt: data.planExpiresAt || null,
+      stripeCustomerId: String(data.stripeCustomerId || '').trim(),
+      stripeSubscriptionId: String(data.stripeSubscriptionId || '').trim(),
+      subscriptionStatus: String(data.subscriptionStatus || '').trim(),
+      createdAt: data.createdAt || null,
+      updatedAt: data.updatedAt || null
+    });
+  });
+  return byUid;
+}
+
+async function listStripeInvoices(options = {}) {
+  const stripe = getStripe();
+  const maxPages = clamp(parseInteger(options.maxPages, 5), 1, 20);
+  const pageLimit = clamp(parseInteger(options.pageLimit, 100), 1, 100);
+  const invoices = [];
+  let startingAfter = null;
+  for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+    const response = await stripe.invoices.list({
+      limit: pageLimit,
+      ...(startingAfter ? { starting_after: startingAfter } : {})
+    });
+    const batch = Array.isArray(response?.data) ? response.data : [];
+    invoices.push(...batch);
+    if (!response?.has_more || !batch.length) {
+      break;
+    }
+    startingAfter = batch[batch.length - 1].id;
+  }
+  return invoices;
+}
+
+async function listStripeSubscriptions(options = {}) {
+  const stripe = getStripe();
+  const maxPages = clamp(parseInteger(options.maxPages, 5), 1, 20);
+  const pageLimit = clamp(parseInteger(options.pageLimit, 100), 1, 100);
+  const subscriptions = [];
+  let startingAfter = null;
+  for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+    const response = await stripe.subscriptions.list({
+      limit: pageLimit,
+      status: 'all',
+      ...(startingAfter ? { starting_after: startingAfter } : {})
+    });
+    const batch = Array.isArray(response?.data) ? response.data : [];
+    subscriptions.push(...batch);
+    if (!response?.has_more || !batch.length) {
+      break;
+    }
+    startingAfter = batch[batch.length - 1].id;
+  }
+  return subscriptions;
+}
+
+function buildMembershipSnapshot(userDirectory) {
+  const users = Array.from(userDirectory.values());
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  let totalMembers = 0;
+  let activeProUsers = 0;
+  let cancelingUsers = 0;
+  let expiredUsers = 0;
+  let newMembers7d = 0;
+  let newMembers30d = 0;
+  const threshold7d = nowSeconds - 7 * 24 * 60 * 60;
+  const threshold30d = nowSeconds - 30 * 24 * 60 * 60;
+
+  for (const user of users) {
+    if (!user.stripeCustomerId && !user.stripeSubscriptionId && user.plan !== 'pro') {
+      continue;
+    }
+    totalMembers += 1;
+    const planExpiresAtSeconds = getTimestampSeconds(user.planExpiresAt);
+    const isActivePro = user.plan === 'pro' && (!planExpiresAtSeconds || planExpiresAtSeconds > nowSeconds);
+    const isCanceling = ['canceled', 'unpaid', 'past_due'].includes(user.subscriptionStatus) && planExpiresAtSeconds > nowSeconds;
+    const isExpired = user.plan === 'free' && planExpiresAtSeconds > 0 && planExpiresAtSeconds <= nowSeconds;
+    const createdAtSeconds = getTimestampSeconds(user.createdAt || user.updatedAt);
+
+    if (isActivePro) activeProUsers += 1;
+    if (isCanceling) cancelingUsers += 1;
+    if (isExpired) expiredUsers += 1;
+    if (createdAtSeconds && createdAtSeconds >= threshold7d) newMembers7d += 1;
+    if (createdAtSeconds && createdAtSeconds >= threshold30d) newMembers30d += 1;
+  }
+
+  return {
+    totalMembers,
+    activeProUsers,
+    cancelingUsers,
+    expiredUsers,
+    newMembers7d,
+    newMembers30d
+  };
+}
+
+function buildStripeIndexes(userDirectory, invoices, subscriptions) {
+  const usersByCustomerId = new Map();
+  const usersBySubscriptionId = new Map();
+  for (const user of userDirectory.values()) {
+    if (user.stripeCustomerId) usersByCustomerId.set(user.stripeCustomerId, user);
+    if (user.stripeSubscriptionId) usersBySubscriptionId.set(user.stripeSubscriptionId, user);
+  }
+  const subscriptionsById = new Map();
+  const subscriptionsByCustomerId = new Map();
+  for (const subscription of subscriptions) {
+    subscriptionsById.set(subscription.id, subscription);
+    if (subscription.customer) subscriptionsByCustomerId.set(String(subscription.customer), subscription);
+  }
+  const invoicesByCustomerId = new Map();
+  for (const invoice of invoices) {
+    const customerId = String(invoice.customer || '').trim();
+    if (!customerId) continue;
+    if (!invoicesByCustomerId.has(customerId)) invoicesByCustomerId.set(customerId, []);
+    invoicesByCustomerId.get(customerId).push(invoice);
+  }
+  for (const batch of invoicesByCustomerId.values()) {
+    batch.sort((left, right) => Number(right.created || 0) - Number(left.created || 0));
+  }
+  return { usersByCustomerId, usersBySubscriptionId, subscriptionsById, subscriptionsByCustomerId, invoicesByCustomerId };
+}
+
+function computeRevenueEstimates(subscriptions) {
+  let mrrEstimate = 0;
+  let arrEstimate = 0;
+  let currency = 'usd';
+  for (const subscription of subscriptions) {
+    if (!['active', 'trialing'].includes(subscription.status)) continue;
+    const item = subscription.items?.data?.[0];
+    const amount = Number(item?.price?.unit_amount || 0);
+    const recurringInterval = String(item?.price?.recurring?.interval || '').trim();
+    if (!amount || !recurringInterval) continue;
+    currency = String(item?.price?.currency || currency || 'usd');
+    if (recurringInterval === 'month') {
+      mrrEstimate += amount;
+      arrEstimate += amount * 12;
+    } else if (recurringInterval === 'year') {
+      arrEstimate += amount;
+      mrrEstimate += Math.round(amount / 12);
+    }
+  }
+  return { mrrEstimate, arrEstimate, currency };
+}
+
+function buildInvoiceTrend(invoices, dateKeys) {
+  const trend = new Map();
+  dateKeys.forEach((dateKey) => {
+    trend.set(dateKey, {
+      date: dateKey,
+      newSubscriptions: 0,
+      renewedSubscriptions: 0,
+      canceledSubscriptions: 0,
+      revenueAmount: 0
+    });
+  });
+
+  for (const invoice of invoices) {
+    const createdSeconds = Number(invoice.created || 0);
+    if (!createdSeconds) continue;
+    const dateKey = getDateKey(createdSeconds * 1000);
+    if (!trend.has(dateKey)) continue;
+    const entry = trend.get(dateKey);
+    if (invoice.paid) {
+      entry.revenueAmount += Number(invoice.amount_paid || 0);
+      const billingReason = String(invoice.billing_reason || '').trim();
+      if (billingReason === 'subscription_create') {
+        entry.newSubscriptions += 1;
+      } else if (billingReason === 'subscription_cycle' || billingReason === 'subscription_update') {
+        entry.renewedSubscriptions += 1;
+      }
+    }
+  }
+
+  return trend;
+}
+
+function applyCancellationTrend(subscriptions, trend) {
+  for (const subscription of subscriptions) {
+    const canceledAt = Number(subscription.canceled_at || 0);
+    if (!canceledAt) continue;
+    const dateKey = getDateKey(canceledAt * 1000);
+    if (!trend.has(dateKey)) continue;
+    trend.get(dateKey).canceledSubscriptions += 1;
+  }
+}
+
+async function getOrderSummaryData() {
+  const [userDirectory, invoices, subscriptions] = await Promise.all([
+    getUserDirectory(),
+    listStripeInvoices({ maxPages: 6 }),
+    listStripeSubscriptions({ maxPages: 6 })
+  ]);
+
+  const membership = buildMembershipSnapshot(userDirectory);
+  const revenue = computeRevenueEstimates(subscriptions);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const thirtyDayThreshold = nowSeconds - 30 * 24 * 60 * 60;
+  const thirtyDayPaidOrders = invoices.filter((invoice) => invoice.paid && Number(invoice.created || 0) >= thirtyDayThreshold).length;
+
+  return {
+    ...membership,
+    thirtyDayPaidOrders,
+    mrrEstimate: revenue.mrrEstimate,
+    arrEstimate: revenue.arrEstimate,
+    currency: revenue.currency
+  };
+}
+
+async function getOrderListData(req) {
+  const limit = clamp(parseInteger(req.query?.limit, 20), 1, 100);
+  const cursor = String(req.query?.cursor || '').trim();
+  const statusFilter = String(req.query?.status || '').trim();
+  const planFilter = String(req.query?.plan || '').trim();
+  const { dateFrom, dateTo } = parseDateRange(req, 30);
+
+  const [userDirectory, invoices, subscriptions] = await Promise.all([
+    getUserDirectory(),
+    listStripeInvoices({ maxPages: 8 }),
+    listStripeSubscriptions({ maxPages: 8 })
+  ]);
+  const indexes = buildStripeIndexes(userDirectory, invoices, subscriptions);
+
+  const rows = [];
+  for (const user of userDirectory.values()) {
+    const customerId = user.stripeCustomerId;
+    const subscription = (user.stripeSubscriptionId && indexes.subscriptionsById.get(user.stripeSubscriptionId))
+      || (customerId && indexes.subscriptionsByCustomerId.get(customerId))
+      || null;
+    const latestInvoice = customerId ? (indexes.invoicesByCustomerId.get(customerId) || [])[0] || null : null;
+    const invoiceCreatedAt = latestInvoice?.created ? new Date(latestInvoice.created * 1000).toISOString() : null;
+    const planExpiresAt = timestampToIso(user.planExpiresAt);
+    const invoiceDateKey = invoiceCreatedAt ? invoiceCreatedAt.slice(0, 10) : '';
+    const planDateKey = planExpiresAt ? planExpiresAt.slice(0, 10) : '';
+    const dateKey = invoiceDateKey || planDateKey;
+
+    if (planFilter && user.plan !== planFilter) continue;
+    if (statusFilter) {
+      const candidateStatuses = [user.subscriptionStatus, subscription?.status, latestInvoice?.status].filter(Boolean);
+      if (!candidateStatuses.includes(statusFilter)) continue;
+    }
+    if (dateKey && !isDateKeyInRange(dateKey, dateFrom, dateTo)) continue;
+
+    rows.push({
+      uid: user.uid,
+      email: user.email,
+      plan: user.plan,
+      planExpiresAt,
+      subscriptionStatus: user.subscriptionStatus || subscription?.status || '',
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: user.stripeSubscriptionId || subscription?.id || '',
+      invoiceId: latestInvoice?.id || '',
+      invoiceStatus: latestInvoice?.status || '',
+      invoicePaid: Boolean(latestInvoice?.paid),
+      amountPaid: Number(latestInvoice?.amount_paid || 0),
+      amountDue: Number(latestInvoice?.amount_due || 0),
+      currency: String(latestInvoice?.currency || subscription?.items?.data?.[0]?.price?.currency || 'usd'),
+      invoiceCreatedAt,
+      hostedInvoiceUrl: String(latestInvoice?.hosted_invoice_url || '')
+    });
+  }
+
+  rows.sort((left, right) => {
+    const rightTs = Date.parse(right.invoiceCreatedAt || right.planExpiresAt || 0) || 0;
+    const leftTs = Date.parse(left.invoiceCreatedAt || left.planExpiresAt || 0) || 0;
+    return rightTs - leftTs;
+  });
+
+  const startIndex = cursor ? rows.findIndex((item) => item.uid === cursor) + 1 : 0;
+  const pageItems = rows.slice(Math.max(0, startIndex), Math.max(0, startIndex) + limit);
+  const nextCursor = rows.length > startIndex + limit ? pageItems[pageItems.length - 1]?.uid || '' : '';
+
+  return {
+    orders: pageItems,
+    nextCursor,
+    total: rows.length,
+    dateFrom,
+    dateTo
+  };
+}
+
+async function getOrderTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const [invoices, subscriptions] = await Promise.all([
+    listStripeInvoices({ maxPages: 10 }),
+    listStripeSubscriptions({ maxPages: 10 })
+  ]);
+  const trend = buildInvoiceTrend(invoices, dateKeys);
+  applyCancellationTrend(subscriptions, trend);
+  const currency = String(invoices[0]?.currency || subscriptions[0]?.items?.data?.[0]?.price?.currency || 'usd');
+  return {
+    currency,
+    days: dateKeys.map((dateKey) => trend.get(dateKey) || {
+      date: dateKey,
+      newSubscriptions: 0,
+      renewedSubscriptions: 0,
+      canceledSubscriptions: 0,
+      revenueAmount: 0
+    })
+  };
+}
+
+async function collectUsageCounters(dateKeys) {
+  const freeByDay = new Map();
+  const anonymousByDay = new Map();
+  const userActivityByDay = new Map();
+  const anonymousActivityByDay = new Map();
+
+  const usersSnapshot = await db.collection('users').get();
+  for (const userDoc of usersSnapshot.docs) {
+    const usageSnapshot = await userDoc.ref.collection('usage').get();
+    usageSnapshot.forEach((usageDoc) => {
+      const dateKey = String(usageDoc.id || '').trim();
+      if (!dateKeys.includes(dateKey)) return;
+      const count = Math.max(0, Number(usageDoc.data()?.officialApiCount) || 0);
+      if (!count) return;
+      freeByDay.set(dateKey, (freeByDay.get(dateKey) || 0) + count);
+      if (!userActivityByDay.has(dateKey)) userActivityByDay.set(dateKey, new Set());
+      userActivityByDay.get(dateKey).add(userDoc.id);
+    });
+  }
+
+  const anonymousSnapshot = await db.collection('anonymousUsage').get();
+  for (const clientDoc of anonymousSnapshot.docs) {
+    const usageSnapshot = await clientDoc.ref.collection('usage').get();
+    usageSnapshot.forEach((usageDoc) => {
+      const dateKey = String(usageDoc.id || '').trim();
+      if (!dateKeys.includes(dateKey)) return;
+      const count = Math.max(0, Number(usageDoc.data()?.officialApiCount) || 0);
+      if (!count) return;
+      anonymousByDay.set(dateKey, (anonymousByDay.get(dateKey) || 0) + count);
+      if (!anonymousActivityByDay.has(dateKey)) anonymousActivityByDay.set(dateKey, new Set());
+      anonymousActivityByDay.get(dateKey).add(clientDoc.id);
+    });
+  }
+
+  return { freeByDay, anonymousByDay, userActivityByDay, anonymousActivityByDay };
+}
+
+async function collectUsageEvents(dateKeys) {
+  const eventSnapshot = await db.collection('officialApiEvents')
+    .where('dateKey', '>=', dateKeys[0])
+    .where('dateKey', '<=', dateKeys[dateKeys.length - 1])
+    .get();
+
+  const proByDay = new Map();
+  const freeEventsByDay = new Map();
+  const anonymousEventsByDay = new Map();
+  const proUsersByDay = new Map();
+  const freeUsersByDay = new Map();
+  const anonymousClientsByDay = new Map();
+
+  eventSnapshot.forEach((doc) => {
+    const data = doc.data() || {};
+    const dateKey = String(data.dateKey || '').trim();
+    const userType = String(data.userType || '').trim();
+    const uid = String(data.uid || '').trim();
+    const clientHash = String(data.clientHash || '').trim();
+    if (!dateKey || !dateKeys.includes(dateKey)) return;
+    if (userType === 'pro') {
+      proByDay.set(dateKey, (proByDay.get(dateKey) || 0) + 1);
+      if (!proUsersByDay.has(dateKey)) proUsersByDay.set(dateKey, new Set());
+      if (uid) proUsersByDay.get(dateKey).add(uid);
+      return;
+    }
+    if (userType === 'free') {
+      freeEventsByDay.set(dateKey, (freeEventsByDay.get(dateKey) || 0) + 1);
+      if (!freeUsersByDay.has(dateKey)) freeUsersByDay.set(dateKey, new Set());
+      if (uid) freeUsersByDay.get(dateKey).add(uid);
+      return;
+    }
+    if (userType === 'anonymous') {
+      anonymousEventsByDay.set(dateKey, (anonymousEventsByDay.get(dateKey) || 0) + 1);
+      if (!anonymousClientsByDay.has(dateKey)) anonymousClientsByDay.set(dateKey, new Set());
+      if (clientHash) anonymousClientsByDay.get(dateKey).add(clientHash);
+    }
+  });
+
+  return {
+    proByDay,
+    freeEventsByDay,
+    anonymousEventsByDay,
+    proUsersByDay,
+    freeUsersByDay,
+    anonymousClientsByDay
+  };
+}
+
+async function buildUsageTrend(days) {
+  requireFirebaseAdmin();
+  const dateKeys = getRecentDateKeys(days);
+  const [counters, events] = await Promise.all([
+    collectUsageCounters(dateKeys),
+    collectUsageEvents(dateKeys)
+  ]);
+
+  return dateKeys.map((dateKey) => {
+    const freeRequests = Math.max(
+      Number(counters.freeByDay.get(dateKey) || 0),
+      Number(events.freeEventsByDay.get(dateKey) || 0)
+    );
+    const proRequests = Number(events.proByDay.get(dateKey) || 0);
+    const anonymousRequests = Math.max(
+      Number(counters.anonymousByDay.get(dateKey) || 0),
+      Number(events.anonymousEventsByDay.get(dateKey) || 0)
+    );
+    const freeUsers = new Set([
+      ...(counters.userActivityByDay.get(dateKey) || new Set()),
+      ...(events.freeUsersByDay.get(dateKey) || new Set())
+    ]);
+    const proUsers = events.proUsersByDay.get(dateKey) || new Set();
+    const anonymousClients = new Set([
+      ...(counters.anonymousActivityByDay.get(dateKey) || new Set()),
+      ...(events.anonymousClientsByDay.get(dateKey) || new Set())
+    ]);
+    const activeUsers = new Set([...freeUsers, ...proUsers]);
+    return {
+      date: dateKey,
+      free: { requests: freeRequests, activeUsers: freeUsers.size },
+      pro: { requests: proRequests, activeUsers: proUsers.size },
+      anonymous: { requests: anonymousRequests, activeUsers: anonymousClients.size },
+      totalRequests: freeRequests + proRequests + anonymousRequests,
+      activeUsers: activeUsers.size,
+      activeAnonymousClients: anonymousClients.size
+    };
+  });
+}
+
+function summarizeUsageRange(days) {
+  return days.reduce((acc, item) => {
+    acc.totalRequests += item.totalRequests;
+    acc.free.requests += item.free.requests;
+    acc.free.activeUsers = Math.max(acc.free.activeUsers, item.free.activeUsers);
+    acc.pro.requests += item.pro.requests;
+    acc.pro.activeUsers = Math.max(acc.pro.activeUsers, item.pro.activeUsers);
+    acc.anonymous.requests += item.anonymous.requests;
+    acc.anonymous.activeUsers = Math.max(acc.anonymous.activeUsers, item.anonymous.activeUsers);
+    acc.activeUsers = Math.max(acc.activeUsers, item.activeUsers);
+    acc.activeAnonymousClients = Math.max(acc.activeAnonymousClients, item.activeAnonymousClients);
+    return acc;
+  }, {
+    totalRequests: 0,
+    free: { requests: 0, activeUsers: 0 },
+    pro: { requests: 0, activeUsers: 0 },
+    anonymous: { requests: 0, activeUsers: 0 },
+    activeUsers: 0,
+    activeAnonymousClients: 0
+  });
+}
+
+async function getApiUsageSummaryData() {
+  const trend30 = await buildUsageTrend(30);
+  const today = trend30[trend30.length - 1] || createEmptyUsageDay(getTodayKey());
+  const last7Days = summarizeUsageRange(trend30.slice(-7));
+  const last30Days = summarizeUsageRange(trend30);
+  return { today, last7Days, last30Days };
+}
+
+async function getApiUsageTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  return { days: await buildUsageTrend(days) };
+}
+
+async function getApiUsageTopDaysData(req) {
+  const limit = clamp(parseInteger(req.query?.limit, 10), 1, 30);
+  const trend = await buildUsageTrend(90);
+  const days = [...trend]
+    .sort((left, right) => right.totalRequests - left.totalRequests)
+    .slice(0, limit);
+  return { days };
+}
+
+async function requireAdminPage(req, res) {
+  try {
+    await requireAdmin(req);
+    return true;
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      const nextPath = encodeURIComponent(`${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`);
+      res.redirect(`/admin/login?next=${nextPath}`);
+      return false;
+    }
+    throw error;
+  }
 }
 
 app.get('/health', (_req, res) => {
@@ -287,6 +1707,86 @@ app.get('/health/deep', async (_req, res) => {
     firestoreConfigured: basicHealth.firebaseAdminConfigured ? await canReadFirestore() : false
   });
 });
+
+app.get('/admin/login', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getAdminLoginPageHtml());
+});
+
+app.get('/admin', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getOverviewPageHtml());
+}));
+
+app.get('/admin/orders', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getOrdersPageHtml());
+}));
+
+app.get('/admin/api-usage', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getApiUsagePageHtml());
+}));
+
+app.get('/api/admin/orders/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getOrderSummaryData());
+}));
+
+app.post('/api/admin/session', asyncRoute(async (req, res) => {
+  const idToken = String(req.body?.idToken || '').trim();
+  if (!idToken) {
+    res.status(400).json({ error: 'idToken is required' });
+    return;
+  }
+  requireFirebaseAdmin();
+  const user = await admin.auth().verifyIdToken(idToken);
+  await verifyAdminIdentity(user);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const sessionToken = createAdminSessionToken({
+    uid: String(user.uid || ''),
+    email: String(user.email || '').trim().toLowerCase(),
+    exp: nowSeconds + adminSessionTtlSeconds
+  });
+  setAdminSessionCookie(res, sessionToken);
+  res.json({
+    ok: true,
+    expiresAt: new Date((nowSeconds + adminSessionTtlSeconds) * 1000).toISOString()
+  });
+}));
+
+app.delete('/api/admin/session', asyncRoute(async (_req, res) => {
+  clearAdminSessionCookie(res);
+  res.json({ ok: true });
+}));
+
+app.get('/api/admin/orders/list', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getOrderListData(req));
+}));
+
+app.get('/api/admin/orders/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getOrderTrendData(req));
+}));
+
+app.get('/api/admin/api-usage/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getApiUsageSummaryData());
+}));
+
+app.get('/api/admin/api-usage/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getApiUsageTrendData(req));
+}));
+
+app.get('/api/admin/api-usage/top-days', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getApiUsageTopDaysData(req));
+}));
 
 app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
   const user = await requireUser(req);
@@ -432,10 +1932,35 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
 app.post('/officialAgentChat', asyncRoute(async (req, res) => {
   const user = await getOptionalUser(req);
   const locale = String(req.headers['x-ai-compare-locale'] || req.body?.locale || '').trim();
+  const requestedModel = String(req.body?.model || '').trim();
+  let usageResult = null;
+  let eventPayload = null;
+
   if (user?.uid) {
-    await consumeOfficialApiUsage(user.uid, locale);
+    usageResult = await consumeOfficialApiUsage(user.uid, locale);
+    eventPayload = {
+      uid: user.uid,
+      clientHash: '',
+      userType: usageResult?.plan === 'pro' ? 'pro' : 'free',
+      locale,
+      model: requestedModel
+    };
   } else {
-    await consumeAnonymousOfficialApiUsage(getAnonymousClientId(req), locale);
+    const anonymousClientId = getAnonymousClientId(req);
+    usageResult = await consumeAnonymousOfficialApiUsage(anonymousClientId, locale);
+    eventPayload = {
+      uid: '',
+      clientHash: getAnonymousUsageDocId(anonymousClientId),
+      userType: 'anonymous',
+      locale,
+      model: requestedModel
+    };
+  }
+
+  try {
+    await recordOfficialApiEvent(eventPayload);
+  } catch (error) {
+    console.warn('[ai-compare-backend] failed to record official API event:', error.message || error);
   }
 
   const apiKey = String(process.env.OFFICIAL_AGENT_API_KEY || '').trim();
@@ -454,11 +1979,23 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     },
     body: JSON.stringify({
       ...req.body,
-      model: req.body?.model || defaultModel
+      model: requestedModel || defaultModel
     })
   });
 
   res.status(upstream.status);
+  if (usageResult?.billingEnabled) {
+    res.setHeader('X-AI-Compare-Usage-Plan', String(usageResult.plan || 'free'));
+    if (Number.isFinite(usageResult.limit)) {
+      res.setHeader('X-AI-Compare-Usage-Limit', String(usageResult.limit));
+    }
+    if (Number.isFinite(usageResult.used)) {
+      res.setHeader('X-AI-Compare-Usage-Used', String(usageResult.used));
+    }
+    if (Number.isFinite(usageResult.remaining)) {
+      res.setHeader('X-AI-Compare-Usage-Remaining', String(usageResult.remaining));
+    }
+  }
   upstream.headers.forEach((value, key) => {
     if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(key.toLowerCase())) {
       res.setHeader(key, value);

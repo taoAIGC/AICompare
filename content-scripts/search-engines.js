@@ -24,6 +24,13 @@ function getSearchToolbarIconUrl() {
 
 let searchEngineToolbarActive = false;
 let searchEngineObserver = null;
+const DEFAULT_FAVORITE_SITE_NAME = 'Google';
+
+function getFavoriteSiteNameFromSettings(settings) {
+  const favoriteSites = Array.isArray(settings?.favoriteSites) ? settings.favoriteSites : [];
+  const favoriteName = String(favoriteSites[0]?.name || '').trim();
+  return favoriteName || DEFAULT_FAVORITE_SITE_NAME;
+}
 
 function removeSearchEngineToolbar() {
   searchEngineToolbarActive = false;
@@ -59,15 +66,15 @@ async function createSearchToolbar(container, position) {
     return null;
   }
 
-  const sites = await window.getDefaultSites();
+  const sites = await window.getSearchSites();
   if (!searchEngineToolbarActive) {
     return null;
   }
     if (!sites || !sites.length) return;
-  
-    // 只显示非隐藏的站点
+
+    // 只显示搜索下拉中可见的站点
     const visibleSites = sites.filter(site => !site.hidden);
-    console.log('可见的站点:', visibleSites);
+    console.log('可见的搜索站点:', visibleSites);
 
   // 创建工具栏容器
   const toolbar = document.createElement('div');
@@ -81,7 +88,7 @@ async function createSearchToolbar(container, position) {
     chrome.storage.sync.get({
       favoriteSites: []
     }, (settings) => {
-      favoriteButton.textContent = settings.favoriteSites[0].name;
+      favoriteButton.textContent = getFavoriteSiteNameFromSettings(settings);
       console.log("更新按钮文本:", favoriteButton.textContent);
     });
   };
@@ -106,6 +113,7 @@ async function createSearchToolbar(container, position) {
   function initializeSiteDropdown() {
     if (!siteDropdown || !siteSelectButton) return;
     console.log("初始化下拉菜单",visibleSites);
+    siteDropdown.innerHTML = '';
   
     // 创建站点列表
     visibleSites.forEach(site => {
@@ -202,7 +210,7 @@ async function createSearchToolbar(container, position) {
         chrome.runtime.sendMessage({
           action: 'singleSiteSearch',
           query: query,
-          siteName: settings.favoriteSites[0].name
+          siteName: getFavoriteSiteNameFromSettings(settings)
         }, (response) => {
           console.log('Message response:', response);  // 打印消息响应
         });

@@ -9,9 +9,16 @@ let templateSelectButton = null;
 let templateDropdown = null;
 let singleSearchGroup = null;
 let compareSearchGroup = null;
+const DEFAULT_FAVORITE_SITE_NAME = 'Google';
 
 function hasStorageSync() {
   return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+}
+
+function getFavoriteSiteNameFromSettings(settings) {
+  const favoriteSites = Array.isArray(settings?.favoriteSites) ? settings.favoriteSites : [];
+  const favoriteName = String(favoriteSites[0]?.name || '').trim();
+  return favoriteName || DEFAULT_FAVORITE_SITE_NAME;
 }
 
 function normalizeText(value) {
@@ -214,22 +221,21 @@ function updateFavoriteButton() {
   if (!hasStorageSync()) return;
   chrome.storage.sync.get('favoriteSites', function(settings) {
     console.log("更新收藏按钮文案settings favouriteSites", settings.favoriteSites);
-    if (settings.favoriteSites && settings.favoriteSites.length > 0) {
-      favoriteButton.textContent = settings.favoriteSites[0].name;
-      console.log("获取到的favoriteButton.textContent", settings.favoriteSites[0].name);
-    }
+    const favoriteSiteName = getFavoriteSiteNameFromSettings(settings);
+    favoriteButton.textContent = favoriteSiteName;
+    console.log("获取到的favoriteButton.textContent", favoriteSiteName);
   });
 }
 
 // 创建工具栏
 async function createToolbar() {
     // 从 storage 获取站点配置
-    const sites = await window.getDefaultSites();
+    const sites = await window.getSearchSites();
     if (!sites || !sites.length) return;
-  
-    // 只显示非隐藏的站点
+
+    // 只显示搜索下拉中可见的站点
     const visibleSites = sites.filter(site => !site.hidden);
-    console.log('可见的站点:', visibleSites);
+    console.log('可见的搜索站点:', visibleSites);
 
  // 初始化按钮文本
   if (toolbar) return;
@@ -271,11 +277,7 @@ function initializeSiteDropdown() {
   console.log("初始化下拉菜单",visibleSites);
   siteDropdown.innerHTML = '';
 
-  // 快速搜索站点下拉只展示支持 URL 查询的站点
-  const querySupportedSites = visibleSites.filter(site => site.supportUrlQuery === true);
-  console.log("支持 query 的站点:", querySupportedSites);
-
-  if (querySupportedSites.length === 0) {
+  if (visibleSites.length === 0) {
     console.log("没有支持 query 的站点，隐藏下拉按钮");
     siteSelectButton.style.display = 'none';
     return;
@@ -284,7 +286,7 @@ function initializeSiteDropdown() {
   siteSelectButton.style.display = 'inline-flex';
 
   // 创建站点列表
-  querySupportedSites.forEach(site => {
+  visibleSites.forEach(site => {
     const siteItem = document.createElement('div');
     siteItem.className = 'site-item';
     siteItem.textContent = `${site.name}`;
@@ -401,15 +403,13 @@ async function initializeTemplateDropdown() {
 
     if (!hasStorageSync()) return;
     chrome.storage.sync.get('favoriteSites', async function(settings) {
-      if (settings.favoriteSites && settings.favoriteSites.length > 0) {
-        await chrome.runtime.sendMessage({
-          action: 'singleSiteSearch',
-          query: currentSelectedText,
-          siteName: settings.favoriteSites[0].name
-        }).catch(error => {
-          console.error('发送消息失败:', error);
-        });
-      }
+      await chrome.runtime.sendMessage({
+        action: 'singleSiteSearch',
+        query: currentSelectedText,
+        siteName: getFavoriteSiteNameFromSettings(settings)
+      }).catch(error => {
+        console.error('发送消息失败:', error);
+      });
     });
   };
   

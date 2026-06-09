@@ -2582,6 +2582,27 @@
       "type": "information"
     },
     {
+      "name": "Google",
+      "url": "https://www.google.com/search?q={query}",
+      "enabled": false,
+      "supportUrlQuery": true,
+      "region": "US",
+      "hidden": false,
+      "hiddenInHomepage": true,
+      "supportIframe": true,
+      "searchHandler": {
+        "steps": [
+          {
+            "action": "custom",
+            "customAction": "url_query",
+            "description": "使用URL查询，无需输入框操作"
+          }
+        ]
+      },
+      "icon": "www.google.com.png",
+      "type": "information"
+    },
+    {
       "name": "小红书",
       "url": "https://www.xiaohongshu.com/search_result?keyword={query}",
       "enabled": false,

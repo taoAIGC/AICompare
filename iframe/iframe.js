@@ -112,6 +112,12 @@ async function refreshIframeVisibleQuerySuggestions() {
     return;
   }
 
+  if (shouldSuppressHistoryOpenedQuerySuggestions()) {
+    querySuggestions.innerHTML = '';
+    querySuggestions.style.display = 'none';
+    return;
+  }
+
   const query = String(searchInput.value || '').trim();
   if (!query) {
     querySuggestions.innerHTML = '';
@@ -644,17 +650,35 @@ function ensureRatingModal() {
 
   const closeModal = () => {
     const activeElement = document.activeElement;
+    let focusMovedOutsideOverlay = false;
     if (activeElement instanceof HTMLElement && overlay.contains(activeElement)) {
       const previousFocus = ratingPromptState.previousFocus;
       if (previousFocus instanceof HTMLElement && document.contains(previousFocus)) {
         previousFocus.focus({ preventScroll: true });
+        focusMovedOutsideOverlay = document.activeElement === previousFocus;
       } else {
         activeElement.blur();
+        focusMovedOutsideOverlay = !(document.activeElement instanceof HTMLElement) || !overlay.contains(document.activeElement);
       }
     }
     ratingPromptState.previousFocus = null;
-    overlay.classList.remove('is-visible');
-    overlay.setAttribute('aria-hidden', 'true');
+    const finalizeClose = () => {
+      overlay.classList.remove('is-visible');
+      overlay.setAttribute('aria-hidden', 'true');
+    };
+    if (focusMovedOutsideOverlay) {
+      finalizeClose();
+      return;
+    }
+    requestAnimationFrame(() => {
+      const currentFocus = document.activeElement;
+      if (!(currentFocus instanceof HTMLElement) || !overlay.contains(currentFocus)) {
+        finalizeClose();
+        return;
+      }
+      currentFocus.blur();
+      requestAnimationFrame(finalizeClose);
+    });
   };
 
   laterBtn?.addEventListener('click', async () => {
@@ -6125,6 +6149,18 @@ function hideQuerySuggestionsPanel() {
   }
 }
 
+function shouldSuppressHistoryOpenedQuerySuggestions() {
+  if (window._openedFromHistory === true) {
+    return true;
+  }
+
+  try {
+    return new URLSearchParams(window.location.search).has('historyId');
+  } catch (_) {
+    return false;
+  }
+}
+
 function shouldAutoCollapseSearchBar() {
   const { bar, input } = getSearchBarElements();
   if (!bar || !input || !searchBarAutoCollapseArmed) return false;
@@ -6134,14 +6170,14 @@ function shouldAutoCollapseSearchBar() {
 }
 
 function setSearchBarCollapsed(collapsed, options = {}) {
-  const { blurInput = true, focusInput = false, keepArmed = true } = options;
+  const { blurInput = true, focusInput = false, keepArmed = true, force = false } = options;
   const { bar, input } = getSearchBarElements();
   if (!bar || !input) return;
 
   clearSearchBarCollapseTimer();
 
   if (collapsed) {
-    if (!shouldAutoCollapseSearchBar()) return;
+    if (!force && !shouldAutoCollapseSearchBar()) return;
     hideQuerySuggestionsPanel();
     bar.classList.add('search-bar-auto-collapsed');
     if (blurInput && document.activeElement === input) {
@@ -6200,6 +6236,24 @@ function scheduleSearchBarCollapse(delayMs = 140, options = {}) {
 function armSearchBarAutoCollapse() {
   searchBarAutoCollapseArmed = true;
   setSearchBarCollapsed(true);
+}
+
+function applyHistoryOpenedSearchBarMode() {
+  if (!shouldSuppressHistoryOpenedQuerySuggestions()) {
+    return;
+  }
+
+  const { suggestions } = getSearchBarElements();
+  if (suggestions) {
+    suggestions.innerHTML = '';
+    suggestions.style.display = 'none';
+  }
+
+  searchBarAutoCollapseArmed = true;
+  setSearchBarCollapsed(true, {
+    blurInput: true,
+    force: true
+  });
 }
 
 function disarmSearchBarAutoCollapse() {
@@ -8002,6 +8056,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         window._currentHistoryId = urlHistoryId;
         window._openedFromHistory = true;
         console.log('从历史记录打开，historyId:', urlHistoryId);
+        applyHistoryOpenedSearchBarMode();
     }
     
     // 获取指定的站点列表（如果存在）
@@ -9834,6 +9889,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // 设置当前历史记录 ID（如果提供了）
     if (message.historyId) {
       window._currentHistoryId = message.historyId;
+      window._openedFromHistory = true;
+      applyHistoryOpenedSearchBarMode();
       console.log('设置当前历史记录 ID:', message.historyId);
     }
     Promise.resolve()
@@ -11012,6 +11069,14 @@ function initializeI18n() {
 async function showQuerySuggestions(query) {
   const querySuggestions = document.getElementById('querySuggestions');
 
+  if (shouldSuppressHistoryOpenedQuerySuggestions()) {
+    if (querySuggestions) {
+      querySuggestions.innerHTML = '';
+      querySuggestions.style.display = 'none';
+    }
+    return;
+  }
+
   try {
     await ensureIframePromptTemplates();
     // 从存储中获取提示词模板
@@ -11539,6 +11604,8 @@ window.aiCompareSearch = {
 // 从历史记录加载 iframe
 async function loadHistoryIframes(sites, restoreContext = null) {
   try {
+    window._openedFromHistory = true;
+    applyHistoryOpenedSearchBarMode();
     const container = document.getElementById('iframes-container');
     if (!container) {
       console.error('未找到 iframes 容器');

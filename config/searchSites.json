@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "description": "划词搜索和搜索引擎工具栏使用的独立搜索站点配置",
+  "sites": [
+    {
+      "name": "Google",
+      "hidden": false,
+      "order": 0
+    },
+    {
+      "name": "小红书",
+      "hidden": false,
+      "order": 1
+    },
+    {
+      "name": "Perplexity",
+      "hidden": false,
+      "order": 2
+    }
+  ]
+}

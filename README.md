@@ -47,8 +47,9 @@
 #### 4. Selection toolbar (optional)
 
 - **Trigger**: Select text on any page; a toolbar appears near the selection.
-- **Favorite site**: One click sends the selected text to your saved “favorite” AI site (single site).
+- **Favorite site**: One click sends the selected text to your saved “favorite” AI site (single site). New installs default this quick-search target to `Google`, and empty legacy settings fall back to `Google` too.
 - **Site list**: Dropdown to pick another AI site for this query.
+- **Decoupled search list**: The quick-search dropdown now reads `config/searchSites.json`, so its site list and order are managed separately from the homepage AI site grid.
 - **PK**: Send selected text to the multi-AI comparison page (iframe-capable sites only).  
   Can be turned off in Options.
 
@@ -60,6 +61,7 @@
   - **Site list**: Choose another AI site.
   - **PK**: Open multi-AI comparison with the current search query (iframe-capable sites only).  
   Can be turned off in Options.
+- **Independent config**: Search-toolbar site choices also read `config/searchSites.json`, so they no longer depend on the homepage AI site list.
 
 #### 6. Site button on AI pages (optional)
 
@@ -137,6 +139,48 @@ From content creators, product managers, and freelancers, to editors, foreign tr
 ### License
 
 This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
+
+### VPS admin backend
+
+- The repo includes a lightweight Node admin backend under `backend/`.
+- It reuses Firebase Admin, Stripe, and the existing `officialAgentChat` proxy path to provide:
+  - membership / order summary
+  - Stripe invoice and subscription trend views
+  - official API usage summary for `free`, `pro`, and `anonymous`
+- Admin pages:
+  - `/admin/login`
+  - `/admin`
+  - `/admin/orders`
+  - `/admin/api-usage`
+- Admin API routes:
+  - `/api/admin/orders/summary`
+  - `/api/admin/orders/list`
+  - `/api/admin/orders/trend`
+  - `/api/admin/api-usage/summary`
+  - `/api/admin/api-usage/trend`
+  - `/api/admin/api-usage/top-days`
+- Required backend env vars:
+  - `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `OFFICIAL_AGENT_API_BASE_URL`
+  - `OFFICIAL_AGENT_API_KEY`
+  - `OFFICIAL_AGENT_MODEL`
+  - `ADMIN_UIDS` and/or `ADMIN_EMAILS`
+  - `ADMIN_SESSION_SECRET` recommended for admin session signing
+  - `ADMIN_SESSION_ORIGIN` optional when the backend is framed behind a controlled origin
+- Start locally:
+  1. `cd backend`
+  2. `npm install`
+  3. `node server.js`
+- First-time admin login flow:
+  1. Open `/admin/login`
+  2. Paste a Firebase ID token from an allowlisted admin account
+  3. Exchange it for an HttpOnly admin session cookie
+  4. Visit `/admin` and the protected subpages
+- API usage note:
+  - `officialApiEvents` is now written on each `officialAgentChat` request so Pro usage can be counted going forward.
+  - Historical free / anonymous totals can still be read from `users/{uid}/usage/{date}` and `anonymousUsage/{hash}/usage/{date}`.
 
 ### Development / Live verification
 
@@ -271,8 +315,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 #### 4. 划词工具栏（可选）
 
 - **触发**：在任意网页选中文字后，选区旁出现工具栏。
-- **常用站点**：一键将选中内容发送到已保存的「常用」AI 站点（单站点）。
+- **常用站点**：一键将选中内容发送到已保存的「常用」AI 站点（单站点）。新安装默认使用 `Google`，旧配置如果为空也会自动回退到 `Google`。
 - **站点列表**：下拉选择其他 AI 站点发送。
+- **独立搜索列表**：这个快速搜索下拉现在读取 `config/searchSites.json`，站点集合与排序不再直接跟随 homepage 的 AI sites。
 - **PK**：将选中内容带到多 AI 对比页（仅加载支持 iframe 的站点），多站点同时查询。  
   可在选项中关闭。
 
@@ -281,6 +326,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **出现位置**：Google、百度、Bing（及 cn.bing.com）搜索框旁。
 - **内容**：常用站点按钮、站点下拉、PK 按钮（用当前搜索词做多 AI 对比，仅加载支持 iframe 的站点）。  
   可在选项中关闭。
+- **独立配置**：搜索引擎工具栏里的站点列表同样读取 `config/searchSites.json`，与 homepage 的 AI sites 配置和排序解耦。
 
 #### 6. AI 站点内按钮（可选）
 
@@ -432,59 +478,29 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-09 09:46:08 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-09 12:53:59 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `STRIPE_SETUP.md`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/de/messages.json`
-- `M` `_locales/en/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/pt_BR/messages.json`
-- `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `A` `backend/.env.example`
-- `A` `backend/package.json`
-- `A` `backend/server.js`
-- `M` `background.js`
-- `M` `config/agentEngineConfig.js`
-- `M` `config/firebaseConfig.js`
+- `M` `backend/server.js`
+- `M` `config/agentCatalog.json`
+- `M` `config/agentCatalogData.js`
+- `M` `config/appConfig.json`
+- `M` `config/baseConfig.js`
+- `A` `config/searchSites.json`
 - `M` `config/siteHandlers.json`
-- `M` `data/shares.json`
-- `M` `debug/verify-dots-ai-config.js`
-- `M` `debug/verify-dots-ai-live.js`
-- `M` `docs/release-notes/latest.md`
-- `A` `firebase.json`
-- `M` `firebase/stripe-payment.js`
-- `A` `firestore.rules`
-- `A` `functions/index.js`
-- `A` `functions/package.json`
-- `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
+- `M` `content-scripts/search-engines.js`
+- `M` `content-scripts/selection.js`
 - `M` `homepage/homepage.js`
-- `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
 - `M` `manifest.json`
-- `M` `options/options.css`
-- `M` `options/options.html`
-- `M` `options/options.js`
-- `M` `remote-relay/package-lock.json`
-- `M` `remote-relay/package.json`
-- `M` `remote-relay/src/server.js`
-- `M` `remote-relay/tests/server.test.js`
-- `A` `tests/agent-engine-config.test.js`
 
 ### Recent commits / 最近提交
+- `228016c` 2026-06-09 V4.2.4 修复豆包、点点
 - `f2b7e17` 2026-06-04 V4.2.3 优化总结体验
 - `b93fdb3` 2026-06-03 V4.2.2 修复 Google drive，优化总结答案的体验
 - `9a0949c` 2026-06-03 V4.2.1 优化分析过程的体验
 - `1014a57` 2026-06-02 V4.2.0 增加批量提交模式和对比答案总结功能
-- `4925de1` 2026-05-29 V4.1.2 优化 skills 的交互和把默认的skills 变成讨论类的 skills
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

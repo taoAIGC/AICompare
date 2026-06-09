@@ -270,6 +270,54 @@ async function loadLocalSitesConfig() {
   return Array.isArray(localConfig?.sites) ? localConfig.sites : [];
 }
 
+async function loadLocalSearchSiteConfigSnapshot() {
+  const response = await fetch(chrome.runtime.getURL('config/searchSites.json'));
+  if (!response.ok) {
+    throw new Error(`加载本地下拉搜索站点配置失败: HTTP ${response.status}`);
+  }
+  return await response.json();
+}
+
+async function loadLocalSearchSitesConfig() {
+  const localConfig = await loadLocalSearchSiteConfigSnapshot();
+  return Array.isArray(localConfig?.sites) ? localConfig.sites : [];
+}
+
+function mergeSearchSitesWithSiteConfigs(searchSiteConfigs, siteConfigs = []) {
+  const siteConfigMap = new Map(
+    (siteConfigs || [])
+      .map((site) => [String(site?.name || '').trim(), site])
+      .filter(([name]) => Boolean(name))
+  );
+
+  return (searchSiteConfigs || [])
+    .map((searchSiteConfig, index) => {
+      const siteName = String(searchSiteConfig?.name || '').trim();
+      if (!siteName) {
+        return null;
+      }
+
+      const siteConfig = siteConfigMap.get(siteName);
+      if (!siteConfig || siteConfig.supportUrlQuery !== true) {
+        return null;
+      }
+
+      return {
+        ...siteConfig,
+        hidden: searchSiteConfig.hidden === true,
+        order: Number.isFinite(Number(searchSiteConfig?.order))
+          ? Number(searchSiteConfig.order)
+          : (siteConfig.order !== undefined ? siteConfig.order : index)
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : 999;
+      const orderB = b.order !== undefined ? b.order : 999;
+      return orderA - orderB;
+    });
+}
+
 async function hydrateBundledSiteConfigIfNeeded() {
   if (typeof chrome === 'undefined' || !chrome.storage?.local) {
     return [];
@@ -813,6 +861,26 @@ if (typeof window === 'undefined') {
     return loadCustomSitesConfig();
   };
 
+  self.getSearchSites = async function() {
+    try {
+      const [allSites, searchSiteConfigs] = await Promise.all([
+        self.getDefaultSites(),
+        loadLocalSearchSitesConfig()
+      ]);
+
+      const mergedSites = mergeSearchSitesWithSiteConfigs(searchSiteConfigs, allSites);
+      if (mergedSites.length > 0) {
+        return mergedSites;
+      }
+
+      return (allSites || []).filter(site => !site.hidden && site.supportUrlQuery === true);
+    } catch (error) {
+      console.error('获取下拉搜索站点配置失败:', error);
+      const allSites = await self.getDefaultSites();
+      return (allSites || []).filter(site => !site.hidden && site.supportUrlQuery === true);
+    }
+  };
+
   self.hydrateBundledAgentCatalogIfNeeded = hydrateBundledAgentCatalogIfNeededFromBaseConfig;
   self.RemoteAgentConfigManager = RemoteAgentConfigManager;
 
@@ -1006,6 +1074,26 @@ else {
 
   window.getCustomSites = async function() {
     return loadCustomSitesConfig();
+  };
+
+  window.getSearchSites = async function() {
+    try {
+      const [allSites, searchSiteConfigs] = await Promise.all([
+        window.getDefaultSites(),
+        loadLocalSearchSitesConfig()
+      ]);
+
+      const mergedSites = mergeSearchSitesWithSiteConfigs(searchSiteConfigs, allSites);
+      if (mergedSites.length > 0) {
+        return mergedSites;
+      }
+
+      return (allSites || []).filter(site => !site.hidden && site.supportUrlQuery === true);
+    } catch (error) {
+      console.error('获取下拉搜索站点配置失败:', error);
+      const allSites = await window.getDefaultSites();
+      return (allSites || []).filter(site => !site.hidden && site.supportUrlQuery === true);
+    }
   };
 
   window.AppConfigManager = AppConfigManager;

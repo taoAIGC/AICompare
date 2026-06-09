@@ -2070,8 +2070,8 @@ async function initializeSitesList() {
         
         // homepage 站点列表只按可见性过滤，
         // 不再因为 supportIframe 或 enabled 把站点挡掉。
-        const supportedSites = sites.filter(site => 
-            !site.hidden
+        const supportedSites = sites.filter(site =>
+            !site.hidden && site.hiddenInHomepage !== true
         );
         const sortedSites = sortSitesFavoriteFirst(supportedSites);
         homepageSitesState.supportedSites = sortedSites;
