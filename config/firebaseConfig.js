@@ -15,7 +15,7 @@ const FirebaseConfig = {
   googleClientId: '741697777320-9op5n3for8vl4jl8lgcd16cficu8927o.apps.googleusercontent.com',
   // Cloud Functions 部署后的 URL 前缀（firebase deploy --only functions 后可在控制台查看）
   // 格式：https://<region>-<projectId>.cloudfunctions.net
-  cloudFunctionsBaseUrl: 'https://us-central1-aicompare-12989.cloudfunctions.net'
+  cloudFunctionsBaseUrl: 'https://aicompare.club'
 };
 
 // 是否已配置（用于判断是否启用云端同步；REST 仅需 apiKey + projectId）

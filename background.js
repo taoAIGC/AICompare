@@ -22,6 +22,7 @@ const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_ENGINE_USAGE_STORAGE_KEY = 'agentOfficialUsage';
+const AGENT_ENGINE_ANONYMOUS_CLIENT_ID_STORAGE_KEY = 'agentOfficialAnonymousClientId';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
@@ -62,6 +63,35 @@ const agentRuntimeState = {
   keepalivePorts: new Map(),
   keepaliveTimers: new Map()
 };
+
+function getBrowserUiLocale() {
+  try {
+    return chrome?.i18n?.getUILanguage?.() || 'en';
+  } catch (_) {
+    return 'en';
+  }
+}
+
+async function getBillingLocale() {
+  try {
+    const stored = await chrome.storage.sync.get(UI_LANGUAGE_STORAGE_KEY);
+    const requestedLocale = String(stored?.[UI_LANGUAGE_STORAGE_KEY] || '').trim();
+    if (requestedLocale && requestedLocale !== 'auto') {
+      return requestedLocale;
+    }
+  } catch (_) {
+    // Fall back to the browser UI language if sync storage is unavailable.
+  }
+  return getBrowserUiLocale();
+}
+
+async function isOfficialAgentBillingEnabled() {
+  const locale = await getBillingLocale();
+  if (typeof AgentEngineConfig.shouldEnableBillingForLocale === 'function') {
+    return AgentEngineConfig.shouldEnableBillingForLocale(locale);
+  }
+  return !String(locale || '').trim().toLowerCase().startsWith('zh');
+}
 
 function t(key, fallback = '', substitutions = undefined) {
   try {
@@ -203,6 +233,93 @@ async function getAgentEngineConfig() {
   };
 }
 
+function isOfficialAgentEngineSource(config = {}) {
+  return (config.selectedSource || 'official') !== 'custom';
+}
+
+function isAgentEngineRuntimeConfigured(config = {}) {
+  if (isOfficialAgentEngineSource(config)) {
+    return Boolean(config.model);
+  }
+  return Boolean(config.apiKey && config.baseUrl && config.model);
+}
+
+function getCloudFunctionsBaseUrl() {
+  const configuredUrl = String(FirebaseConfig?.cloudFunctionsBaseUrl || '').trim().replace(/\/+$/, '');
+  return configuredUrl || 'https://aicompare.club';
+}
+
+function createAnonymousClientId() {
+  try {
+    if (self.crypto?.randomUUID) {
+      return self.crypto.randomUUID();
+    }
+  } catch (_) {
+    // Fall back to a timestamp/random id on older extension runtimes.
+  }
+  return `anon_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+}
+
+async function getOrCreateAnonymousClientId() {
+  const stored = await chrome.storage.local.get(AGENT_ENGINE_ANONYMOUS_CLIENT_ID_STORAGE_KEY);
+  const existingId = String(stored?.[AGENT_ENGINE_ANONYMOUS_CLIENT_ID_STORAGE_KEY] || '').trim();
+  if (existingId) {
+    return existingId;
+  }
+
+  const clientId = createAnonymousClientId();
+  await chrome.storage.local.set({
+    [AGENT_ENGINE_ANONYMOUS_CLIENT_ID_STORAGE_KEY]: clientId
+  });
+  return clientId;
+}
+
+async function getFirebaseIdTokenIfAvailable() {
+  const auth = await getBackgroundFirebaseAuth();
+  if (!auth.uid || !auth.idToken || auth.expiresAt <= Date.now() + 60000) {
+    return '';
+  }
+  return auth.idToken;
+}
+
+async function fetchAgentChatCompletion(config = {}, payload = {}, options = {}) {
+  if (!isOfficialAgentEngineSource(config)) {
+    return fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify(payload),
+      signal: options.signal
+    });
+  }
+
+  const [idToken, clientId] = await Promise.all([
+    getFirebaseIdTokenIfAvailable(),
+    getOrCreateAnonymousClientId()
+  ]);
+  const locale = await getBillingLocale();
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-AI-Compare-Locale': locale,
+    'X-AI-Compare-Client-Id': clientId
+  };
+  if (idToken) {
+    headers.Authorization = `Bearer ${idToken}`;
+  }
+
+  return fetch(`${getCloudFunctionsBaseUrl()}/officialAgentChat`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      ...payload,
+      locale
+    }),
+    signal: options.signal
+  });
+}
+
 function getOfficialUsageDateKey() {
   const now = new Date();
   const year = now.getFullYear();
@@ -280,9 +397,21 @@ async function getBackgroundUserPlan() {
 }
 
 async function getOfficialUsageStatus() {
+  const billingEnabled = await isOfficialAgentBillingEnabled();
+  if (!billingEnabled) {
+    return {
+      billingEnabled: false,
+      plan: 'free',
+      limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
+      used: 0,
+      remaining: Infinity
+    };
+  }
+
   const planInfo = await getBackgroundUserPlan();
   if (planInfo?.plan === 'pro') {
     return {
+      billingEnabled: true,
       plan: 'pro',
       limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
       used: 0,
@@ -296,6 +425,7 @@ async function getOfficialUsageStatus() {
   const used = usage.date === today ? Math.max(0, Number(usage.count) || 0) : 0;
 
   return {
+    billingEnabled: true,
     plan: 'free',
     limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
     used,
@@ -305,12 +435,16 @@ async function getOfficialUsageStatus() {
 
 async function consumeOfficialUsageQuota() {
   const status = await getOfficialUsageStatus();
-  if (status.plan === 'pro') {
+  if (status.plan === 'pro' || status.billingEnabled === false) {
     return status;
   }
 
   if (status.used >= status.limit) {
-    throw new Error(t('agentEngineOfficialQuotaExceeded', 'Official API free quota reached for today. Upgrade to PRO or switch to custom API.'));
+    throw new Error(t(
+      'agentEngineOfficialQuotaExceeded',
+      `You've used today's ${status.limit} free official API requests. Upgrade to PRO or switch to your own API.`,
+      [String(status.limit)]
+    ));
   }
 
   const nextStatus = {
@@ -619,13 +753,9 @@ async function streamStandaloneAnalysis(port, payload = {}, requestId = '') {
   if (!normalizedPrompt) {
     throw new Error('Analysis prompt is required');
   }
-  if (!config.apiKey || !config.baseUrl || !config.model) {
+  if (!isAgentEngineRuntimeConfigured(config)) {
     throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
   }
-  if ((config.selectedSource || 'official') === 'official') {
-    await consumeOfficialUsageQuota();
-  }
-
   const abortController = new AbortController();
   let disconnected = false;
   port.onDisconnect.addListener(() => {
@@ -645,22 +775,14 @@ async function streamStandaloneAnalysis(port, payload = {}, requestId = '') {
     content: normalizedPrompt
   });
 
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify({
+  const response = await fetchAgentChatCompletion(config, {
       model: config.model,
       stream: true,
       thinking: {
         type: 'disabled'
       },
       messages
-    }),
-    signal: abortController.signal
-  });
+    }, { signal: abortController.signal });
 
   if (!response.ok) {
     throw new Error(await parseAgentErrorMessage(response));
@@ -747,13 +869,9 @@ async function runStandaloneAnalysis(payload = {}) {
   if (!normalizedPrompt) {
     throw new Error('Analysis prompt is required');
   }
-  if (!config.apiKey || !config.baseUrl || !config.model) {
+  if (!isAgentEngineRuntimeConfigured(config)) {
     throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
   }
-  if ((config.selectedSource || 'official') === 'official') {
-    await consumeOfficialUsageQuota();
-  }
-
   const messages = [];
   if (normalizedSystemPrompt) {
     messages.push({
@@ -766,20 +884,13 @@ async function runStandaloneAnalysis(payload = {}) {
     content: normalizedPrompt
   });
 
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify({
+  const response = await fetchAgentChatCompletion(config, {
       model: config.model,
       stream: false,
       thinking: {
         type: 'disabled'
       },
       messages
-    })
   });
 
   if (!response.ok) {
@@ -817,13 +928,9 @@ async function executeAgentJob(job) {
   if (!agent) {
     throw new Error(t('agentUnknownError', `Unknown agent: ${job.agentId}`, [job.agentId]));
   }
-  if (!config.apiKey || !config.baseUrl || !config.model) {
+  if (!isAgentEngineRuntimeConfigured(config)) {
     throw new Error(t('agentEngineNotConfigured', 'Agent engine is not configured'));
   }
-  if ((config.selectedSource || 'official') === 'official') {
-    await consumeOfficialUsageQuota();
-  }
-
   const abortController = new AbortController();
   job.abortController = abortController;
   job.status = 'running';
@@ -840,22 +947,14 @@ async function executeAgentJob(job) {
       ? AgentPromptUtils.buildChatMessages(agent, job.messages, config)
       : job.messages;
 
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`
-      },
-      body: JSON.stringify({
+    const response = await fetchAgentChatCompletion(config, {
         model: config.model,
         stream: true,
         thinking: {
           type: 'disabled'
         },
         messages: systemMessages
-      }),
-      signal: abortController.signal
-    });
+      }, { signal: abortController.signal });
 
     if (!response.ok) {
       throw new Error(await parseAgentErrorMessage(response));
@@ -1854,7 +1953,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           model: config.model,
           concurrency: config.concurrency,
           systemPrompt: config.systemPrompt,
-          hasApiKey: Boolean(config.apiKey)
+          hasApiKey: isAgentEngineRuntimeConfigured(config)
         }
       });
     }).catch((error) => {

@@ -54,6 +54,15 @@
                 <h1 id="extensionName" class="extension-name" data-i18n="shortName"></h1>
             </div>
             <!--
+            <div id="homepagePlanBanner" class="homepage-plan-banner" role="status" hidden>
+                <div class="homepage-plan-banner-copy">
+                    <span data-i18n="homepageFreePlanBannerPrefix">You're currently on the Free plan. 💪🏻</span>
+                    <button id="homepagePlanBannerUpgradeBtn" type="button" class="homepage-plan-banner-link" data-i18n="homepageFreePlanBannerAction">Upgrade to Premium</button>
+                    <span data-i18n="homepageFreePlanBannerSuffix">to unlock advanced features.</span>
+                </div>
+            </div>
+            -->
+            <!--
             <div id="remoteSearchStatusCard" class="remote-search-home-card" hidden>
                 <div class="remote-search-home-copy">
                     <div class="remote-search-home-title" data-i18n="remoteSearchHomepageTitle">Remote Search</div>
@@ -198,6 +207,17 @@
                     <div class="selection-group-header">
                         <h4 class="selection-group-title" data-i18n="homepageAgentsTitle"></h4>
                         <div class="selection-group-actions">
+                            <button
+                                id="editAgentsBtn"
+                                type="button"
+                                class="selection-group-icon-btn"
+                                data-i18n-title="homepageAgentsEditButton"
+                                data-i18n-aria-label="homepageAgentsEditButton"
+                                title="Edit skills"
+                                aria-label="Edit skills"
+                            >
+                                <img src="../icons/edit.svg" data-i18n-alt="editButton" alt="Edit">
+                            </button>
                             <button id="selectAllAgentsBtn" type="button" class="selection-group-action-btn" data-i18n="homepageAgentsSelectAll">全选</button>
                             <button id="clearAllAgentsBtn" type="button" class="selection-group-action-btn" data-i18n="homepageAgentsClearAll">取消全选</button>
                         </div>

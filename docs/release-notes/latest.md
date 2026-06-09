@@ -1,8 +1,8 @@
 # User Improvement Request Log
 
-Updated at: 2026-06-01 22:48:33
+Updated at: 2026-06-09 00:40:16
 Branch: dev
-Head: 4925de1
+Head: f2b7e17
 
 ## Latest User-Facing Improvement Requests
 
@@ -23,4 +23,5 @@ Head: 4925de1
 - 支持将 homepage 批量输入框替换为开源轻量级文本编辑器，保留行号并避免长文本视觉换行被误认为多条任务
 - 自动总结卡片去掉 updated 状态，并将 refresh 按钮改为分析，点击后会使用旁边选中的提示词模板汇总各 panel 回复并打开 AI 分析页。
 - 在批量提交的弹窗中，增加收藏功能：支持给当前批量提示词命名收藏，顶部展示收藏名，点击可回填，hover 可删除
+- 非中文界面下的官方 API 增加免费次数和 Pro 升级规则：免费用户和未登录用户每天可用 100 次，超过后可通过 Stripe 升级或切换自己的 API。
 <!-- COMMANDS:END -->

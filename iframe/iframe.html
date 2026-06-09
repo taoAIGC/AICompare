@@ -92,15 +92,65 @@
                         title=""
                         aria-label=""
                     ></button>
-                    <div class="live-summary-actions-cluster">
-                        <div class="live-summary-template-cluster">
+                </div>
+                <div class="live-summary-card-subtitle-row">
+                    <div class="live-summary-template-cluster">
+                        <div
+                            id="liveSummaryAnalysisTemplateDropdown"
+                            class="live-summary-analysis-dropdown"
+                        >
+                            <button
+                                id="liveSummaryAnalysisTemplateTrigger"
+                                class="live-summary-analysis-trigger"
+                                type="button"
+                                aria-haspopup="menu"
+                                aria-expanded="false"
+                                aria-controls="liveSummaryAnalysisTemplateMenu"
+                                aria-label=""
+                                data-i18n-aria-label="analysisPromptTemplateSelectLabel"
+                            >
+                                <span
+                                    id="liveSummaryAnalysisTemplateTriggerText"
+                                    class="live-summary-analysis-trigger-text"
+                                ></span>
+                            </button>
+                            <div
+                                id="liveSummaryAnalysisTemplateMenu"
+                                class="live-summary-analysis-menu"
+                                role="menu"
+                                hidden
+                            ></div>
                             <select
                                 id="liveSummaryAnalysisTemplateSelect"
                                 class="live-summary-analysis-select"
                                 aria-label=""
                                 data-i18n-aria-label="analysisPromptTemplateSelectLabel"
+                                hidden
+                                tabindex="-1"
                             ></select>
                         </div>
+                    </div>
+                    <div class="live-summary-status-cluster">
+                        <div class="live-summary-sites-cluster">
+                            <div id="liveSummarySites" class="live-summary-card-sites"></div>
+                            <div id="liveSummaryHint" class="live-summary-card-hint" hidden></div>
+                        </div>
+                        <div id="liveSummaryRetryCluster" class="live-summary-retry-cluster" hidden>
+                            <button
+                                id="liveSummaryImmediateAnalyzeButton"
+                                class="live-summary-action-btn live-summary-toolbar-icon-btn"
+                                type="button"
+                                data-i18n-title="liveSummaryRefresh"
+                                data-i18n-aria-label="liveSummaryRefresh"
+                                hidden
+                                title=""
+                                aria-label=""
+                            >
+                                <img src="../icons/refresh-cw.svg" alt="" aria-hidden="true">
+                            </button>
+                        </div>
+                    </div>
+                    <div class="live-summary-actions-cluster">
                         <div class="live-summary-tools-cluster">
                             <div class="timeline-copy-preview-export-actions live-summary-export-actions">
                                 <button
@@ -131,28 +181,6 @@
                                     <img src="../icons/copy.svg" alt="" aria-hidden="true">
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="live-summary-card-subtitle-row">
-                    <div class="live-summary-status-cluster">
-                        <div class="live-summary-sites-cluster">
-                            <div id="liveSummarySites" class="live-summary-card-sites"></div>
-                            <div id="liveSummaryHint" class="live-summary-card-hint" hidden></div>
-                        </div>
-                        <div id="liveSummaryRetryCluster" class="live-summary-retry-cluster" hidden>
-                            <button
-                                id="liveSummaryImmediateAnalyzeButton"
-                                class="live-summary-action-btn live-summary-toolbar-icon-btn"
-                                type="button"
-                                data-i18n-title="liveSummaryRefresh"
-                                data-i18n-aria-label="liveSummaryRefresh"
-                                hidden
-                                title=""
-                                aria-label=""
-                            >
-                                <img src="../icons/refresh-cw.svg" alt="" aria-hidden="true">
-                            </button>
                         </div>
                     </div>
                 </div>

@@ -15,8 +15,12 @@ AI 比一比 使用 `Stripe + Firebase Cloud Functions` 实现 Pro 订阅。
 ```bash
 STRIPE_SECRET_KEY=sk_test_or_live_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
-STRIPE_SUCCESS_URL=https://your-domain.example/payment-success
-STRIPE_CANCEL_URL=https://your-domain.example/payment-cancel
+STRIPE_SUCCESS_URL=https://aicompare.club/payment-success
+STRIPE_CANCEL_URL=https://aicompare.club/payment-cancel
+OFFICIAL_AGENT_API_BASE_URL=https://your-official-api.example/v1
+OFFICIAL_AGENT_API_KEY=your_official_api_key
+OFFICIAL_AGENT_MODEL=your-default-model
+OFFICIAL_API_DAILY_FREE_LIMIT=100
 ```
 
 注意：
@@ -24,11 +28,13 @@ STRIPE_CANCEL_URL=https://your-domain.example/payment-cancel
 - `sk_test_...` 和 `sk_live_...` 不要混用
 - Webhook 的 `whsec_...` 也必须和当前模式一致
 - `functions/.env` 只能本地保存
+- `OFFICIAL_AGENT_*` 只保存在 Cloud Functions 环境中，不要写入扩展前端代码
 
 ## 3. 部署
 
 ```bash
 cd <REPO_ROOT>
+cd functions && npm install && cd ..
 firebase deploy --only functions,firestore:rules
 ```
 
@@ -51,6 +57,7 @@ firebase deploy --only functions,firestore:rules
 1. 打开扩展的 Pro 页面
 2. 点击订阅
 3. 在测试模式下使用 Stripe 测试卡 `4242 4242 4242 4242`
+4. 调用 `officialAgentChat` 时，登录用户携带 Firebase ID Token，未登录用户携带匿名 client id；免费/未登录用户在非中文界面每天可用 100 次，超过后函数返回 402
 
 如果在正式模式下测试，测试卡会被拒绝，这是正常现象。
 
@@ -59,3 +66,4 @@ firebase deploy --only functions,firestore:rules
 - `No such customer`：通常是测试/正式密钥混用了
 - `functions/.env` 没生效：确认已重新部署
 - Webhook 验证失败：确认 `whsec_...` 来自当前模式的 endpoint
+- `Official API proxy is not configured`：确认 `OFFICIAL_AGENT_API_BASE_URL` 和 `OFFICIAL_AGENT_API_KEY` 已配置并重新部署

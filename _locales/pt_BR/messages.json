@@ -174,6 +174,12 @@
   "agentEngineOfficialCardHint": {
     "message": "Select the official API card to use the bundled defaults"
   },
+  "agentEngineOfficialMetaChineseFree": {
+    "message": "Official API is currently free in Chinese UI."
+  },
+  "agentEngineOfficialQuotaExceeded": {
+    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
+  },
   "agentEngineCustomCardHint": {
     "message": "Select the custom API card to use your saved API settings"
   },
@@ -1448,6 +1454,18 @@
   "analysisPromptTemplateBadge": {
     "message": "Analysis"
   },
+  "analysisTemplateSetDefaultButton": {
+    "message": "Definir como padrão"
+  },
+  "analysisTemplateDefaultActiveButton": {
+    "message": "Padrão"
+  },
+  "analysisTemplateDefaultSaved": {
+    "message": "O prompt de análise padrão foi atualizado"
+  },
+  "analysisTemplateDefaultBadge": {
+    "message": "Padrão"
+  },
   "defaultAnalysisTemplateConclusionName": {
     "message": "Veredito primeiro"
   },
@@ -1939,6 +1957,18 @@
   "homepageAgentsTitle": {
     "message": "Agentes de IA"
   },
+  "homepageFreePlanBannerPrefix": {
+    "message": "Voce esta no plano Free no momento. 💪🏻"
+  },
+  "homepageFreePlanBannerAction": {
+    "message": "Fazer upgrade para Premium"
+  },
+  "homepageFreePlanBannerSuffix": {
+    "message": "para desbloquear recursos avancados."
+  },
+  "homepageAgentsEditButton": {
+    "message": "Editar skills"
+  },
   "homepageAgentsSelectAll": {
     "message": "Selecionar tudo"
   },
@@ -2313,7 +2343,7 @@
     "message": "Modelo de analise:"
   },
   "liveSummaryHint": {
-    "message": "A análise automática será executada 60 segundos após sua pergunta."
+    "message": "A análise automática será executada 20 segundos após sua pergunta."
   },
   "liveSummaryHintCountdown": {
     "message": "A análise automática será executada em $1 segundos."

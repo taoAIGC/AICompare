@@ -121,6 +121,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         }
         renderBatchModeFavorites();
     }
+    if (namespace === 'local' && (changes._planCache || changes._planCacheAt || changes.firebase_uid)) {
+        void initializeHomepageMembershipBanner();
+    }
 });
 
 void loadHomepageSubmitShortcutMode();
@@ -224,6 +227,52 @@ function refreshHomepageDynamicI18n() {
     refreshBatchModeFavoriteNameI18n();
     renderBatchModeFavorites();
     renderSiteTypeTabs();
+}
+
+function openHomepageMembershipPage() {
+    window.location.href = chrome.runtime.getURL('options/options.html#membership');
+}
+
+function renderHomepageMembershipBanner(planInfo = {}) {
+    const banner = document.getElementById('homepagePlanBanner');
+    if (!banner) {
+        return;
+    }
+
+    banner.hidden = String(planInfo?.plan || 'free').trim() === 'pro';
+}
+
+async function initializeHomepageMembershipBanner() {
+    const banner = document.getElementById('homepagePlanBanner');
+    const upgradeButton = document.getElementById('homepagePlanBannerUpgradeBtn');
+
+    if (upgradeButton && upgradeButton.dataset.bound !== 'true') {
+        upgradeButton.dataset.bound = 'true';
+        upgradeButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            trackEvent('homepage_membership_upgrade_click', {
+                source: 'free_plan_banner'
+            });
+            openHomepageMembershipPage();
+        });
+    }
+
+    if (!banner) {
+        return;
+    }
+
+    let planInfo = { plan: 'free', planExpiresAt: null };
+
+    try {
+        if (typeof window.getUserPlan === 'function') {
+            planInfo = await window.getUserPlan();
+        }
+    } catch (error) {
+        console.warn('Failed to load homepage membership plan:', error);
+    }
+
+    renderHomepageMembershipBanner(planInfo);
 }
 
 function openRemoteSearchSettingsPage() {
@@ -704,8 +753,18 @@ function updateHomepageAgentSelection(checked) {
 }
 
 function initializeAgentSelectionActions() {
+    const editAgentsButton = document.getElementById('editAgentsBtn');
     const selectAllButton = document.getElementById('selectAllAgentsBtn');
     const clearAllButton = document.getElementById('clearAllAgentsBtn');
+
+    if (editAgentsButton) {
+        editAgentsButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            trackEvent('homepage_agents_edit_click');
+            window.location.href = chrome.runtime.getURL('options/options.html#agent-settings');
+        });
+    }
 
     if (selectAllButton) {
         selectAllButton.addEventListener('click', (event) => {
@@ -1042,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeI18n();
     perfMark('i18n_init_end');
     perfMeasure('i18n_init_duration', 'i18n_init_start', 'i18n_init_end');
+    void initializeHomepageMembershipBanner();
 
     // 初始化保存按钮，避免被异步站点列表初始化阻塞
     perfMark('save_button_init_start');

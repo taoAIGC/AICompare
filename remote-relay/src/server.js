@@ -2,6 +2,7 @@ const http = require('node:http');
 const { URL } = require('node:url');
 
 const express = require('express');
+const MarkdownIt = require('markdown-it');
 const QRCode = require('qrcode');
 const { WebSocketServer } = require('ws');
 
@@ -13,6 +14,11 @@ const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const TICKET_TTL_MS = 5 * 60 * 1000;
 const SHARE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const WS_OPEN_STATE = 1;
+const shareMarkdown = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true
+});
 
 function isFreshTimestamp(timestamp) {
   const parsed = Date.parse(String(timestamp || ''));
@@ -78,127 +84,96 @@ function normalizeShareResponses(responses) {
   return normalizeArray(responses).map(normalizeShareResponse);
 }
 
-function renderInlineMarkdown(text) {
-  return String(text || '')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    .replace(/(^|[\s(])\*([^*]+)\*(?=[\s).,!?:;]|$)/g, '$1<em>$2</em>')
-    .replace(/(^|[\s(])_([^_]+)_(?=[\s).,!?:;]|$)/g, '$1<em>$2</em>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-}
-
 function renderMarkdownToHtml(markdownText) {
-  const source = String(markdownText || '').replace(/\r\n?/g, '\n');
+  const source = normalizeBrokenMarkdownCodeFences(String(markdownText || '').replace(/\r\n?/g, '\n'));
   if (!source.trim()) {
     return '<p class="share-empty">暂无内容</p>';
   }
+  return repairBrokenMarkdownArtifacts(shareMarkdown.render(source));
+}
 
-  const lines = source.split('\n');
-  const blocks = [];
-  let paragraphLines = [];
-  let listItems = [];
-  let listType = '';
-  let inCodeBlock = false;
-  let codeLines = [];
+function looksLikeBrokenCodeFenceContent(text) {
+  const normalized = String(text || '').trim();
+  if (!normalized) {
+    return false;
+  }
+  const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) {
+    return false;
+  }
+  const shortLineCount = lines.filter((line) => line.length <= 48).length;
+  const arrowLikeCount = lines.filter((line) => /^[↓↘↙→←↑\-|>]+$/.test(line)).length;
+  const labelLikeCount = lines.filter((line) => /[:：]|（.*）|\(.*\)/.test(line)).length;
+  return shortLineCount >= Math.max(2, Math.ceil(lines.length * 0.75))
+    && (arrowLikeCount >= 1 || labelLikeCount >= 1 || lines.length >= 4);
+}
 
-  const flushParagraph = () => {
-    if (!paragraphLines.length) return;
-    const paragraph = paragraphLines.join('<br>');
-    blocks.push(`<p>${paragraph}</p>`);
-    paragraphLines = [];
-  };
-
-  const flushList = () => {
-    if (!listItems.length) return;
-    const tag = listType === 'ol' ? 'ol' : 'ul';
-    blocks.push(`<${tag}>${listItems.join('')}</${tag}>`);
-    listItems = [];
-    listType = '';
-  };
-
-  const flushCodeBlock = () => {
-    if (!inCodeBlock) return;
-    blocks.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
-    inCodeBlock = false;
-    codeLines = [];
-  };
-
-  for (const rawLine of lines) {
-    const escapedLine = escapeHtml(rawLine);
-    const trimmed = rawLine.trim();
-
-    if (trimmed.startsWith('```')) {
-      flushParagraph();
-      flushList();
-      if (inCodeBlock) {
-        flushCodeBlock();
-      } else {
-        inCodeBlock = true;
-        codeLines = [];
-      }
-      continue;
-    }
-
-    if (inCodeBlock) {
-      codeLines.push(rawLine);
-      continue;
-    }
-
-    if (!trimmed) {
-      flushParagraph();
-      flushList();
-      continue;
-    }
-
-    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
-      flushParagraph();
-      flushList();
-      const level = Math.min(6, Math.max(2, headingMatch[1].length + 1));
-      blocks.push(`<h${level}>${renderInlineMarkdown(escapeHtml(headingMatch[2]))}</h${level}>`);
-      continue;
-    }
-
-    const blockquoteMatch = trimmed.match(/^>\s?(.*)$/);
-    if (blockquoteMatch) {
-      flushParagraph();
-      flushList();
-      blocks.push(`<blockquote>${renderInlineMarkdown(escapeHtml(blockquoteMatch[1]))}</blockquote>`);
-      continue;
-    }
-
-    const orderedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
-    if (orderedMatch) {
-      flushParagraph();
-      if (listType && listType !== 'ol') {
-        flushList();
-      }
-      listType = 'ol';
-      listItems.push(`<li>${renderInlineMarkdown(escapeHtml(orderedMatch[2]))}</li>`);
-      continue;
-    }
-
-    const unorderedMatch = trimmed.match(/^[-*]\s+(.+)$/);
-    if (unorderedMatch) {
-      flushParagraph();
-      if (listType && listType !== 'ul') {
-        flushList();
-      }
-      listType = 'ul';
-      listItems.push(`<li>${renderInlineMarkdown(escapeHtml(unorderedMatch[1]))}</li>`);
-      continue;
-    }
-
-    flushList();
-    paragraphLines.push(renderInlineMarkdown(escapedLine));
+function normalizeBrokenMarkdownCodeFences(markdownText) {
+  const source = String(markdownText || '');
+  if (!source.trim()) {
+    return source;
   }
 
-  flushParagraph();
-  flushList();
-  flushCodeBlock();
+  const emptyFencePattern = /```[^\n]*\n\s*```/g;
+  const emptyFenceMatchCount = source.match(emptyFencePattern)?.length || 0;
+  if (emptyFenceMatchCount < 2) {
+    return source;
+  }
 
-  return blocks.join('\n');
+  return source.replace(
+    /```[^\n]*\n\s*```(?:\n+)([\s\S]*?)(?:\n+)```[^\n]*\n\s*```/g,
+    (match, bodyText) => {
+      const normalizedBody = String(bodyText || '').replace(/\n{3,}/g, '\n\n').trim();
+      if (!looksLikeBrokenCodeFenceContent(normalizedBody)) {
+        return match;
+      }
+      return `\`\`\`\n${normalizedBody}\n\`\`\``;
+    }
+  );
+}
+
+function decodeSimpleHtmlEntities(text) {
+  return String(text || '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p>/gi, '\n\n')
+    .replace(/<\/?p>/gi, '');
+}
+
+function looksLikeBrokenDiagramBlock(text) {
+  const normalized = String(text || '').trim();
+  if (!normalized) {
+    return false;
+  }
+  const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 3) {
+    return false;
+  }
+  const arrowOnlyCount = lines.filter((line) => /^[↓↘↙→←↑\-|>]+$/.test(line)).length;
+  const shortLineCount = lines.filter((line) => line.length <= 24).length;
+  return arrowOnlyCount >= 1 && shortLineCount >= Math.max(3, lines.length - 1);
+}
+
+function repairBrokenMarkdownArtifacts(html) {
+  const source = String(html || '');
+  if (!source) {
+    return source;
+  }
+
+  return source.replace(
+    /<pre><code><\/code><\/pre>\s*<p>([\s\S]*?)<\/p>\s*<pre><code><\/code><\/pre>/gi,
+    (match, paragraphHtml) => {
+      const decoded = decodeSimpleHtmlEntities(paragraphHtml);
+      if (!looksLikeBrokenDiagramBlock(decoded)) {
+        return match;
+      }
+      return `<pre><code>${escapeHtml(decoded.trim())}</code></pre>`;
+    }
+  );
 }
 
 function getShareResponseBody(response) {
@@ -232,14 +207,14 @@ function stripShareSummaryRawAnswerSection(summaryText) {
   }
 
   const cutMarkers = [
-    /\n{2,}各站原始答案汇总：/i,
-    /\n{2,}各站原始答案:/i,
-    /\n{2,}各站原始答案：/i,
-    /\n{2,}原始答案汇总：/i,
-    /\n{2,}Raw answers:/i,
-    /\n{2,}Responses summary:/i,
-    /\n{2,}【[^】]+】\n/,
-    /\n{2,}\[[^\]]+\]\n/
+    /(?:^|\n{2,})各站原始答案汇总：/i,
+    /(?:^|\n{2,})各站原始答案:/i,
+    /(?:^|\n{2,})各站原始答案：/i,
+    /(?:^|\n{2,})原始答案汇总：/i,
+    /(?:^|\n{2,})Raw answers:/i,
+    /(?:^|\n{2,})Responses summary:/i,
+    /(?:^|\n{2,})【[^】]+】\n/,
+    /(?:^|\n{2,})\[[^\]]+\]\n/
   ];
 
   let endIndex = source.length;

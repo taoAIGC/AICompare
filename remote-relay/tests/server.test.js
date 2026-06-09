@@ -401,6 +401,39 @@ test('share page no longer renders layout switch controls', async () => {
   });
 });
 
+test('share page strips raw-answer summary section when it is the only summary content', async () => {
+  await withRelayServer(async (relayServer) => {
+    await relayServer.store.createShareRecord({
+      shareId: 'share-page-raw-summary-only',
+      status: 'active',
+      createdAt: '2026-05-29T06:07:08.000Z',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payload: {
+        question: 'Raw answers only',
+        summaryText: '各站原始答案汇总：\n【Gemini】\n第一条答案',
+        responses: [
+          {
+            siteName: 'Gemini',
+            content: '第一条答案'
+          }
+        ]
+      }
+    });
+
+    const response = await fetch(`${relayServer.getAddress()}/share/share-page-raw-summary-only`, {
+      headers: {
+        'Accept-Language': 'zh-CN,zh;q=0.9'
+      }
+    });
+
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.doesNotMatch(html, /<div class="share-panel-title">总结分析<\/div>/);
+    assert.match(html, /Gemini/);
+    assert.match(html, /第一条答案/);
+  });
+});
+
 test('share records persist across store restarts', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-compare-share-store-'));
   const shareStoreFile = path.join(tempRoot, 'shares.json');

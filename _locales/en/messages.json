@@ -247,10 +247,16 @@
     "message": "Use your own API and your own quota"
   },
   "agentEngineOfficialMetaFree": {
-    "message": "Use the built-in API, free $1 times per day."
+    "message": "Use the built-in API, free $1 times per day in non-Chinese UI."
+  },
+  "agentEngineOfficialMetaChineseFree": {
+    "message": "Official API is currently free in Chinese UI."
   },
   "agentEngineOfficialMetaPro": {
     "message": "Current plan: PRO"
+  },
+  "agentEngineOfficialQuotaExceeded": {
+    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -461,8 +467,20 @@
   "customSitesTitle": {
     "message": "Custom sites"
   },
+  "homepageFreePlanBannerPrefix": {
+    "message": "You're currently on the Free plan. 💪🏻"
+  },
+  "homepageFreePlanBannerAction": {
+    "message": "Upgrade to Premium"
+  },
+  "homepageFreePlanBannerSuffix": {
+    "message": "to unlock advanced features."
+  },
   "homepageAgentsTitle": {
     "message": "AI skills"
+  },
+  "homepageAgentsEditButton": {
+    "message": "Edit skills"
   },
   "homepageAgentsSelectAll": {
     "message": "Select all"
@@ -1471,6 +1489,114 @@
   "membershipDescription": {
     "message": "Unlock all features and enjoy unlimited AI comparison"
   },
+  "membershipTabsAriaLabel": {
+    "message": "Membership tabs"
+  },
+  "membershipOverviewTab": {
+    "message": "Overview"
+  },
+  "membershipInvoicesTab": {
+    "message": "Invoices"
+  },
+  "membershipChatPlanTitle": {
+    "message": "Chat Plan"
+  },
+  "membershipChatPlanSubtitle": {
+    "message": "View your chat plan status and choose how to activate it."
+  },
+  "membershipApiPlanTitle": {
+    "message": "API Plan"
+  },
+  "membershipApiPlanSubtitle": {
+    "message": "View the API plan status here when dedicated API billing is available."
+  },
+  "membershipPlanStatusInactive": {
+    "message": "Not active"
+  },
+  "membershipPlanStatusActive": {
+    "message": "Active"
+  },
+  "membershipPlanStatusPending": {
+    "message": "Coming soon"
+  },
+  "membershipChatPlanInactiveDescription": {
+    "message": "Your chat plan is not active yet. Choose monthly or yearly to unlock unlimited AI comparisons."
+  },
+  "membershipChatPlanActiveDescription": {
+    "message": "Your chat plan is active and ready to use."
+  },
+  "membershipChatPlanActiveUntil": {
+    "message": "Your chat plan is active. Renews on $1."
+  },
+  "membershipApiPlanPendingDescription": {
+    "message": "Unlimited API calls."
+  },
+  "membershipApiPlanFeature1": {
+    "message": "Separate API billing model"
+  },
+  "membershipApiPlanFeature2": {
+    "message": "Plan details to be announced"
+  },
+  "membershipApiPlanFeature3": {
+    "message": "This area will show your API plan status"
+  },
+  "membershipApiPlanButton": {
+    "message": "Coming Soon"
+  },
+  "membershipInvoicesTitle": {
+    "message": "Invoice history"
+  },
+  "membershipInvoicesDescription": {
+    "message": "Review recent billing records for your current account."
+  },
+  "membershipInvoicesLoading": {
+    "message": "Loading invoices…"
+  },
+  "membershipInvoicesEmpty": {
+    "message": "No invoices yet."
+  },
+  "membershipInvoicesLoginHint": {
+    "message": "Sign in with Google to view invoices."
+  },
+  "membershipInvoicesUnavailable": {
+    "message": "Invoice records are not available yet."
+  },
+  "membershipInvoicesLoadFailed": {
+    "message": "Failed to load invoice records."
+  },
+  "membershipInvoiceDateHeader": {
+    "message": "Date"
+  },
+  "membershipInvoiceNumberHeader": {
+    "message": "Invoice"
+  },
+  "membershipInvoiceAmountHeader": {
+    "message": "Amount"
+  },
+  "membershipInvoiceStatusHeader": {
+    "message": "Status"
+  },
+  "membershipInvoiceActionHeader": {
+    "message": "Action"
+  },
+  "membershipInvoiceViewAction": {
+    "message": "View"
+  },
+  "membershipInvoiceStatusPaid": {
+    "message": "Paid"
+  },
+  "membershipInvoiceStatusOpen": {
+    "message": "Open"
+  },
+  "membershipInvoiceStatusDraft": {
+    "message": "Draft"
+  },
+  "membershipInvoiceStatusVoid": {
+    "message": "Void"
+  },
+  "membershipInvoiceStatusUncollectible": {
+    "message": "Uncollectible"
+  },
   "planMonthlyName": {
     "message": "Monthly"
   },
@@ -1506,6 +1632,9 @@
   },
   "btnUpgradeYearly": {
     "message": "Subscribe Yearly"
+  },
+  "btnSubscribe": {
+    "message": "Subscribe"
   },
   "membershipProThankYou": {
     "message": "Thank you for your support! You're a Pro member."
@@ -2546,7 +2675,7 @@
     "message": "Analysis template:"
   },
   "liveSummaryHint": {
-    "message": "Automatic analysis will run 60 seconds after you ask."
+    "message": "Automatic analysis will run 20 seconds after you ask."
   },
   "liveSummaryHintCountdown": {
     "message": "Automatic analysis will run in $1 seconds."

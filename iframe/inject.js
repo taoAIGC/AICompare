@@ -2347,6 +2347,18 @@ async function executeTriggerEvents(step) {
 
   // Slate 编辑器（千问等）：用当前 DOM 文本派发 InputEvent，便于页面同步 React 状态并启用发送按钮
   const isSlateEditor = element.getAttribute('data-slate-editor') === 'true';
+  const tagName = String(element.tagName || '').toUpperCase();
+  const htmlInputType = String(element.getAttribute('type') || '').toLowerCase();
+  const isTextLikeInput =
+    tagName === 'TEXTAREA' ||
+    (tagName === 'INPUT' &&
+      !['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit'].includes(htmlInputType));
+  const shouldUseInputEvent =
+    step.inputType === 'special' ||
+    isSlateEditor ||
+    element.isContentEditable ||
+    element.getAttribute('role') === 'textbox' ||
+    isTextLikeInput;
   const getTextForInputEvent = () => {
     if (isSlateEditor) {
       const strings = element.querySelectorAll('[data-slate-string]');
@@ -2357,10 +2369,10 @@ async function executeTriggerEvents(step) {
 
   const events = step.events || ['input', 'change'];
   events.forEach(eventName => {
-    if (eventName === 'input') {
-      if (step.inputType === 'special' || isSlateEditor || element.isContentEditable) {
+    if (eventName === 'beforeinput' || eventName === 'input') {
+      if (shouldUseInputEvent) {
         const text = getTextForInputEvent();
-        const inputEvent = new InputEvent('input', {
+        const inputEvent = new InputEvent(eventName, {
           bubbles: true,
           cancelable: true,
           inputType: 'insertText',
@@ -2375,7 +2387,13 @@ async function executeTriggerEvents(step) {
     }
   });
 
-  console.log('触发事件:', events, '在元素:', foundSelector, isSlateEditor ? '(Slate 已用 InputEvent+data)' : '');
+  console.log(
+    '触发事件:',
+    events,
+    '在元素:',
+    foundSelector,
+    shouldUseInputEvent ? '(文本输入已用 InputEvent+data)' : ''
+  );
 }
 
 // 执行发送按键操作

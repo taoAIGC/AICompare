@@ -73,7 +73,7 @@
           }
         ]
       },
-      "updatedAt": "2026-05-30T16:52:46.343Z"
+      "updatedAt": "2026-06-06T08:05:09.935Z"
     },
     {
       "shareId": "share-page-en",
@@ -94,7 +94,7 @@
           }
         ]
       },
-      "updatedAt": "2026-05-30T16:52:46.374Z"
+      "updatedAt": "2026-06-06T08:05:09.978Z"
     },
     {
       "shareId": "share-1780068309492-4wsmvf32",
@@ -246,7 +246,7 @@
           }
         ]
       },
-      "updatedAt": "2026-05-30T16:52:46.379Z"
+      "updatedAt": "2026-06-06T08:05:09.990Z"
     },
     {
       "shareId": "share-1780159966340-10gw29a2",
@@ -298,7 +298,76 @@
           }
         ]
       },
-      "updatedAt": "2026-05-30T16:52:46.376Z"
+      "updatedAt": "2026-06-06T08:05:09.983Z"
+    },
+    {
+      "shareId": "share-1780733109829-hm4jhb5u",
+      "status": "active",
+      "expiresAt": "2026-07-06T08:05:09.829Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "Raw answers only",
+        "summaryText": "各站原始答案汇总：\n【Gemini】\n第一条答案",
+        "responses": [
+          {
+            "siteName": "Gemini",
+            "content": "第一条答案"
+          }
+        ],
+        "compareSites": [],
+        "successCount": 0,
+        "totalCount": 0,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-06-06T08:05:09.837Z",
+      "updatedAt": "2026-06-06T08:05:09.837Z"
+    },
+    {
+      "shareId": "share-1780733109899-r970zy57",
+      "status": "active",
+      "expiresAt": "2026-07-06T08:05:09.899Z",
+      "payload": {
+        "version": 1,
+        "entry": null,
+        "question": "What is the best model?",
+        "summaryText": "Summary text",
+        "responses": [
+          {
+            "siteName": "Qwen",
+            "content": "Answer content"
+          }
+        ],
+        "compareSites": [
+          "Qwen"
+        ],
+        "successCount": 1,
+        "totalCount": 1,
+        "analysisTemplateId": "",
+        "analysisTemplateName": "",
+        "analysisTemplateQuery": ""
+      },
+      "createdAt": "2026-06-06T08:05:09.899Z",
+      "updatedAt": "2026-06-06T08:05:09.899Z"
+    },
+    {
+      "shareId": "share-page-raw-summary-only",
+      "status": "active",
+      "createdAt": "2026-05-29T06:07:08.000Z",
+      "expiresAt": "2099-01-01T00:00:00.000Z",
+      "payload": {
+        "question": "Raw answers only",
+        "summaryText": "各站原始答案汇总：\n【Gemini】\n第一条答案",
+        "responses": [
+          {
+            "siteName": "Gemini",
+            "content": "第一条答案"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T08:05:09.995Z"
     }
   ]
 }

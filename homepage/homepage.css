@@ -202,6 +202,49 @@ html, body {
     margin-bottom: 2px;
 }
 
+.homepage-plan-banner {
+    width: 100%;
+    max-width: 1120px;
+    box-sizing: border-box;
+    padding: 14px 18px;
+    border: none;
+    border-radius: 18px;
+    box-shadow: none;
+}
+
+.homepage-plan-banner-copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ai-text-muted);
+}
+
+.homepage-plan-banner-link {
+    border: none;
+    padding: 0;
+    background: transparent;
+    color: var(--ai-text);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color var(--ai-transition), opacity var(--ai-transition);
+}
+
+.homepage-plan-banner-link:hover {
+    color: var(--ai-accent-hover);
+}
+
+.homepage-plan-banner-link:active {
+    opacity: 0.72;
+}
+
 /* Pin 引导提示样式 */
 .pin-guide-banner {
     width: 100%;
@@ -1149,6 +1192,35 @@ body.batch-mode-modal-open {
     transform: translateY(1px);
 }
 
+.selection-group-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--ai-border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.selection-group-icon-btn:hover {
+    background: var(--ai-surface-soft);
+    border-color: var(--ai-border-strong);
+}
+
+.selection-group-icon-btn:active {
+    transform: translateY(1px);
+}
+
+.selection-group-icon-btn img {
+    width: 15px;
+    height: 15px;
+    display: block;
+}
+
 .site-filter-bar {
     width: 100%;
     max-width: 720px;
@@ -1548,6 +1620,7 @@ body.is-side-panel .homepage-container {
 }
 
 body.is-side-panel .extension-icon-container,
+body.is-side-panel .homepage-plan-banner,
 body.is-side-panel .pin-guide-banner,
 body.is-side-panel .search-bar,
 body.is-side-panel .sites-section {

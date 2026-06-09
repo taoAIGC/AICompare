@@ -397,6 +397,23 @@ async function openCustomerPortal() {
   }
 }
 
+async function listInvoices() {
+  const idToken = await getFirebaseIdToken();
+  if (!idToken) {
+    throw new Error('Please sign in first');
+  }
+
+  try {
+    return await fetchStripeFunctionJson('/listInvoices', {
+      method: 'GET',
+      idToken,
+      retries: 1
+    });
+  } catch (error) {
+    throw await normalizeStripeRequestError(error);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 挂载到 window
 // ─────────────────────────────────────────────────────────────────────────────
@@ -408,4 +425,5 @@ if (typeof window !== 'undefined') {
   window.getCachedPlan = getCachedPlan;
   window.startCheckout = startCheckout;
   window.openCustomerPortal = openCustomerPortal;
+  window.listInvoices = listInvoices;
 }

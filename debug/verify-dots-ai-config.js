@@ -13,6 +13,8 @@ function main() {
   const repoRoot = path.join(__dirname, '..');
   const configPath = path.join(repoRoot, 'config', 'siteHandlers.json');
   const iconPath = path.join(repoRoot, 'siteIcons', 'dots.ai.png');
+  const sendButtonSelector =
+    'button[aria-disabled]:has(svg path[d="m5 12 7-7 7 7"]):has(svg path[d="M12 19V5"])';
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   const sites = Array.isArray(config?.sites) ? config.sites : [];
   const site = sites.find((item) => item?.name === '点点');
@@ -28,12 +30,12 @@ function main() {
   assert(Array.isArray(site.searchHandler?.steps), 'dots.ai searchHandler.steps must exist');
   assert(site.searchHandler.steps.length >= 5, 'dots.ai should have a real multi-step searchHandler');
   assert(
-    site.searchHandler.steps[0]?.selector === 'textarea[placeholder="给点点发消息"]',
+    site.searchHandler.steps[0]?.selector === 'textarea[placeholder="给点点发消息"], textarea[placeholder="给点点发消息..."]',
     'dots.ai should focus the verified textarea selector first'
   );
   assert(
-    site.searchHandler.steps[site.searchHandler.steps.length - 1]?.selector === 'button:has(svg.lucide-arrow-up)',
-    'dots.ai should click the verified arrow-up send button'
+    site.searchHandler.steps[site.searchHandler.steps.length - 1]?.selector === sendButtonSelector,
+    'dots.ai should click the verified lower-right send button'
   );
   assert(site.userPrompt?.containerSelector === '.user-message-item', 'dots.ai userPrompt selector mismatch');
   assert(site.userPrompt?.textSelector === '.user-message-card .select-text', 'dots.ai userPrompt text selector mismatch');

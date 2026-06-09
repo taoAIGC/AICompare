@@ -56,11 +56,12 @@ let searchBarAutoCollapseArmed = false;
 let searchBarCollapseTimer = null;
 let iframeSubmitShortcutMode = IFRAME_DEFAULT_SEND_SHORTCUT;
 const LIVE_SUMMARY_RECHECK_DELAY_MS = 1200;
-const LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS = 60000;
+const LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS = 20000;
 const liveSummaryContext = {
   analysisQuery: '',
   analysisTemplates: [],
   selectedAnalysisTemplateId: '',
+  defaultAnalysisTemplateId: '',
   requestGeneration: 0,
   requestSequenceByEntryKey: new Map(),
   analysisPortsByEntryKey: new Map()
@@ -82,6 +83,7 @@ const liveSummaryState = {
   lastGeneratedEntryKey: '',
   summariesByEntryKey: new Map()
 };
+let liveSummaryAnalysisDropdownOutsideClickBound = false;
 
 async function loadIframeSubmitShortcutMode() {
   let nextMode = IFRAME_DEFAULT_SEND_SHORTCUT;
@@ -218,6 +220,7 @@ const ratingReminderState = {
 const TimelineUtils = window.IframeTimelineUtils || {};
 const AnalysisUtils = window.IframeAnalysisUtils || {};
 const DEEP_RESEARCH_TIMEOUT_MS = 8000;
+const TIMELINE_LIVE_UPSERT_DEDUPE_WINDOW_MS = 2500;
 let deepResearchBatchInProgress = false;
 const timelineBuildEntry = typeof TimelineUtils.buildTimelineEntry === 'function'
   ? TimelineUtils.buildTimelineEntry
@@ -346,7 +349,8 @@ const timelineState = {
   sharePickerActive: false,
   activeTimelineId: null,
   promptSnapshotsBySite: new Map(),
-  favoriteEntryKeys: new Set()
+  favoriteEntryKeys: new Set(),
+  lastLiveUpsert: null
 };
 let timelineSyncTimer = null;
 let timelineMessageBridgeInitialized = false;
@@ -830,9 +834,12 @@ function getLiveSummaryElements() {
     meta: document.getElementById('liveSummaryMeta'),
     body: document.getElementById('liveSummaryCardBody'),
     content: document.getElementById('liveSummaryContent'),
-    actionsCluster: document.querySelector('#liveSummaryCard .live-summary-actions-cluster'),
     sites: document.getElementById('liveSummarySites'),
     retryCluster: document.getElementById('liveSummaryRetryCluster'),
+    analysisTemplateDropdown: document.getElementById('liveSummaryAnalysisTemplateDropdown'),
+    analysisTemplateTrigger: document.getElementById('liveSummaryAnalysisTemplateTrigger'),
+    analysisTemplateTriggerText: document.getElementById('liveSummaryAnalysisTemplateTriggerText'),
+    analysisTemplateMenu: document.getElementById('liveSummaryAnalysisTemplateMenu'),
     analysisTemplateSelect: document.getElementById('liveSummaryAnalysisTemplateSelect'),
     shareButton: document.getElementById('liveSummaryShareButton'),
     downloadButton: document.getElementById('liveSummaryDownloadButton'),
@@ -1302,6 +1309,11 @@ function getLiveSummaryTabCountdownSeconds(query = '', entryKey = '') {
   return Math.max(1, Math.ceil((dueAt - Date.now()) / 1000));
 }
 
+function isLiveSummaryTabThinking(query = '', entryKey = '') {
+  const record = getLiveSummaryRecord(query, entryKey);
+  return Boolean(record?.isStreaming);
+}
+
 function hasLiveSummaryVisibleCountdown() {
   const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys) ? liveSummaryState.visibleEntryKeys : [];
   return visibleEntryKeys.some((entryKey) => {
@@ -1404,14 +1416,28 @@ function renderLiveSummaryTabs() {
     const query = normalizeLiveSummaryQuery(entry?.query || getLiveSummaryEntryQuery(entryKey));
     const isActive = entryKey === liveSummaryState.activeEntryKey;
     const countdownSeconds = getLiveSummaryTabCountdownSeconds(query, entryKey);
+    const isThinking = isLiveSummaryTabThinking(query, entryKey);
     const button = document.createElement('button');
-    button.className = `live-summary-tab${isActive ? ' is-active' : ''}`;
+    button.className = `live-summary-tab${isActive ? ' is-active' : ''}${isThinking ? ' is-thinking' : ''}`;
     button.type = 'button';
     button.setAttribute('role', 'tab');
     button.setAttribute('aria-selected', isActive ? 'true' : 'false');
     button.title = query;
-    button.setAttribute('aria-label', countdownSeconds > 0 ? `${query} ${countdownSeconds}s` : query);
+    const ariaLabelParts = [query];
+    if (isThinking) {
+      ariaLabelParts.push(t('liveSummaryThinking', 'thinking'));
+    }
+    if (countdownSeconds > 0) {
+      ariaLabelParts.push(`${countdownSeconds}s`);
+    }
+    button.setAttribute('aria-label', ariaLabelParts.filter(Boolean).join(' '));
     button.dataset.entryKey = entryKey;
+    if (isThinking) {
+      const spinner = document.createElement('span');
+      spinner.className = 'live-summary-tab-spinner';
+      spinner.setAttribute('aria-hidden', 'true');
+      button.appendChild(spinner);
+    }
     const label = document.createElement('span');
     label.className = 'live-summary-tab-label';
     label.textContent = getLiveSummaryTabLabel(query);
@@ -2251,7 +2277,11 @@ async function refreshLiveSummaryExportBundle(options = {}) {
 }
 
 function refreshLiveSummaryAnalysisTemplateSelectLabel() {
-  const { analysisTemplateSelect } = getLiveSummaryElements();
+  const {
+    analysisTemplateSelect,
+    analysisTemplateTrigger,
+    analysisTemplateTriggerText
+  } = getLiveSummaryElements();
   if (!(analysisTemplateSelect instanceof HTMLSelectElement)) {
     return;
   }
@@ -2267,6 +2297,13 @@ function refreshLiveSummaryAnalysisTemplateSelectLabel() {
   const selectedOption = analysisTemplateSelect.selectedOptions?.[0] || null;
   const selectedBaseLabel = String(selectedOption?.dataset?.baseLabel || selectedOption?.textContent || '').trim();
   const selectLabel = t('analysisPromptTemplateSelectLabel', '分析提示词选择');
+  if (analysisTemplateTriggerText instanceof HTMLElement) {
+    analysisTemplateTriggerText.textContent = selectedBaseLabel || t('analysisTemplateEmpty', '暂无分析提示词模板');
+  }
+  if (analysisTemplateTrigger instanceof HTMLButtonElement) {
+    analysisTemplateTrigger.title = selectedBaseLabel;
+    analysisTemplateTrigger.setAttribute('aria-label', selectedBaseLabel ? `${selectLabel} ${selectedBaseLabel}` : selectLabel);
+  }
   analysisTemplateSelect.title = selectedBaseLabel;
   analysisTemplateSelect.setAttribute('aria-label', selectedBaseLabel ? `${selectLabel} ${selectedBaseLabel}` : selectLabel);
 }
@@ -2379,7 +2416,7 @@ function renderLiveSummaryCard() {
   const isVisible = liveSummaryState.status !== 'hidden';
   card.hidden = !isVisible;
   if (!isVisible) {
-    card.classList.remove('is-actions-visible');
+    closeLiveSummaryAnalysisTemplateDropdown();
     hideTimelineCopyPreviewTooltip(card);
     hideTimelineCopyPreviewSharePanel(card);
     return;
@@ -2389,7 +2426,7 @@ function renderLiveSummaryCard() {
   card.classList.toggle('is-expanded', isExpanded);
   card.classList.toggle('is-collapsed', !isExpanded);
   if (!isExpanded) {
-    card.classList.remove('is-actions-visible');
+    closeLiveSummaryAnalysisTemplateDropdown();
   }
   card.classList.toggle('has-failed-sites', hasFailedSiteHint);
   syncLiveSummaryHintTimer();
@@ -2451,6 +2488,7 @@ function hideLiveSummaryCard() {
   liveSummaryContext.requestGeneration += 1;
   liveSummaryContext.requestSequenceByEntryKey.clear();
   disconnectLiveSummaryAnalysisPort('', 'hidden');
+  closeLiveSummaryAnalysisTemplateDropdown();
   clearLiveSummaryPendingTimer();
   clearLiveSummaryAutoAnalysisTimer();
   clearLiveSummaryHintTimer();
@@ -3194,7 +3232,9 @@ function scheduleLiveSummaryAutoAnalysis(query = '', entryKey = '') {
 function initializeLiveSummaryCard() {
   const {
     card,
-    actionsCluster,
+    analysisTemplateDropdown,
+    analysisTemplateTrigger,
+    analysisTemplateMenu,
     shareButton,
     downloadButton,
     copyButton,
@@ -3206,89 +3246,6 @@ function initializeLiveSummaryCard() {
   void hydrateLiveSummaryAnalysisTemplateSelect(liveSummaryContext.selectedAnalysisTemplateId).catch((error) => {
     console.warn('加载自动总结分析提示词模板失败:', error);
   });
-
-  if (card instanceof HTMLElement && card.dataset.actionsVisibilityBound !== '1') {
-    const ACTIONS_HIDE_DELAY_MS = 220;
-    let hideActionsTimer = null;
-    const canShowActions = () => {
-      if (card.hidden) {
-        return false;
-      }
-      const activeEntryKey = String(getLiveSummaryCurrentEntryKey() || '').trim();
-      return Boolean(activeEntryKey && isLiveSummaryEntryExpanded(activeEntryKey));
-    };
-    const clearHideActionsTimer = () => {
-      if (hideActionsTimer) {
-        window.clearTimeout(hideActionsTimer);
-        hideActionsTimer = null;
-      }
-    };
-    const showActions = () => {
-      clearHideActionsTimer();
-      if (!canShowActions()) return;
-      card.classList.add('is-actions-visible');
-    };
-    const hideActions = () => {
-      clearHideActionsTimer();
-      card.classList.remove('is-actions-visible');
-    };
-    const scheduleHideActions = () => {
-      clearHideActionsTimer();
-      hideActionsTimer = window.setTimeout(() => {
-        hideActionsTimer = null;
-        if (!hasInteractiveFocus() && !hasInteractiveHover()) {
-          hideActions();
-        }
-      }, ACTIONS_HIDE_DELAY_MS);
-    };
-    const isInsideInteractiveArea = (target) => {
-      if (!(target instanceof Node)) {
-        return false;
-      }
-      return Boolean(
-        content?.contains(target)
-        || actionsCluster?.contains(target)
-      );
-    };
-    const hasInteractiveHover = () => Boolean(
-      content?.matches(':hover')
-      || actionsCluster?.matches(':hover')
-    );
-    const hasInteractiveFocus = () => isInsideInteractiveArea(document.activeElement);
-
-    if (content instanceof HTMLElement) {
-      content.addEventListener('mouseenter', showActions);
-      content.addEventListener('focusin', showActions);
-      content.addEventListener('mouseleave', (event) => {
-        if (isInsideInteractiveArea(event.relatedTarget)) {
-          return;
-        }
-        scheduleHideActions();
-      });
-    }
-
-    if (actionsCluster instanceof HTMLElement) {
-      actionsCluster.addEventListener('mouseenter', showActions);
-      actionsCluster.addEventListener('focusin', showActions);
-      actionsCluster.addEventListener('mouseleave', (event) => {
-        if (isInsideInteractiveArea(event.relatedTarget)) {
-          return;
-        }
-        scheduleHideActions();
-      });
-    }
-
-    card.addEventListener('mouseleave', hideActions);
-    card.addEventListener('focusout', () => {
-      window.requestAnimationFrame(() => {
-        if (!hasInteractiveFocus() && !hasInteractiveHover()) {
-          hideActions();
-        }
-      });
-    });
-
-    card.dataset.actionsVisibilityBound = '1';
-  }
 
   [shareButton, downloadButton, copyButton].forEach((button) => {
     if (!(button instanceof HTMLButtonElement) || !(card instanceof HTMLElement)) return;
@@ -3309,6 +3266,9 @@ function initializeLiveSummaryCard() {
   if (analysisTemplateSelect instanceof HTMLSelectElement) {
     analysisTemplateSelect.addEventListener('change', (event) => {
       liveSummaryContext.selectedAnalysisTemplateId = event.target?.value || '';
+      refreshLiveSummaryAnalysisTemplateSelectLabel();
+      renderLiveSummaryAnalysisTemplateDropdownMenu();
+      syncLiveSummaryAnalysisTemplateDropdownState();
       renderLiveSummaryCard();
       const query = getLiveSummaryCurrentQuery();
       const entryKey = getLiveSummaryCurrentEntryKey();
@@ -3318,6 +3278,69 @@ function initializeLiveSummaryCard() {
         });
       }
     });
+  }
+
+  if (analysisTemplateTrigger instanceof HTMLButtonElement && analysisTemplateTrigger.dataset.bound !== '1') {
+    analysisTemplateTrigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleLiveSummaryAnalysisTemplateDropdown();
+    });
+    analysisTemplateTrigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openLiveSummaryAnalysisTemplateDropdown();
+      } else if (event.key === 'Escape') {
+        closeLiveSummaryAnalysisTemplateDropdown();
+      }
+    });
+    analysisTemplateTrigger.dataset.bound = '1';
+  }
+
+  if (analysisTemplateMenu instanceof HTMLElement && analysisTemplateMenu.dataset.bound !== '1') {
+    analysisTemplateMenu.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) {
+        return;
+      }
+      const optionButton = target.closest('.live-summary-analysis-menu-option');
+      const defaultButton = target.closest('.live-summary-analysis-menu-default-btn');
+      if (optionButton instanceof HTMLButtonElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        void handleLiveSummaryAnalysisTemplateSelection(optionButton.getAttribute('data-template-id') || '');
+        return;
+      }
+      if (defaultButton instanceof HTMLButtonElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        void setLiveSummaryAnalysisTemplateAsDefault(defaultButton.getAttribute('data-template-id') || '');
+      }
+    });
+    analysisTemplateMenu.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeLiveSummaryAnalysisTemplateDropdown();
+        analysisTemplateTrigger?.focus?.({ preventScroll: true });
+      }
+    });
+    analysisTemplateMenu.dataset.bound = '1';
+  }
+
+  if (!liveSummaryAnalysisDropdownOutsideClickBound) {
+    document.addEventListener('click', (event) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (!target) {
+        closeLiveSummaryAnalysisTemplateDropdown();
+        return;
+      }
+      const currentDropdown = getLiveSummaryElements().analysisTemplateDropdown;
+      if (currentDropdown instanceof HTMLElement && currentDropdown.contains(target)) {
+        return;
+      }
+      closeLiveSummaryAnalysisTemplateDropdown();
+    });
+    liveSummaryAnalysisDropdownOutsideClickBound = true;
   }
 
   if (copyButton instanceof HTMLButtonElement && card instanceof HTMLElement) {
@@ -3430,12 +3453,22 @@ function startLiveSummaryForQuery(query = '', options = {}) {
     hideLiveSummaryCard();
     return;
   }
+  const previousActiveEntryKey = getLiveSummaryCurrentEntryKey();
+  const shouldCarryExpandedState = isLiveSummaryEntryExpanded(previousActiveEntryKey);
   const entryKey = String(options?.entryKey || '').trim();
+  const preserveActiveEntry = options?.preserveActiveEntry === true;
   markLiveSummaryCollecting(normalizedQuery, entryKey);
+  const nextEntryKey = String(
+    entryKey || getLiveSummaryEntryKey(getLiveSummaryTimelineEntry(normalizedQuery, entryKey))
+  ).trim();
+  if (shouldCarryExpandedState && nextEntryKey && nextEntryKey !== previousActiveEntryKey) {
+    setLiveSummaryEntryExpanded(nextEntryKey, true);
+    renderLiveSummaryCard();
+  }
   scheduleLiveSummaryRefresh(800, {
     query: normalizedQuery,
     entryKey,
-    preserveActiveEntry: true
+    preserveActiveEntry
   });
 }
 
@@ -4122,8 +4155,15 @@ async function createLiveSummaryShareLink(anchorButton) {
   if (!(card instanceof HTMLElement) || !(anchorButton instanceof HTMLButtonElement)) return;
 
   const exportBundle = getLiveSummaryExportBundle();
-  const shareSummaryText = String(exportBundle.analysisSummaryText || '').trim();
-  if (!exportBundle.entry || !shareSummaryText) {
+  const shareSummaryText = String(
+    exportBundle.copyText
+    || exportBundle.analysisSummaryText
+    || exportBundle.collectedSummaryText
+    || ''
+  ).trim();
+  const hasShareableResponses = Array.isArray(exportBundle.exportResponses) && exportBundle.exportResponses.length > 0;
+  const hasShareableQuestion = String(exportBundle.entry?.query || '').trim().length > 0;
+  if (!exportBundle.entry || (!shareSummaryText && !hasShareableResponses && !hasShareableQuestion)) {
     showTimelineCopyPreviewActionFeedback(
       card,
       anchorButton,
@@ -4691,20 +4731,48 @@ function upsertTimelineEntry(entry, options = {}) {
   if (!query) return null;
 
   const historyId = entry?.historyId || null;
-    if (historyId && options.dedupeByHistoryId) {
-      const existingEntry = timelineState.entries.find((item) => item.historyId === historyId);
+  if (historyId && options.dedupeByHistoryId) {
+    const existingEntry = timelineState.entries.find((item) => item.historyId === historyId);
+    if (existingEntry) {
+      existingEntry.query = query;
+      existingEntry.normalizedQuery = query;
+      existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || Date.now();
+      existingEntry.dateLabel = entry?.dateLabel || existingEntry.dateLabel || formatTimelineDateLabel(existingEntry.timestamp);
+      timelineState.activeTimelineId = existingEntry.timelineId;
+      renderTimeline();
+      syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(existingEntry));
+      renderLiveSummaryCard();
+      return existingEntry;
+    }
+  }
+
+  const hasExplicitOccurrenceIndex = Number.isFinite(Number(entry?.occurrenceIndex));
+  const hasExplicitTimelineIdentity = Boolean(entry?.timelineId || historyId);
+  const upsertedAt = Date.now();
+  if (!hasExplicitOccurrenceIndex && !hasExplicitTimelineIdentity) {
+    const lastLiveUpsert = timelineState.lastLiveUpsert;
+    const isLikelyDuplicateLiveSubmit = lastLiveUpsert
+      && lastLiveUpsert.query === query
+      && (upsertedAt - Number(lastLiveUpsert.at || 0)) <= TIMELINE_LIVE_UPSERT_DEDUPE_WINDOW_MS;
+    if (isLikelyDuplicateLiveSubmit) {
+      const existingEntry = timelineFindEntryByKey(timelineState.entries, lastLiveUpsert.entryKey)
+        || timelineFindEntryByQuery(timelineState.entries, query);
       if (existingEntry) {
-        existingEntry.query = query;
-        existingEntry.normalizedQuery = query;
-        existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || Date.now();
+        existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || upsertedAt;
         existingEntry.dateLabel = entry?.dateLabel || existingEntry.dateLabel || formatTimelineDateLabel(existingEntry.timestamp);
         timelineState.activeTimelineId = existingEntry.timelineId;
+        timelineState.lastLiveUpsert = {
+          query,
+          entryKey: getLiveSummaryEntryKey(existingEntry),
+          at: upsertedAt
+        };
         renderTimeline();
         syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(existingEntry));
         renderLiveSummaryCard();
         return existingEntry;
       }
     }
+  }
 
   const normalizedEntry = timelineBuildEntry({
     query,
@@ -4714,6 +4782,13 @@ function upsertTimelineEntry(entry, options = {}) {
   }, timelineState.entries);
 
   timelineState.entries.push(normalizedEntry);
+  if (!hasExplicitOccurrenceIndex && !hasExplicitTimelineIdentity) {
+    timelineState.lastLiveUpsert = {
+      query,
+      entryKey: getLiveSummaryEntryKey(normalizedEntry),
+      at: upsertedAt
+    };
+  }
   timelineState.activeTimelineId = normalizedEntry.timelineId;
   renderTimeline();
   syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(normalizedEntry));
@@ -4888,6 +4963,7 @@ function resetTimelinePromptSnapshots() {
   timelineState.promptSnapshotsBySite.clear();
   timelineState.entries = [];
   timelineState.activeTimelineId = null;
+  timelineState.lastLiveUpsert = null;
   renderTimeline();
 }
 
@@ -4898,6 +4974,7 @@ function rebuildTimelineEntriesFromSnapshots() {
     timelineState.promptSnapshotsBySite.clear();
     timelineState.entries = [];
     timelineState.activeTimelineId = null;
+    timelineState.lastLiveUpsert = null;
     renderTimeline();
     return;
   }
@@ -5431,6 +5508,43 @@ async function getStoredDefaultAnalysisTemplateId() {
   }
 }
 
+async function setStoredDefaultAnalysisTemplateId(templateId = '') {
+  const normalizedId = String(templateId || '').trim();
+  try {
+    await chrome.storage.sync.set({
+      [DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY]: normalizedId
+    });
+    return normalizedId;
+  } catch (error) {
+    console.error('保存默认分析提示词失败:', error);
+    throw error;
+  }
+}
+
+async function resolveDefaultAnalysisTemplateIdForTemplates(templates = []) {
+  const normalizedTemplates = Array.isArray(templates) ? templates : [];
+  if (!normalizedTemplates.length) {
+    return '';
+  }
+
+  const storedDefaultId = await getStoredDefaultAnalysisTemplateId();
+  if (storedDefaultId && normalizedTemplates.some((template) => template.id === storedDefaultId)) {
+    return storedDefaultId;
+  }
+
+  try {
+    const analysisConfig = await window.AppConfigManager.getAnalysisPromptTemplateConfig();
+    const configuredDefaultId = String(analysisConfig?.defaultTemplateId || '').trim();
+    if (configuredDefaultId && normalizedTemplates.some((template) => template.id === configuredDefaultId)) {
+      return configuredDefaultId;
+    }
+  } catch (error) {
+    console.warn('Failed to load configured default analysis template id:', error);
+  }
+
+  return String(normalizedTemplates[0]?.id || '').trim();
+}
+
 async function resolvePreferredAnalysisTemplateId(templates = [], selectedTemplateId = '') {
   const normalizedTemplates = Array.isArray(templates) ? templates : [];
   if (!normalizedTemplates.length) {
@@ -5508,13 +5622,24 @@ async function hydrateAnalysisTemplateSelect(overlay, selectedTemplateId = '') {
 }
 
 async function hydrateLiveSummaryAnalysisTemplateSelect(selectedTemplateId = '') {
-  const { analysisTemplateSelect, immediateAnalyzeButton } = getLiveSummaryElements();
+  const {
+    analysisTemplateSelect,
+    analysisTemplateTriggerText,
+    immediateAnalyzeButton
+  } = getLiveSummaryElements();
   if (!(analysisTemplateSelect instanceof HTMLSelectElement)) {
     return [];
   }
 
+  closeLiveSummaryAnalysisTemplateDropdown();
   analysisTemplateSelect.disabled = true;
   analysisTemplateSelect.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateLoading', '加载分析提示词...'))}</option>`;
+  liveSummaryContext.analysisTemplates = [];
+  liveSummaryContext.defaultAnalysisTemplateId = '';
+  if (analysisTemplateTriggerText instanceof HTMLElement) {
+    analysisTemplateTriggerText.textContent = t('analysisTemplateLoading', '加载分析提示词...');
+  }
+  syncLiveSummaryAnalysisTemplateDropdownState();
   if (immediateAnalyzeButton instanceof HTMLButtonElement) {
     immediateAnalyzeButton.disabled = true;
   }
@@ -5525,6 +5650,11 @@ async function hydrateLiveSummaryAnalysisTemplateSelect(selectedTemplateId = '')
   if (!templates.length) {
     analysisTemplateSelect.innerHTML = `<option value="">${escapeHtml(t('analysisTemplateEmpty', '暂无分析提示词模板'))}</option>`;
     analysisTemplateSelect.disabled = true;
+    liveSummaryContext.selectedAnalysisTemplateId = '';
+    liveSummaryContext.defaultAnalysisTemplateId = '';
+    refreshLiveSummaryAnalysisTemplateSelectLabel();
+    renderLiveSummaryAnalysisTemplateDropdownMenu();
+    syncLiveSummaryAnalysisTemplateDropdownState();
     return templates;
   }
 
@@ -5536,14 +5666,202 @@ async function hydrateLiveSummaryAnalysisTemplateSelect(selectedTemplateId = '')
   });
 
   const nextSelectedId = await resolvePreferredAnalysisTemplateId(templates, selectedTemplateId);
+  const nextDefaultId = await resolveDefaultAnalysisTemplateIdForTemplates(templates);
   analysisTemplateSelect.value = nextSelectedId;
   analysisTemplateSelect.disabled = false;
   liveSummaryContext.selectedAnalysisTemplateId = nextSelectedId;
+  liveSummaryContext.defaultAnalysisTemplateId = nextDefaultId;
   refreshLiveSummaryAnalysisTemplateSelectLabel();
+  renderLiveSummaryAnalysisTemplateDropdownMenu();
+  syncLiveSummaryAnalysisTemplateDropdownState();
   if (immediateAnalyzeButton instanceof HTMLButtonElement) {
     immediateAnalyzeButton.disabled = !getLiveSummaryCurrentQuery() || !nextSelectedId;
   }
   return templates;
+}
+
+function closeLiveSummaryAnalysisTemplateDropdown() {
+  const {
+    analysisTemplateDropdown,
+    analysisTemplateTrigger,
+    analysisTemplateMenu
+  } = getLiveSummaryElements();
+  if (analysisTemplateDropdown instanceof HTMLElement) {
+    analysisTemplateDropdown.classList.remove('is-open');
+  }
+  if (analysisTemplateTrigger instanceof HTMLButtonElement) {
+    analysisTemplateTrigger.setAttribute('aria-expanded', 'false');
+  }
+  if (analysisTemplateMenu instanceof HTMLElement) {
+    analysisTemplateMenu.hidden = true;
+  }
+}
+
+function openLiveSummaryAnalysisTemplateDropdown() {
+  const {
+    analysisTemplateDropdown,
+    analysisTemplateTrigger,
+    analysisTemplateMenu
+  } = getLiveSummaryElements();
+  if (!(analysisTemplateDropdown instanceof HTMLElement)
+    || !(analysisTemplateTrigger instanceof HTMLButtonElement)
+    || !(analysisTemplateMenu instanceof HTMLElement)
+    || analysisTemplateTrigger.disabled
+    || !analysisTemplateMenu.childElementCount) {
+    return;
+  }
+  analysisTemplateDropdown.classList.add('is-open');
+  analysisTemplateTrigger.setAttribute('aria-expanded', 'true');
+  analysisTemplateMenu.hidden = false;
+}
+
+function toggleLiveSummaryAnalysisTemplateDropdown() {
+  const { analysisTemplateDropdown } = getLiveSummaryElements();
+  if (!(analysisTemplateDropdown instanceof HTMLElement)) {
+    return;
+  }
+  if (analysisTemplateDropdown.classList.contains('is-open')) {
+    closeLiveSummaryAnalysisTemplateDropdown();
+    return;
+  }
+  openLiveSummaryAnalysisTemplateDropdown();
+}
+
+function syncLiveSummaryAnalysisTemplateDropdownState() {
+  const {
+    analysisTemplateSelect,
+    analysisTemplateTrigger,
+    analysisTemplateMenu
+  } = getLiveSummaryElements();
+  const isDisabled = !(analysisTemplateSelect instanceof HTMLSelectElement) || analysisTemplateSelect.disabled;
+  if (analysisTemplateTrigger instanceof HTMLButtonElement) {
+    analysisTemplateTrigger.disabled = isDisabled;
+    analysisTemplateTrigger.classList.toggle('is-disabled', isDisabled);
+  }
+  if (isDisabled) {
+    closeLiveSummaryAnalysisTemplateDropdown();
+    return;
+  }
+  if (analysisTemplateMenu instanceof HTMLElement && !analysisTemplateMenu.childElementCount) {
+    closeLiveSummaryAnalysisTemplateDropdown();
+  }
+}
+
+function renderLiveSummaryAnalysisTemplateDropdownMenu() {
+  const { analysisTemplateDropdown, analysisTemplateMenu } = getLiveSummaryElements();
+  if (!(analysisTemplateMenu instanceof HTMLElement)) {
+    return;
+  }
+
+  const templates = Array.isArray(liveSummaryContext.analysisTemplates)
+    ? liveSummaryContext.analysisTemplates
+    : [];
+  const selectedTemplateId = String(liveSummaryContext.selectedAnalysisTemplateId || '').trim();
+  const defaultTemplateId = String(liveSummaryContext.defaultAnalysisTemplateId || '').trim();
+
+  if (!templates.length) {
+    analysisTemplateMenu.innerHTML = '';
+    analysisTemplateMenu.hidden = true;
+    if (analysisTemplateDropdown instanceof HTMLElement) {
+      analysisTemplateDropdown.classList.remove('is-open');
+    }
+    return;
+  }
+
+  analysisTemplateMenu.innerHTML = templates.map((template) => {
+    const templateId = String(template?.id || '').trim();
+    const templateName = String(template?.name || '').trim();
+    const isSelected = templateId === selectedTemplateId;
+    const isDefault = templateId === defaultTemplateId;
+    const selectText = escapeHtml(templateName);
+    const defaultActionText = escapeHtml(
+      isDefault
+        ? t('analysisTemplateDefaultActiveButton', '默认中')
+        : t('analysisTemplateSetDefaultButton', '设为默认')
+    );
+    return `
+      <div class="live-summary-analysis-menu-item${isSelected ? ' is-selected' : ''}">
+        <button
+          class="live-summary-analysis-menu-option${isSelected ? ' is-selected' : ''}"
+          type="button"
+          role="menuitemradio"
+          aria-checked="${isSelected ? 'true' : 'false'}"
+          data-template-id="${escapeHtml(templateId)}"
+          title="${selectText}"
+        >
+          <span class="live-summary-analysis-menu-option-name">${selectText}</span>
+        </button>
+        <button
+          class="live-summary-analysis-menu-default-btn${isDefault ? ' is-active' : ''}"
+          type="button"
+          data-template-id="${escapeHtml(templateId)}"
+          title="${defaultActionText}"
+          aria-label="${defaultActionText}"
+          ${isDefault ? 'disabled aria-disabled="true"' : ''}
+        >${defaultActionText}</button>
+      </div>
+    `;
+  }).join('');
+
+  if (!(analysisTemplateDropdown instanceof HTMLElement) || !analysisTemplateDropdown.classList.contains('is-open')) {
+    analysisTemplateMenu.hidden = true;
+  }
+}
+
+async function handleLiveSummaryAnalysisTemplateSelection(selectedTemplateId = '') {
+  const {
+    analysisTemplateSelect,
+    analysisTemplateMenu
+  } = getLiveSummaryElements();
+  if (!(analysisTemplateSelect instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const normalizedTemplateId = String(selectedTemplateId || '').trim();
+  if (!normalizedTemplateId || normalizedTemplateId === String(liveSummaryContext.selectedAnalysisTemplateId || '').trim()) {
+    closeLiveSummaryAnalysisTemplateDropdown();
+    return;
+  }
+
+  analysisTemplateSelect.value = normalizedTemplateId;
+  liveSummaryContext.selectedAnalysisTemplateId = normalizedTemplateId;
+  refreshLiveSummaryAnalysisTemplateSelectLabel();
+  renderLiveSummaryAnalysisTemplateDropdownMenu();
+  syncLiveSummaryAnalysisTemplateDropdownState();
+  closeLiveSummaryAnalysisTemplateDropdown();
+  renderLiveSummaryCard();
+
+  const query = getLiveSummaryCurrentQuery();
+  const entryKey = getLiveSummaryCurrentEntryKey();
+  if (query && entryKey) {
+    try {
+      await rerunLiveSummaryAnalysis({ query, entryKey });
+    } catch (error) {
+      console.warn('切换自动总结分析提示词后刷新失败:', error);
+    }
+  }
+
+  if (analysisTemplateMenu instanceof HTMLElement) {
+    analysisTemplateMenu.scrollTop = 0;
+  }
+}
+
+async function setLiveSummaryAnalysisTemplateAsDefault(templateId = '') {
+  const normalizedTemplateId = String(templateId || '').trim();
+  if (!normalizedTemplateId) {
+    return;
+  }
+
+  try {
+    await setStoredDefaultAnalysisTemplateId(normalizedTemplateId);
+    liveSummaryContext.defaultAnalysisTemplateId = normalizedTemplateId;
+    renderLiveSummaryAnalysisTemplateDropdownMenu();
+    refreshLiveSummaryAnalysisTemplateSelectLabel();
+    showToast(t('analysisTemplateDefaultSaved', '默认分析提示词已更新'));
+  } catch (error) {
+    console.error('设置默认分析提示词失败:', error);
+    showToast(t('saveFailedGeneric', '保存失败，请重试'));
+  }
 }
 
 async function collectTimelineEntryResponses(entry) {
@@ -9735,7 +10053,7 @@ async function createIframes(query, sites, customSites = [], agents = []) {
   if (hasQuery) {
     scheduleLiveSummaryRefresh(900, {
       query,
-      preserveActiveEntry: true
+      preserveActiveEntry: false
     });
   }
 }
@@ -10968,7 +11286,7 @@ async function runIframeSearchQuery(query, options = {}) {
     scheduleLiveSummaryRefresh(900, {
       query: normalizedQuery,
       entryKey,
-      preserveActiveEntry: true
+      preserveActiveEntry: false
     });
     if (clearInputOnSuccess) {
       clearIframeSearchInput();

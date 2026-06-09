@@ -326,12 +326,15 @@ function getAgentPromptUtils() {
 function getBundledAgentEngineDefaults() {
   const promptUtils = getAgentPromptUtils();
   if (typeof promptUtils?.normalizeApiConfig === 'function') {
-    return promptUtils.normalizeApiConfig({});
+    return {
+      ...promptUtils.normalizeApiConfig({}),
+      apiKey: ''
+    };
   }
 
   const rawDefaults = window.AICompareAgentEngineConfig?.getDefaults?.() || {};
   return {
-    apiKey: String(rawDefaults.apiKey || '').trim(),
+    apiKey: '',
     baseUrl: String(rawDefaults.baseUrl || '').trim().replace(/\/+$/, ''),
     model: String(rawDefaults.model || '').trim(),
     concurrency: Math.max(1, Number(rawDefaults.concurrency) || 10),
@@ -404,6 +407,14 @@ function getOfficialAgentEngineDailyFreeLimit() {
   return Math.max(0, Math.trunc(rawLimit));
 }
 
+function isOfficialAgentEngineBillingEnabledForCurrentLocale() {
+  const locale = RuntimeI18n?.getCurrentLocale?.() || chrome.i18n?.getUILanguage?.() || 'en';
+  if (typeof window.AICompareAgentEngineConfig?.shouldEnableBillingForLocale === 'function') {
+    return window.AICompareAgentEngineConfig.shouldEnableBillingForLocale(locale);
+  }
+  return !String(locale || '').trim().toLowerCase().startsWith('zh');
+}
+
 async function getCurrentMembershipPlanInfo() {
   try {
     if (typeof window.getUserPlan === 'function') {
@@ -468,13 +479,17 @@ async function refreshOfficialAgentEngineMeta() {
   const planInfo = await getCurrentMembershipPlanInfo();
   const isPro = planInfo?.plan === 'pro';
   const dailyFreeLimit = getOfficialAgentEngineDailyFreeLimit();
+  const billingEnabled = isOfficialAgentEngineBillingEnabledForCurrentLocale();
   upgradeButton.dataset.plan = isPro ? 'pro' : 'free';
 
   officialMeta.textContent = isPro
     ? getMessageWithFallback('agentEngineOfficialMetaPro', 'Current plan: PRO')
-    : (
+    : (!billingEnabled
+      ? getMessageWithFallback('agentEngineOfficialMetaChineseFree', 'Official API is currently free in Chinese UI.')
+      : (
       getMessage('agentEngineOfficialMetaFree', [String(dailyFreeLimit)])
       || `Use the built-in API, free ${dailyFreeLimit} times per day.`
+      )
     );
   upgradeButton.textContent = isPro
     ? getMessageWithFallback('agentEngineManageProButton', '管理 PRO')
@@ -4814,9 +4829,190 @@ async function initializeMembership() {
   const planLabelEl = document.getElementById('membershipPlanLabel');
   const emailEl = document.getElementById('membershipEmail');
   const expiryEl = document.getElementById('membershipExpiry');
+  const plansTabEl = document.getElementById('membershipPlansTab');
+  const invoicesTabEl = document.getElementById('membershipInvoicesTab');
+  const plansPanelEl = document.getElementById('membershipPlansPanel');
+  const invoicesPanelEl = document.getElementById('membershipInvoicesPanel');
+  const chatPlanStatusBadgeEl = document.getElementById('chatPlanStatusBadge');
+  const apiPlanStatusBadgeEl = document.getElementById('apiPlanStatusBadge');
+  const apiPlanStatusTextEl = document.getElementById('apiPlanStatusText');
+  const invoicesLoadingEl = document.getElementById('membershipInvoicesLoading');
+  const invoicesEmptyEl = document.getElementById('membershipInvoicesEmpty');
+  const invoicesTableEl = document.getElementById('membershipInvoicesTable');
+  const invoicesBodyEl = document.getElementById('membershipInvoicesBody');
+
+  function getMembershipLocale() {
+    try {
+      if (typeof chrome?.i18n?.getUILanguage === 'function') {
+        return chrome.i18n.getUILanguage();
+      }
+    } catch (_) {}
+    return navigator.language || 'en-US';
+  }
+
+  function formatMembershipDate(value) {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    try {
+      return new Intl.DateTimeFormat(getMembershipLocale(), {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }).format(date);
+    } catch (_) {
+      return date.toLocaleDateString();
+    }
+  }
+
+  function formatMembershipMoney(amount = 0, currency = 'usd') {
+    const normalizedAmount = Number(amount || 0) / 100;
+    const normalizedCurrency = String(currency || 'usd').toUpperCase();
+    try {
+      return new Intl.NumberFormat(getMembershipLocale(), {
+        style: 'currency',
+        currency: normalizedCurrency
+      }).format(normalizedAmount);
+    } catch (_) {
+      return `${normalizedAmount.toFixed(2)} ${normalizedCurrency}`;
+    }
+  }
+
+  function setMembershipTab(tabName = 'plans') {
+    const isInvoices = tabName === 'invoices';
+    if (plansTabEl) {
+      plansTabEl.classList.toggle('is-active', !isInvoices);
+      plansTabEl.setAttribute('aria-selected', isInvoices ? 'false' : 'true');
+      plansTabEl.tabIndex = isInvoices ? -1 : 0;
+    }
+    if (invoicesTabEl) {
+      invoicesTabEl.classList.toggle('is-active', isInvoices);
+      invoicesTabEl.setAttribute('aria-selected', isInvoices ? 'true' : 'false');
+      invoicesTabEl.tabIndex = isInvoices ? 0 : -1;
+    }
+    if (plansPanelEl) {
+      plansPanelEl.hidden = isInvoices;
+    }
+    if (invoicesPanelEl) {
+      invoicesPanelEl.hidden = !isInvoices;
+    }
+  }
+
+  function setInvoicesLoading(show) {
+    if (invoicesLoadingEl) {
+      invoicesLoadingEl.style.display = show ? 'block' : 'none';
+    }
+  }
+
+  function renderInvoicesEmpty(message) {
+    if (invoicesTableEl) {
+      invoicesTableEl.style.display = 'none';
+    }
+    if (invoicesBodyEl) {
+      invoicesBodyEl.innerHTML = '';
+    }
+    if (invoicesEmptyEl) {
+      invoicesEmptyEl.textContent = message;
+      invoicesEmptyEl.style.display = 'block';
+    }
+  }
+
+  function getInvoiceStatusLabel(status) {
+    switch (String(status || '').trim().toLowerCase()) {
+      case 'paid':
+        return getMessageWithFallback('membershipInvoiceStatusPaid', 'Paid');
+      case 'open':
+        return getMessageWithFallback('membershipInvoiceStatusOpen', 'Open');
+      case 'draft':
+        return getMessageWithFallback('membershipInvoiceStatusDraft', 'Draft');
+      case 'void':
+        return getMessageWithFallback('membershipInvoiceStatusVoid', 'Void');
+      case 'uncollectible':
+        return getMessageWithFallback('membershipInvoiceStatusUncollectible', 'Uncollectible');
+      default:
+        return String(status || '-');
+    }
+  }
+
+  function renderInvoicesTable(invoices = []) {
+    if (!invoicesTableEl || !invoicesBodyEl) {
+      return;
+    }
+
+    if (!Array.isArray(invoices) || invoices.length === 0) {
+      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesEmpty', 'No invoices yet.'));
+      return;
+    }
+
+    if (invoicesEmptyEl) {
+      invoicesEmptyEl.style.display = 'none';
+    }
+
+    invoicesBodyEl.innerHTML = invoices.map((invoice) => {
+      const invoiceDate = formatMembershipDate(invoice.createdAt);
+      const invoiceNumber = escapeHtml(String(invoice.number || invoice.id || '-').trim());
+      const invoiceAmount = escapeHtml(formatMembershipMoney(invoice.amountPaid || invoice.amountDue || 0, invoice.currency || 'usd'));
+      const invoiceStatus = escapeHtml(getInvoiceStatusLabel(invoice.status));
+      const invoiceUrl = String(invoice.hostedInvoiceUrl || invoice.invoicePdf || '').trim();
+      const invoiceAction = invoiceUrl
+        ? `<a class="membership-invoice-link" href="${escapeHtml(invoiceUrl)}" target="_blank" rel="noreferrer noopener">${escapeHtml(getMessageWithFallback('membershipInvoiceViewAction', 'View'))}</a>`
+        : '-';
+
+      return `
+        <tr>
+          <td>${escapeHtml(invoiceDate || '-')}</td>
+          <td>${invoiceNumber}</td>
+          <td>${invoiceAmount}</td>
+          <td><span class="membership-invoice-status">${invoiceStatus}</span></td>
+          <td>${invoiceAction}</td>
+        </tr>
+      `;
+    }).join('');
+    invoicesTableEl.style.display = 'table';
+  }
+
+  async function loadInvoices(uid) {
+    if (!uid) {
+      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Sign in with Google to view invoices.'));
+      return;
+    }
+
+    setInvoicesLoading(true);
+    try {
+      if (typeof window.listInvoices !== 'function') {
+        renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesUnavailable', 'Invoice records are not available yet.'));
+        return;
+      }
+      const response = await window.listInvoices();
+      renderInvoicesTable(Array.isArray(response?.invoices) ? response.invoices : []);
+    } catch (error) {
+      console.warn('Failed to load invoices:', error);
+      renderInvoicesEmpty(error?.message || getMessageWithFallback('membershipInvoicesLoadFailed', 'Failed to load invoice records.'));
+    } finally {
+      setInvoicesLoading(false);
+    }
+  }
+
+  if (plansTabEl && plansTabEl.dataset.bound !== 'true') {
+    plansTabEl.dataset.bound = 'true';
+    plansTabEl.addEventListener('click', () => setMembershipTab('plans'));
+  }
+
+  if (invoicesTabEl && invoicesTabEl.dataset.bound !== 'true') {
+    invoicesTabEl.dataset.bound = 'true';
+    invoicesTabEl.addEventListener('click', () => setMembershipTab('invoices'));
+  }
+
+  setMembershipTab('plans');
 
   function setLoading(show) {
     if (loadingEl) loadingEl.style.display = show ? 'block' : 'none';
+  }
+
+  function setMembershipBadge(isPro) {
+    if (!badgeEl) return;
+    badgeEl.className = 'membership-badge' + (isPro ? ' pro' : '');
+    badgeEl.style.display = isPro ? 'inline-flex' : 'none';
   }
 
   const loginBtn = document.getElementById('membershipGoogleLoginBtn');
@@ -4847,8 +5043,29 @@ async function initializeMembership() {
 
   if (!uid) {
     setLoading(false);
-    if (loginHintEl) loginHintEl.style.display = 'block';
-    if (loginActionsEl) loginActionsEl.style.display = 'block';
+    setMembershipBadge(false);
+    if (planLabelEl) planLabelEl.textContent = '';
+    if (emailEl) emailEl.textContent = '';
+    if (expiryEl) {
+      expiryEl.textContent = '';
+      expiryEl.style.display = 'none';
+    }
+    if (loginHintEl) loginHintEl.style.display = 'none';
+    if (loginActionsEl) loginActionsEl.style.display = 'none';
+    if (plansEl) plansEl.style.display = 'grid';
+    if (proActionsEl) proActionsEl.style.display = 'none';
+    if (chatPlanStatusBadgeEl) {
+      chatPlanStatusBadgeEl.className = 'membership-plan-status-badge';
+      chatPlanStatusBadgeEl.textContent = getMessageWithFallback('membershipPlanStatusInactive', 'Not active');
+    }
+    if (apiPlanStatusBadgeEl) {
+      apiPlanStatusBadgeEl.className = 'membership-plan-status-badge pending';
+      apiPlanStatusBadgeEl.textContent = getMessageWithFallback('membershipPlanStatusPending', 'Coming soon');
+    }
+    if (apiPlanStatusTextEl) {
+      apiPlanStatusTextEl.textContent = getMessageWithFallback('membershipApiPlanPendingDescription', 'Unlimited API calls.');
+    }
+    renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Sign in with Google to view invoices.'));
     return;
   }
 
@@ -4870,34 +5087,52 @@ async function initializeMembership() {
 
   const isPro = planInfo.plan === 'pro';
 
-  if (badgeEl) {
-    badgeEl.className = 'membership-badge' + (isPro ? ' pro' : '');
-  }
+  setMembershipBadge(isPro);
   if (planLabelEl) {
     planLabelEl.textContent = isPro
       ? (getMessage('membershipPlanPro') || 'Pro')
-      : (getMessage('membershipPlanFree') || 'Free');
+      : '';
+  }
+
+  if (expiryEl) {
+    expiryEl.textContent = '';
+    expiryEl.style.display = 'none';
   }
 
   if (isPro && planInfo.planExpiresAt && expiryEl) {
     const expiryDate = new Date(planInfo.planExpiresAt);
-    const dateStr = expiryDate.toLocaleDateString();
+    const dateStr = formatMembershipDate(expiryDate);
     const expiryLabel = getMessage('membershipExpiresOn') || '到期时间：';
     expiryEl.textContent = `${expiryLabel}${dateStr}`;
     expiryEl.style.display = 'block';
   }
 
+  if (chatPlanStatusBadgeEl) {
+    chatPlanStatusBadgeEl.className = 'membership-plan-status-badge' + (isPro ? ' active' : '');
+    chatPlanStatusBadgeEl.textContent = isPro
+      ? getMessageWithFallback('membershipPlanStatusActive', 'Active')
+      : getMessageWithFallback('membershipPlanStatusInactive', 'Not active');
+  }
+
+  if (apiPlanStatusBadgeEl) {
+    apiPlanStatusBadgeEl.className = 'membership-plan-status-badge pending';
+    apiPlanStatusBadgeEl.textContent = getMessageWithFallback('membershipPlanStatusPending', 'Coming soon');
+  }
+
+  if (apiPlanStatusTextEl) {
+    apiPlanStatusTextEl.textContent = getMessageWithFallback('membershipApiPlanPendingDescription', 'Unlimited API calls.');
+  }
+
   if (isPro) {
-    if (plansEl) plansEl.style.display = 'none';
+    if (plansEl) plansEl.style.display = 'grid';
     if (proActionsEl) proActionsEl.style.display = 'block';
   } else {
-    if (plansEl) plansEl.style.display = 'flex';
+    if (plansEl) plansEl.style.display = 'grid';
     if (proActionsEl) proActionsEl.style.display = 'none';
   }
 
   // 升级按钮事件
-  const btnMonthly = document.getElementById('btnUpgradeMonthly');
-  const btnYearly = document.getElementById('btnUpgradeYearly');
+  const btnSubscribe = document.getElementById('btnUpgradeChatPlan');
 
   async function handleUpgrade(priceId, btn) {
     if (!priceId || priceId.startsWith('price_REPLACE')) {
@@ -4906,6 +5141,7 @@ async function initializeMembership() {
     }
     if (btn) btn.disabled = true;
     try {
+      await ensureAgentEngineCheckoutReady();
       if (typeof window.startCheckout === 'function') {
         await window.startCheckout(priceId);
       } else {
@@ -4918,22 +5154,12 @@ async function initializeMembership() {
     }
   }
 
-  if (btnMonthly) {
-    if (btnMonthly.dataset.bound !== 'true') {
-      btnMonthly.dataset.bound = 'true';
-      btnMonthly.addEventListener('click', () => {
-        const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.monthly) || '';
-        handleUpgrade(priceId, btnMonthly);
-      });
-    }
-  }
-
-  if (btnYearly) {
-    if (btnYearly.dataset.bound !== 'true') {
-      btnYearly.dataset.bound = 'true';
-      btnYearly.addEventListener('click', () => {
+  if (btnSubscribe) {
+    if (btnSubscribe.dataset.bound !== 'true') {
+      btnSubscribe.dataset.bound = 'true';
+      btnSubscribe.addEventListener('click', () => {
         const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.yearly) || '';
-        handleUpgrade(priceId, btnYearly);
+        handleUpgrade(priceId, btnSubscribe);
       });
     }
   }
@@ -4957,6 +5183,8 @@ async function initializeMembership() {
       }
     });
   }
+
+  await loadInvoices(uid);
 
 }
 

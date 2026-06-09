@@ -174,6 +174,12 @@
   "agentEngineOfficialCardHint": {
     "message": "Select the official API card to use the bundled defaults"
   },
+  "agentEngineOfficialMetaChineseFree": {
+    "message": "Official API is currently free in Chinese UI."
+  },
+  "agentEngineOfficialQuotaExceeded": {
+    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
+  },
   "agentEngineCustomCardHint": {
     "message": "Select the custom API card to use your saved API settings"
   },
@@ -1448,6 +1454,18 @@
   "analysisPromptTemplateBadge": {
     "message": "Analysis"
   },
+  "analysisTemplateSetDefaultButton": {
+    "message": "Als Standard festlegen"
+  },
+  "analysisTemplateDefaultActiveButton": {
+    "message": "Standard"
+  },
+  "analysisTemplateDefaultSaved": {
+    "message": "Standard-Analyseprompt aktualisiert"
+  },
+  "analysisTemplateDefaultBadge": {
+    "message": "Standard"
+  },
   "defaultAnalysisTemplateConclusionName": {
     "message": "Urteil zuerst"
   },
@@ -1939,6 +1957,18 @@
   "homepageAgentsTitle": {
     "message": "KI-Agenten"
   },
+  "homepageFreePlanBannerPrefix": {
+    "message": "Du nutzt derzeit den Free-Plan. 💪🏻"
+  },
+  "homepageFreePlanBannerAction": {
+    "message": "Upgrade auf Premium"
+  },
+  "homepageFreePlanBannerSuffix": {
+    "message": "um erweiterte Funktionen freizuschalten."
+  },
+  "homepageAgentsEditButton": {
+    "message": "Skills bearbeiten"
+  },
   "homepageAgentsSelectAll": {
     "message": "Alle auswählen"
   },
@@ -2313,7 +2343,7 @@
     "message": "Analysevorlage:"
   },
   "liveSummaryHint": {
-    "message": "Die automatische Analyse startet 60 Sekunden nach deiner Frage."
+    "message": "Die automatische Analyse startet 20 Sekunden nach deiner Frage."
   },
   "liveSummaryHintCountdown": {
     "message": "Die automatische Analyse startet in $1 Sekunden."

@@ -8,6 +8,8 @@ const SITE_NAME = '点点';
 const TARGET_URL = process.env.DOTS_AI_URL || 'https://dots.ai/';
 const TEST_QUERY = process.env.TEST_QUERY || '';
 const IFRAME_PROBE = process.env.IFRAME_PROBE === '1';
+const SEND_BUTTON_SELECTOR =
+  'button[aria-disabled]:has(svg path[d="m5 12 7-7 7 7"]):has(svg path[d="M12 19V5"])';
 const DEVTOOLS_ACTIVE_PORT =
   process.env.DEVTOOLS_ACTIVE_PORT ||
   path.join(process.env.HOME || '', 'Library/Application Support/Google/Chrome/DevToolsActivePort');
@@ -158,10 +160,8 @@ async function executeCandidateFlow(client, sessionId, query) {
     sessionId,
     `(() => {
       const query = ${JSON.stringify(query)};
-      const textarea = document.querySelector('textarea[placeholder="给点点发消息"]');
-      const sendButton = Array.from(document.querySelectorAll('button')).find((el) =>
-        el.querySelector('svg.lucide-arrow-up')
-      );
+      const textarea = document.querySelector('textarea[placeholder="给点点发消息"], textarea[placeholder="给点点发消息..."]');
+      const sendButton = document.querySelector(${JSON.stringify(SEND_BUTTON_SELECTOR)});
 
       if (!textarea) {
         return { ok: false, reason: 'textarea_not_found' };
@@ -216,9 +216,7 @@ async function clickSendButton(client, sessionId) {
     client,
     sessionId,
     `(() => {
-      const sendButton = Array.from(document.querySelectorAll('button')).find((el) =>
-        el.querySelector('svg.lucide-arrow-up')
-      );
+      const sendButton = document.querySelector(${JSON.stringify(SEND_BUTTON_SELECTOR)});
       if (!sendButton) {
         return { ok: false, reason: 'send_button_not_found' };
       }

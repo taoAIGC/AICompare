@@ -49,11 +49,11 @@
           <img class="action-link-icon" src="../icons/globe.svg" alt="" aria-hidden="true">
           <span data-i18n="settingsNavLanguageTitle"></span>
         </a>
-        <!-- 暂时隐藏 Pro 与 Remote Search 导航入口
         <a href="#membership" class="action-link nav-link" data-section="membership">
           <img class="action-link-icon" src="../icons/gem.svg" alt="" aria-hidden="true">
           <span data-i18n="settingsNavProTitle">Pro</span>
         </a>
+        <!-- 暂时隐藏 Remote Search 导航入口
         <a href="#remote-search" class="action-link nav-link" data-section="remote-search">
           <img class="action-link-icon" src="../icons/smartphone.svg" alt="" aria-hidden="true">
           <span data-i18n="remoteSearchTitle"></span>
@@ -482,56 +482,75 @@
         </section>
         -->
 
-        <!-- 暂时隐藏 Pro Membership 设置页
         <section id="membership" class="settings-section">
           <h1 data-i18n="membershipTitle"></h1>
-          <p class="section-description" data-i18n="membershipDescription"></p>
 
-          <div id="membershipStatusCard" class="membership-status-card">
-            <div class="membership-status-inner">
-              <div class="membership-badge" id="membershipBadge">
-                <span id="membershipPlanLabel">Free</span>
-              </div>
-              <div class="membership-info">
-                <div id="membershipEmail" class="membership-email"></div>
-                <div id="membershipExpiry" class="membership-expiry" style="display:none;"></div>
-              </div>
+          <div class="membership-tabs" role="tablist" data-i18n-aria-label="membershipTabsAriaLabel" aria-label="Membership tabs">
+            <button id="membershipPlansTab" class="membership-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="membershipPlansPanel" data-tab="plans" data-i18n="membershipOverviewTab"></button>
+            <button id="membershipInvoicesTab" class="membership-tab" type="button" role="tab" aria-selected="false" aria-controls="membershipInvoicesPanel" data-tab="invoices" data-i18n="membershipInvoicesTab"></button>
+          </div>
+
+          <div id="membershipPlansPanel" class="membership-tab-panel" role="tabpanel" aria-labelledby="membershipPlansTab">
+            <div id="membershipPlans" class="membership-plan-grid">
+              <article class="membership-plan-surface membership-plan-surface-featured" id="chatPlanCard">
+                <div class="membership-plan-surface-header">
+                  <div>
+                    <div class="membership-plan-surface-title" data-i18n="membershipChatPlanTitle"></div>
+                    <div class="membership-plan-surface-subtitle" data-i18n="membershipChatPlanSubtitle"></div>
+                  </div>
+                  <span id="chatPlanStatusBadge" class="membership-plan-status-badge" data-i18n="membershipPlanStatusInactive"></span>
+                </div>
+                <ul class="membership-plan-benefits">
+                  <li data-i18n="planFeature1"></li>
+                  <li data-i18n="planFeature2"></li>
+                  <li data-i18n="planFeature3"></li>
+                </ul>
+                <button class="btn-upgrade btn-upgrade-featured" id="btnUpgradeChatPlan" data-i18n="btnSubscribe"></button>
+                <div id="membershipProActions" class="membership-pro-actions" style="display:none;">
+                  <p data-i18n="membershipProThankYou"></p>
+                  <button class="btn-secondary" id="btnManageSubscription" data-i18n="btnManageSubscription"></button>
+                </div>
+              </article>
+
+              <article class="membership-plan-surface" id="apiPlanCard">
+                <div class="membership-plan-surface-header">
+                  <div>
+                    <div class="membership-plan-surface-title" data-i18n="membershipApiPlanTitle"></div>
+                    <div class="membership-plan-surface-subtitle" data-i18n="membershipApiPlanSubtitle"></div>
+                  </div>
+                  <span id="apiPlanStatusBadge" class="membership-plan-status-badge pending" data-i18n="membershipPlanStatusPending"></span>
+                </div>
+                <div id="apiPlanStatusText" class="membership-plan-status-text" data-i18n="membershipApiPlanPendingDescription"></div>
+                <button class="btn-upgrade btn-upgrade-disabled" id="btnApiPlanComingSoon" type="button" disabled data-i18n="membershipApiPlanButton"></button>
+              </article>
             </div>
           </div>
 
-          <div id="membershipPlans" class="membership-plans">
-            <div class="plan-card" id="planMonthly">
-              <div class="plan-header">
-                <span class="plan-name" data-i18n="planMonthlyName"></span>
-                <span class="plan-price" data-i18n="planMonthlyPrice"></span>
+          <div id="membershipInvoicesPanel" class="membership-tab-panel" role="tabpanel" aria-labelledby="membershipInvoicesTab" hidden>
+            <div class="membership-invoices-surface">
+              <div class="membership-invoices-header">
+                <div>
+                  <h2 class="membership-invoices-title" data-i18n="membershipInvoicesTitle"></h2>
+                  <p class="membership-invoices-subtitle" data-i18n="membershipInvoicesDescription"></p>
+                </div>
               </div>
-              <ul class="plan-features">
-                <li data-i18n="planFeature1"></li>
-                <li data-i18n="planFeature2"></li>
-                <li data-i18n="planFeature3"></li>
-              </ul>
-              <button class="btn-upgrade" id="btnUpgradeMonthly" data-i18n="btnUpgradeMonthly"></button>
-            </div>
-
-            <div class="plan-card plan-card-featured" id="planYearly">
-              <div class="plan-badge-popular" data-i18n="planPopular"></div>
-              <div class="plan-header">
-                <span class="plan-name" data-i18n="planYearlyName"></span>
-                <span class="plan-price" data-i18n="planYearlyPrice"></span>
-                <span class="plan-saving" data-i18n="planYearlySaving"></span>
+              <div id="membershipInvoicesLoading" class="membership-loading" style="display:none;" data-i18n="membershipInvoicesLoading"></div>
+              <div id="membershipInvoicesEmpty" class="membership-login-hint" style="display:none;" data-i18n="membershipInvoicesEmpty"></div>
+              <div class="membership-invoices-table-wrap">
+                <table class="membership-invoices-table" id="membershipInvoicesTable" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th data-i18n="membershipInvoiceDateHeader"></th>
+                      <th data-i18n="membershipInvoiceNumberHeader"></th>
+                      <th data-i18n="membershipInvoiceAmountHeader"></th>
+                      <th data-i18n="membershipInvoiceStatusHeader"></th>
+                      <th data-i18n="membershipInvoiceActionHeader"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="membershipInvoicesBody"></tbody>
+                </table>
               </div>
-              <ul class="plan-features">
-                <li data-i18n="planFeature1"></li>
-                <li data-i18n="planFeature2"></li>
-                <li data-i18n="planFeature4"></li>
-              </ul>
-              <button class="btn-upgrade btn-upgrade-featured" id="btnUpgradeYearly" data-i18n="btnUpgradeYearly"></button>
             </div>
-          </div>
-
-          <div id="membershipProActions" class="membership-pro-actions" style="display:none;">
-            <p data-i18n="membershipProThankYou"></p>
-            <button class="btn-secondary" id="btnManageSubscription" data-i18n="btnManageSubscription"></button>
           </div>
 
           <div id="membershipLoadingMsg" class="membership-loading" data-i18n="membershipLoading"></div>
@@ -543,7 +562,6 @@
             </button>
           </div>
         </section>
-        -->
       </div>
     </main>
   </div>

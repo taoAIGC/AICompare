@@ -1022,7 +1022,7 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea[placeholder=\"给点点发消息\"]",
+            "selector": "textarea[placeholder=\"给点点发消息\"], textarea[placeholder=\"给点点发消息...\"]",
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
@@ -1030,7 +1030,7 @@
           },
           {
             "action": "setValue",
-            "selector": "textarea[placeholder=\"给点点发消息\"]",
+            "selector": "textarea[placeholder=\"给点点发消息\"], textarea[placeholder=\"给点点发消息...\"]",
             "waitForElement": true,
             "maxAttempts": 10,
             "retryInterval": 300,
@@ -1038,7 +1038,7 @@
           },
           {
             "action": "triggerEvents",
-            "selector": "textarea[placeholder=\"给点点发消息\"]",
+            "selector": "textarea[placeholder=\"给点点发消息\"], textarea[placeholder=\"给点点发消息...\"]",
             "events": [
               "beforeinput",
               "input",
@@ -1060,7 +1060,7 @@
           },
           {
             "action": "click",
-            "selector": "button:has(svg.lucide-arrow-up)",
+            "selector": "button[aria-disabled]:has(svg path[d=\"m5 12 7-7 7 7\"]):has(svg path[d=\"M12 19V5\"])",
             "retryOnDisabled": true,
             "maxAttempts": 6,
             "retryInterval": 500,
@@ -1121,6 +1121,13 @@
       "searchHandler": {
         "steps": [
           {
+            "action": "wait",
+            "duration": 1200,
+            "description": "等待豆包输入区完成挂载",
+            "maxAttempts": 10,
+            "retryInterval": 200
+          },
+          {
             "action": "focus",
             "selector": [
               "textarea[placeholder=\"发消息...\"]",
@@ -1131,8 +1138,8 @@
             ],
             "description": "聚焦豆包输入框",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 40,
+            "retryInterval": 500
           },
           {
             "action": "setValue",
@@ -1145,11 +1152,11 @@
             ],
             "description": "设置豆包输入框的值",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 40,
+            "retryInterval": 500
           },
           {
-            "action": "sendKeys",
+            "action": "triggerEvents",
             "selector": [
               "textarea[placeholder=\"发消息...\"]",
               "textarea[data-testid=\"chat_input_input\"]",
@@ -1157,22 +1164,28 @@
               "textarea[placeholder=\"输入主题和报告要求\"]",
               ".message-input-textarea-separation"
             ],
-            "keys": "Enter",
-            "description": "发送回车键",
+            "events": [
+              "beforeinput",
+              "input",
+              "change",
+              "focus"
+            ],
+            "description": "触发豆包输入事件以启用发送按钮",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 40,
+            "retryInterval": 500
           },
           {
             "action": "wait",
-            "duration": 200,
-            "description": "等待研究态按钮就绪",
+            "duration": 300,
+            "description": "等待发送按钮状态更新",
             "maxAttempts": 10,
             "retryInterval": 200
           },
           {
             "action": "click",
             "selector": [
+              "#flow-end-msg-send",
               ".message-input-right-button-send button",
               ".message-input-right-button-send [role=\"button\"]",
               ".message-input-right-button-send .omni-button-content-btn",
@@ -1180,14 +1193,14 @@
               "button[aria-label*=\"Submit\"]",
               "button[title*=\"发送\"]"
             ],
-            "required": false,
+            "required": true,
             "condition": {
-              "selector": "textarea[placeholder=\"输入主题和报告要求\"], .message-input-textarea-separation, [role=\"textbox\"]"
+              "selector": "textarea[placeholder=\"发消息...\"], textarea[data-testid=\"chat_input_input\"], textarea[placeholder=\"输入主题和报告要求\"], .message-input-textarea-separation, [role=\"textbox\"]"
             },
             "retryOnDisabled": true,
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 40,
+            "retryInterval": 500,
             "description": "点击豆包发送按钮"
           }
         ]

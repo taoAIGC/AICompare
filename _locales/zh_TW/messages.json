@@ -222,6 +222,12 @@
   "agentEngineOfficialCardHint": {
     "message": "選擇官方 API 卡片後，將使用內建預設設定"
   },
+  "agentEngineOfficialMetaChineseFree": {
+    "message": "中文介面目前可免費使用官方 API。"
+  },
+  "agentEngineOfficialQuotaExceeded": {
+    "message": "你今天的 $1 次官方 API 免費額度已用完。請升級 PRO，或切換為自己的 API。"
+  },
   "agentEngineCustomCardHint": {
     "message": "選擇自訂 API 卡片後，將使用你儲存的 API 設定"
   },
@@ -408,8 +414,20 @@
   "customSitesTitle": {
     "message": "自訂網站"
   },
+  "homepageFreePlanBannerPrefix": {
+    "message": "你目前使用的是 Free 方案。💪🏻"
+  },
+  "homepageFreePlanBannerAction": {
+    "message": "升級到 Premium"
+  },
+  "homepageFreePlanBannerSuffix": {
+    "message": "即可解鎖進階功能。"
+  },
   "homepageAgentsTitle": {
     "message": "AI Skills"
+  },
+  "homepageAgentsEditButton": {
+    "message": "編輯 Skills"
   },
   "homepageAgentsSelectAll": {
     "message": "全選"
@@ -1415,6 +1433,114 @@
   "membershipDescription": {
     "message": "解鎖全部功能，暢享無限 AI 對比體驗"
   },
+  "membershipTabsAriaLabel": {
+    "message": "會員分頁"
+  },
+  "membershipOverviewTab": {
+    "message": "概覽"
+  },
+  "membershipInvoicesTab": {
+    "message": "發票"
+  },
+  "membershipChatPlanTitle": {
+    "message": "Chat Plan"
+  },
+  "membershipChatPlanSubtitle": {
+    "message": "查看 Chat Plan 的啟用狀態，並選擇開通方式。"
+  },
+  "membershipApiPlanTitle": {
+    "message": "API Plan"
+  },
+  "membershipApiPlanSubtitle": {
+    "message": "這裡會顯示 API Plan 的啟用狀態與後續開通入口。"
+  },
+  "membershipPlanStatusInactive": {
+    "message": "未開通"
+  },
+  "membershipPlanStatusActive": {
+    "message": "已開通"
+  },
+  "membershipPlanStatusPending": {
+    "message": "待定"
+  },
+  "membershipChatPlanInactiveDescription": {
+    "message": "你的 Chat Plan 尚未開通，選擇月付或年付後即可解鎖無限 AI 對比。"
+  },
+  "membershipChatPlanActiveDescription": {
+    "message": "你的 Chat Plan 已開通，可以正常使用。"
+  },
+  "membershipChatPlanActiveUntil": {
+    "message": "你的 Chat Plan 已開通，將於 $1 續費。"
+  },
+  "membershipApiPlanPendingDescription": {
+    "message": "無限量的 API 調用"
+  },
+  "membershipApiPlanFeature1": {
+    "message": "獨立 API 計費模式"
+  },
+  "membershipApiPlanFeature2": {
+    "message": "方案細節待公布"
+  },
+  "membershipApiPlanFeature3": {
+    "message": "這裡將展示 API Plan 的開通狀態"
+  },
+  "membershipApiPlanButton": {
+    "message": "敬請期待"
+  },
+  "membershipInvoicesTitle": {
+    "message": "Invoice 記錄"
+  },
+  "membershipInvoicesDescription": {
+    "message": "查看目前帳號最近的帳單記錄。"
+  },
+  "membershipInvoicesLoading": {
+    "message": "正在載入發票記錄…"
+  },
+  "membershipInvoicesEmpty": {
+    "message": "暫無發票記錄。"
+  },
+  "membershipInvoicesLoginHint": {
+    "message": "請先登入 Google 帳號後查看發票記錄。"
+  },
+  "membershipInvoicesUnavailable": {
+    "message": "暫時無法取得發票記錄。"
+  },
+  "membershipInvoicesLoadFailed": {
+    "message": "發票記錄載入失敗。"
+  },
+  "membershipInvoiceDateHeader": {
+    "message": "日期"
+  },
+  "membershipInvoiceNumberHeader": {
+    "message": "發票號"
+  },
+  "membershipInvoiceAmountHeader": {
+    "message": "金額"
+  },
+  "membershipInvoiceStatusHeader": {
+    "message": "狀態"
+  },
+  "membershipInvoiceActionHeader": {
+    "message": "操作"
+  },
+  "membershipInvoiceViewAction": {
+    "message": "查看"
+  },
+  "membershipInvoiceStatusPaid": {
+    "message": "已支付"
+  },
+  "membershipInvoiceStatusOpen": {
+    "message": "待支付"
+  },
+  "membershipInvoiceStatusDraft": {
+    "message": "草稿"
+  },
+  "membershipInvoiceStatusVoid": {
+    "message": "已作廢"
+  },
+  "membershipInvoiceStatusUncollectible": {
+    "message": "無法收款"
+  },
   "planMonthlyName": {
     "message": "月度訂閱"
   },
@@ -1450,6 +1576,9 @@
   },
   "btnUpgradeYearly": {
     "message": "按年訂閱"
+  },
+  "btnSubscribe": {
+    "message": "訂閱"
   },
   "membershipProThankYou": {
     "message": "感謝您的支持！您已是 Pro 會員。"
@@ -2376,7 +2505,7 @@
     "message": "分析模板:"
   },
   "liveSummaryHint": {
-    "message": "提問 60 秒後，會進行自動分析。"
+    "message": "提問 20 秒後，會進行自動分析。"
   },
   "liveSummaryHintCountdown": {
     "message": "提問 $1 秒後，會進行自動分析。"

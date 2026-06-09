@@ -242,10 +242,16 @@
     "message": "填写自己的 API，智能体将使用你的额度"
   },
   "agentEngineOfficialMetaFree": {
-    "message": "使用内置 API，每天免费 $1 次。"
+    "message": "非中文界面使用内置 API，每天免费 $1 次。"
+  },
+  "agentEngineOfficialMetaChineseFree": {
+    "message": "中文界面当前可免费使用官方 API。"
   },
   "agentEngineOfficialMetaPro": {
     "message": "当前套餐：PRO"
+  },
+  "agentEngineOfficialQuotaExceeded": {
+    "message": "你今天的 $1 次官方 API 免费额度已用完。请升级 PRO，或切换为自己的 API。"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "请先配置自定义 API"
@@ -456,8 +462,20 @@
   "customSitesTitle": {
     "message": "自定义网站"
   },
+  "homepageFreePlanBannerPrefix": {
+    "message": "你当前使用的是 Free 套餐。💪🏻"
+  },
+  "homepageFreePlanBannerAction": {
+    "message": "升级到 Premium"
+  },
+  "homepageFreePlanBannerSuffix": {
+    "message": "即可解锁高级功能。"
+  },
   "homepageAgentsTitle": {
     "message": "AI Skills"
+  },
+  "homepageAgentsEditButton": {
+    "message": "编辑 Skills"
   },
   "homepageAgentsSelectAll": {
     "message": "全选"
@@ -1466,6 +1484,114 @@
   "membershipDescription": {
     "message": "解锁全部功能，畅享无限 AI 对比体验"
   },
+  "membershipTabsAriaLabel": {
+    "message": "会员标签页"
+  },
+  "membershipOverviewTab": {
+    "message": "概览"
+  },
+  "membershipInvoicesTab": {
+    "message": "发票"
+  },
+  "membershipChatPlanTitle": {
+    "message": "Chat Plan"
+  },
+  "membershipChatPlanSubtitle": {
+    "message": "查看 Chat Plan 的激活状态，并选择开通方式。"
+  },
+  "membershipApiPlanTitle": {
+    "message": "API Plan"
+  },
+  "membershipApiPlanSubtitle": {
+    "message": "这里会展示 API Plan 的激活状态与后续开通入口。"
+  },
+  "membershipPlanStatusInactive": {
+    "message": "未开通"
+  },
+  "membershipPlanStatusActive": {
+    "message": "已开通"
+  },
+  "membershipPlanStatusPending": {
+    "message": "待定"
+  },
+  "membershipChatPlanInactiveDescription": {
+    "message": "你的 Chat Plan 尚未开通，选择月付或年付后即可解锁无限 AI 对比。"
+  },
+  "membershipChatPlanActiveDescription": {
+    "message": "你的 Chat Plan 已开通，可以正常使用。"
+  },
+  "membershipChatPlanActiveUntil": {
+    "message": "你的 Chat Plan 已开通，将于 $1 续费。"
+  },
+  "membershipApiPlanPendingDescription": {
+    "message": "无限量的 API 调用"
+  },
+  "membershipApiPlanFeature1": {
+    "message": "独立 API 计费模式"
+  },
+  "membershipApiPlanFeature2": {
+    "message": "方案细节待公布"
+  },
+  "membershipApiPlanFeature3": {
+    "message": "这里将展示 API Plan 的开通状态"
+  },
+  "membershipApiPlanButton": {
+    "message": "敬请期待"
+  },
+  "membershipInvoicesTitle": {
+    "message": "Invoice 记录"
+  },
+  "membershipInvoicesDescription": {
+    "message": "查看当前账号最近的账单记录。"
+  },
+  "membershipInvoicesLoading": {
+    "message": "正在加载发票记录…"
+  },
+  "membershipInvoicesEmpty": {
+    "message": "暂无发票记录。"
+  },
+  "membershipInvoicesLoginHint": {
+    "message": "请先登录 Google 账号后查看发票记录。"
+  },
+  "membershipInvoicesUnavailable": {
+    "message": "暂时无法获取发票记录。"
+  },
+  "membershipInvoicesLoadFailed": {
+    "message": "发票记录加载失败。"
+  },
+  "membershipInvoiceDateHeader": {
+    "message": "日期"
+  },
+  "membershipInvoiceNumberHeader": {
+    "message": "发票号"
+  },
+  "membershipInvoiceAmountHeader": {
+    "message": "金额"
+  },
+  "membershipInvoiceStatusHeader": {
+    "message": "状态"
+  },
+  "membershipInvoiceActionHeader": {
+    "message": "操作"
+  },
+  "membershipInvoiceViewAction": {
+    "message": "查看"
+  },
+  "membershipInvoiceStatusPaid": {
+    "message": "已支付"
+  },
+  "membershipInvoiceStatusOpen": {
+    "message": "待支付"
+  },
+  "membershipInvoiceStatusDraft": {
+    "message": "草稿"
+  },
+  "membershipInvoiceStatusVoid": {
+    "message": "已作废"
+  },
+  "membershipInvoiceStatusUncollectible": {
+    "message": "无法收款"
+  },
   "planMonthlyName": {
     "message": "月度订阅"
   },
@@ -1501,6 +1627,9 @@
   },
   "btnUpgradeYearly": {
     "message": "按年订阅"
+  },
+  "btnSubscribe": {
+    "message": "订阅"
   },
   "membershipProThankYou": {
     "message": "感谢您的支持！您已是 Pro 会员。"
@@ -2541,7 +2670,7 @@
     "message": "分析模板:"
   },
   "liveSummaryHint": {
-    "message": "提问 60 秒后，会进行自动的分析。"
+    "message": "提问 20 秒后，会进行自动的分析。"
   },
   "liveSummaryHintCountdown": {
     "message": "提问 $1 秒后，会进行自动的分析。"

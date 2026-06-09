@@ -8,7 +8,7 @@
 
 ### ✨ Introduction
 
-**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包,元宝, and many more — side by side. You use your existing AI accounts; the extension does not require sign-up or paid membership.
+**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包, 元宝, and many more — side by side. Website comparison still works with your existing AI accounts; the built-in official API is metered for non-Chinese UI users, with 100 free uses per day before a Pro upgrade is required. Signed-out users are also metered through an anonymous client id.
 
 ### 📦 Features
 
@@ -86,6 +86,8 @@
 - **Built-in skill catalog**: Bundled skills now ship from `config/agentCatalog.json`, so the default built-in skill list can follow the same config-file workflow as site adapters.
 - **Built-in thinking skills**: The extension now includes analysis-first skills such as Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable for comparing one problem through different frameworks and personas.
 - **API settings**: Configure the shared skill engine used by the built-in skills.
+- **Official API / Pro**: In non-Chinese UI, the built-in official API includes 100 free uses per day for free users and signed-out users. Official API keys stay on the cloud backend, while custom API keys remain user-provided. Upgrade through Stripe for Pro access, or switch to your own custom API and use your own quota.
+- **Billing tabs**: The Pro page now separates `Overview` and `Invoices`. Overview shows the current Chat Plan status, upcoming API Plan area, and subscription actions; Invoices lists recent billing records for the signed-in account.
 - **API connection test**: The custom API dialog can now send a small `chat/completions` probe and show the exact HTTP failure reason before you save, which is useful for local OpenAI-compatible servers such as Hermes.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
@@ -158,6 +160,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
 - Shared result pages now stay on one fixed multi-panel web layout, without a separate image-mode layout switch.
 - Public share pages now also render the generated summary-analysis block near the top when the copied share payload includes summary text.
+- Public share pages now render markdown through `markdown-it` in the relay, so tables, fenced code blocks, headings, quotes, and richer inline markdown behave more consistently than the older hand-rolled parser.
 - The timeline copy preview's copy button now keeps the Responses summary modal open after copying.
 - The preview body now only shows copyable site responses; failed sites stay in the summary header.
 - Copy/share actions in the Responses summary modal now show feedback next to the clicked button instead of using the top toast.
@@ -179,7 +182,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - ChatGPT / Gemini / DeepSeek can also be verified through the extension’s own end-to-end path with `node debug/verify-chatgpt-live.js`, `node debug/verify-gemini-live.js`, and `node debug/verify-deepseek-live.js`.
 - Similar scripts exist for other non-trivial sites such as `debug/verify-minimax-live.js`, `debug/verify-manus-live.js`, `debug/verify-metaso-live.js`, `debug/verify-ai-studio-live.js`, `debug/verify-yuanbao-live.js`, `debug/verify-qianwen-live.js`, and `debug/verify-qwen-live.js`.
 - Yuanbao / Qwen / 千问 verifiers now follow the explicit send-button or new-chat bootstrap paths exposed by the live pages, instead of relying on Enter alone.
-- `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]`, and submits through the arrow-up send button.
+- `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]` or `textarea[placeholder="给点点发消息..."]`, and submits through the current lower-right send button instead of the retired `svg.lucide-arrow-up` selector.
 - Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
 - Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
@@ -228,7 +231,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 
 ### ✨ 简介
 
-**AI 比一比**（原名「AI 任意门」）是一款浏览器扩展，在一个页面里同时对比多个 AI 的回答。输入一次问题，即可并排查看 ChatGPT、Gemini、Claude、Grok、Manus、DeepSeek、Kimi、豆包、元宝等十多个 AI 的结果。使用你已有的 AI 账号即可，扩展本身无需注册、无需付费。
+**AI 比一比**（原名「AI 任意门」）是一款浏览器扩展，在一个页面里同时对比多个 AI 的回答。输入一次问题，即可并排查看 ChatGPT、Gemini、Claude、Grok、Manus、DeepSeek、Kimi、豆包、元宝等十多个 AI 的结果。网站对比仍可使用你已有的 AI 账号；内置官方 API 先面向非中文界面用户计量，免费用户和未登录用户每天可用 100 次，超过后需要升级 Pro 或切换自己的 API。
 
 ### 📦 功能一览
 
@@ -303,6 +306,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **智能体设置**：按 Skill 覆盖显示名称、简介和 persona 提示词。
 - **内置思维类 Skill**：现已内置多学科思维、六顶思考帽、苏格拉底追问、大佬开会等分析型 Skill，方便从不同框架和人物视角拆解同一个问题。
 - **API 设置**：配置内置 Skill 共用的引擎参数。
+- **官方 API / Pro**：非中文界面下，免费用户和未登录用户每天可使用 100 次内置官方 API；官方 API 密钥只保存在云端后端，自定义 API 仍使用用户自己填写的密钥。超过后可通过 Stripe 升级 Pro，或切换为自己的自定义 API 并使用自己的额度。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
 - **云同步**：使用 WebDAV 或 Google Drive 在不同设备之间同步设置。
@@ -381,7 +385,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - ChatGPT / Gemini / DeepSeek 也已支持走扩展自身端到端链路的验证脚本：`node debug/verify-chatgpt-live.js`、`node debug/verify-gemini-live.js`、`node debug/verify-deepseek-live.js`。
 - 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`、`debug/verify-ai-studio-live.js`、`debug/verify-yuanbao-live.js`、`debug/verify-qianwen-live.js`、`debug/verify-qwen-live.js`。
 - 元宝 / Qwen / 千问 的验证脚本现已改为走页面上的真实发送按钮或“新建对话”引导路径，而不是只依赖 Enter。
-- `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]`，发送方式为点击箭头发送按钮。
+- `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]` 或 `textarea[placeholder="给点点发消息..."]`，发送方式已切到当前右下角发送按钮，不再依赖已经下线的 `svg.lucide-arrow-up` 选择器。
 - Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
 - 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
@@ -428,9 +432,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-04 19:29:35 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-09 09:46:08 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `STRIPE_SETUP.md`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
 - `M` `_locales/en/messages.json`
@@ -441,18 +446,45 @@ Last auto-update / 最近自动更新：2026-06-04 19:29:35 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `A` `backend/.env.example`
+- `A` `backend/package.json`
+- `A` `backend/server.js`
+- `M` `background.js`
+- `M` `config/agentEngineConfig.js`
+- `M` `config/firebaseConfig.js`
+- `M` `config/siteHandlers.json`
+- `M` `data/shares.json`
+- `M` `debug/verify-dots-ai-config.js`
+- `M` `debug/verify-dots-ai-live.js`
+- `M` `docs/release-notes/latest.md`
+- `A` `firebase.json`
+- `M` `firebase/stripe-payment.js`
+- `A` `firestore.rules`
+- `A` `functions/index.js`
+- `A` `functions/package.json`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
 - `M` `iframe/iframe.css`
 - `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/timeline-utils.js`
+- `M` `iframe/inject.js`
 - `M` `manifest.json`
+- `M` `options/options.css`
+- `M` `options/options.html`
+- `M` `options/options.js`
+- `M` `remote-relay/package-lock.json`
+- `M` `remote-relay/package.json`
+- `M` `remote-relay/src/server.js`
+- `M` `remote-relay/tests/server.test.js`
+- `A` `tests/agent-engine-config.test.js`
 
 ### Recent commits / 最近提交
+- `f2b7e17` 2026-06-04 V4.2.3 优化总结体验
 - `b93fdb3` 2026-06-03 V4.2.2 修复 Google drive，优化总结答案的体验
 - `9a0949c` 2026-06-03 V4.2.1 优化分析过程的体验
 - `1014a57` 2026-06-02 V4.2.0 增加批量提交模式和对比答案总结功能
 - `4925de1` 2026-05-29 V4.1.2 优化 skills 的交互和把默认的skills 变成讨论类的 skills
-- `0a94946` 2026-05-25 V4.1.1 支持语言选择，支持谷歌网盘同步，支持展示更新记录
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

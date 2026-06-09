@@ -74,10 +74,30 @@
     }
   }
 
+  function normalizeLocale(locale = '') {
+    const value = String(locale || '').trim().replace('-', '_');
+    if (!value) return '';
+    const lower = value.toLowerCase();
+    if (lower === 'zh_cn' || lower === 'zh_hans') return 'zh_CN';
+    if (lower === 'zh_tw' || lower === 'zh_hk' || lower === 'zh_mo' || lower === 'zh_hant') return 'zh_TW';
+    if (lower === 'pt_br') return 'pt_BR';
+    const [lang, region] = value.split('_');
+    if (!region) return lang.toLowerCase();
+    return `${lang.toLowerCase()}_${region.toUpperCase()}`;
+  }
+
+  function isChineseLocale(locale = '') {
+    return normalizeLocale(locale).toLowerCase().startsWith('zh');
+  }
+
+  function shouldEnableBillingForLocale(locale = '') {
+    return !isChineseLocale(locale);
+  }
+
   const DEFAULTS = Object.freeze({
     providerType: PROVIDER_TYPES.OFFICIAL,
     baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
-    encryptedApiKey: 'IDsoQglEAxdVCQMiSlJYTHZDUwhfARdYUwYAG3F9JVlaQAURVwkNJ0oAWEVyXQ==',
+    encryptedApiKey: '',
     model: 'glm-5.1',
     concurrency: 10,
     systemPrompt: '',
@@ -130,6 +150,9 @@
     decryptApiKey,
     encryptApiKey,
     getOfficialDefaults,
-    getDefaults
+    getDefaults,
+    isChineseLocale,
+    normalizeLocale,
+    shouldEnableBillingForLocale
   };
 });
