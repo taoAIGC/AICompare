@@ -1004,8 +1004,14 @@
         "urlFeature": "/chat/"
       },
       "userPrompt": {
-        "containerSelector": "div.ds-message:has(> div:not(.ds-markdown))",
-        "textSelector": ":scope > div:not(.ds-markdown)"
+        "containerSelector": [
+          "[data-message-author-role=\"user\"]",
+          ".ds-message[data-message-author-role=\"user\"]",
+          "div.ds-message:has(> div:not(.ds-markdown))"
+        ],
+        "textSelector": ".ds-markdown, .markdown, .message-content, [class*=\"message-content\"], :scope > div:not(.ds-markdown), p, span",
+        "messageNodeSelector": "[data-message-author-role=\"user\"], .ds-message[data-message-author-role=\"user\"]",
+        "requireMessageNode": true
       },
       "icon": "chat.deepseek.com.png",
       "type": "information"

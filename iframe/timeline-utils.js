@@ -9,10 +9,61 @@
     root.IframeTimelineUtils = api;
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+  const TIMELINE_QUOTE_WRAPPER_PAIRS = [
+    ['"', '"'],
+    ["'", "'"],
+    ['“', '”'],
+    ['‘', '’'],
+    ['「', '」'],
+    ['『', '』'],
+    ['《', '》'],
+    ['«', '»'],
+    ['‹', '›']
+  ];
+
+  function stripTimelineOuterQuoteWrappers(text) {
+    let normalizedText = String(text || '').trim();
+    if (!normalizedText) {
+      return '';
+    }
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+
+      for (const [openQuote, closeQuote] of TIMELINE_QUOTE_WRAPPER_PAIRS) {
+        if (!normalizedText.startsWith(openQuote) || !normalizedText.endsWith(closeQuote)) {
+          continue;
+        }
+
+        const innerText = normalizedText
+          .slice(openQuote.length, normalizedText.length - closeQuote.length)
+          .trim();
+        if (!innerText) {
+          continue;
+        }
+
+        const hasNestedQuote = innerText.includes(openQuote) || innerText.includes(closeQuote);
+        const looksLikeLongPrompt = innerText.length >= 24;
+        const hasSentencePunctuation = /[。！？!?；;：:,，、\n]/.test(innerText);
+        if (!hasNestedQuote && !looksLikeLongPrompt && !hasSentencePunctuation) {
+          continue;
+        }
+
+        normalizedText = innerText;
+        changed = true;
+        break;
+      }
+    }
+
+    return normalizedText;
+  }
+
   function normalizeTimelineQuery(query) {
-    return String(query || '')
+    const normalizedText = String(query || '')
       .replace(/\s+/g, ' ')
       .trim();
+    return stripTimelineOuterQuoteWrappers(normalizedText);
   }
 
   function normalizeTimelineMultilineText(text) {
@@ -156,6 +207,11 @@
         .map((entry) => buildTimelineEntryKey(entry))
         .filter(Boolean)
     );
+    const previousEntryByKey = new Map(
+      (Array.isArray(previousEntries) ? previousEntries : [])
+        .map((entry) => [buildTimelineEntryKey(entry), entry])
+        .filter(([entryKey]) => entryKey)
+    );
     const previousOrderByKey = new Map(
       (Array.isArray(previousEntries) ? previousEntries : [])
         .map((entry, index) => [buildTimelineEntryKey(entry), index])
@@ -188,7 +244,18 @@
         }
         return left.index - right.index;
       })
-      .map(({ entry }) => entry);
+      .map(({ entry }) => {
+        const entryKey = buildTimelineEntryKey(entry);
+        const previousEntry = previousEntryByKey.get(entryKey);
+        if (!String(previousEntry?.query || '').trim()) {
+          return entry;
+        }
+        return {
+          ...entry,
+          query: normalizeTimelineQuery(previousEntry.query),
+          normalizedQuery: normalizeTimelineQuery(previousEntry.query)
+        };
+      });
   }
 
   function extractTimelinePromptsFromMessages(messages = []) {

@@ -5,7 +5,8 @@ const {
   buildTimelineEntry,
   buildTimelineCopyText,
   extractTimelinePromptsFromMessages,
-  mergeTimelinePromptSnapshots
+  mergeTimelinePromptSnapshots,
+  normalizeTimelineQuery
 } = require('../iframe/timeline-utils.js');
 
 test('buildTimelineEntry tracks duplicate prompt occurrence in page order', () => {
@@ -150,4 +151,37 @@ test('extractTimelinePromptsFromMessages keeps agent user turns in order', () =>
     { text: '第一轮问题' },
     { text: '第二轮 跟进' }
   ]);
+});
+
+test('normalizeTimelineQuery strips wrapper quotes added around long prompts', () => {
+  const basePrompt = '招聘这样的岗位，怎么考察面试者「非传统产品经理实习生，也非传统技术实习生【岗位职责】负责办公提效工具的build 工作。需要自己通过AI 完成需求设计、用户调研、vibecoding代码实现。独自完成 需求分析、需求设计、产品开发、部署上线、收集用户反馈的全过程。【能力要求】1、要求善于沟通、可以与业务方顺畅的沟通需求，介绍自己开发的产品。2、熟练掌握 vibe coding。3、可以在产品经理、开发工程师两种思维 间自由换转。」';
+  const wrappedPrompt = `「${basePrompt}\n\n」`;
+
+  assert.equal(normalizeTimelineQuery(basePrompt), normalizeTimelineQuery(wrappedPrompt));
+});
+
+test('mergeTimelinePromptSnapshots keeps existing canonical query text for the same entry key', () => {
+  const basePrompt = '招聘这样的岗位，怎么考察面试者「非传统产品经理实习生，也非传统技术实习生【岗位职责】负责办公提效工具的build 工作。需要自己通过AI 完成需求设计、用户调研、vibecoding代码实现。独自完成 需求分析、需求设计、产品开发、部署上线、收集用户反馈的全过程。【能力要求】1、要求善于沟通、可以与业务方顺畅的沟通需求，介绍自己开发的产品。2、熟练掌握 vibe coding。3、可以在产品经理、开发工程师两种思维 间自由换转。」';
+  const wrappedPrompt = `「${basePrompt}\n\n」`;
+  const previousEntries = [
+    buildTimelineEntry({ query: basePrompt, occurrenceIndex: 0 }, [])
+  ];
+
+  const entries = mergeTimelinePromptSnapshots(
+    [
+      {
+        siteName: 'ChatGPT',
+        prompts: [{ text: wrappedPrompt }]
+      },
+      {
+        siteName: 'Claude',
+        prompts: [{ text: basePrompt }]
+      }
+    ],
+    previousEntries
+  );
+
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].query, normalizeTimelineQuery(basePrompt));
+  assert.deepEqual(entries[0].sourceSites, ['ChatGPT', 'Claude']);
 });

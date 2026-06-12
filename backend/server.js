@@ -8,12 +8,12 @@ const crypto = require('crypto');
 const app = express();
 const port = Number(process.env.PORT || 8790);
 const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 100) || 100);
-const adminUids = parseCsvEnv(process.env.ADMIN_UIDS);
-const adminEmails = parseCsvEnv(process.env.ADMIN_EMAILS);
 const adminSessionOrigin = String(process.env.ADMIN_SESSION_ORIGIN || '').trim();
 const adminSessionSecret = String(process.env.ADMIN_SESSION_SECRET || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
 const adminSessionCookieName = 'ai_compare_admin_session';
 const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 12 * 60 * 60) || (12 * 60 * 60));
+const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
+const adminPasswordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
 const ADMIN_CLIENT_SCRIPT = String.raw`
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -35,10 +35,10 @@ async function fetchAdminJson(url) {
     }
   });
   if (response.status === 401) {
-    throw new Error('请先提供管理员 Firebase ID Token。');
+    throw new Error('请先用管理员账号密码登录。');
   }
   if (response.status === 403) {
-    throw new Error('当前账号不在管理员白名单中。');
+    throw new Error('当前管理员会话没有访问权限。');
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
@@ -47,14 +47,14 @@ async function fetchAdminJson(url) {
   return response.json();
 }
 
-async function createAdminSession(idToken) {
+async function createAdminSession(username, password) {
   const response = await fetch('/api/admin/session', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
-    body: JSON.stringify({ idToken })
+    body: JSON.stringify({ username, password })
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -139,8 +139,8 @@ async function loadOrdersPage() {
     { label: '有效 Pro', value: formatNumber(summary.activeProUsers) },
     { label: '已取消未到期', value: formatNumber(summary.cancelingUsers) },
     { label: '已过期', value: formatNumber(summary.expiredUsers) },
-    { label: 'MRR 预估', value: formatAmount(summary.mrrEstimate, summary.currency) },
-    { label: 'ARR 预估', value: formatAmount(summary.arrEstimate, summary.currency) }
+    { label: '近 7 天收入', value: formatAmount(summary.revenue7d, summary.currency) },
+    { label: '近 30 天收入', value: formatAmount(summary.revenue30d, summary.currency) }
   ]);
 
   const orders = Array.isArray(listPayload.orders) ? listPayload.orders : [];
@@ -216,7 +216,8 @@ async function loadApiUsagePage() {
 }
 
 async function bootAdminPage(pageName) {
-  const tokenInput = document.getElementById('tokenInput');
+  const usernameInput = document.getElementById('usernameInput');
+  const passwordInput = document.getElementById('passwordInput');
   const saveButton = document.getElementById('saveTokenButton');
   const clearButton = document.getElementById('clearTokenButton');
   const statusEl = document.getElementById('tokenStatus');
@@ -224,7 +225,7 @@ async function bootAdminPage(pageName) {
   saveButton.addEventListener('click', async () => {
     try {
       statusEl.textContent = '正在登录...';
-      await createAdminSession(tokenInput.value.trim());
+      await createAdminSession(usernameInput.value.trim(), passwordInput.value);
       statusEl.textContent = '管理员登录成功，正在刷新页面。';
       window.location.reload();
     } catch (error) {
@@ -239,7 +240,8 @@ async function bootAdminPage(pageName) {
     } catch (error) {
       statusEl.textContent = error.message || String(error);
     }
-    tokenInput.value = '';
+    usernameInput.value = '';
+    passwordInput.value = '';
   });
 
   try {
@@ -253,7 +255,8 @@ async function bootAdminPage(pageName) {
 }
 
 async function bootAdminLoginPage() {
-  const tokenInput = document.getElementById('tokenInput');
+  const usernameInput = document.getElementById('usernameInput');
+  const passwordInput = document.getElementById('passwordInput');
   const saveButton = document.getElementById('saveTokenButton');
   const clearButton = document.getElementById('clearTokenButton');
   const statusEl = document.getElementById('tokenStatus');
@@ -261,7 +264,7 @@ async function bootAdminLoginPage() {
   saveButton.addEventListener('click', async () => {
     try {
       statusEl.textContent = '正在登录...';
-      await createAdminSession(tokenInput.value.trim());
+      await createAdminSession(usernameInput.value.trim(), passwordInput.value);
       statusEl.textContent = '管理员登录成功，正在跳转。';
       window.location.href = getNextPath();
     } catch (error) {
@@ -270,7 +273,8 @@ async function bootAdminLoginPage() {
   });
 
   clearButton.addEventListener('click', async () => {
-    tokenInput.value = '';
+    usernameInput.value = '';
+    passwordInput.value = '';
     try {
       await destroyAdminSession();
     } catch (_) {
@@ -409,16 +413,18 @@ const ADMIN_STYLES = `
     padding: 2px 6px;
     border-radius: 6px;
   }
-  textarea {
+  textarea, input[type="text"], input[type="password"] {
     width: 100%;
-    min-height: 128px;
-    resize: vertical;
     border-radius: 20px;
     border: 1px solid var(--border);
     padding: 16px;
     font: inherit;
     background: var(--panel-strong);
     color: var(--text);
+  }
+  textarea {
+    min-height: 128px;
+    resize: vertical;
   }
   .token-actions {
     display: flex;
@@ -612,7 +618,11 @@ function asyncRoute(handler) {
     try {
       await handler(req, res);
     } catch (error) {
-      res.status(error.status || 500).json({ error: error.message || String(error) });
+      const status = Number(error.status || error.statusCode || 500) || 500;
+      if (status >= 500) {
+        console.error(error);
+      }
+      res.status(status).json({ error: error.message || String(error) });
     }
   };
 }
@@ -747,26 +757,53 @@ async function getOptionalUser(req) {
   }
 }
 
-async function verifyAdminIdentity(user) {
-  const normalizedEmail = String(user?.email || '').trim().toLowerCase();
-  const isAllowedUid = adminUids.includes(String(user?.uid || '').trim());
-  const isAllowedEmail = adminEmails.includes(normalizedEmail);
-  if (!isAllowedUid && !isAllowedEmail) {
-    const error = new Error('Admin access required');
-    error.status = 403;
+function safeCompare(left, right) {
+  const leftBuffer = Buffer.from(String(left || ''), 'utf8');
+  const rightBuffer = Buffer.from(String(right || ''), 'utf8');
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function hashAdminPassword(password) {
+  return crypto.createHash('sha256').update(String(password || ''), 'utf8').digest('hex');
+}
+
+function assertAdminCredentialsConfigured() {
+  if (!adminUsername || !adminPasswordHash) {
+    const error = new Error('Admin username/password is not configured');
+    error.status = 500;
     throw error;
   }
-  return user;
+}
+
+function verifyAdminCredentials(username, password) {
+  assertAdminCredentialsConfigured();
+  const normalizedUsername = String(username || '').trim();
+  const passwordHash = hashAdminPassword(password);
+  if (!safeCompare(normalizedUsername, adminUsername) || !safeCompare(passwordHash, adminPasswordHash)) {
+    const error = new Error('Invalid admin username or password');
+    error.status = 401;
+    throw error;
+  }
+  return { username: normalizedUsername };
 }
 
 async function requireAdmin(req) {
   const cookies = parseCookieHeader(req.headers.cookie || '');
   const sessionClaims = parseAdminSessionToken(cookies[adminSessionCookieName] || '');
   if (sessionClaims) {
-    return verifyAdminIdentity(sessionClaims);
+    if (!safeCompare(String(sessionClaims.username || ''), adminUsername)) {
+      const error = new Error('Admin access required');
+      error.status = 403;
+      throw error;
+    }
+    return sessionClaims;
   }
-  const user = await requireUser(req);
-  return verifyAdminIdentity(user);
+  const error = new Error('Authentication required');
+  error.status = 401;
+  throw error;
 }
 
 function getAnonymousClientId(req) {
@@ -974,6 +1011,403 @@ function getCancelUrl() {
   return process.env.STRIPE_CANCEL_URL || 'https://example.com/payment-cancel';
 }
 
+function getExtensionMembershipUrl() {
+  const extensionId = String(process.env.AI_COMPARE_EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi').trim();
+  return `chrome-extension://${extensionId}/options/options.html#membership`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      case "'": return '&#39;';
+      default: return char;
+    }
+  });
+}
+
+function getPaymentSuccessPageHtml() {
+  const membershipUrl = escapeHtml(getExtensionMembershipUrl());
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment successful | AICompare</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ee;
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-strong: #ffffff;
+      --text: #201814;
+      --muted: #6d6157;
+      --border: rgba(32, 24, 20, 0.08);
+      --accent: #181818;
+      --accent-contrast: #ffffff;
+      --accent-soft: rgba(24, 24, 24, 0.06);
+      --success: #17803d;
+      --success-soft: rgba(23, 128, 61, 0.10);
+      --shadow: 0 24px 70px rgba(38, 24, 12, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Avenir Next", "PingFang SC", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 214, 143, 0.24), transparent 28%),
+        radial-gradient(circle at 88% 12%, rgba(138, 180, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, #fbf8f2 0%, #f3ede2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+    .shell {
+      width: min(760px, 100%);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      padding: 30px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: var(--success-soft);
+      color: var(--success);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    h1 {
+      margin: 18px 0 12px;
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+    }
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 34em;
+    }
+    .panel {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-radius: 22px;
+      background: var(--surface-strong);
+      border: 1px solid var(--border);
+    }
+    .panel-title {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .steps {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 20px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 800;
+      transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+    }
+    .button:hover {
+      transform: translateY(-1px);
+    }
+    .button-primary {
+      background: var(--accent);
+      color: var(--accent-contrast);
+      box-shadow: 0 12px 24px rgba(24, 24, 24, 0.18);
+    }
+    .button-secondary {
+      border: 1px solid var(--border);
+      background: var(--surface-strong);
+      color: var(--text);
+    }
+    .fine-print {
+      margin: 18px 2px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      background: var(--accent-soft);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 18px;
+      }
+      .card {
+        padding: 22px;
+        border-radius: 22px;
+      }
+      .lead {
+        font-size: 16px;
+      }
+      .actions {
+        flex-direction: column;
+      }
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <div class="badge"><span class="badge-dot"></span>Payment successful</div>
+      <h1>Your Pro subscription is on the way.</h1>
+      <p class="lead">Your payment was completed successfully. AICompare will activate your Pro membership as soon as Stripe webhook sync finishes, which usually takes just a few seconds.</p>
+
+      <div class="panel">
+        <h2 class="panel-title">What to do next</h2>
+        <ol class="steps">
+          <li>Return to the extension Pro page.</li>
+          <li>Check whether your <code>Chat Plan</code> status has changed to active.</li>
+          <li>If it still looks unchanged, wait a few seconds and reopen the page once.</li>
+        </ol>
+      </div>
+
+      <div class="actions">
+        <a class="button button-primary" href="${membershipUrl}">Open Pro Membership</a>
+        <a class="button button-secondary" href="/">Back to AICompare site</a>
+      </div>
+
+      <p class="fine-print">If you closed the extension earlier, reopening it and visiting the Pro page again is enough. Membership status is confirmed by the backend after Stripe finishes the subscription event sync.</p>
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
+function getPaymentCancelPageHtml() {
+  const membershipUrl = escapeHtml(getExtensionMembershipUrl());
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment canceled | AICompare</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ee;
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-strong: #ffffff;
+      --text: #201814;
+      --muted: #6d6157;
+      --border: rgba(32, 24, 20, 0.08);
+      --accent: #181818;
+      --accent-contrast: #ffffff;
+      --accent-soft: rgba(24, 24, 24, 0.06);
+      --warning: #b65a2d;
+      --warning-soft: rgba(182, 90, 45, 0.12);
+      --shadow: 0 24px 70px rgba(38, 24, 12, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Avenir Next", "PingFang SC", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 214, 143, 0.24), transparent 28%),
+        radial-gradient(circle at 88% 12%, rgba(138, 180, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, #fbf8f2 0%, #f3ede2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+    .shell {
+      width: min(760px, 100%);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      padding: 30px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: var(--warning-soft);
+      color: var(--warning);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    h1 {
+      margin: 18px 0 12px;
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+    }
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 34em;
+    }
+    .panel {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-radius: 22px;
+      background: var(--surface-strong);
+      border: 1px solid var(--border);
+    }
+    .panel-title {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .steps {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 20px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 800;
+      transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+    }
+    .button:hover {
+      transform: translateY(-1px);
+    }
+    .button-primary {
+      background: var(--accent);
+      color: var(--accent-contrast);
+      box-shadow: 0 12px 24px rgba(24, 24, 24, 0.18);
+    }
+    .button-secondary {
+      border: 1px solid var(--border);
+      background: var(--surface-strong);
+      color: var(--text);
+    }
+    .fine-print {
+      margin: 18px 2px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 18px;
+      }
+      .card {
+        padding: 22px;
+        border-radius: 22px;
+      }
+      .lead {
+        font-size: 16px;
+      }
+      .actions {
+        flex-direction: column;
+      }
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <div class="badge"><span class="badge-dot"></span>Payment not completed</div>
+      <h1>Your subscription has not been activated yet.</h1>
+      <p class="lead">No payment was completed for this checkout session. You can return to AICompare and subscribe again whenever you're ready.</p>
+
+      <div class="panel">
+        <h2 class="panel-title">What you can do next</h2>
+        <ol class="steps">
+          <li>Return to the extension Pro page.</li>
+          <li>Review the current <code>Chat Plan</code> status.</li>
+          <li>Start a new checkout when you want to continue.</li>
+        </ol>
+      </div>
+
+      <div class="actions">
+        <a class="button button-primary" href="${membershipUrl}">Back to Pro Membership</a>
+        <a class="button button-secondary" href="/">Back to AICompare site</a>
+      </div>
+
+      <p class="fine-print">If you closed Stripe intentionally, nothing has changed on your account. You can reopen the Pro page in the extension and subscribe again at any time.</p>
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
 async function canReadFirestore() {
   try {
     requireFirebaseAdmin();
@@ -996,7 +1430,7 @@ function getBasicHealth() {
     firebaseAdminConfigured,
     stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
     officialApiConfigured: Boolean(process.env.OFFICIAL_AGENT_API_BASE_URL && process.env.OFFICIAL_AGENT_API_KEY),
-    adminConfigured: adminUids.length > 0 || adminEmails.length > 0
+    adminConfigured: Boolean(adminUsername && adminPasswordHash)
   };
 }
 
@@ -1041,12 +1475,13 @@ function createAdminPage({ pageName, title, description, content }) {
         </nav>
       </article>
       <aside class="token-panel">
-        <h2>管理员访问令牌</h2>
-        <p>粘贴 Firebase 管理员 ID Token。页面会通过 <code>Authorization: Bearer ...</code> 调用后台接口，只在当前浏览器本地保存。</p>
-        <textarea id="tokenInput" placeholder="在这里粘贴 Firebase ID Token"></textarea>
+        <h2>管理员登录</h2>
+        <p>使用独立后台账号密码登录。登录成功后，服务端会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
+        <input id="usernameInput" type="text" autocomplete="username" placeholder="管理员账号" />
+        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="管理员密码" />
         <div class="token-actions">
-          <button id="saveTokenButton" type="button">保存 Token</button>
-          <button id="clearTokenButton" type="button">清空</button>
+          <button id="saveTokenButton" type="button">登录</button>
+          <button id="clearTokenButton" type="button">退出/清空</button>
         </div>
         <div class="status" id="tokenStatus"></div>
       </aside>
@@ -1080,11 +1515,11 @@ function getAdminLoginPageHtml() {
   return createAdminPage({
     pageName: 'login',
     title: '管理员登录',
-    description: '使用 Firebase 管理员 ID Token 换取后台会话 Cookie，登录成功后才可访问统计后台。',
+    description: '使用独立后台账号密码换取后台会话 Cookie，登录成功后才可访问统计后台。',
     content: `
       <section class="card panel">
         <h3>登录说明</h3>
-        <p class="footer-note">请使用已加入 <code>ADMIN_UIDS</code> 或 <code>ADMIN_EMAILS</code> 白名单的 Firebase 账号。登录成功后，会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
+        <p class="footer-note">请输入已配置的后台管理员账号和密码。登录成功后，服务端会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
       </section>
     `
   }).replace(
@@ -1332,26 +1767,27 @@ function buildStripeIndexes(userDirectory, invoices, subscriptions) {
   return { usersByCustomerId, usersBySubscriptionId, subscriptionsById, subscriptionsByCustomerId, invoicesByCustomerId };
 }
 
-function computeRevenueEstimates(subscriptions) {
-  let mrrEstimate = 0;
-  let arrEstimate = 0;
+function computeInvoiceRevenue(invoices) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const threshold7d = nowSeconds - 7 * 24 * 60 * 60;
+  const threshold30d = nowSeconds - 30 * 24 * 60 * 60;
+  let revenue7d = 0;
+  let revenue30d = 0;
   let currency = 'usd';
-  for (const subscription of subscriptions) {
-    if (!['active', 'trialing'].includes(subscription.status)) continue;
-    const item = subscription.items?.data?.[0];
-    const amount = Number(item?.price?.unit_amount || 0);
-    const recurringInterval = String(item?.price?.recurring?.interval || '').trim();
-    if (!amount || !recurringInterval) continue;
-    currency = String(item?.price?.currency || currency || 'usd');
-    if (recurringInterval === 'month') {
-      mrrEstimate += amount;
-      arrEstimate += amount * 12;
-    } else if (recurringInterval === 'year') {
-      arrEstimate += amount;
-      mrrEstimate += Math.round(amount / 12);
+  for (const invoice of invoices) {
+    if (!invoice.paid) continue;
+    const createdSeconds = Number(invoice.created || 0);
+    const amountPaid = Number(invoice.amount_paid || 0);
+    if (!createdSeconds || !amountPaid) continue;
+    currency = String(invoice.currency || currency || 'usd');
+    if (createdSeconds >= threshold30d) {
+      revenue30d += amountPaid;
+    }
+    if (createdSeconds >= threshold7d) {
+      revenue7d += amountPaid;
     }
   }
-  return { mrrEstimate, arrEstimate, currency };
+  return { revenue7d, revenue30d, currency };
 }
 
 function buildInvoiceTrend(invoices, dateKeys) {
@@ -1404,7 +1840,7 @@ async function getOrderSummaryData() {
   ]);
 
   const membership = buildMembershipSnapshot(userDirectory);
-  const revenue = computeRevenueEstimates(subscriptions);
+  const revenue = computeInvoiceRevenue(invoices);
   const nowSeconds = Math.floor(Date.now() / 1000);
   const thirtyDayThreshold = nowSeconds - 30 * 24 * 60 * 60;
   const thirtyDayPaidOrders = invoices.filter((invoice) => invoice.paid && Number(invoice.created || 0) >= thirtyDayThreshold).length;
@@ -1412,8 +1848,8 @@ async function getOrderSummaryData() {
   return {
     ...membership,
     thirtyDayPaidOrders,
-    mrrEstimate: revenue.mrrEstimate,
-    arrEstimate: revenue.arrEstimate,
+    revenue7d: revenue.revenue7d,
+    revenue30d: revenue.revenue30d,
     currency: revenue.currency
   };
 }
@@ -1598,6 +2034,17 @@ async function collectUsageEvents(dateKeys) {
   };
 }
 
+function mergeSetValues(...sets) {
+  const merged = new Set();
+  for (const setValue of sets) {
+    if (!setValue) continue;
+    for (const item of setValue) {
+      merged.add(item);
+    }
+  }
+  return merged;
+}
+
 async function buildUsageTrend(days) {
   requireFirebaseAdmin();
   const dateKeys = getRecentDateKeys(days);
@@ -1616,21 +2063,15 @@ async function buildUsageTrend(days) {
       Number(counters.anonymousByDay.get(dateKey) || 0),
       Number(events.anonymousEventsByDay.get(dateKey) || 0)
     );
-    const freeUsers = new Set([
-      ...(counters.userActivityByDay.get(dateKey) || new Set()),
-      ...(events.freeUsersByDay.get(dateKey) || new Set())
-    ]);
-    const proUsers = events.proUsersByDay.get(dateKey) || new Set();
-    const anonymousClients = new Set([
-      ...(counters.anonymousActivityByDay.get(dateKey) || new Set()),
-      ...(events.anonymousClientsByDay.get(dateKey) || new Set())
-    ]);
-    const activeUsers = new Set([...freeUsers, ...proUsers]);
+    const freeUsers = mergeSetValues(counters.userActivityByDay.get(dateKey), events.freeUsersByDay.get(dateKey));
+    const proUsers = mergeSetValues(events.proUsersByDay.get(dateKey));
+    const anonymousClients = mergeSetValues(counters.anonymousActivityByDay.get(dateKey), events.anonymousClientsByDay.get(dateKey));
+    const activeUsers = mergeSetValues(freeUsers, proUsers);
     return {
       date: dateKey,
-      free: { requests: freeRequests, activeUsers: freeUsers.size },
-      pro: { requests: proRequests, activeUsers: proUsers.size },
-      anonymous: { requests: anonymousRequests, activeUsers: anonymousClients.size },
+      free: { requests: freeRequests, activeUsers: freeUsers.size, userIds: Array.from(freeUsers) },
+      pro: { requests: proRequests, activeUsers: proUsers.size, userIds: Array.from(proUsers) },
+      anonymous: { requests: anonymousRequests, activeUsers: anonymousClients.size, clientIds: Array.from(anonymousClients) },
       totalRequests: freeRequests + proRequests + anonymousRequests,
       activeUsers: activeUsers.size,
       activeAnonymousClients: anonymousClients.size
@@ -1639,25 +2080,30 @@ async function buildUsageTrend(days) {
 }
 
 function summarizeUsageRange(days) {
-  return days.reduce((acc, item) => {
+  const summary = days.reduce((acc, item) => {
     acc.totalRequests += item.totalRequests;
     acc.free.requests += item.free.requests;
-    acc.free.activeUsers = Math.max(acc.free.activeUsers, item.free.activeUsers);
     acc.pro.requests += item.pro.requests;
-    acc.pro.activeUsers = Math.max(acc.pro.activeUsers, item.pro.activeUsers);
     acc.anonymous.requests += item.anonymous.requests;
-    acc.anonymous.activeUsers = Math.max(acc.anonymous.activeUsers, item.anonymous.activeUsers);
-    acc.activeUsers = Math.max(acc.activeUsers, item.activeUsers);
-    acc.activeAnonymousClients = Math.max(acc.activeAnonymousClients, item.activeAnonymousClients);
+    for (const uid of item.free.userIds || []) acc.free.userIds.add(uid);
+    for (const uid of item.pro.userIds || []) acc.pro.userIds.add(uid);
+    for (const clientHash of item.anonymous.clientIds || []) acc.anonymous.clientIds.add(clientHash);
     return acc;
   }, {
     totalRequests: 0,
-    free: { requests: 0, activeUsers: 0 },
-    pro: { requests: 0, activeUsers: 0 },
-    anonymous: { requests: 0, activeUsers: 0 },
-    activeUsers: 0,
-    activeAnonymousClients: 0
+    free: { requests: 0, userIds: new Set() },
+    pro: { requests: 0, userIds: new Set() },
+    anonymous: { requests: 0, clientIds: new Set() }
   });
+  const activeUsers = mergeSetValues(summary.free.userIds, summary.pro.userIds);
+  return {
+    totalRequests: summary.totalRequests,
+    free: { requests: summary.free.requests, activeUsers: summary.free.userIds.size },
+    pro: { requests: summary.pro.requests, activeUsers: summary.pro.userIds.size },
+    anonymous: { requests: summary.anonymous.requests, activeUsers: summary.anonymous.clientIds.size },
+    activeUsers: activeUsers.size,
+    activeAnonymousClients: summary.anonymous.clientIds.size
+  };
 }
 
 async function getApiUsageSummaryData() {
@@ -1708,6 +2154,16 @@ app.get('/health/deep', async (_req, res) => {
   });
 });
 
+app.get('/payment-success', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getPaymentSuccessPageHtml());
+});
+
+app.get('/payment-cancel', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getPaymentCancelPageHtml());
+});
+
 app.get('/admin/login', (_req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getAdminLoginPageHtml());
@@ -1737,18 +2193,16 @@ app.get('/api/admin/orders/summary', asyncRoute(async (req, res) => {
 }));
 
 app.post('/api/admin/session', asyncRoute(async (req, res) => {
-  const idToken = String(req.body?.idToken || '').trim();
-  if (!idToken) {
-    res.status(400).json({ error: 'idToken is required' });
+  const username = String(req.body?.username || '').trim();
+  const password = String(req.body?.password || '');
+  if (!username || !password) {
+    res.status(400).json({ error: 'username and password are required' });
     return;
   }
-  requireFirebaseAdmin();
-  const user = await admin.auth().verifyIdToken(idToken);
-  await verifyAdminIdentity(user);
+  const adminUser = verifyAdminCredentials(username, password);
   const nowSeconds = Math.floor(Date.now() / 1000);
   const sessionToken = createAdminSessionToken({
-    uid: String(user.uid || ''),
-    email: String(user.email || '').trim().toLowerCase(),
+    username: String(adminUser.username || ''),
     exp: nowSeconds + adminSessionTtlSeconds
   });
   setAdminSessionCookie(res, sessionToken);

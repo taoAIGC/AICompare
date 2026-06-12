@@ -174,8 +174,11 @@
   "agentEngineOfficialCardHint": {
     "message": "Select the official API card to use the bundled defaults"
   },
+  "agentEngineOfficialMetaFree": {
+    "message": "Verwenden Sie die integrierte API, $1-mal pro Tag kostenlos."
+  },
   "agentEngineOfficialMetaChineseFree": {
-    "message": "Official API is currently free in Chinese UI."
+    "message": "Verwenden Sie die integrierte API, $1-mal pro Tag kostenlos."
   },
   "agentEngineOfficialQuotaExceeded": {
     "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
@@ -1413,7 +1416,7 @@
     "message": "Analyse-Prompt"
   },
   "analysisPromptTemplatesDescription": {
-    "message": "Customize the prompt templates used to analyze copied summaries"
+    "message": "Analyse-Prompts werden verwendet, um Antworten von Modellen und Skills zusammenzufassen und zu analysieren."
   },
   "addAnalysisTemplateButton": {
     "message": "Add Analysis Prompt"
@@ -2354,6 +2357,9 @@
   "liveSummaryRefresh": {
     "message": "Analysieren"
   },
+  "liveSummaryRetryAnalyzeTooltip": {
+    "message": "Erneut abrufen und analysieren"
+  },
   "liveSummaryRefreshCountdown": {
     "message": "Analysieren ($1s)"
   },
@@ -2425,5 +2431,29 @@
   },
   "homepageBatchFavoriteDeleted": {
     "message": "Batch-Favorit gelöscht"
+  },
+  "membershipPricingTitle": {
+    "message": "Choose your Pro plan"
+  },
+  "membershipPricingDescription": {
+    "message": "Pick monthly or yearly, then sign in to complete payment securely with Stripe."
+  },
+  "membershipPricingOptionsAriaLabel": {
+    "message": "Choose a Pro plan"
+  },
+  "membershipPricingMonthlyDescription": {
+    "message": "Flexible monthly billing for trying Pro at your own pace."
+  },
+  "membershipPricingYearlyDescription": {
+    "message": "Best value for long-term use, with one yearly payment."
+  },
+  "membershipPricingBack": {
+    "message": "Back to Pro Membership"
+  },
+  "membershipPricingEyebrow": {
+    "message": "AI Compare Pro"
+  },
+  "membershipPricingLoginNote": {
+    "message": "You can choose a plan before signing in. We will ask you to sign in before Stripe checkout so the membership is tied to your account."
   }
 }

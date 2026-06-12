@@ -158,6 +158,10 @@
     return normalizedCells;
   }
 
+  function hasMeaningfulMarkdownTableCells(cells) {
+    return (Array.isArray(cells) ? cells : []).some((cell) => String(cell || '').trim());
+  }
+
   function getMarkdownTableAlignments(delimiterCells) {
     return delimiterCells.map((cell) => {
       const normalizedCell = String(cell || '').trim();
@@ -200,11 +204,16 @@
     const normalizedBodyRows = (Array.isArray(bodyRows) ? bodyRows : [])
       .map((row) => normalizeMarkdownTableCells(row, columnCount));
 
+    const nonEmptyBodyRows = normalizedBodyRows.filter((row) => hasMeaningfulMarkdownTableCells(row));
+    if (!hasMeaningfulMarkdownTableCells(normalizedHeaderCells) && !nonEmptyBodyRows.length) {
+      return '';
+    }
+
     const headerHtml = normalizedHeaderCells
       .map((cell, index) => buildMarkdownTableCellHtml('th', cell, normalizedAlignments[index] || ''))
       .join('');
-    const bodyHtml = normalizedBodyRows.length
-      ? `<tbody>${normalizedBodyRows.map((row) => (
+    const bodyHtml = nonEmptyBodyRows.length
+      ? `<tbody>${nonEmptyBodyRows.map((row) => (
           `<tr>${row.map((cell, index) => buildMarkdownTableCellHtml('td', cell, normalizedAlignments[index] || '')).join('')}</tr>`
         )).join('')}</tbody>`
       : '';
@@ -314,7 +323,10 @@
             index -= 1;
             break;
           }
-          bodyRows.push(splitMarkdownTableRow(rowLine));
+          const rowCells = splitMarkdownTableRow(rowLine);
+          if (hasMeaningfulMarkdownTableCells(rowCells)) {
+            bodyRows.push(rowCells);
+          }
           index += 1;
         }
 

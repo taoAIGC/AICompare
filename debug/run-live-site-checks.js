@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const http = require('http');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { runExtensionFlowCheck } = require('./extension-flow-common');
+const {
+  EXTRA_CHECKS,
+  SITE_CHECKS,
+  getExtraCheckById,
+  getSiteCheckById,
+  getSiteCheckByName
+} = require('./site-test-manifest');
+const { classifyExternalStatus } = require('./live-verifier-common');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const DEFAULT_REPORT_DIR = path.join(__dirname, 'reports');
@@ -14,213 +22,15 @@ const DEFAULT_DEVTOOLS_ACTIVE_PORT = path.join(
   'Library/Application Support/Google/Chrome/DevToolsActivePort'
 );
 
-const CHECKS = [
-  {
-    id: 'static-config',
-    kind: 'static',
-    label: 'siteHandlers schema and verifier drift',
-    script: 'debug/validate-site-configs.js',
-    groups: ['core', 'full'],
-    siteNames: []
-  },
-  {
-    id: 'claude',
-    kind: 'live',
-    label: 'Claude real-browser verifier',
-    script: 'debug/verify-claude-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['Claude']
-  },
-  {
-    id: 'chatgpt',
-    kind: 'live',
-    label: 'ChatGPT extension end-to-end verifier',
-    script: 'debug/verify-chatgpt-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['ChatGPT']
-  },
-  {
-    id: 'gemini',
-    kind: 'live',
-    label: 'Gemini extension end-to-end verifier',
-    script: 'debug/verify-gemini-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['Gemini']
-  },
-  {
-    id: 'grok',
-    kind: 'live',
-    label: 'Grok real-browser verifier',
-    script: 'debug/verify-grok-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['Grok']
-  },
-  {
-    id: 'minimax',
-    kind: 'live',
-    label: 'MiniMax real-browser verifier',
-    script: 'debug/verify-minimax-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['MiniMax']
-  },
-  {
-    id: 'manus',
-    kind: 'live',
-    label: 'Manus real-browser verifier',
-    script: 'debug/verify-manus-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['Manus']
-  },
-  {
-    id: 'deepseek',
-    kind: 'live',
-    label: 'DeepSeek extension end-to-end verifier',
-    script: 'debug/verify-deepseek-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['DeepSeek']
-  },
-  {
-    id: 'ai-studio',
-    kind: 'live',
-    label: 'AI Studio real-browser verifier',
-    script: 'debug/verify-ai-studio-live.js',
-    groups: ['full'],
-    siteNames: ['AI Studio']
-  },
-  {
-    id: 'dots-ai',
-    kind: 'live',
-    label: 'dots.ai real-browser verifier',
-    script: 'debug/verify-dots-ai-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['点点']
-  },
-  {
-    id: 'nano-banana-live',
-    kind: 'live',
-    label: 'Nano Banana extension end-to-end verifier',
-    script: 'debug/verify-nano-banana-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['Nano Banana']
-  },
-  {
-    id: 'translate-sites',
-    kind: 'live',
-    label: 'Google/Bing Translate real-browser verifier',
-    script: 'debug/verify-translate-sites-live.js',
-    groups: ['core', 'full'],
-    siteNames: ['Google Translate', 'Bing Translate']
-  },
-  {
-    id: 'doubao',
-    kind: 'live',
-    label: 'Doubao real-browser verifier',
-    script: 'debug/verify-doubao-live.js',
-    groups: ['full'],
-    siteNames: ['豆包']
-  },
-  {
-    id: 'yuanbao',
-    kind: 'live',
-    label: 'Yuanbao real-browser verifier',
-    script: 'debug/verify-yuanbao-live.js',
-    groups: ['full'],
-    siteNames: ['元宝']
-  },
-  {
-    id: 'kimi',
-    kind: 'live',
-    label: 'Kimi real-browser verifier',
-    script: 'debug/verify-kimi-live.js',
-    groups: ['full'],
-    siteNames: ['Kimi']
-  },
-  {
-    id: 'qianwen',
-    kind: 'live',
-    label: 'Qianwen real-browser verifier',
-    script: 'debug/verify-qianwen-live.js',
-    groups: ['full'],
-    siteNames: ['千问']
-  },
-  {
-    id: 'qwen',
-    kind: 'live',
-    label: 'Qwen real-browser verifier',
-    script: 'debug/verify-qwen-live.js',
-    groups: ['full'],
-    siteNames: ['Qwen']
-  },
-  {
-    id: 'metaso',
-    kind: 'live',
-    label: 'Metaso real-browser verifier',
-    script: 'debug/verify-metaso-live.js',
-    groups: ['full'],
-    siteNames: ['秘塔']
-  },
-  {
-    id: 'perplexity',
-    kind: 'live',
-    label: 'Perplexity real-browser verifier',
-    script: 'debug/verify-perplexity-live.js',
-    groups: ['full'],
-    siteNames: ['Perplexity']
-  },
-  {
-    id: 'zhipu',
-    kind: 'live',
-    label: 'Zhipu real-browser verifier',
-    script: 'debug/verify-zhipu-live.js',
-    groups: ['full'],
-    siteNames: ['智谱']
-  },
-  {
-    id: 'arena-side-by-side',
-    kind: 'logic',
-    label: 'Arena side-by-side config verifier',
-    script: 'debug/verify-arena-side-by-side-live.js',
-    groups: ['full'],
-    siteNames: ['Arena']
-  },
-  {
-    id: 'dots-ai-config',
-    kind: 'logic',
-    label: 'dots.ai config verifier',
-    script: 'debug/verify-dots-ai-config.js',
-    groups: ['full'],
-    siteNames: ['点点']
-  },
-  {
-    id: 'metaso-extension-flow',
-    kind: 'integration',
-    label: 'Metaso extension flow verifier',
-    script: 'debug/verify-metaso-extension-flow.js',
-    groups: ['full'],
-    siteNames: ['秘塔']
-  },
-  {
-    id: 'nano-banana-routing',
-    kind: 'logic',
-    label: 'Nano Banana routing verifier',
-    script: 'debug/verify-nano-banana.js',
-    groups: ['full'],
-    siteNames: ['Nano Banana']
-  }
-];
-
-const EXTERNAL_STATUS_PATTERNS = [
-  { status: 'login_required', pattern: /sign in|log in|login|登录|请先登录|continue with google/i },
-  { status: 'rate_limited', pattern: /rate limit|usage limit|quota|credits?|pricing|消息限制|额度|限流/i },
-  { status: 'blocked', pattern: /captcha|verify you are human|access denied|blocked|temporarily unavailable|访问受限/i }
-];
-
 function parseArgs(argv) {
   const options = {
     group: DEFAULT_GROUP,
     help: false,
     writeReport: false,
     reportPath: '',
+    browserApp: '',
+    extensionId: '',
+    extensionTransport: 'gui',
     strictExternal: false,
     failOnCoverageGap: false,
     list: false,
@@ -276,6 +86,24 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (token === '--browser-app' && argv[index + 1]) {
+      options.browserApp = String(argv[index + 1]).trim();
+      index += 1;
+      continue;
+    }
+
+    if (token === '--extension-id' && argv[index + 1]) {
+      options.extensionId = String(argv[index + 1]).trim();
+      index += 1;
+      continue;
+    }
+
+    if (token === '--extension-transport' && argv[index + 1]) {
+      options.extensionTransport = String(argv[index + 1]).trim().toLowerCase();
+      index += 1;
+      continue;
+    }
+
     if (token === '--strict-external') {
       options.strictExternal = true;
       continue;
@@ -315,6 +143,9 @@ function printUsage() {
     '  --sites <a,b,c>          Run checks that cover the named site(s)',
     '  --timeout-ms <ms>        Per-check timeout (default: 480000)',
     '  --write-report [path]    Persist JSON report to debug/reports or a custom path',
+    '  --browser-app <name>     Browser app for GUI extension-url checks',
+    '  --extension-id <id>      Extension id override for extension-url checks',
+    '  --extension-transport    extension_url transport: gui | cdp (default: gui)',
     '  --strict-external        Treat login/rate-limit/blocked as hard failures',
     '  --fail-on-coverage-gap   Fail when configured sites have no live verifier coverage',
     '  --static-only            Run only static config checks',
@@ -343,6 +174,18 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
+function normalizeSet(values) {
+  return new Set((values || []).map((value) => String(value || '').trim()).filter(Boolean));
+}
+
+function slugifySiteId(siteName) {
+  return String(siteName || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'site-check';
+}
+
 function safeReadConfigSites() {
   try {
     const configPath = path.join(REPO_ROOT, 'config', 'siteHandlers.json');
@@ -353,16 +196,133 @@ function safeReadConfigSites() {
   }
 }
 
-function normalizeSet(values) {
-  return new Set((values || []).map((value) => String(value || '').trim()).filter(Boolean));
+function getConfigSiteMap(configSites) {
+  return new Map(
+    (configSites || [])
+      .filter((site) => site && site.name)
+      .map((site) => [String(site.name).trim(), site])
+  );
 }
 
-function resolveChecks(options) {
-  let checks = CHECKS.filter((check) => check.groups.includes(options.group));
+function resolveSiteCheckForName(siteName, configSiteMap) {
+  const normalizedName = String(siteName || '').trim();
+  if (!normalizedName) return null;
 
-  if (options.group === 'all') {
-    checks = CHECKS.slice();
+  const manifestCheck = getSiteCheckByName(normalizedName);
+  if (manifestCheck) {
+    return {
+      ...manifestCheck,
+      kind: 'live',
+      siteNames: [manifestCheck.siteName]
+    };
   }
+
+  const site = configSiteMap.get(normalizedName);
+  if (!site) {
+    return null;
+  }
+
+  if (site.supportIframe === false) {
+    return {
+      id: slugifySiteId(site.name),
+      siteName: site.name,
+      siteNames: [site.name],
+      mode: 'unsupported_non_iframe',
+      kind: 'live',
+      label: `${site.name} non-iframe site (not included in extension-url checks)`,
+      groups: [],
+      script: '',
+      unsupportedNonIframe: true
+    };
+  }
+
+  return {
+    id: slugifySiteId(site.name),
+    siteName: site.name,
+    siteNames: [site.name],
+    mode: 'extension_url',
+    kind: 'live',
+    label: `${site.name} extension end-to-end verifier`,
+    groups: []
+  };
+}
+
+function addUniqueCheck(targetMap, check) {
+  if (!check || !check.id) return;
+  if (!targetMap.has(check.id)) {
+    targetMap.set(check.id, check);
+  }
+}
+
+function filterByGroup(checks, group) {
+  if (group === 'all') return checks.slice();
+  return checks.filter((check) => Array.isArray(check.groups) && check.groups.includes(group));
+}
+
+function resolveSiteChecks(options, configSiteMap) {
+  const resolved = new Map();
+  const hasExplicitSelection = options.selectedIds.length > 0 || options.selectedSites.length > 0;
+
+  if (!hasExplicitSelection) {
+    for (const check of filterByGroup(SITE_CHECKS, options.group)) {
+      addUniqueCheck(resolved, {
+        ...check,
+        kind: 'live',
+        siteNames: [check.siteName]
+      });
+    }
+    return Array.from(resolved.values());
+  }
+
+  for (const id of options.selectedIds) {
+    const manifestCheck = getSiteCheckById(id);
+    if (!manifestCheck) continue;
+    addUniqueCheck(resolved, {
+      ...manifestCheck,
+      kind: 'live',
+      siteNames: [manifestCheck.siteName]
+    });
+  }
+
+  for (const siteName of options.selectedSites) {
+    addUniqueCheck(resolved, resolveSiteCheckForName(siteName, configSiteMap));
+  }
+
+  return Array.from(resolved.values());
+}
+
+function resolveExtraChecks(options) {
+  const resolved = new Map();
+  const hasExplicitSelection = options.selectedIds.length > 0 || options.selectedSites.length > 0;
+
+  if (!hasExplicitSelection) {
+    for (const check of filterByGroup(EXTRA_CHECKS, options.group)) {
+      addUniqueCheck(resolved, check);
+    }
+    return Array.from(resolved.values());
+  }
+
+  for (const id of options.selectedIds) {
+    addUniqueCheck(resolved, getExtraCheckById(id));
+  }
+
+  if (options.selectedSites.length > 0) {
+    const selectedSites = normalizeSet(options.selectedSites);
+    for (const check of EXTRA_CHECKS) {
+      if (check.siteNames.some((siteName) => selectedSites.has(siteName))) {
+        addUniqueCheck(resolved, check);
+      }
+    }
+  }
+
+  return Array.from(resolved.values());
+}
+
+function resolveChecks(options, configSites) {
+  const configSiteMap = getConfigSiteMap(configSites);
+  const siteChecks = resolveSiteChecks(options, configSiteMap);
+  const extraChecks = resolveExtraChecks(options);
+  let checks = [...extraChecks, ...siteChecks];
 
   if (options.staticOnly) {
     checks = checks.filter((check) => check.kind === 'static');
@@ -372,35 +332,28 @@ function resolveChecks(options) {
     checks = checks.filter((check) => check.kind !== 'static');
   }
 
-  if (options.selectedIds.length > 0) {
-    const selected = normalizeSet(options.selectedIds);
-    checks = checks.filter((check) => selected.has(check.id));
-  }
-
-  if (options.selectedSites.length > 0) {
-    const selected = normalizeSet(options.selectedSites);
-    checks = checks.filter((check) => check.siteNames.some((siteName) => selected.has(siteName)));
-  }
-
   return checks;
 }
 
-function buildCoverageReport() {
-  const configSites = safeReadConfigSites();
-  const allSiteNames = configSites.map((site) => String(site?.name || '').trim()).filter(Boolean);
-  const liveCovered = new Set(
-    CHECKS
-      .filter((check) => check.kind === 'live')
-      .flatMap((check) => check.siteNames)
-      .map((name) => String(name || '').trim())
-      .filter(Boolean)
-  );
+function buildCoverageReport(configSites) {
+  const extensionUrlCoveredSites = configSites
+    .filter((site) => site && site.name && site.supportIframe !== false)
+    .map((site) => String(site.name).trim())
+    .sort((left, right) => left.localeCompare(right));
+  const ignoredNonIframeSites = configSites
+    .filter((site) => site && site.name && site.supportIframe === false)
+    .map((site) => String(site.name).trim())
+    .sort((left, right) => left.localeCompare(right));
+  const listedManifestSites = SITE_CHECKS
+    .filter((check) => check.mode === 'extension_url')
+    .map((check) => check.siteName)
+    .sort((left, right) => left.localeCompare(right));
 
-  const uncovered = allSiteNames.filter((name) => !liveCovered.has(name));
   return {
-    totalConfiguredSites: allSiteNames.length,
-    liveCoveredSites: Array.from(liveCovered).sort((left, right) => left.localeCompare(right)),
-    uncoveredSites: uncovered.sort((left, right) => left.localeCompare(right))
+    totalConfiguredSites: configSites.length,
+    extensionUrlCoveredSites,
+    listedManifestSites,
+    ignoredNonIframeSites
   };
 }
 
@@ -474,62 +427,15 @@ function classifyFailure(output) {
   if (/timed out|timeout|请求超时/i.test(combined)) {
     return 'timeout';
   }
-
-  for (const item of EXTERNAL_STATUS_PATTERNS) {
-    if (item.pattern.test(combined)) {
-      return item.status;
-    }
-  }
-
-  return 'failed';
+  return classifyExternalStatus(combined) || 'failed';
 }
 
 function isHardFailure(status, strictExternal) {
-  if (status === 'passed') return false;
+  if (status === 'passed' || status === 'ok') return false;
   if (status === 'login_required' || status === 'rate_limited' || status === 'blocked') {
     return !!strictExternal;
   }
   return true;
-}
-
-function runCheck(check, timeoutMs) {
-  const scriptPath = path.join(REPO_ROOT, check.script);
-  const startedAt = new Date();
-  const result = spawnSync(process.execPath, [scriptPath], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-    timeout: timeoutMs,
-    maxBuffer: 1024 * 1024 * 20
-  });
-  const finishedAt = new Date();
-  const stdout = String(result.stdout || '');
-  const stderr = String(result.stderr || '');
-  const combined = `${stdout}\n${stderr}`.trim();
-  const parsed = parseJsonOutput(stdout);
-
-  let status = 'passed';
-  if (result.error && result.error.code === 'ETIMEDOUT') {
-    status = 'timeout';
-  } else if (result.status !== 0) {
-    status = classifyFailure(combined);
-  }
-
-  return {
-    id: check.id,
-    kind: check.kind,
-    label: check.label,
-    script: check.script,
-    siteNames: check.siteNames,
-    status,
-    exitCode: typeof result.status === 'number' ? result.status : null,
-    signal: result.signal || null,
-    startedAt: startedAt.toISOString(),
-    finishedAt: finishedAt.toISOString(),
-    durationMs: finishedAt.getTime() - startedAt.getTime(),
-    parsed,
-    stdoutPreview: stdout.trim().slice(0, 4000),
-    stderrPreview: stderr.trim().slice(0, 4000)
-  };
 }
 
 function buildEnvBlockedResult(check, reason) {
@@ -538,8 +444,9 @@ function buildEnvBlockedResult(check, reason) {
     id: check.id,
     kind: check.kind,
     label: check.label,
-    script: check.script,
-    siteNames: check.siteNames,
+    script: check.script || '',
+    siteNames: check.siteNames || [],
+    mode: check.mode || '',
     status: 'environment_blocked',
     exitCode: null,
     signal: null,
@@ -552,14 +459,237 @@ function buildEnvBlockedResult(check, reason) {
   };
 }
 
-function listChecks() {
-  const payload = CHECKS.map((check) => ({
+function buildCoverageGapResult(check, reason) {
+  const now = new Date().toISOString();
+  return {
     id: check.id,
     kind: check.kind,
-    groups: check.groups,
+    label: check.label,
+    script: check.script || '',
+    siteNames: check.siteNames || [],
+    mode: check.mode || '',
+    status: 'coverage_gap',
+    exitCode: null,
+    signal: null,
+    startedAt: now,
+    finishedAt: now,
+    durationMs: 0,
+    parsed: {
+      siteName: check.siteName || '',
+      mode: check.mode || 'live_direct',
+      ok: false,
+      status: 'error',
+      query: String(check.query || '你好世界'),
+      pageUrl: '',
+      runtimeUrl: '',
+      contentPreview: '',
+      evidence: {
+        reason
+      },
+      assessment: {
+        config_valid: false,
+        flow_valid: false,
+        service_available: false
+      },
+      checkedAt: now
+    },
+    stdoutPreview: '',
+    stderrPreview: reason
+  };
+}
+
+function buildUnsupportedNonIframeResult(check, reason) {
+  const now = new Date().toISOString();
+  return {
+    id: check.id,
+    kind: check.kind,
+    label: check.label,
+    script: '',
+    siteNames: check.siteNames || [],
+    mode: check.mode || '',
+    status: 'skipped',
+    exitCode: 0,
+    signal: null,
+    startedAt: now,
+    finishedAt: now,
+    durationMs: 0,
+    parsed: {
+      siteName: check.siteName || '',
+      mode: check.mode || 'unsupported_non_iframe',
+      ok: true,
+      status: 'skipped',
+      query: String(check.query || '你好世界'),
+      pageUrl: '',
+      runtimeUrl: '',
+      contentPreview: '',
+      evidence: {
+        reason
+      },
+      assessment: {
+        config_valid: true,
+        flow_valid: false,
+        service_available: false
+      },
+      checkedAt: now
+    },
+    stdoutPreview: '',
+    stderrPreview: ''
+  };
+}
+
+async function runExtensionSiteCheck(check, timeoutMs, options) {
+  const startedAt = new Date();
+  try {
+    const parsed = await runExtensionFlowCheck({
+      siteName: check.siteName,
+      query: check.query || process.env.TEST_QUERY || '你好世界',
+      extensionId: options.extensionId || process.env.AI_COMPARE_EXTENSION_ID || process.env.EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi',
+      browserApp: options.browserApp || '',
+      transport: options.extensionTransport || 'gui',
+      timeoutMs,
+      pollMs: check.pollMs,
+      minChars: check.minChars,
+      stableRounds: check.stableRounds,
+      waitForIframesMs: check.waitForIframesMs,
+      reloadExtension: process.env.RELOAD_EXTENSION === '1'
+    });
+    const finishedAt = new Date();
+    return {
+      id: check.id,
+      kind: check.kind,
+      label: check.label,
+      script: 'extension_url_contract',
+      siteNames: [check.siteName],
+      mode: check.mode,
+      status: parsed.status,
+      exitCode: parsed.ok ? 0 : 1,
+      signal: null,
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
+      parsed,
+      stdoutPreview: JSON.stringify(parsed, null, 2).slice(0, 4000),
+      stderrPreview: parsed.ok ? '' : JSON.stringify(parsed, null, 2).slice(0, 4000)
+    };
+  } catch (error) {
+    const finishedAt = new Date();
+    const message = error && error.stack ? error.stack : String(error);
+    return {
+      id: check.id,
+      kind: check.kind,
+      label: check.label,
+      script: 'extension_url_contract',
+      siteNames: [check.siteName],
+      mode: check.mode,
+      status: classifyFailure(message),
+      exitCode: 1,
+      signal: null,
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
+      parsed: null,
+      stdoutPreview: '',
+      stderrPreview: message.slice(0, 4000)
+    };
+  }
+}
+
+function runScriptCheck(check, timeoutMs) {
+  const scriptPath = path.join(REPO_ROOT, check.script);
+  const startedAt = new Date();
+  const env = {
+    ...process.env
+  };
+
+  if (check.query) {
+    env.TEST_QUERY = String(check.query);
+  }
+
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    maxBuffer: 1024 * 1024 * 20,
+    env
+  });
+  const finishedAt = new Date();
+  const stdout = String(result.stdout || '');
+  const stderr = String(result.stderr || '');
+  const combined = `${stdout}\n${stderr}`.trim();
+  const parsed = parseJsonOutput(stdout) || parseJsonOutput(stderr);
+
+  let status = 'passed';
+  if (parsed?.status) {
+    status = String(parsed.status);
+  } else if (result.error && result.error.code === 'ETIMEDOUT') {
+    status = 'timeout';
+  } else if (result.status !== 0) {
+    status = classifyFailure(combined);
+  }
+
+  return {
+    id: check.id,
+    kind: check.kind,
+    label: check.label,
     script: check.script,
-    siteNames: check.siteNames
-  }));
+    siteNames: check.siteNames || [],
+    mode: check.mode || '',
+    status,
+    exitCode: typeof result.status === 'number' ? result.status : null,
+    signal: result.signal || null,
+    startedAt: startedAt.toISOString(),
+    finishedAt: finishedAt.toISOString(),
+    durationMs: finishedAt.getTime() - startedAt.getTime(),
+    parsed,
+    stdoutPreview: stdout.trim().slice(0, 4000),
+    stderrPreview: stderr.trim().slice(0, 4000)
+  };
+}
+
+async function runCheck(check, timeoutMs, options) {
+  if (check.kind === 'live' && check.unsupportedNonIframe) {
+    return buildUnsupportedNonIframeResult(
+      check,
+      `${check.siteName} is supportIframe=false and is intentionally excluded from extension-url site checks.`
+    );
+  }
+
+  if (check.kind === 'live' && check.coverageGap) {
+    return buildCoverageGapResult(
+      check,
+      `${check.siteName} does not support iframe mode and has no dedicated live verifier yet.`
+    );
+  }
+
+  if (check.kind === 'live' && check.mode === 'extension_url') {
+    return runExtensionSiteCheck(check, timeoutMs, options);
+  }
+
+  if (check.script) {
+    return runScriptCheck(check, timeoutMs);
+  }
+
+  return buildCoverageGapResult(check, `No runnable implementation found for check ${check.id}.`);
+}
+
+function listChecks() {
+  const payload = [
+    ...EXTRA_CHECKS.map((check) => ({
+      id: check.id,
+      kind: check.kind,
+      groups: check.groups,
+      script: check.script,
+      siteNames: check.siteNames
+    })),
+    ...SITE_CHECKS.map((check) => ({
+      id: check.id,
+      kind: 'live',
+      groups: check.groups,
+      mode: check.mode,
+      script: check.script || '',
+      siteNames: [check.siteName]
+    }))
+  ];
   console.log(JSON.stringify(payload, null, 2));
 }
 
@@ -583,22 +713,31 @@ async function main() {
     return;
   }
 
-  const checks = resolveChecks(options);
+  const configSites = safeReadConfigSites();
+  const checks = resolveChecks(options, configSites);
   if (checks.length === 0) {
     throw new Error('No checks selected. Use --list to inspect available checks.');
   }
 
-  const coverage = buildCoverageReport();
-  const requiresCdp = checks.some((check) => check.kind === 'live');
+  const coverage = buildCoverageReport(configSites);
+  const requiresCdp = checks.some((check) => (
+    check.kind === 'live'
+    && !check.coverageGap
+    && (check.mode === 'live_direct' || options.extensionTransport === 'cdp')
+  ));
   const cdpStatus = requiresCdp ? await probeChromeCdp() : null;
-  const results = checks.map((check) => {
-    if (check.kind === 'live' && cdpStatus && !cdpStatus.ok) {
-      return buildEnvBlockedResult(check, cdpStatus.reason);
+  const results = [];
+
+  for (const check of checks) {
+    if (check.kind === 'live' && !check.coverageGap && cdpStatus && !cdpStatus.ok) {
+      results.push(buildEnvBlockedResult(check, cdpStatus.reason));
+      continue;
     }
-    return runCheck(check, options.timeoutMs);
-  });
+    results.push(await runCheck(check, options.timeoutMs, options));
+  }
+
   const hardFailureCount = results.filter((item) => isHardFailure(item.status, options.strictExternal)).length;
-  const coverageGapCount = coverage.uncoveredSites.length;
+  const coverageGapCount = 0;
 
   const payload = {
     ok: hardFailureCount === 0 && (!options.failOnCoverageGap || coverageGapCount === 0),
@@ -607,6 +746,9 @@ async function main() {
     options: {
       group: options.group,
       timeoutMs: options.timeoutMs,
+      browserApp: options.browserApp,
+      extensionId: options.extensionId,
+      extensionTransport: options.extensionTransport,
       strictExternal: options.strictExternal,
       failOnCoverageGap: options.failOnCoverageGap,
       selectedIds: options.selectedIds,

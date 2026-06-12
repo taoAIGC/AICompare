@@ -4,12 +4,17 @@
 /debug/reports/
 !/debug/run-live-site-checks.js
 !/debug/extension-flow-common.js
+!/debug/live-verifier-common.js
+!/debug/site-test-manifest.js
 !/debug/launchd/
 !/debug/launchd/com.aicompare.site-checks.plist.template
 !/debug/validate-site-configs.js
 !/debug/verify-chatgpt-live.js
 !/debug/verify-gemini-live.js
 !/debug/verify-deepseek-live.js
+!/debug/verify-minimax-live.js
+!/debug/verify-doubao-live.js
+!/debug/verify-perplexity-live.js
 !/debug/verify-remote-search-playwright.js
 !/debug/verify-nano-banana-live.js
 !/debug/verify-dots-ai-config.js

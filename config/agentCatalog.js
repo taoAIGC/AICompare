@@ -546,7 +546,6 @@
       color: definition.color,
       description: normalizeString(variant.description) || normalizeString(definition.description),
       enabled: definition.enabled === true || legacyDefaultEnabled,
-      defaultSelected: definition.defaultSelected === true || legacyDefaultEnabled,
       personaPrompt: normalizeString(definition.personaPrompt)
     };
   }
@@ -627,7 +626,6 @@
       categoryId,
       color: normalizeColor(rawAgent.color, '#4f6b95'),
       enabled: rawAgent.enabled === true || legacyDefaultEnabled,
-      defaultSelected: rawAgent.defaultSelected === true || legacyDefaultEnabled,
       sourceType: normalizeString(rawAgent.sourceType) || 'custom',
       sourceUrl: normalizeString(rawAgent.sourceUrl),
       sourceTitle: normalizeString(rawAgent.sourceTitle),
@@ -690,12 +688,6 @@
         entry.enabled = raw.defaultEnabled;
       }
 
-      if (typeof raw.defaultSelected === 'boolean') {
-        entry.defaultSelected = raw.defaultSelected;
-      } else if (typeof raw.defaultEnabled === 'boolean') {
-        entry.defaultSelected = raw.defaultEnabled;
-      }
-
       if (typeof raw.name === 'string') {
         const name = raw.name.trim();
         if (name && name !== configuredName) {
@@ -754,12 +746,6 @@
       baseAgent.enabled = customSettings.enabled;
     } else if (typeof customSettings.defaultEnabled === 'boolean') {
       baseAgent.enabled = customSettings.defaultEnabled;
-    }
-
-    if (typeof customSettings.defaultSelected === 'boolean') {
-      baseAgent.defaultSelected = customSettings.defaultSelected;
-    } else if (typeof customSettings.defaultEnabled === 'boolean') {
-      baseAgent.defaultSelected = customSettings.defaultEnabled;
     }
 
     return baseAgent;

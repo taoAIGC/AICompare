@@ -174,8 +174,11 @@
   "agentEngineOfficialCardHint": {
     "message": "Select the official API card to use the bundled defaults"
   },
+  "agentEngineOfficialMetaFree": {
+    "message": "내장 API를 사용하며, 하루에 $1회까지 무료입니다."
+  },
   "agentEngineOfficialMetaChineseFree": {
-    "message": "Official API is currently free in Chinese UI."
+    "message": "내장 API를 사용하며, 하루에 $1회까지 무료입니다."
   },
   "agentEngineOfficialQuotaExceeded": {
     "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
@@ -1413,7 +1416,7 @@
     "message": "분석 프롬프트"
   },
   "analysisPromptTemplatesDescription": {
-    "message": "Customize the prompt templates used to analyze copied summaries"
+    "message": "분석 프롬프트는 모델과 스킬 응답 결과를 요약·분석하는 데 사용됩니다."
   },
   "addAnalysisTemplateButton": {
     "message": "Add Analysis Prompt"
@@ -2354,6 +2357,9 @@
   "liveSummaryRefresh": {
     "message": "분석"
   },
+  "liveSummaryRetryAnalyzeTooltip": {
+    "message": "다시 가져와 분석"
+  },
   "liveSummaryRefreshCountdown": {
     "message": "분석 ($1초)"
   },
@@ -2425,5 +2431,29 @@
   },
   "homepageBatchFavoriteDeleted": {
     "message": "배치 즐겨찾기를 삭제했습니다"
+  },
+  "membershipPricingTitle": {
+    "message": "Choose your Pro plan"
+  },
+  "membershipPricingDescription": {
+    "message": "Pick monthly or yearly, then sign in to complete payment securely with Stripe."
+  },
+  "membershipPricingOptionsAriaLabel": {
+    "message": "Choose a Pro plan"
+  },
+  "membershipPricingMonthlyDescription": {
+    "message": "Flexible monthly billing for trying Pro at your own pace."
+  },
+  "membershipPricingYearlyDescription": {
+    "message": "Best value for long-term use, with one yearly payment."
+  },
+  "membershipPricingBack": {
+    "message": "Back to Pro Membership"
+  },
+  "membershipPricingEyebrow": {
+    "message": "AI Compare Pro"
+  },
+  "membershipPricingLoginNote": {
+    "message": "You can choose a plan before signing in. We will ask you to sign in before Stripe checkout so the membership is tied to your account."
   }
 }

@@ -242,10 +242,10 @@
     "message": "填写自己的 API，智能体将使用你的额度"
   },
   "agentEngineOfficialMetaFree": {
-    "message": "非中文界面使用内置 API，每天免费 $1 次。"
+    "message": "使用内置 API，每天免费 $1 次。"
   },
   "agentEngineOfficialMetaChineseFree": {
-    "message": "中文界面当前可免费使用官方 API。"
+    "message": "使用内置 API，每天免费 $1 次。"
   },
   "agentEngineOfficialMetaPro": {
     "message": "当前套餐：PRO"
@@ -1899,7 +1899,7 @@
     "message": "分析提示词"
   },
   "analysisPromptTemplatesDescription": {
-    "message": "自定义分析汇总结果时使用的提示词模板"
+    "message": "分析提示词用于对大模型、技能回答的结果进行汇总分析"
   },
   "addAnalysisTemplateButton": {
     "message": "添加分析提示词"
@@ -2532,10 +2532,10 @@
     "message": "你现在是一个多学科思维的分析伙伴。\n你的任务不是只用单一视角回答，而是从多个学科镜头同时审视用户的问题。\n\n【默认分析镜头】\n- 经济学：激励、取舍、成本、稀缺性、收益与风险。\n- 心理学：动机、偏见、情绪、信任、行为变化。\n- 物理学 / 工程学：底层约束、瓶颈、时间、能量、吞吐。\n- 生物学 / 进化论：适应、竞争、选择压力、反馈回路。\n- 当问题需要时，可额外加入统计学、社会学、历史、博弈论等视角。\n\n【回答要求】\n1. 先重述问题，并说明关键假设。\n2. 按不同学科视角分别分析，不要揉成一团。\n3. 每个视角都说明：它帮助看清了什么，以及暴露了什么风险。\n4. 点出这些视角之间哪里一致、哪里冲突、哪里会改变建议。\n5. 最后给出：\n   - 综合判断，\n   - 当前最关键的变量，\n   - 以及最值得优先做的下一步。\n6. 输出要结合用户的真实情境，避免空话。\n7. 不要说“作为 AI”。"
   },
   "agentSixThinkingHatsName": {
-    "message": "六顶思考帽"
+    "message": "右脑思维"
   },
   "agentSixThinkingHatsDescription": {
-    "message": "用白帽、红帽、黑帽、黄帽、绿帽、蓝帽六种模式系统审视问题"
+    "message": "通过直觉、意象、联想、情绪和整体模式感知来分析用户输入"
   },
   "agentSixThinkingHatsPersonaPrompt": {
     "message": "你现在是一个“六顶思考帽”主持者。\n请用 Edward de Bono 的六顶思考帽方法，把同一个问题拆成六种不同的思考模式来分析。\n\n【帽子顺序】\n1. 白帽：事实、数据、已知信息、缺失信息。\n2. 红帽：感受、直觉、人的情绪反应。\n3. 黑帽：风险、失败路径、反对意见、脆弱点。\n4. 黄帽：价值、收益、机会、为什么它可能有效。\n5. 绿帽：新想法、替代方案、重构角度、可试验的办法。\n6. 蓝帽：组织思路、总结判断、明确下一步。\n\n【回答要求】\n1. 明确分帽展开，除非某一帽明显不适用，否则都要使用；如果跳过，必须说明原因。\n2. 不要把不同帽子的内容混在一起。\n3. 如果事实不足，要在白帽部分明确写出不确定性。\n4. 蓝帽部分最后必须给出清晰建议、未解决问题和下一步动作。\n5. 输出要务实，并贴合用户当前情境。\n6. 不要说“作为 AI”。"
@@ -2681,6 +2681,9 @@
   "liveSummaryRefresh": {
     "message": "分析"
   },
+  "liveSummaryRetryAnalyzeTooltip": {
+    "message": "重新抓取并分析"
+  },
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1s）"
   },
@@ -2734,5 +2737,29 @@
   },
   "liveSummaryAnalyzeFailed": {
     "message": "打开分析页失败，请重试"
+  },
+  "membershipPricingTitle": {
+    "message": "选择 Pro 付费方案"
+  },
+  "membershipPricingDescription": {
+    "message": "选择月付或年付后，登录账号并通过 Stripe 安全完成付款。"
+  },
+  "membershipPricingOptionsAriaLabel": {
+    "message": "选择 Pro 付费方案"
+  },
+  "membershipPricingMonthlyDescription": {
+    "message": "适合先试用 Pro，按月灵活订阅。"
+  },
+  "membershipPricingYearlyDescription": {
+    "message": "适合长期使用，一次年付更划算。"
+  },
+  "membershipPricingBack": {
+    "message": "返回 Pro 会员页"
+  },
+  "membershipPricingEyebrow": {
+    "message": "AI 比一比 Pro"
+  },
+  "membershipPricingLoginNote": {
+    "message": "你可以先选择付费方案。进入 Stripe 付款前会要求登录，这样会员才能绑定到你的账号。"
   }
 }

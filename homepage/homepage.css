@@ -1192,35 +1192,6 @@ body.batch-mode-modal-open {
     transform: translateY(1px);
 }
 
-.selection-group-icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid var(--ai-border);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.92);
-    cursor: pointer;
-    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
-}
-
-.selection-group-icon-btn:hover {
-    background: var(--ai-surface-soft);
-    border-color: var(--ai-border-strong);
-}
-
-.selection-group-icon-btn:active {
-    transform: translateY(1px);
-}
-
-.selection-group-icon-btn img {
-    width: 15px;
-    height: 15px;
-    display: block;
-}
-
 .site-filter-bar {
     width: 100%;
     max-width: 720px;

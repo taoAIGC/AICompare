@@ -21,8 +21,8 @@ OFFICIAL_AGENT_API_BASE_URL=https://your-official-api.example/v1
 OFFICIAL_AGENT_API_KEY=your_official_api_key
 OFFICIAL_AGENT_MODEL=your-default-model
 OFFICIAL_API_DAILY_FREE_LIMIT=100
-ADMIN_UIDS=uid_1,uid_2
-ADMIN_EMAILS=admin@example.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=replace_with_sha256_hex
 ADMIN_SESSION_SECRET=replace_with_random_secret
 ADMIN_SESSION_TTL_SECONDS=43200
 ADMIN_SESSION_ORIGIN=https://aicompare.club
@@ -34,7 +34,7 @@ ADMIN_SESSION_ORIGIN=https://aicompare.club
 - Webhook 的 `whsec_...` 也必须和当前模式一致
 - `functions/.env` 只能本地保存
 - `OFFICIAL_AGENT_*` 只保存在 Cloud Functions 环境中，不要写入扩展前端代码
-- `ADMIN_UIDS` / `ADMIN_EMAILS` 至少配置一个，用于限制后台访问
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` 用于后台账号密码登录
 - `ADMIN_SESSION_SECRET` 建议单独设置，不要长期依赖 webhook secret 兼用
 
 ## 2.1 VPS backend 额外说明
@@ -55,9 +55,9 @@ ADMIN_SESSION_ORIGIN=https://aicompare.club
 
 后台登录流程：
 
-1. 用白名单 Firebase 账号获取 ID Token
+1. 准备后台管理员账号和密码
 2. 打开 `/admin/login`
-3. 粘贴 token，换取 HttpOnly session cookie
+3. 输入账号密码，换取 HttpOnly session cookie
 4. 再访问后台统计页面
 
 ## 3. 部署
@@ -99,4 +99,4 @@ firebase deploy --only functions,firestore:rules
 - `functions/.env` 没生效：确认已重新部署
 - Webhook 验证失败：确认 `whsec_...` 来自当前模式的 endpoint
 - `Official API proxy is not configured`：确认 `OFFICIAL_AGENT_API_BASE_URL` 和 `OFFICIAL_AGENT_API_KEY` 已配置并重新部署
-- 管理后台进不去：确认当前 Firebase 账号在 `ADMIN_UIDS` 或 `ADMIN_EMAILS` 白名单中
+- 管理后台进不去：确认 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD_HASH` 已正确配置

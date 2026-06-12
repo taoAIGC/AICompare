@@ -14,8 +14,8 @@
 // 配置常量（请替换为你在 Stripe Dashboard 创建的真实 Price ID）
 // ─────────────────────────────────────────────────────────────────────────────
 const STRIPE_PRICES = {
-  monthly: 'price_1SzxyyEKxBtGZOjfNr23r21W',
-  yearly:  'price_1SzyXqEKxBtGZOjfLUxTMV3q',
+  monthly: 'price_1TgkMUEKxBtGZOjfaxgHMz7t',
+  yearly:  'price_1TgkMUEKxBtGZOjfxSteOJjR',
 };
 const STRIPE_REQUEST_TIMEOUT_MS = 15000;
 const STRIPE_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);

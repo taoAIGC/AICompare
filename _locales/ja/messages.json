@@ -174,8 +174,11 @@
   "agentEngineOfficialCardHint": {
     "message": "Select the official API card to use the bundled defaults"
   },
+  "agentEngineOfficialMetaFree": {
+    "message": "内蔵 API を使用できます。1 日あたり $1 回まで無料です。"
+  },
   "agentEngineOfficialMetaChineseFree": {
-    "message": "Official API is currently free in Chinese UI."
+    "message": "内蔵 API を使用できます。1 日あたり $1 回まで無料です。"
   },
   "agentEngineOfficialQuotaExceeded": {
     "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
@@ -1413,7 +1416,7 @@
     "message": "分析プロンプト"
   },
   "analysisPromptTemplatesDescription": {
-    "message": "Customize the prompt templates used to analyze copied summaries"
+    "message": "分析プロンプトは、モデルやスキルの回答結果を要約・分析するために使用します。"
   },
   "addAnalysisTemplateButton": {
     "message": "Add Analysis Prompt"
@@ -2354,6 +2357,9 @@
   "liveSummaryRefresh": {
     "message": "分析"
   },
+  "liveSummaryRetryAnalyzeTooltip": {
+    "message": "再取得して分析"
+  },
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1秒）"
   },
@@ -2425,5 +2431,29 @@
   },
   "homepageBatchFavoriteDeleted": {
     "message": "バッチのお気に入りを削除しました"
+  },
+  "membershipPricingTitle": {
+    "message": "Choose your Pro plan"
+  },
+  "membershipPricingDescription": {
+    "message": "Pick monthly or yearly, then sign in to complete payment securely with Stripe."
+  },
+  "membershipPricingOptionsAriaLabel": {
+    "message": "Choose a Pro plan"
+  },
+  "membershipPricingMonthlyDescription": {
+    "message": "Flexible monthly billing for trying Pro at your own pace."
+  },
+  "membershipPricingYearlyDescription": {
+    "message": "Best value for long-term use, with one yearly payment."
+  },
+  "membershipPricingBack": {
+    "message": "Back to Pro Membership"
+  },
+  "membershipPricingEyebrow": {
+    "message": "AI Compare Pro"
+  },
+  "membershipPricingLoginNote": {
+    "message": "You can choose a plan before signing in. We will ask you to sign in before Stripe checkout so the membership is tied to your account."
   }
 }

@@ -611,8 +611,7 @@ function getSelectedAgentIds() {
 }
 
 function getFilteredAgents() {
-    return (homepageSitesState.agentCatalog?.agents || [])
-        .filter(agent => agent.enabled === true);
+    return homepageSitesState.agentCatalog?.agents || [];
 }
 
 function updateAgentsSectionVisibility() {
@@ -621,8 +620,7 @@ function updateAgentsSectionVisibility() {
         return;
     }
 
-    const hasVisibleAgents = (homepageSitesState.agentCatalog?.agents || [])
-        .some(agent => agent.enabled === true);
+    const hasVisibleAgents = (homepageSitesState.agentCatalog?.agents || []).length > 0;
     agentsSection.hidden = !hasVisibleAgents;
 }
 
@@ -753,18 +751,8 @@ function updateHomepageAgentSelection(checked) {
 }
 
 function initializeAgentSelectionActions() {
-    const editAgentsButton = document.getElementById('editAgentsBtn');
     const selectAllButton = document.getElementById('selectAllAgentsBtn');
     const clearAllButton = document.getElementById('clearAllAgentsBtn');
-
-    if (editAgentsButton) {
-        editAgentsButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            trackEvent('homepage_agents_edit_click');
-            window.location.href = chrome.runtime.getURL('options/options.html#agent-settings');
-        });
-    }
 
     if (selectAllButton) {
         selectAllButton.addEventListener('click', (event) => {
@@ -819,7 +807,6 @@ async function initializeAgentsList() {
             agents: Array.isArray(catalog?.agents)
                 ? catalog.agents.filter(agent =>
                     agent
-                    && agent.enabled === true
                     && !hiddenAgentIdSet.has(String(agent.id || '').trim())
                 )
                 : []
@@ -832,7 +819,7 @@ async function initializeAgentsList() {
                 agent.id,
                 previousSelectedAgents.has(agent.id)
                     ? previousSelectedAgents.get(agent.id)
-                    : (agent.defaultSelected === true)
+                    : (agent.enabled === true)
             ])
         );
         updateAgentsSectionVisibility();
@@ -2315,7 +2302,7 @@ function initializeSaveSitesButton() {
                     : {};
                 updatedAgentCustomSettings[agent.id] = {
                     ...currentSettings,
-                    defaultSelected: selectedAgentIds.includes(agent.id)
+                    enabled: selectedAgentIds.includes(agent.id)
                 };
             });
             
@@ -2334,7 +2321,7 @@ function initializeSaveSitesButton() {
                     ...homepageSitesState.agentCatalog,
                     agents: homepageSitesState.agentCatalog.agents.map((agent) => ({
                         ...agent,
-                        defaultSelected: selectedAgentIds.includes(agent.id)
+                        enabled: selectedAgentIds.includes(agent.id)
                     }))
                 };
             }

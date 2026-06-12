@@ -460,7 +460,7 @@ test('extractPromptResponseForTimeline falls back to latestVisibleResponse when 
   assert.equal(result.fallbackUsed, 'latestVisibleResponse');
 });
 
-test('extractPromptResponseForTimeline falls back to latestVisibleResponse when a single prompt record exists but query text does not match', async () => {
+test('extractPromptResponseForTimeline does not fall back to latestVisibleResponse when a real prompt exists but query text does not match', async () => {
   const selectorMap = new Map();
   const doc = createDocument(selectorMap);
 
@@ -505,10 +505,8 @@ test('extractPromptResponseForTimeline falls back to latestVisibleResponse when 
     0
   );
 
-  assert.equal(result.found, true);
-  assert.equal(result.content, 'Grok 的最新回答');
-  assert.equal(JSON.stringify(result.answers), JSON.stringify(['Grok 的最新回答']));
-  assert.equal(result.fallbackUsed, 'latestVisibleResponse');
+  assert.equal(result.found, false);
+  assert.equal(result.error, 'Prompt not found');
 });
 
 test('collectTimelinePromptRecords keeps Doubao prompt matching scoped to the user text node', async () => {
@@ -571,4 +569,104 @@ test('collectTimelinePromptRecords keeps Doubao prompt matching scoped to the us
   assert.equal(result.found, true);
   assert.equal(result.content, '豆包回答正文');
   assert.equal(JSON.stringify(result.answers), JSON.stringify(['豆包回答正文']));
+});
+
+test('collectTimelinePromptRecords ignores DeepSeek status chips that are not inside user message nodes', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const deepseekUserRow = createElement(doc, '');
+  deepseekUserRow.__order = 1;
+  const deepseekUserContainer = createElement(doc, '上海天气怎么样');
+  deepseekUserContainer.__order = 1;
+  deepseekUserContainer.closest = (selector) => {
+    if (selector === '[data-message-author-role="user"], .ds-message[data-message-author-role="user"]') {
+      return deepseekUserRow;
+    }
+    return null;
+  };
+
+  const deepseekStatusChip = createElement(doc, 'Read 10 web pages');
+  deepseekStatusChip.__order = 2;
+  deepseekStatusChip.closest = () => null;
+
+  selectorMap.set('div.ds-message:has(> div:not(.ds-markdown))', [
+    deepseekUserContainer,
+    deepseekStatusChip
+  ]);
+
+  const extraction = loadExtractionCore(doc);
+  const promptRecords = extraction.collectTimelinePromptRecords(doc, {
+    userPrompt: {
+      containerSelector: 'div.ds-message:has(> div:not(.ds-markdown))',
+      textSelector: ':scope > div:not(.ds-markdown)',
+      messageNodeSelector: '[data-message-author-role="user"], .ds-message[data-message-author-role="user"]',
+      requireMessageNode: true
+    }
+  });
+
+  assert.equal(promptRecords.length, 1);
+  assert.equal(promptRecords[0].text, '上海天气怎么样');
+});
+
+test('collectTimelinePromptRecords supports DeepSeek user rows exposed directly by data-message-author-role', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const textNode = createElement(doc, '深圳天气怎么样');
+  textNode.__order = 1;
+
+  const deepseekUserRow = createElement(doc, '');
+  deepseekUserRow.__order = 1;
+  deepseekUserRow.querySelector = (selector) => {
+    if (selector === '.ds-markdown, .markdown, .message-content, [class*="message-content"], :scope > div:not(.ds-markdown), p, span') {
+      return textNode;
+    }
+    return null;
+  };
+  deepseekUserRow.closest = (selector) => {
+    if (selector === '[data-message-author-role="user"], .ds-message[data-message-author-role="user"]') {
+      return deepseekUserRow;
+    }
+    return null;
+  };
+
+  selectorMap.set('[data-message-author-role="user"]', [deepseekUserRow]);
+  selectorMap.set('.ds-message[data-message-author-role="user"]', []);
+  selectorMap.set('div.ds-message:has(> div:not(.ds-markdown))', []);
+
+  const extraction = loadExtractionCore(doc);
+  const promptRecords = extraction.collectTimelinePromptRecords(doc, {
+    userPrompt: {
+      containerSelector: [
+        '[data-message-author-role="user"]',
+        '.ds-message[data-message-author-role="user"]',
+        'div.ds-message:has(> div:not(.ds-markdown))'
+      ],
+      textSelector: '.ds-markdown, .markdown, .message-content, [class*="message-content"], :scope > div:not(.ds-markdown), p, span',
+      messageNodeSelector: '[data-message-author-role="user"], .ds-message[data-message-author-role="user"]',
+      requireMessageNode: true
+    }
+  });
+
+  assert.equal(promptRecords.length, 1);
+  assert.equal(promptRecords[0].text, '深圳天气怎么样');
+});
+
+test('collectTimelinePromptRecords filters standalone read-web-pages ui labels', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const readChip = createElement(doc, 'Read 8 web pages');
+  readChip.__order = 1;
+  selectorMap.set('.deepseek-ui-chip', [readChip]);
+
+  const extraction = loadExtractionCore(doc);
+  const promptRecords = extraction.collectTimelinePromptRecords(doc, {
+    userPrompt: {
+      containerSelector: '.deepseek-ui-chip'
+    }
+  });
+
+  assert.equal(promptRecords.length, 0);
 });

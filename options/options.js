@@ -1468,7 +1468,6 @@ async function saveNewCustomAgentFromDialog(nextValue) {
     type: 'information',
     color: '#4f6b95',
     enabled: true,
-    defaultSelected: false,
     sourceType: 'manual',
     importedAt: new Date().toISOString()
   });
@@ -1958,7 +1957,6 @@ async function importSkillAsCustomAgent() {
       type: 'information',
       color: '#4f6b95',
       enabled: true,
-      defaultSelected: false,
       sourceType: 'skill',
       sourceUrl: skillUrl,
       sourceTitle: title,
@@ -5034,6 +5032,16 @@ async function initializeMembership() {
     });
   }
 
+  // 订阅入口需要对未登录用户也可点击：先跳转到独立方案页，选择后再登录并付款。
+  const btnSubscribe = document.getElementById('btnUpgradeChatPlan');
+
+  if (btnSubscribe && btnSubscribe.dataset.bound !== 'true') {
+    btnSubscribe.dataset.bound = 'true';
+    btnSubscribe.addEventListener('click', () => {
+      window.location.href = chrome.runtime.getURL('options/membership-pricing.html');
+    });
+  }
+
   setLoading(true);
 
   // 检查是否已登录
@@ -5129,39 +5137,6 @@ async function initializeMembership() {
   } else {
     if (plansEl) plansEl.style.display = 'grid';
     if (proActionsEl) proActionsEl.style.display = 'none';
-  }
-
-  // 升级按钮事件
-  const btnSubscribe = document.getElementById('btnUpgradeChatPlan');
-
-  async function handleUpgrade(priceId, btn) {
-    if (!priceId || priceId.startsWith('price_REPLACE')) {
-      showToast(getMessage('membershipPriceNotConfigured') || 'Stripe Price ID not configured. Please set it first.', 3000);
-      return;
-    }
-    if (btn) btn.disabled = true;
-    try {
-      await ensureAgentEngineCheckoutReady();
-      if (typeof window.startCheckout === 'function') {
-        await window.startCheckout(priceId);
-      } else {
-        showToast(getMessageWithFallback('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'), 3000);
-      }
-    } catch (e) {
-      showToast(e.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  }
-
-  if (btnSubscribe) {
-    if (btnSubscribe.dataset.bound !== 'true') {
-      btnSubscribe.dataset.bound = 'true';
-      btnSubscribe.addEventListener('click', () => {
-        const priceId = (window.STRIPE_PRICES && window.STRIPE_PRICES.yearly) || '';
-        handleUpgrade(priceId, btnSubscribe);
-      });
-    }
   }
 
   // 管理订阅按钮

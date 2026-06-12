@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "4.2.5",
+  "version": "4.2.6",
   "minimum_chrome_version": "116",
   "description": "__MSG_extDescription__",
   "permissions": [

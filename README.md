@@ -88,7 +88,7 @@
 - **Built-in skill catalog**: Bundled skills now ship from `config/agentCatalog.json`, so the default built-in skill list can follow the same config-file workflow as site adapters.
 - **Built-in thinking skills**: The extension now includes analysis-first skills such as Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable for comparing one problem through different frameworks and personas.
 - **API settings**: Configure the shared skill engine used by the built-in skills.
-- **Official API / Pro**: In non-Chinese UI, the built-in official API includes 100 free uses per day for free users and signed-out users. Official API keys stay on the cloud backend, while custom API keys remain user-provided. Upgrade through Stripe for Pro access, or switch to your own custom API and use your own quota.
+- **Official API / Pro**: In non-Chinese UI, the built-in official API includes 100 free uses per day for free users and signed-out users. Official API keys stay on the cloud backend, while custom API keys remain user-provided. The Pro page links to a dedicated pricing page where users choose monthly or yearly Stripe checkout after signing in, or switch to their own custom API and use their own quota.
 - **Billing tabs**: The Pro page now separates `Overview` and `Invoices`. Overview shows the current Chat Plan status, upcoming API Plan area, and subscription actions; Invoices lists recent billing records for the signed-in account.
 - **API connection test**: The custom API dialog can now send a small `chat/completions` probe and show the exact HTTP failure reason before you save, which is useful for local OpenAI-compatible servers such as Hermes.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
@@ -166,7 +166,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `OFFICIAL_AGENT_API_BASE_URL`
   - `OFFICIAL_AGENT_API_KEY`
   - `OFFICIAL_AGENT_MODEL`
-  - `ADMIN_UIDS` and/or `ADMIN_EMAILS`
+  - `ADMIN_USERNAME`
+  - `ADMIN_PASSWORD_HASH`
   - `ADMIN_SESSION_SECRET` recommended for admin session signing
   - `ADMIN_SESSION_ORIGIN` optional when the backend is framed behind a controlled origin
 - Start locally:
@@ -175,8 +176,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   3. `node server.js`
 - First-time admin login flow:
   1. Open `/admin/login`
-  2. Paste a Firebase ID token from an allowlisted admin account
-  3. Exchange it for an HttpOnly admin session cookie
+  2. Enter the configured admin username and password
+  3. Exchange them for an HttpOnly admin session cookie
   4. Visit `/admin` and the protected subpages
 - API usage note:
   - `officialApiEvents` is now written on each `officialAgentChat` request so Pro usage can be counted going forward.
@@ -216,10 +217,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Site handler synchronization now fetches `config/siteHandlers.json` from GitHub raw at runtime and falls back to the bundled copy if the remote check fails.
 - Built-in skill synchronization now also fetches `config/agentCatalog.json` from GitHub raw at runtime and falls back to the bundled copy if the remote check fails, while user overrides and imported custom skills remain in Chrome storage.
 - The site-handler update prompt now uses a localized card-style notification plus a details dialog instead of the old plain toast.
-- Core end-to-end extension verifiers now exist for ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, Nano Banana, Google Translate, and Bing Translate.
+- Live site checks now use a manifest-driven router in `debug/site-test-manifest.js`: iframe-capable sites default to the extension URL contract, while non-iframe sites fall back to dedicated live verifiers.
+- The extension URL contract is `chrome-extension://<EXTENSION_ID>/iframe/iframe.html?openclaw=1&sites=<site>&query=<query>...`; success is decided by `window.__OPENCLAW_LAST_RESULT__` reaching a terminal phase, not just by the page opening.
+- Core scheduled smoke checks now run ChatGPT, Gemini, DeepSeek, Grok, Claude, MiniMax, Manus, dots.ai, and Nano Banana through that extension URL path.
 - Claude can be validated with `node debug/verify-claude-live.js`, which connects to your existing Chrome session through `DevToolsActivePort` and checks the real input -> send -> conversation flow. `node debug/inspect-claude-response.js` prints the outer shell versus the `main .font-claude-response` answer body.
 - Timeline copy now keeps each site response as one block, so multi-paragraph answers stay together instead of being split into numbered sub-answers.
 - Timeline copy preview now preserves list markers like `•` when the source answer contains bullet lists.
+- DeepSeek timeline copy / auto-summary now recognizes user prompts from both legacy `.ds-message` rows and the newer `[data-message-author-role="user"]` structure, so existing answers are less likely to be misreported as prompt-matching failures.
 - The timeline copy preview now has a new-tab analysis path: the preview modal can open the default extension compare page, pass the question/summary/raw answers through `chrome.storage.session`, and reuse the existing compare flow without going through OpenClaw.
 - The timeline copy preview also supports selectable analysis prompt templates, and the Settings page includes a matching analysis prompt template manager with default presets.
 - The Auto summary card now lets you pick an analysis prompt template inline and use the `Analyze` button to gather the latest panel replies into a dedicated AI analysis page.
@@ -229,6 +233,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - `dots.ai` is now validated in real user Chrome with `node debug/verify-dots-ai-live.js`; the root URL lands in `/chat/home/<id>`, uses `textarea[placeholder="给点点发消息"]` or `textarea[placeholder="给点点发消息..."]`, and submits through the current lower-right send button instead of the retired `svg.lucide-arrow-up` selector.
 - Nano Banana’s image flow can be smoke-checked with `node debug/verify-nano-banana-live.js`, which runs the real extension page against the Flow project bootstrap path.
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
+- `node debug/run-live-site-checks.js --sites ChatGPT` now auto-routes by site capability: iframe-supported sites use the plugin compare page directly, while non-iframe sites such as Perplexity use their dedicated verifier script.
 - Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
 - The built-in skill-engine defaults are now centralized in `config/agentEngineConfig.js`, currently targeting Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the bundled API key is stored there as ciphertext and decrypted at runtime, user-saved values still override them, and each skill uses only its own persona prompt as the system prompt.
 - The built-in skill catalog now uses `config/agentCatalog.json` as the bundled source of truth, caches the latest remote snapshot in `chrome.storage.local.remoteAgentCatalog`, and tracks version/update metadata alongside the site-config updater.
@@ -241,7 +246,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Timeline copy now shows a "Copying..." toast first and falls back to `execCommand('copy')` if `navigator.clipboard.writeText` fails.
 - A scheduled real-browser sweep can be run with `node debug/run-live-site-checks.js --group core --write-report`.
 - `--group core` is intended for daily smoke checks on the highest-risk adapters; `--group full` adds the broader verifier set and logic/config probes.
-- The aggregated report includes pass/fail status, soft external failures such as login/rate-limit, and the current coverage gap list for configured sites that still do not have dedicated live verifiers.
+- The aggregated report includes unified per-site fields such as `siteName`, `mode`, `status`, `query`, `pageUrl`, `runtimeUrl`, `contentPreview`, and layered `assessment` flags for `config_valid`, `flow_valid`, and `service_available`.
+- Coverage is now capability-aware: iframe sites count as covered by the plugin URL path, while only `supportIframe=false` sites require dedicated live verifier coverage.
 - macOS users can adapt `debug/launchd/com.aicompare.site-checks.plist.template` into `~/Library/LaunchAgents/` to run the core check on a schedule with the real Chrome profile.
 
 ### OpenClaw skill integration
@@ -352,7 +358,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **智能体设置**：按 Skill 覆盖显示名称、简介和 persona 提示词。
 - **内置思维类 Skill**：现已内置多学科思维、六顶思考帽、苏格拉底追问、大佬开会等分析型 Skill，方便从不同框架和人物视角拆解同一个问题。
 - **API 设置**：配置内置 Skill 共用的引擎参数。
-- **官方 API / Pro**：非中文界面下，免费用户和未登录用户每天可使用 100 次内置官方 API；官方 API 密钥只保存在云端后端，自定义 API 仍使用用户自己填写的密钥。超过后可通过 Stripe 升级 Pro，或切换为自己的自定义 API 并使用自己的额度。
+- **官方 API / Pro**：非中文界面下，免费用户和未登录用户每天可使用 100 次内置官方 API；官方 API 密钥只保存在云端后端，自定义 API 仍使用用户自己填写的密钥。Pro 页面会跳转到独立付费计划页，用户可选择月付或年付，并在登录后通过 Stripe 升级，也可切换为自己的自定义 API 并使用自己的额度。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
 - **云同步**：使用 WebDAV 或 Google Drive 在不同设备之间同步设置。
@@ -425,15 +431,19 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 打包后的 MV3 扩展不再包含 Firebase JS SDK 的 CDN `import`；会员登录走扩展内本地代码配合 Firebase REST 接口，云同步则支持 WebDAV 和 Google Drive。
 - 站点处理器同步现在会在运行时从 GitHub raw 拉取 `config/siteHandlers.json`，失败时回退到扩展包内的内置副本。
 - 站点处理器更新提示现在改成了支持国际化的卡片式通知加详情弹窗，不再是旧的纯文本 toast。
-- 目前 core 端到端验证已覆盖 ChatGPT、Gemini、DeepSeek、Grok、Claude、MiniMax、Manus、点点、Nano Banana、Google Translate、Bing Translate。
+- 站点巡检现在由 `debug/site-test-manifest.js` 统一声明：支持 iframe 的站点默认走插件 URL 合约，不支持 iframe 的站点再回退到专用 live verifier。
+- 插件 URL 合约固定为 `chrome-extension://<EXTENSION_ID>/iframe/iframe.html?openclaw=1&sites=<site>&query=<query>...`；判定成功的标准不是“页面打开了”，而是 `window.__OPENCLAW_LAST_RESULT__` 到达终态。
+- 当前 core 定时烟雾检查会通过这条扩展链路跑 ChatGPT、Gemini、DeepSeek、Grok、Claude、MiniMax、Manus、点点、Nano Banana。
 - Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。`node debug/inspect-claude-response.js` 会把外层壳层和 `main .font-claude-response` 的答案正文分别打印出来。
 - 时间线复制现在会把每个站点的回答保留为一个整体，多段落内容不会再被拆成编号子回答。
+- DeepSeek 的时间线复制 / 自动总结现在同时兼容旧版 `.ds-message` 和新版 `[data-message-author-role="user"]` 提问节点，页面里已经有答案时不容易再被误报成提问匹配失败。
 - ChatGPT / Gemini / DeepSeek 也已支持走扩展自身端到端链路的验证脚本：`node debug/verify-chatgpt-live.js`、`node debug/verify-gemini-live.js`、`node debug/verify-deepseek-live.js`。
 - 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`、`debug/verify-ai-studio-live.js`、`debug/verify-yuanbao-live.js`、`debug/verify-qianwen-live.js`、`debug/verify-qwen-live.js`。
 - 元宝 / Qwen / 千问 的验证脚本现已改为走页面上的真实发送按钮或“新建对话”引导路径，而不是只依赖 Enter。
 - `dots.ai` 现已通过 `node debug/verify-dots-ai-live.js` 在真实用户 Chrome 中验证；根 URL 会落到 `/chat/home/<id>`，输入框为 `textarea[placeholder="给点点发消息"]` 或 `textarea[placeholder="给点点发消息..."]`，发送方式已切到当前右下角发送按钮，不再依赖已经下线的 `svg.lucide-arrow-up` 选择器。
 - Nano Banana 的图像流可通过 `node debug/verify-nano-banana-live.js` 做烟雾检查，它会走真实扩展页并覆盖 Flow 的项目引导路径。
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
+- `node debug/run-live-site-checks.js --sites ChatGPT` 现在会按站点能力自动选路：支持 iframe 的站点直接走插件 compare 页，不支持 iframe 的站点例如 Perplexity 则走专用 verifier。
 - 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
 - 内置的 Skill 引擎默认配置现已统一收口到 `config/agentEngineConfig.js`，当前默认值为火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；其中内置 API Key 在配置文件中以密文形式保存、运行时再解密，用户在设置页手动保存后的值仍然优先覆盖，并且每个 Skill 只使用自己配置的 persona 提示词作为 system prompt。
 - 内置 Skill 目录现已新增一组“思维工具”分类，包含多学科思维、六顶思考帽、苏格拉底追问和大佬开会，适合做多视角分析、连续追问和人物风格对照判断。
@@ -447,7 +457,8 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 内置分析提示词列表及默认分析提示词 id 现在统一由 `config/appConfig.json` 驱动，`background`、设置页和 iframe 会共享同一份配置。
 - 面向真实 Chrome 的定期巡检可通过 `node debug/run-live-site-checks.js --group core --write-report` 执行。
 - `--group core` 适合每天跑核心站点烟雾检查；`--group full` 会额外跑更广的 verifier 以及逻辑 / 配置探针。
-- 汇总报告会同时给出通过 / 失败状态、登录失效 / 限额等软失败分类，以及“当前哪些已配置站点还没有专用 live verifier 覆盖”的缺口清单。
+- 汇总报告现在会统一输出 `siteName`、`mode`、`status`、`query`、`pageUrl`、`runtimeUrl`、`contentPreview`，以及分层判断 `config_valid`、`flow_valid`、`service_available`。
+- coverage 现在按能力计算：支持 iframe 的站点视为已被插件 URL 路径覆盖，只有 `supportIframe=false` 的站点才要求专用 live verifier。
 - macOS 可基于 `debug/launchd/com.aicompare.site-checks.plist.template` 生成 `~/Library/LaunchAgents/` 里的定时任务，直接复用真实 Chrome 用户态。
 
 ### OpenClaw 技能接入
@@ -478,29 +489,68 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-09 12:53:59 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-12 17:19:33 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `.gitignore`
 - `M` `STRIPE_SETUP.md`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/de/messages.json`
+- `M` `_locales/en/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/pt_BR/messages.json`
+- `M` `_locales/zh_CN/messages.json`
+- `M` `_locales/zh_TW/messages.json`
 - `M` `backend/server.js`
+- `M` `background.js`
+- `M` `config/agentCatalog.js`
 - `M` `config/agentCatalog.json`
 - `M` `config/agentCatalogData.js`
-- `M` `config/appConfig.json`
-- `M` `config/baseConfig.js`
-- `A` `config/searchSites.json`
 - `M` `config/siteHandlers.json`
-- `M` `content-scripts/search-engines.js`
-- `M` `content-scripts/selection.js`
+- `M` `debug/extension-flow-common.js`
+- `A` `debug/live-verifier-common.js`
+- `M` `debug/run-live-site-checks.js`
+- `A` `debug/site-test-manifest.js`
+- `M` `debug/validate-site-configs.js`
+- `A` `debug/verify-doubao-live.js`
+- `A` `debug/verify-minimax-live.js`
+- `A` `debug/verify-perplexity-live.js`
+- `M` `docs/release-notes/history.md`
+- `M` `docs/release-notes/latest.md`
+- `M` `firebase/stripe-payment.js`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
+- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
+- `A` `options/membership-pricing.css`
+- `A` `options/membership-pricing.html`
+- `A` `options/membership-pricing.js`
+- `M` `options/options.css`
+- `M` `options/options.js`
+- `M` `shared/agent-prompt-utils.js`
+- `M` `shared/extraction-core.js`
+- `M` `shared/markdown-renderer.js`
+- `M` `tests/agent-catalog.test.js`
+- `M` `tests/agent-prompt-utils.test.js`
+- `M` `tests/extraction-core.test.js`
+- `M` `tests/iframe-timeline-utils.test.js`
+- `A` `tests/live-verifier-common.test.js`
+- `A` `tests/markdown-renderer.test.js`
+- `A` `tests/site-test-manifest.test.js`
 
 ### Recent commits / 最近提交
+- `b3ebeba` 2026-06-09 V4.2.5 修复划词搜索 API 调用转移到云端
 - `228016c` 2026-06-09 V4.2.4 修复豆包、点点
 - `f2b7e17` 2026-06-04 V4.2.3 优化总结体验
 - `b93fdb3` 2026-06-03 V4.2.2 修复 Google drive，优化总结答案的体验
 - `9a0949c` 2026-06-03 V4.2.1 优化分析过程的体验
-- `1014a57` 2026-06-02 V4.2.0 增加批量提交模式和对比答案总结功能
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

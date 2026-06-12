@@ -1,26 +1,30 @@
-### 2026-06-09
+### 2026-06-12
 - 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
 - The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
 - 分享链路更清晰，结果转发、留存和协作会更方便。
 
 
-### 2026-06-04
-- 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
-- The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
-- 分享链路更清晰，结果转发、留存和协作会更方便。
-### 2026-06-03
-- 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
-- The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
-- 分享链路更清晰，结果转发、留存和协作会更方便。
-### 2026-06-02
-- 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
-- The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
-- 分享链路更清晰，结果转发、留存和协作会更方便。
-### 2026-05-29
-- 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
-- The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
-- 多语言和界面文案得到补强，不同语言环境下使用会更自然。
-- 分享链路更清晰，结果转发、留存和协作会更方便。
+### V4.2.5 | 2026-06-09
+- 划词搜索相关的 API 调用切换到云端后，快捷提问能力会更稳定，后续维护和兼容也更轻松。
+- Selection-search API calls now run through the cloud, making quick queries more stable and easier to maintain over time.
+### V4.2.4 | 2026-06-09
+- 修复豆包和点点的站点适配问题后，这两个站点的打开、提问和对比会更稳定。
+- Compatibility fixes for Doubao and Dots.ai make opening, querying, and comparing on both sites more reliable.
+### V4.2.3 | 2026-06-04
+- 总结体验继续优化后，查看汇总内容和抓重点会更顺手。
+- The summary experience has been further refined, making it easier to review combined results and capture the key points.
+### V4.2.2 | 2026-06-03
+- 修复 Google Drive 相关问题，并继续优化总结答案体验，跨设备同步和结果整理都会更省心。
+- Google Drive issues were fixed, and answer summarization was improved again, making cross-device sync and result organization easier.
+### V4.2.1 | 2026-06-03
+- 分析过程的交互体验得到优化后，等待、查看和继续操作会更自然。
+- The analysis flow has been polished so waiting, reviewing progress, and continuing the workflow feel more natural.
+### V4.2.0 | 2026-06-02
+- 新增批量提交模式，并支持对比答案总结，一次发给多站点后更容易快速得到结论。
+- Batch submission and comparison-answer summaries are now supported, making it easier to send once to multiple sites and get to a conclusion faster.
+### V4.1.2 | 2026-05-29
+- 优化了 skills 的交互，并把默认 skills 调整为更偏讨论型的能力，日常提问和延展交流会更顺。
+- Skill interactions have been improved, and the default skills now focus more on discussion-style use cases for smoother everyday conversations.
 ### V4.1.1 | 2026-05-25
 - 支持手动选择界面语言，并新增 Google 云端硬盘同步，跨设备恢复配置更方便；联系页也会直接展示版本更新记录。
 - Manual UI language selection is supported, Google Drive sync makes restoring settings across devices easier, and release notes are now shown on the contact page.

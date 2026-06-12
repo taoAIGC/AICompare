@@ -94,41 +94,31 @@
                     ></button>
                 </div>
                 <div class="live-summary-card-subtitle-row">
-                    <div class="live-summary-template-cluster">
+                    <div id="liveSummaryTemplateCluster" class="live-summary-template-cluster">
                         <div
-                            id="liveSummaryAnalysisTemplateDropdown"
-                            class="live-summary-analysis-dropdown"
-                        >
-                            <button
-                                id="liveSummaryAnalysisTemplateTrigger"
-                                class="live-summary-analysis-trigger"
-                                type="button"
-                                aria-haspopup="menu"
-                                aria-expanded="false"
-                                aria-controls="liveSummaryAnalysisTemplateMenu"
-                                aria-label=""
-                                data-i18n-aria-label="analysisPromptTemplateSelectLabel"
-                            >
-                                <span
-                                    id="liveSummaryAnalysisTemplateTriggerText"
-                                    class="live-summary-analysis-trigger-text"
-                                ></span>
-                            </button>
-                            <div
-                                id="liveSummaryAnalysisTemplateMenu"
-                                class="live-summary-analysis-menu"
-                                role="menu"
-                                hidden
-                            ></div>
-                            <select
-                                id="liveSummaryAnalysisTemplateSelect"
-                                class="live-summary-analysis-select"
-                                aria-label=""
-                                data-i18n-aria-label="analysisPromptTemplateSelectLabel"
-                                hidden
-                                tabindex="-1"
-                            ></select>
-                        </div>
+                            id="liveSummaryAnalysisTemplateTabs"
+                            class="live-summary-analysis-template-tabs"
+                            role="tablist"
+                            aria-label=""
+                            data-i18n-aria-label="analysisPromptTemplateSelectLabel"
+                        ></div>
+                        <button
+                            id="liveSummaryAnalysisTemplateDefaultButton"
+                            class="live-summary-analysis-template-default-btn"
+                            type="button"
+                            hidden
+                            aria-hidden="true"
+                            aria-label=""
+                            title=""
+                        ></button>
+                        <select
+                            id="liveSummaryAnalysisTemplateSelect"
+                            class="live-summary-analysis-select"
+                            aria-label=""
+                            data-i18n-aria-label="analysisPromptTemplateSelectLabel"
+                            hidden
+                            tabindex="-1"
+                        ></select>
                     </div>
                     <div class="live-summary-status-cluster">
                         <div class="live-summary-sites-cluster">
@@ -140,8 +130,8 @@
                                 id="liveSummaryImmediateAnalyzeButton"
                                 class="live-summary-action-btn live-summary-toolbar-icon-btn"
                                 type="button"
-                                data-i18n-title="liveSummaryRefresh"
-                                data-i18n-aria-label="liveSummaryRefresh"
+                                data-i18n-title="liveSummaryRetryAnalyzeTooltip"
+                                data-i18n-aria-label="liveSummaryRetryAnalyzeTooltip"
                                 hidden
                                 title=""
                                 aria-label=""

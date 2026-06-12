@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="membershipPricingTitle"></title>
+  <link rel="stylesheet" href="../shared/ui-tokens.css">
+  <link rel="stylesheet" href="membership-pricing.css">
+</head>
+<body>
+  <main class="pricing-page">
+    <a class="pricing-back-link" id="pricingBackLink" href="options.html#membership" data-i18n="membershipPricingBack"></a>
+
+    <section class="pricing-options" role="group" data-i18n-aria-label="membershipPricingOptionsAriaLabel" aria-label="Choose a Pro plan">
+      <article class="pricing-card">
+        <div>
+          <div class="pricing-card-name" data-i18n="planMonthlyName"></div>
+          <div class="pricing-card-price" data-i18n="planMonthlyPrice"></div>
+          <p class="pricing-card-description" data-i18n="membershipPricingMonthlyDescription"></p>
+        </div>
+        <ul class="pricing-feature-list">
+          <li data-i18n="planFeature1"></li>
+          <li data-i18n="planFeature2"></li>
+          <li data-i18n="planFeature3"></li>
+        </ul>
+        <button class="pricing-action" id="btnPricingMonthly" type="button" data-plan="monthly" data-i18n="btnUpgradeMonthly"></button>
+      </article>
+
+      <article class="pricing-card pricing-card-featured">
+        <span class="pricing-badge" data-i18n="planPopular"></span>
+        <div>
+          <div class="pricing-card-name" data-i18n="planYearlyName"></div>
+          <div class="pricing-card-price" data-i18n="planYearlyPrice"></div>
+          <p class="pricing-card-description" data-i18n="membershipPricingYearlyDescription"></p>
+        </div>
+        <ul class="pricing-feature-list">
+          <li data-i18n="planFeature1"></li>
+          <li data-i18n="planFeature2"></li>
+          <li data-i18n="planFeature4"></li>
+        </ul>
+        <button class="pricing-action pricing-action-featured" id="btnPricingYearly" type="button" data-plan="yearly" data-i18n="btnUpgradeYearly"></button>
+      </article>
+    </section>
+  </main>
+
+  <div id="toast" class="pricing-toast"></div>
+
+  <script src="../config/firebaseConfig.js"></script>
+  <script src="../shared/runtime-i18n.js"></script>
+  <script src="../firebase/firebase-auth.js"></script>
+  <script src="../firebase/stripe-payment.js"></script>
+  <script src="membership-pricing.js"></script>
+</body>
+</html>

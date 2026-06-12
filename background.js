@@ -123,6 +123,30 @@ async function applyExtensionActionBranding() {
   }
 }
 
+async function migrateLegacyAgentCustomSettings() {
+  try {
+    const { [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: storedSettings } = await chrome.storage.sync.get(AGENT_CUSTOM_SETTINGS_STORAGE_KEY);
+    const normalizedSettings = typeof AgentCatalog.normalizeAgentCustomSettingsMap === 'function'
+      ? AgentCatalog.normalizeAgentCustomSettingsMap(storedSettings)
+      : (storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+
+    const serializedStored = JSON.stringify(storedSettings && typeof storedSettings === 'object' ? storedSettings : {});
+    const serializedNormalized = JSON.stringify(normalizedSettings);
+    if (serializedStored === serializedNormalized) {
+      return false;
+    }
+
+    await chrome.storage.sync.set({
+      [AGENT_CUSTOM_SETTINGS_STORAGE_KEY]: normalizedSettings
+    });
+    console.log('已迁移旧版 skill 自定义状态字段到 enabled');
+    return true;
+  } catch (error) {
+    console.warn('迁移旧版 skill 自定义状态失败:', error);
+    return false;
+  }
+}
+
 // 开发环境：输出当前扩展ID供search_url使用
 function logExtensionIdForDevelopment() {
   const extensionId = chrome.runtime.id;
@@ -249,6 +273,10 @@ function getCloudFunctionsBaseUrl() {
   return configuredUrl || 'https://aicompare.club';
 }
 
+function getFirebaseApiKey() {
+  return String(FirebaseConfig?.apiKey || '').trim();
+}
+
 function createAnonymousClientId() {
   try {
     if (self.crypto?.randomUUID) {
@@ -274,12 +302,63 @@ async function getOrCreateAnonymousClientId() {
   return clientId;
 }
 
-async function getFirebaseIdTokenIfAvailable() {
-  const auth = await getBackgroundFirebaseAuth();
-  if (!auth.uid || !auth.idToken || auth.expiresAt <= Date.now() + 60000) {
+async function refreshBackgroundFirebaseIdToken(auth = {}) {
+  const apiKey = getFirebaseApiKey();
+  if (!apiKey || !auth.uid || !auth.refreshToken) {
     return '';
   }
-  return auth.idToken;
+
+  try {
+    const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: auth.refreshToken
+      })
+    });
+
+    if (!response.ok) {
+      await chrome.storage.local.remove([
+        'firebase_uid',
+        'firebase_email',
+        'firebase_idToken',
+        'firebase_refreshToken',
+        'firebase_expiresAt'
+      ]);
+      return '';
+    }
+
+    const payload = await response.json();
+    const expiresInSeconds = Math.max(0, parseInt(payload.expires_in || payload.expiresIn || '3600', 10) || 3600);
+    const nextIdToken = String(payload.id_token || '').trim();
+    const nextRefreshToken = String(payload.refresh_token || auth.refreshToken || '').trim();
+    if (!nextIdToken || !nextRefreshToken) {
+      return '';
+    }
+
+    await chrome.storage.local.set({
+      firebase_uid: auth.uid,
+      firebase_idToken: nextIdToken,
+      firebase_refreshToken: nextRefreshToken,
+      firebase_expiresAt: Date.now() + expiresInSeconds * 1000
+    });
+
+    return nextIdToken;
+  } catch (_) {
+    return '';
+  }
+}
+
+async function getFirebaseIdTokenIfAvailable() {
+  const auth = await getBackgroundFirebaseAuth();
+  if (!auth.uid || !auth.refreshToken) {
+    return '';
+  }
+  if (auth.idToken && auth.expiresAt > Date.now() + 60000) {
+    return auth.idToken;
+  }
+  return refreshBackgroundFirebaseIdToken(auth);
 }
 
 async function fetchAgentChatCompletion(config = {}, payload = {}, options = {}) {
@@ -359,7 +438,8 @@ async function getBackgroundFirebaseAuth() {
 async function getBackgroundUserPlan() {
   try {
     const auth = await getBackgroundFirebaseAuth();
-    if (!auth.uid || !auth.idToken || auth.expiresAt <= Date.now() + 60000) {
+    const idToken = await getFirebaseIdTokenIfAvailable();
+    if (!auth.uid || !idToken) {
       return getCachedBackgroundPlan();
     }
 
@@ -370,7 +450,7 @@ async function getBackgroundUserPlan() {
     const url = `https://firestore.googleapis.com/v1/projects/${FirebaseConfig.projectId}/databases/(default)/documents/users/${auth.uid}?key=${FirebaseConfig.apiKey}`;
     const res = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${auth.idToken}`
+        Authorization: `Bearer ${idToken}`
       }
     });
 
@@ -861,6 +941,19 @@ async function parseAgentErrorMessage(response) {
   }
 }
 
+function isTextOnlyModelInputErrorMessage(message = '') {
+  const normalizedMessage = String(message || '').trim().toLowerCase();
+  if (!normalizedMessage) {
+    return false;
+  }
+
+  return (
+    normalizedMessage.includes('model only support text input') ||
+    normalizedMessage.includes('only supports text input') ||
+    normalizedMessage.includes('only support text input')
+  );
+}
+
 async function runStandaloneAnalysis(payload = {}) {
   const config = await getAgentEngineConfig();
   const normalizedPrompt = String(payload?.prompt || '').trim();
@@ -943,11 +1036,13 @@ async function executeAgentJob(job) {
   });
 
   try {
-    const systemMessages = typeof AgentPromptUtils.buildChatMessages === 'function'
-      ? AgentPromptUtils.buildChatMessages(agent, job.messages, config)
-      : job.messages;
-
-    const response = await fetchAgentChatCompletion(config, {
+    const buildAgentMessages = (options = {}) => (
+      typeof AgentPromptUtils.buildChatMessages === 'function'
+        ? AgentPromptUtils.buildChatMessages(agent, job.messages, config, options)
+        : job.messages
+    );
+    let systemMessages = buildAgentMessages();
+    let response = await fetchAgentChatCompletion(config, {
         model: config.model,
         stream: true,
         thinking: {
@@ -957,7 +1052,22 @@ async function executeAgentJob(job) {
       }, { signal: abortController.signal });
 
     if (!response.ok) {
-      throw new Error(await parseAgentErrorMessage(response));
+      const errorMessage = await parseAgentErrorMessage(response);
+      if (response.status === 400 && isTextOnlyModelInputErrorMessage(errorMessage)) {
+        systemMessages = buildAgentMessages({ allowMultimodal: false });
+        response = await fetchAgentChatCompletion(config, {
+            model: config.model,
+            stream: true,
+            thinking: {
+              type: 'disabled'
+            },
+            messages: systemMessages
+          }, { signal: abortController.signal });
+      }
+
+      if (!response.ok) {
+        throw new Error(await parseAgentErrorMessage(response));
+      }
     }
 
     const content = await consumeAgentStream(job, response);
@@ -1607,6 +1717,7 @@ chrome.runtime.onStartup.addListener(async () => {
     logExtensionIdForDevelopment();
     await ensureDefaultAgentEngineConfig();
     await initializeLocalAgentCatalog();
+    await migrateLegacyAgentCustomSettings();
     await initializeDefaultPromptTemplates();
     await initializeDefaultAnalysisPromptTemplates();
     
@@ -1645,6 +1756,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     logExtensionIdForDevelopment();
     await ensureDefaultAgentEngineConfig();
     await initializeLocalAgentCatalog();
+    await migrateLegacyAgentCustomSettings();
     
     // 初始化默认提示词模板
     await initializeDefaultPromptTemplates();
@@ -3072,6 +3184,225 @@ async function buildUnifiedSyncPayload() {
   };
 }
 
+function mergeHistorySites(localSites, cloudSites) {
+  const mergedSites = new Map();
+
+  for (const site of Array.isArray(localSites) ? localSites : []) {
+    const siteName = String(site?.name || '').trim();
+    if (siteName) {
+      mergedSites.set(siteName, { ...site });
+    }
+  }
+
+  for (const site of Array.isArray(cloudSites) ? cloudSites : []) {
+    const siteName = String(site?.name || '').trim();
+    if (!siteName) {
+      continue;
+    }
+    const existing = mergedSites.get(siteName) || {};
+    mergedSites.set(siteName, {
+      ...existing,
+      ...site,
+      url: String(site?.url || '').trim() || String(existing?.url || '').trim() || '',
+      isFavorite: site?.isFavorite ?? existing?.isFavorite ?? false,
+      favoriteFolder: site?.favoriteFolder || existing?.favoriteFolder
+    });
+  }
+
+  return Array.from(mergedSites.values());
+}
+
+function mergeHistoryItems(localItem = {}, cloudItem = {}) {
+  const localTimestamp = Number(localItem?.timestamp) || 0;
+  const cloudTimestamp = Number(cloudItem?.timestamp) || 0;
+  const preferred = cloudTimestamp >= localTimestamp ? cloudItem : localItem;
+  const secondary = preferred === cloudItem ? localItem : cloudItem;
+
+  return {
+    ...secondary,
+    ...preferred,
+    id: String(localItem?.id || cloudItem?.id || '').trim(),
+    query: String(preferred?.query || secondary?.query || '').trim(),
+    timestamp: Math.max(localTimestamp, cloudTimestamp),
+    date: preferred?.date || secondary?.date || '',
+    sites: mergeHistorySites(localItem?.sites, cloudItem?.sites)
+  };
+}
+
+function mergePkHistory(localHistory, cloudHistory, limit = 500) {
+  const mergedHistory = new Map();
+
+  for (const item of Array.isArray(localHistory) ? localHistory : []) {
+    const id = String(item?.id || '').trim();
+    if (id) {
+      mergedHistory.set(id, { ...item });
+    }
+  }
+
+  for (const item of Array.isArray(cloudHistory) ? cloudHistory : []) {
+    const id = String(item?.id || '').trim();
+    if (!id) {
+      continue;
+    }
+    const existing = mergedHistory.get(id);
+    mergedHistory.set(id, existing ? mergeHistoryItems(existing, item) : { ...item });
+  }
+
+  return Array.from(mergedHistory.values())
+    .sort((a, b) => Number(b?.timestamp || 0) - Number(a?.timestamp || 0))
+    .slice(0, limit);
+}
+
+function mergeFavoriteFolders(localFolders, cloudFolders) {
+  const mergedFolders = new Map();
+
+  for (const folder of Array.isArray(localFolders) ? localFolders : []) {
+    const id = String(folder?.id || '').trim();
+    if (id) {
+      mergedFolders.set(id, { ...folder });
+    }
+  }
+
+  for (const folder of Array.isArray(cloudFolders) ? cloudFolders : []) {
+    const id = String(folder?.id || '').trim();
+    if (!id) {
+      continue;
+    }
+    const existing = mergedFolders.get(id) || {};
+    mergedFolders.set(id, {
+      ...existing,
+      ...folder,
+      id
+    });
+  }
+
+  return Array.from(mergedFolders.values()).sort((a, b) => {
+    const orderDiff = Number(a?.order ?? 9999) - Number(b?.order ?? 9999);
+    if (orderDiff !== 0) {
+      return orderDiff;
+    }
+    return Number(a?.createdAt || 0) - Number(b?.createdAt || 0);
+  });
+}
+
+function mergeCustomAgents(localAgents, cloudAgents) {
+  const mergedAgents = new Map();
+
+  for (const agent of Array.isArray(localAgents) ? localAgents : []) {
+    const id = String(agent?.id || '').trim();
+    if (id) {
+      mergedAgents.set(id, { ...agent });
+    }
+  }
+
+  for (const agent of Array.isArray(cloudAgents) ? cloudAgents : []) {
+    const id = String(agent?.id || '').trim();
+    if (!id) {
+      continue;
+    }
+    const existing = mergedAgents.get(id) || {};
+    mergedAgents.set(id, {
+      ...existing,
+      ...agent,
+      id
+    });
+  }
+
+  return Array.from(mergedAgents.values());
+}
+
+function mergeStringArrays(localValues, cloudValues) {
+  const merged = new Set();
+
+  for (const value of Array.isArray(localValues) ? localValues : []) {
+    const normalized = String(value || '').trim();
+    if (normalized) {
+      merged.add(normalized);
+    }
+  }
+
+  for (const value of Array.isArray(cloudValues) ? cloudValues : []) {
+    const normalized = String(value || '').trim();
+    if (normalized) {
+      merged.add(normalized);
+    }
+  }
+
+  return Array.from(merged.values());
+}
+
+function getTemplateMergeKey(template) {
+  const id = String(template?.id || '').trim();
+  if (id) {
+    return id;
+  }
+
+  const name = String(template?.name || '').trim();
+  const query = String(template?.query || '').trim();
+  const type = String(template?.type || '').trim();
+  return [name, query, type].filter(Boolean).join('::');
+}
+
+function mergeTemplateArrays(localTemplates, cloudTemplates) {
+  const mergedTemplates = new Map();
+
+  for (const template of Array.isArray(localTemplates) ? localTemplates : []) {
+    const key = getTemplateMergeKey(template);
+    if (key) {
+      mergedTemplates.set(key, { ...template });
+    }
+  }
+
+  for (const template of Array.isArray(cloudTemplates) ? cloudTemplates : []) {
+    const key = getTemplateMergeKey(template);
+    if (!key) {
+      continue;
+    }
+    const existing = mergedTemplates.get(key) || {};
+    mergedTemplates.set(key, {
+      ...existing,
+      ...template,
+      id: String(template?.id || existing?.id || '').trim(),
+      name: String(template?.name || existing?.name || '').trim(),
+      query: String(template?.query || existing?.query || '').trim()
+    });
+  }
+
+  return Array.from(mergedTemplates.values()).sort((a, b) => {
+    const orderDiff = Number(a?.order || 0) - Number(b?.order || 0);
+    if (orderDiff !== 0) {
+      return orderDiff;
+    }
+    return String(a?.name || '').localeCompare(String(b?.name || ''));
+  });
+}
+
+function mergeAgentCustomSettingsMap(localSettings, cloudSettings) {
+  const normalizedLocal = localSettings && typeof localSettings === 'object' ? localSettings : {};
+  const normalizedCloud = cloudSettings && typeof cloudSettings === 'object' ? cloudSettings : {};
+  const mergedSettings = { ...normalizedLocal };
+
+  for (const [agentId, settings] of Object.entries(normalizedCloud)) {
+    const normalizedAgentId = String(agentId || '').trim();
+    if (!normalizedAgentId || !settings || typeof settings !== 'object') {
+      continue;
+    }
+    const existing = mergedSettings[normalizedAgentId] && typeof mergedSettings[normalizedAgentId] === 'object'
+      ? mergedSettings[normalizedAgentId]
+      : {};
+    mergedSettings[normalizedAgentId] = {
+      ...existing,
+      ...settings
+    };
+  }
+
+  if (typeof AgentCatalog.normalizeAgentCustomSettingsMap === 'function') {
+    return AgentCatalog.normalizeAgentCustomSettingsMap(mergedSettings);
+  }
+
+  return mergedSettings;
+}
+
 async function applyUnifiedSyncPayload(data = {}) {
   const {
     _syncVersion,
@@ -3084,22 +3415,32 @@ async function applyUnifiedSyncPayload(data = {}) {
     ...rest
   } = data || {};
 
+  const existingSyncData = await chrome.storage.sync.get(WEBDAV_SYNC_KEYS);
   const filteredSync = {};
   for (const key of WEBDAV_SYNC_KEYS) {
     if (Object.prototype.hasOwnProperty.call(rest, key)) {
-      filteredSync[key] = rest[key];
+      if (key === AGENT_CUSTOM_SETTINGS_STORAGE_KEY) {
+        filteredSync[key] = mergeAgentCustomSettingsMap(existingSyncData[key], rest[key]);
+      } else if (key === 'favoritePrompts' || key === 'favoriteSites') {
+        filteredSync[key] = mergeStringArrays(existingSyncData[key], rest[key]);
+      } else if (key === 'promptTemplates' || key === 'analysisPromptTemplates') {
+        filteredSync[key] = mergeTemplateArrays(existingSyncData[key], rest[key]);
+      } else {
+        filteredSync[key] = rest[key];
+      }
     }
   }
   if (Object.keys(filteredSync).length > 0) {
     await chrome.storage.sync.set(filteredSync);
   }
 
+  const existingLocalData = await chrome.storage.local.get(WEBDAV_LOCAL_SYNC_KEYS);
   const localPatch = {};
   if (Array.isArray(pkHistory)) {
-    localPatch.pkHistory = pkHistory;
+    localPatch.pkHistory = mergePkHistory(existingLocalData.pkHistory, pkHistory);
   }
   if (Array.isArray(favoriteFolders)) {
-    localPatch.favoriteFolders = favoriteFolders;
+    localPatch.favoriteFolders = mergeFavoriteFolders(existingLocalData.favoriteFolders, favoriteFolders);
   }
   const normalizedAgentEngineSecret = typeof AgentPromptUtils.normalizeAgentEngineSecret === 'function'
     ? AgentPromptUtils.normalizeAgentEngineSecret(agentEngineSecret)
@@ -3108,10 +3449,10 @@ async function applyUnifiedSyncPayload(data = {}) {
     localPatch[AGENT_ENGINE_SECRET_STORAGE_KEY] = normalizedAgentEngineSecret;
   }
   if (Array.isArray(customAgents)) {
-    localPatch[CUSTOM_AGENTS_STORAGE_KEY] = customAgents;
+    localPatch[CUSTOM_AGENTS_STORAGE_KEY] = mergeCustomAgents(existingLocalData[CUSTOM_AGENTS_STORAGE_KEY], customAgents);
   }
   if (Array.isArray(hiddenAgentIds)) {
-    localPatch[AGENT_HIDDEN_IDS_STORAGE_KEY] = hiddenAgentIds;
+    localPatch[AGENT_HIDDEN_IDS_STORAGE_KEY] = mergeStringArrays(existingLocalData[AGENT_HIDDEN_IDS_STORAGE_KEY], hiddenAgentIds);
   }
   if (Object.keys(localPatch).length > 0) {
     await chrome.storage.local.set(localPatch);

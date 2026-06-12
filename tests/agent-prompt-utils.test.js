@@ -59,6 +59,29 @@ test('buildMessageContent emits multimodal content for image attachments', () =>
   assert.equal(result[1].image_url.url, 'data:image/png;base64,AAA=');
 });
 
+test('buildMessageContent can downgrade image attachments to text-only content', () => {
+  const result = agentPromptUtils.buildMessageContent({
+    content: 'What is shown in the image?',
+    attachments: [
+      {
+        id: 'img-1',
+        name: 'diagram.png',
+        type: 'image/png',
+        size: 128,
+        dataUrl: 'data:image/png;base64,AAA=',
+        mediaCategory: 'image'
+      }
+    ]
+  }, {
+    allowMultimodal: false
+  });
+
+  assert.equal(typeof result, 'string');
+  assert.match(result, /What is shown in the image\?/);
+  assert.match(result, /Name: diagram\.png/);
+  assert.match(result, /Raw image attached\./);
+});
+
 test('buildChatMessages preserves attachment-aware user turns', () => {
   const messages = agentPromptUtils.buildChatMessages(
     {
@@ -100,6 +123,39 @@ test('buildChatMessages preserves attachment-aware user turns', () => {
   assert.doesNotMatch(messages[1].content, /\nA\n|\nB\n/);
   assert.equal(messages[2].role, 'assistant');
   assert.equal(messages[2].content, 'done');
+});
+
+test('buildChatMessages can force text-only content for text-only models', () => {
+  const messages = agentPromptUtils.buildChatMessages(
+    {
+      personaPrompt: 'You are a skill.'
+    },
+    [
+      {
+        role: 'user',
+        content: 'Inspect this image',
+        attachments: [
+          {
+            id: 'img-1',
+            name: 'diagram.png',
+            type: 'image/png',
+            size: 128,
+            dataUrl: 'data:image/png;base64,AAA=',
+            mediaCategory: 'image'
+          }
+        ]
+      }
+    ],
+    {},
+    {
+      allowMultimodal: false
+    }
+  );
+
+  assert.equal(messages[1].role, 'user');
+  assert.equal(typeof messages[1].content, 'string');
+  assert.match(messages[1].content, /Inspect this image/);
+  assert.match(messages[1].content, /Raw image attached\./);
 });
 
 test('buildAttachmentPayloadFromSource keeps metadata only for pptx files', async () => {

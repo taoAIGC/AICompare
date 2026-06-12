@@ -222,8 +222,11 @@
   "agentEngineOfficialCardHint": {
     "message": "選擇官方 API 卡片後，將使用內建預設設定"
   },
+  "agentEngineOfficialMetaFree": {
+    "message": "使用內建 API，每天免費 $1 次。"
+  },
   "agentEngineOfficialMetaChineseFree": {
-    "message": "中文介面目前可免費使用官方 API。"
+    "message": "使用內建 API，每天免費 $1 次。"
   },
   "agentEngineOfficialQuotaExceeded": {
     "message": "你今天的 $1 次官方 API 免費額度已用完。請升級 PRO，或切換為自己的 API。"
@@ -1770,7 +1773,7 @@
     "message": "分析提示詞"
   },
   "analysisPromptTemplatesDescription": {
-    "message": "自訂分析彙總結果時使用的提示詞範本"
+    "message": "分析提示詞用於對大模型、技能回答的結果進行彙總分析"
   },
   "addAnalysisTemplateButton": {
     "message": "新增分析提示詞"
@@ -2421,10 +2424,10 @@
     "message": "你現在是一個多學科思維的分析夥伴。\n你的任務不是只用單一視角回答，而是從多個學科鏡頭同時審視使用者的問題。\n\n【預設分析鏡頭】\n- 經濟學：激勵、取捨、成本、稀缺性、收益與風險。\n- 心理學：動機、偏見、情緒、信任、行為變化。\n- 物理學 / 工程學：底層約束、瓶頸、時間、能量、吞吐。\n- 生物學 / 演化論：適應、競爭、選擇壓力、回饋迴路。\n- 當問題需要時，可額外加入統計學、社會學、歷史、博弈論等視角。\n\n【回答要求】\n1. 先重述問題，並說明關鍵假設。\n2. 按不同學科視角分別分析，不要揉成一團。\n3. 每個視角都說明：它幫助看清了什麼，以及暴露了什麼風險。\n4. 點出這些視角之間哪裡一致、哪裡衝突、哪裡會改變建議。\n5. 最後給出：\n   - 綜合判斷，\n   - 目前最關鍵的變數，\n   - 以及最值得優先做的下一步。\n6. 輸出要結合使用者的真實情境，避免空話。\n7. 不要說「作為 AI」。"
   },
   "agentSixThinkingHatsName": {
-    "message": "六頂思考帽"
+    "message": "右腦思維"
   },
   "agentSixThinkingHatsDescription": {
-    "message": "用白帽、紅帽、黑帽、黃帽、綠帽、藍帽六種模式系統審視問題"
+    "message": "透過直覺、意象、聯想、情緒與整體模式感知來分析使用者輸入"
   },
   "agentSixThinkingHatsPersonaPrompt": {
     "message": "你現在是一個「六頂思考帽」主持者。\n請用 Edward de Bono 的六頂思考帽方法，把同一個問題拆成六種不同的思考模式來分析。\n\n【帽子順序】\n1. 白帽：事實、資料、已知資訊、缺失資訊。\n2. 紅帽：感受、直覺、人的情緒反應。\n3. 黑帽：風險、失敗路徑、反對意見、脆弱點。\n4. 黃帽：價值、收益、機會、為什麼它可能有效。\n5. 綠帽：新想法、替代方案、重構角度、可試驗的辦法。\n6. 藍帽：組織思路、總結判斷、明確下一步。\n\n【回答要求】\n1. 明確分帽展開，除非某一帽明顯不適用，否則都要使用；如果跳過，必須說明原因。\n2. 不要把不同帽子的內容混在一起。\n3. 如果事實不足，要在白帽部分明確寫出不確定性。\n4. 藍帽部分最後必須給出清晰建議、未解決問題和下一步動作。\n5. 輸出要務實，並貼合使用者目前情境。\n6. 不要說「作為 AI」。"
@@ -2516,6 +2519,9 @@
   "liveSummaryRefresh": {
     "message": "分析"
   },
+  "liveSummaryRetryAnalyzeTooltip": {
+    "message": "重新抓取並分析"
+  },
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1s）"
   },
@@ -2590,5 +2596,29 @@
   },
   "homepageBatchFavoriteDeleted": {
     "message": "已刪除這組批量提示詞"
+  },
+  "membershipPricingTitle": {
+    "message": "選擇 Pro 付費方案"
+  },
+  "membershipPricingDescription": {
+    "message": "選擇月付或年付後，登入帳號並透過 Stripe 安全完成付款。"
+  },
+  "membershipPricingOptionsAriaLabel": {
+    "message": "選擇 Pro 付費方案"
+  },
+  "membershipPricingMonthlyDescription": {
+    "message": "適合先試用 Pro，按月彈性訂閱。"
+  },
+  "membershipPricingYearlyDescription": {
+    "message": "適合長期使用，一次年付更划算。"
+  },
+  "membershipPricingBack": {
+    "message": "返回 Pro 會員頁"
+  },
+  "membershipPricingEyebrow": {
+    "message": "AI 比一比 Pro"
+  },
+  "membershipPricingLoginNote": {
+    "message": "你可以先選擇付費方案。進入 Stripe 付款前會要求登入，這樣會員才能綁定到你的帳號。"
   }
 }

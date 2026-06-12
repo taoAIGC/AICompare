@@ -247,10 +247,10 @@
     "message": "Use your own API and your own quota"
   },
   "agentEngineOfficialMetaFree": {
-    "message": "Use the built-in API, free $1 times per day in non-Chinese UI."
+    "message": "Use the built-in API, free $1 times per day."
   },
   "agentEngineOfficialMetaChineseFree": {
-    "message": "Official API is currently free in Chinese UI."
+    "message": "Use the built-in API, free $1 times per day."
   },
   "agentEngineOfficialMetaPro": {
     "message": "Current plan: PRO"
@@ -1904,7 +1904,7 @@
     "message": "Analysis Prompt"
   },
   "analysisPromptTemplatesDescription": {
-    "message": "Customize the prompt templates used to analyze copied summaries"
+    "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
   },
   "addAnalysisTemplateButton": {
     "message": "Add Analysis Prompt"
@@ -2537,10 +2537,10 @@
     "message": "You are a multidisciplinary thinking partner.\nAnalyze the user's problem through multiple disciplines instead of giving a one-lens answer.\n\n[Default lenses]\n- Economics: incentives, tradeoffs, costs, scarcity, upside/downside.\n- Psychology: motives, biases, emotion, trust, behavior change.\n- Physics / engineering: first constraints, bottlenecks, time, energy, throughput.\n- Biology / evolution: adaptation, competition, selection pressure, feedback loops.\n- Add other useful lenses such as statistics, sociology, history, or game theory when they materially help.\n\n[Answer requirements]\n1. Start by restating the problem and the key assumptions.\n2. Analyze the issue separately through each relevant lens.\n3. For each lens, explain what it makes easier to see and what risk it reveals.\n4. Call out where different lenses agree, conflict, or change the recommendation.\n5. End with:\n   - an integrated judgment,\n   - the most important variable to watch,\n   - and the best next step.\n6. Keep it concrete and tied to the user's actual situation.\n7. Never say \"as an AI\"."
   },
   "agentSixThinkingHatsName": {
-    "message": "Six Thinking Hats"
+    "message": "Right-Brain Thinking"
   },
   "agentSixThinkingHatsDescription": {
-    "message": "Review an issue with the white, red, black, yellow, green, and blue hats"
+    "message": "Analyze the user's input through intuition, imagery, association, emotion, and whole-pattern perception"
   },
   "agentSixThinkingHatsPersonaPrompt": {
     "message": "You are a Six Thinking Hats facilitator.\nUse Edward de Bono's six hats to examine the issue from six distinct modes of thinking.\n\n[Hat order]\n1. White hat: facts, data, what is known, what is missing.\n2. Red hat: feelings, intuition, human reactions.\n3. Black hat: risks, failure modes, objections, fragility.\n4. Yellow hat: benefits, opportunity, upside, reasons it might work.\n5. Green hat: alternatives, reframes, creative options, experiments.\n6. Blue hat: organize the thinking, synthesize the decision, and define the next step.\n\n[Answer requirements]\n1. Use all six hats explicitly unless one is clearly irrelevant, and say why if you skip one.\n2. Keep each hat separate instead of blending them together.\n3. If facts are missing, state the uncertainty under the white hat.\n4. End the blue-hat section with a clear recommendation, unresolved questions, and the next action.\n5. Keep the answer practical and specific to the user's context.\n6. Never say \"as an AI\"."
@@ -2686,6 +2686,9 @@
   "liveSummaryRefresh": {
     "message": "Analyze"
   },
+  "liveSummaryRetryAnalyzeTooltip": {
+    "message": "Retry extraction and analyze"
+  },
   "liveSummaryRefreshCountdown": {
     "message": "Analyze ($1s)"
   },
@@ -2739,5 +2742,29 @@
   },
   "liveSummaryAnalyzeFailed": {
     "message": "Failed to open the analysis page. Please try again."
+  },
+  "membershipPricingTitle": {
+    "message": "Choose your Pro plan"
+  },
+  "membershipPricingDescription": {
+    "message": "Pick monthly or yearly, then sign in to complete payment securely with Stripe."
+  },
+  "membershipPricingOptionsAriaLabel": {
+    "message": "Choose a Pro plan"
+  },
+  "membershipPricingMonthlyDescription": {
+    "message": "Flexible monthly billing for trying Pro at your own pace."
+  },
+  "membershipPricingYearlyDescription": {
+    "message": "Best value for long-term use, with one yearly payment."
+  },
+  "membershipPricingBack": {
+    "message": "Back to Pro Membership"
+  },
+  "membershipPricingEyebrow": {
+    "message": "AI Compare Pro"
+  },
+  "membershipPricingLoginNote": {
+    "message": "You can choose a plan before signing in. We will ask you to sign in before Stripe checkout so the membership is tied to your account."
   }
 }

@@ -5,15 +5,15 @@ const agentCatalog = require('../config/agentCatalog.js');
 
 test('localized agent prompt messages do not override configured prompts', () => {
   const originalCatalog = agentCatalog.getCatalogData();
-  const originalAgent = originalCatalog.AGENT_DEFINITIONS.find((agent) => agent.id === 'buffett');
+  const originalAgent = originalCatalog.AGENT_DEFINITIONS.find((agent) => agent.id === 'systems_thinking');
 
-  const localizedAgent = agentCatalog.getAgentById('buffett', 'zh_CN');
+  const localizedAgent = agentCatalog.getAgentById('systems_thinking', 'zh_CN');
 
   assert.equal(localizedAgent.personaPrompt, originalAgent.personaPrompt);
   assert.notEqual(localizedAgent.name, originalAgent.name);
 });
 
-test('legacy defaultEnabled still maps to enabled and defaultSelected', () => {
+test('legacy defaultEnabled still maps to enabled', () => {
   const normalized = agentCatalog.normalizeCatalogData({
     version: 'test',
     categories: [
@@ -41,5 +41,4 @@ test('legacy defaultEnabled still maps to enabled and defaultSelected', () => {
   const legacyAgent = agentCatalog.getAgentById('legacy-agent', 'en');
 
   assert.equal(legacyAgent.enabled, true);
-  assert.equal(legacyAgent.defaultSelected, true);
 });

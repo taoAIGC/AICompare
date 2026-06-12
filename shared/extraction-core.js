@@ -461,6 +461,15 @@
     return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).trim();
   }
 
+  function looksLikeTimelinePromptUiText(text) {
+    const normalized = normalizeTimelineComparableText(text);
+    if (!normalized) return false;
+
+    return [
+      /^read\s+\d+\s+(?:web\s+pages?|pages?|sources?)$/i
+    ].some((pattern) => pattern.test(normalized));
+  }
+
   function normalizeTimelineMatchText(text) {
     return normalizeTimelineComparableText(text)
       .normalize('NFKC')
@@ -544,6 +553,7 @@
         const textNode = promptConfig.textSelector ? container.querySelector(promptConfig.textSelector) : container;
         const text = normalizeTimelineComparableText(textNode?.textContent || container.textContent || '');
         if (!text) return;
+        if (looksLikeTimelinePromptUiText(text)) return;
 
         promptRecords.push({
           container,

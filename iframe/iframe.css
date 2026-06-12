@@ -107,7 +107,7 @@ html {
 .live-summary-retry-cluster,
 .live-summary-template-cluster,
 .live-summary-tools-cluster {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   flex-wrap: nowrap;
 }
 
@@ -117,30 +117,18 @@ html {
   border-left: none;
 }
 
+.live-summary-template-cluster {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .live-summary-retry-cluster {
   justify-content: flex-start;
 }
 
 .live-summary-retry-cluster[hidden] {
   display: none !important;
-}
-
-.live-summary-template-cluster {
-  position: relative;
-  width: clamp(144px, 18vw, 220px);
-}
-
-.live-summary-template-cluster::after {
-  content: '';
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  border-right: 1.5px solid rgba(17, 17, 17, 0.5);
-  border-bottom: 1.5px solid rgba(17, 17, 17, 0.5);
-  transform: translateY(-65%) rotate(45deg);
-  pointer-events: none;
 }
 
 .live-summary-tools-cluster {
@@ -237,6 +225,7 @@ html {
   border: 1.5px solid rgba(100, 100, 100, 0.22);
   border-top-color: #6b7280;
   animation: live-summary-tab-spinner 0.7s linear infinite;
+  will-change: transform;
 }
 
 .live-summary-tab-countdown {
@@ -361,158 +350,161 @@ html {
   border-color: transparent;
 }
 
-.live-summary-analysis-dropdown {
-  position: relative;
-  width: 100%;
+.live-summary-analysis-template-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.live-summary-analysis-trigger,
-.live-summary-analysis-select {
+.live-summary-analysis-template-tabs:empty {
+  display: none;
+}
+
+.live-summary-analysis-template-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.live-summary-template-cluster {
+  position: relative;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.live-summary-analysis-template-tab {
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid rgba(17, 17, 17, 0.08);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 244, 244, 0.98));
   color: #222;
   border-radius: 999px;
   min-width: 0;
-  width: 100%;
   max-width: 100%;
-  height: 34px;
-  padding: 0 30px 0 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.live-summary-analysis-trigger {
-  appearance: none;
-  -webkit-appearance: none;
+  min-height: 34px;
+  padding: 0 12px;
   display: inline-flex;
   align-items: center;
-  text-align: left;
-}
-
-.live-summary-analysis-trigger-text {
-  min-width: 0;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  font: 600 12px/1.2 var(--ai-font-sans);
+  cursor: pointer;
   white-space: nowrap;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
-.live-summary-analysis-select:focus,
-.live-summary-analysis-select:focus-visible,
-.live-summary-analysis-trigger:focus,
-.live-summary-analysis-trigger:focus-visible {
+.live-summary-analysis-template-tab:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(17, 17, 17, 0.12);
+}
+
+.live-summary-analysis-template-tab[aria-selected="true"]:hover:not(:disabled) {
+  background: #111111;
+  border-color: rgba(17, 17, 17, 0.16);
+  color: #ffffff;
+}
+
+.live-summary-analysis-template-tab:focus-visible,
+.live-summary-analysis-template-tab[aria-selected="true"] {
   outline: none;
-  border-color: rgba(17, 17, 17, 0.14);
-  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+  border-color: rgba(17, 17, 17, 0.16);
+  background: #111111;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
 }
 
-.live-summary-analysis-select:disabled,
-.live-summary-analysis-trigger:disabled,
-.live-summary-analysis-trigger.is-disabled {
+.live-summary-analysis-template-tab:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.live-summary-analysis-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  z-index: 30;
-  padding: 6px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(14px);
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.live-summary-analysis-menu[hidden] {
-  display: none !important;
-}
-
-.live-summary-analysis-menu-item {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 12px;
-}
-
-.live-summary-analysis-menu-item + .live-summary-analysis-menu-item {
-  margin-top: 2px;
-}
-
-.live-summary-analysis-menu-item.is-selected {
-  background: rgba(17, 17, 17, 0.04);
-}
-
-.live-summary-analysis-menu-option,
-.live-summary-analysis-menu-default-btn {
-  appearance: none;
-  -webkit-appearance: none;
-  border: none;
-  background: transparent;
-  color: #222;
-  font: 500 12px/1.3 var(--ai-font-sans);
-}
-
-.live-summary-analysis-menu-option {
-  min-width: 0;
-  flex: 1 1 auto;
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.live-summary-analysis-menu-option-name {
+.live-summary-analysis-template-tab-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.live-summary-analysis-menu-option:hover,
-.live-summary-analysis-menu-option:focus-visible {
-  outline: none;
-  background: rgba(17, 17, 17, 0.06);
-}
-
-.live-summary-analysis-menu-option.is-selected {
-  font-weight: 600;
-  color: #111;
-}
-
-.live-summary-analysis-menu-default-btn {
-  flex: 0 0 auto;
-  padding: 6px 8px;
+.live-summary-analysis-template-tab-default {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 6px;
   border-radius: 999px;
+  background: rgba(17, 17, 17, 0.08);
+  color: inherit;
+  font: 600 10px/1 var(--ai-font-sans);
+  flex: 0 0 auto;
+}
+
+.live-summary-analysis-template-tab[aria-selected="true"] .live-summary-analysis-template-tab-default {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.live-summary-analysis-template-tab.is-placeholder {
+  cursor: default;
+}
+
+.live-summary-analysis-template-default-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate3d(0, 4px, 0);
+  z-index: 4;
+  border: 1px solid rgba(154, 52, 18, 0.12);
+  background: rgba(255, 251, 235, 0.98);
   color: #9a3412;
-  cursor: pointer;
+  border-radius: 999px;
+  min-height: 24px;
+  padding: 0 8px;
+  font: 600 11px/1.2 var(--ai-font-sans);
   white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+  visibility: hidden;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    visibility 0s linear 0.2s;
 }
 
-.live-summary-analysis-menu-default-btn:hover:not(:disabled),
-.live-summary-analysis-menu-default-btn:focus-visible {
+.live-summary-analysis-template-default-btn.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s, 0s, 0s, 0s, 0s;
+}
+
+.live-summary-analysis-template-default-btn:hover:not(:disabled),
+.live-summary-analysis-template-default-btn:focus-visible {
   outline: none;
-  background: rgba(154, 52, 18, 0.08);
+  background: rgba(254, 243, 199, 0.98);
 }
 
-.live-summary-analysis-menu-default-btn.is-active,
-.live-summary-analysis-menu-default-btn:disabled {
+.live-summary-analysis-template-default-btn[hidden] {
+  display: none !important;
+}
+
+.live-summary-analysis-template-default-btn.is-active,
+.live-summary-analysis-template-default-btn:disabled {
   color: #8a8a8a;
   cursor: default;
-  background: transparent;
+  background: rgba(249, 250, 251, 0.98);
+  border-color: rgba(17, 17, 17, 0.08);
 }
 
 .live-summary-action-btn {
@@ -889,7 +881,7 @@ html {
   }
 
   .live-summary-template-cluster {
-    width: clamp(128px, 28vw, 170px);
+    flex: 0 1 auto;
   }
 
   .live-summary-tools-cluster {
@@ -906,10 +898,13 @@ html {
     height: 28px;
   }
 
-  .live-summary-analysis-select {
-    height: 32px;
-    padding-left: 10px;
-    padding-right: 26px;
+  .live-summary-analysis-template-tabs {
+    gap: 4px;
+  }
+
+  .live-summary-analysis-template-tab {
+    min-height: 32px;
+    padding: 0 10px;
   }
 }
 

@@ -254,10 +254,11 @@
     return `User attached the following files:\n\n${blocks.join('\n\n')}`;
   }
 
-  function buildMessageContent(message = {}) {
+  function buildMessageContent(message = {}, options = {}) {
     const content = normalizeString(message?.content);
     const attachments = normalizeAttachments(message?.attachments);
     const attachmentTextBlock = buildAttachmentTextBlock(attachments);
+    const allowMultimodal = options?.allowMultimodal !== false;
     const hasImages = attachments.some((attachment) => {
       return attachment.mediaCategory === 'image' && attachment.dataUrl;
     });
@@ -275,7 +276,7 @@
     }
     const combinedText = textParts.join('\n\n').trim();
 
-    if (!hasImages) {
+    if (!hasImages || !allowMultimodal) {
       return combinedText;
     }
 
@@ -437,14 +438,14 @@
     };
   }
 
-  function buildChatMessages(agent, threadMessages = [], engineConfig = {}) {
+  function buildChatMessages(agent, threadMessages = [], engineConfig = {}, options = {}) {
     const normalizedThreadMessages = Array.isArray(threadMessages) ? threadMessages : [];
     const systemPrompt = buildSystemPrompt(agent, engineConfig);
     const messages = [{ role: 'system', content: systemPrompt }];
 
     normalizedThreadMessages.forEach((message) => {
       const role = normalizeString(message?.role) || 'user';
-      const content = buildMessageContent(message);
+      const content = buildMessageContent(message, options);
       if (!content) {
         return;
       }
