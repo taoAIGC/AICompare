@@ -391,12 +391,15 @@ function isAgentEngineConfigured(config = {}) {
   );
 }
 
-function getAgentEngineUpgradePriceId() {
+async function getAgentEngineUpgradePriceId() {
+  const prices = typeof window.getStripePrices === 'function'
+    ? await window.getStripePrices()
+    : {};
   const preferredPlan = String(window.AICompareAgentEngineConfig?.DEFAULT_CHECKOUT_PLAN || 'yearly').trim();
   if (preferredPlan === 'monthly') {
-    return window.STRIPE_PRICES?.monthly || '';
+    return prices.monthly || '';
   }
-  return window.STRIPE_PRICES?.yearly || window.STRIPE_PRICES?.monthly || '';
+  return prices.yearly || prices.monthly || '';
 }
 
 function getOfficialAgentEngineDailyFreeLimit() {
@@ -441,17 +444,16 @@ async function ensureAgentEngineCheckoutReady() {
 }
 
 async function handleOfficialAgentEngineUpgrade(button) {
-  const priceId = getAgentEngineUpgradePriceId();
-  if (!priceId || priceId.startsWith('price_REPLACE')) {
-    showToast(getMessageWithFallback('membershipPriceNotConfigured', 'Stripe Price ID not configured. Please set it first.'), 3000);
-    return false;
-  }
-
   if (button) {
     button.disabled = true;
   }
 
   try {
+    const priceId = await getAgentEngineUpgradePriceId();
+    if (!priceId || priceId.startsWith('price_REPLACE')) {
+      showToast(getMessageWithFallback('membershipPriceNotConfigured', 'Stripe Price ID not configured. Please set it first.'), 3000);
+      return false;
+    }
     await ensureAgentEngineCheckoutReady();
     if (typeof window.startCheckout !== 'function') {
       throw new Error(getMessageWithFallback('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'));

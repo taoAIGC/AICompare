@@ -15,6 +15,9 @@ AI 比一比 使用 `Stripe + Firebase Cloud Functions` 实现 Pro 订阅。
 ```bash
 STRIPE_SECRET_KEY=sk_test_or_live_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+BILLING_MODE=test
+STRIPE_PRICE_MONTHLY=price_xxx
+STRIPE_PRICE_YEARLY=price_xxx
 STRIPE_SUCCESS_URL=https://aicompare.club/payment-success
 STRIPE_CANCEL_URL=https://aicompare.club/payment-cancel
 OFFICIAL_AGENT_API_BASE_URL=https://your-official-api.example/v1
@@ -31,6 +34,8 @@ ADMIN_SESSION_ORIGIN=https://aicompare.club
 注意：
 
 - `sk_test_...` 和 `sk_live_...` 不要混用
+- `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY` 必须和 `STRIPE_SECRET_KEY` 属于同一模式；测试 key 配测试 Price，正式 key 配正式 Price
+- 扩展前端不再写死 Price ID，会从后端 `/billingConfig` 读取当前配置
 - Webhook 的 `whsec_...` 也必须和当前模式一致
 - `functions/.env` 只能本地保存
 - `OFFICIAL_AGENT_*` 只保存在 Cloud Functions 环境中，不要写入扩展前端代码
@@ -59,6 +64,35 @@ ADMIN_SESSION_ORIGIN=https://aicompare.club
 2. 打开 `/admin/login`
 3. 输入账号密码，换取 HttpOnly session cookie
 4. 再访问后台统计页面
+
+## 2.2 单 VPS 双环境
+
+为了避免测试付款影响真实用户，同一台 VPS 可以同时跑两套后端：
+
+- 生产后端：`/opt/ai-compare-backend`，端口 `8790`，入口 `https://aicompare.club`
+- 测试后端：`/opt/ai-compare-backend-test`，端口 `8791`，入口 `https://aicompare.club/test-api`
+
+Caddy 会把 `/test-api/*` 去掉前缀后转发到测试后端。Chrome Web Store 正式扩展继续使用 `https://aicompare.club`；本地开发版扩展会自动使用 `https://aicompare.club/test-api`。
+
+生产 `.env` 必须使用 live 配置：
+
+```bash
+BILLING_MODE=live
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_live_xxx
+STRIPE_PRICE_MONTHLY=price_live_monthly
+STRIPE_PRICE_YEARLY=price_live_yearly
+```
+
+测试 `.env` 必须使用 test 配置：
+
+```bash
+BILLING_MODE=test
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_test_xxx
+STRIPE_PRICE_MONTHLY=price_test_monthly
+STRIPE_PRICE_YEARLY=price_test_yearly
+```
 
 ## 3. 部署
 

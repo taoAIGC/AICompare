@@ -7,16 +7,9 @@
  * 对外暴露（挂载到 window）：
  *   window.getUserPlan()          → 返回 { plan: 'free'|'pro', planExpiresAt: string|null }
  *   window.startCheckout(priceId) → 打开 Stripe 付款页（新 Tab）
- *   window.STRIPE_PRICES          → 月付/年付 Price ID 常量
+ *   window.getStripePrices()      → 从后端读取当前月付/年付 Price ID
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 配置常量（请替换为你在 Stripe Dashboard 创建的真实 Price ID）
-// ─────────────────────────────────────────────────────────────────────────────
-const STRIPE_PRICES = {
-  monthly: 'price_1TgkMUEKxBtGZOjfaxgHMz7t',
-  yearly:  'price_1TgkMUEKxBtGZOjfxSteOJjR',
-};
 const STRIPE_REQUEST_TIMEOUT_MS = 15000;
 const STRIPE_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
 const STRIPE_RATE_LIMIT_PATTERNS = [
@@ -57,6 +50,12 @@ function getStripeMessage(key, fallback = '', substitutions = undefined) {
  * 默认格式：https://<region>-<projectId>.cloudfunctions.net
  */
 function getCloudFunctionsBaseUrl() {
+  if (typeof window !== 'undefined' && typeof window.FirebaseConfig?.getCloudFunctionsBaseUrl === 'function') {
+    return window.FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/$/, '');
+  }
+  if (typeof FirebaseConfig !== 'undefined' && typeof FirebaseConfig.getCloudFunctionsBaseUrl === 'function') {
+    return FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/$/, '');
+  }
   if (typeof window !== 'undefined' && window.FirebaseConfig && window.FirebaseConfig.cloudFunctionsBaseUrl) {
     return window.FirebaseConfig.cloudFunctionsBaseUrl.replace(/\/$/, '');
   }
@@ -68,6 +67,48 @@ function getCloudFunctionsBaseUrl() {
     || (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.projectId)
     || 'aicompare-12989';
   return `https://us-central1-${projectId}.cloudfunctions.net`;
+}
+
+let stripeBillingConfigCache = null;
+let stripeBillingConfigCacheAt = 0;
+const STRIPE_BILLING_CONFIG_CACHE_MS = 5 * 60 * 1000;
+
+async function getBillingConfig(options = {}) {
+  const forceRefresh = options.forceRefresh === true;
+  if (
+    !forceRefresh &&
+    stripeBillingConfigCache &&
+    Date.now() - stripeBillingConfigCacheAt < STRIPE_BILLING_CONFIG_CACHE_MS
+  ) {
+    return stripeBillingConfigCache;
+  }
+
+  let response = null;
+  try {
+    response = await fetchStripeFunctionJson('/billingConfig', {
+      method: 'GET',
+      retries: 1
+    });
+  } catch (error) {
+    throw await normalizeStripeRequestError(error);
+  }
+
+  const prices = response?.prices || {};
+  const config = {
+    mode: String(response?.mode || 'test').trim() || 'test',
+    prices: {
+      monthly: String(prices.monthly || '').trim(),
+      yearly: String(prices.yearly || '').trim()
+    }
+  };
+  stripeBillingConfigCache = config;
+  stripeBillingConfigCacheAt = Date.now();
+  return config;
+}
+
+async function getStripePrices(options = {}) {
+  const config = await getBillingConfig(options);
+  return config.prices || {};
 }
 
 /**
@@ -418,11 +459,12 @@ async function listInvoices() {
 // 挂载到 window
 // ─────────────────────────────────────────────────────────────────────────────
 if (typeof window !== 'undefined') {
-  window.STRIPE_PRICES = STRIPE_PRICES;
   // 覆盖 baseConfig.js 中定义的代理，直接使用真实实现
   window.getUserPlan = getUserPlan;
   window._getUserPlanImpl = getUserPlan;
   window.getCachedPlan = getCachedPlan;
+  window.getBillingConfig = getBillingConfig;
+  window.getStripePrices = getStripePrices;
   window.startCheckout = startCheckout;
   window.openCustomerPortal = openCustomerPortal;
   window.listInvoices = listInvoices;

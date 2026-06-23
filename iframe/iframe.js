@@ -1503,11 +1503,6 @@ function renderLiveSummaryTabs() {
     const countdownSeconds = getLiveSummaryTabCountdownSeconds(query, entryKey);
     const isThinking = isLiveSummaryTabThinking(query, entryKey);
     const button = existingButtonsByEntryKey.get(entryKey) || document.createElement('button');
-    button.className = `live-summary-tab${isActive ? ' is-active' : ''}${isThinking ? ' is-thinking' : ''}`;
-    button.type = 'button';
-    button.setAttribute('role', 'tab');
-    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    button.title = query;
     const ariaLabelParts = [query];
     if (isThinking) {
       ariaLabelParts.push(t('liveSummaryThinking', 'thinking'));
@@ -1515,8 +1510,31 @@ function renderLiveSummaryTabs() {
     if (countdownSeconds > 0) {
       ariaLabelParts.push(`${countdownSeconds}s`);
     }
-    button.setAttribute('aria-label', ariaLabelParts.filter(Boolean).join(' '));
-    button.dataset.entryKey = entryKey;
+    const nextClassName = `live-summary-tab${isActive ? ' is-active' : ''}${isThinking ? ' is-thinking' : ''}`;
+    const nextAriaSelected = isActive ? 'true' : 'false';
+    const nextAriaLabel = ariaLabelParts.filter(Boolean).join(' ');
+
+    if (button.className !== nextClassName) {
+      button.className = nextClassName;
+    }
+    if (button.type !== 'button') {
+      button.type = 'button';
+    }
+    if (button.getAttribute('role') !== 'tab') {
+      button.setAttribute('role', 'tab');
+    }
+    if (button.getAttribute('aria-selected') !== nextAriaSelected) {
+      button.setAttribute('aria-selected', nextAriaSelected);
+    }
+    if (button.title !== query) {
+      button.title = query;
+    }
+    if (button.getAttribute('aria-label') !== nextAriaLabel) {
+      button.setAttribute('aria-label', nextAriaLabel);
+    }
+    if (button.dataset.entryKey !== entryKey) {
+      button.dataset.entryKey = entryKey;
+    }
 
     let spinner = button.querySelector('.live-summary-tab-spinner');
     if (isThinking) {
@@ -1536,7 +1554,10 @@ function renderLiveSummaryTabs() {
       label.className = 'live-summary-tab-label';
       button.appendChild(label);
     }
-    label.textContent = getLiveSummaryTabLabel(query);
+    const nextLabelText = getLiveSummaryTabLabel(query);
+    if (label.textContent !== nextLabelText) {
+      label.textContent = nextLabelText;
+    }
 
     let countdown = button.querySelector('.live-summary-tab-countdown');
     if (countdownSeconds > 0) {
@@ -1545,7 +1566,10 @@ function renderLiveSummaryTabs() {
         countdown.className = 'live-summary-tab-countdown';
         button.appendChild(countdown);
       }
-      countdown.textContent = `${countdownSeconds}s`;
+      const nextCountdownText = `${countdownSeconds}s`;
+      if (countdown.textContent !== nextCountdownText) {
+        countdown.textContent = nextCountdownText;
+      }
     } else if (countdown instanceof HTMLElement) {
       countdown.remove();
     }
@@ -1598,8 +1622,11 @@ function renderLiveSummaryTabs() {
     }
   });
 
-  nextButtons.forEach((button) => {
-    tabs.appendChild(button);
+  nextButtons.forEach((button, index) => {
+    const currentChild = tabs.children[index];
+    if (currentChild !== button) {
+      tabs.insertBefore(button, currentChild || null);
+    }
   });
 }
 
@@ -5961,7 +5988,7 @@ function showLiveSummaryAnalysisTemplateDefaultButton(anchorButton, templateId =
   const clusterRect = templateCluster.getBoundingClientRect();
   const anchorRect = anchorButton.getBoundingClientRect();
   const left = anchorRect.left - clusterRect.left + (anchorRect.width / 2);
-  const top = anchorRect.top - clusterRect.top - 30;
+  const top = anchorRect.top - clusterRect.top - 18;
   analysisTemplateDefaultButton.style.left = `${Math.round(left)}px`;
   analysisTemplateDefaultButton.style.top = `${Math.round(top)}px`;
 
@@ -5971,7 +5998,7 @@ function showLiveSummaryAnalysisTemplateDefaultButton(anchorButton, templateId =
     }
     const buttonRect = analysisTemplateDefaultButton.getBoundingClientRect();
     const horizontalAdjust = Math.round(buttonRect.width / 2);
-    const verticalAdjust = Math.round(buttonRect.height);
+    const verticalAdjust = Math.max(0, Math.round(buttonRect.height - 6));
     analysisTemplateDefaultButton.style.left = `${Math.round(left - horizontalAdjust)}px`;
     analysisTemplateDefaultButton.style.top = `${Math.round(top - verticalAdjust)}px`;
     analysisTemplateDefaultButton.classList.add('is-visible');
@@ -6670,22 +6697,32 @@ function initSearchBarDrag() {
 
 function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
+  const closeLabel = escapeHtml(t('closeButton', 'Close'));
   overlay.className = 'inject-progress';
   overlay.dataset.visibleSince = '0';
   overlay.dataset.lastStatus = '';
   overlay.innerHTML = `
     <div class="inject-progress-content">
+      <button class="inject-progress-dismiss" type="button" aria-label="${closeLabel}" title="${closeLabel}">×</button>
       <div class="inject-progress-title">${t('injectProgressTitleRunning', '正在执行脚本...')}</div>
       <div class="inject-progress-detail">${t('injectProgressDetailPreparing', '准备中')}</div>
       <div class="inject-progress-actions">
         <button class="inject-progress-retry" type="button">${t('injectProgressButtonRetry', '重试')}</button>
-        <button class="inject-progress-close" type="button">${t('injectProgressButtonClose', '关闭')}</button>
+        <button class="inject-progress-close" type="button">${t('injectProgressButtonClose', '联系作者')}</button>
       </div>
     </div>
   `;
 
   const retryBtn = overlay.querySelector('.inject-progress-retry');
+  const dismissBtn = overlay.querySelector('.inject-progress-dismiss');
   const closeBtn = overlay.querySelector('.inject-progress-close');
+  const hideOverlay = () => {
+    if (overlay.__hideTimer) {
+      clearTimeout(overlay.__hideTimer);
+      overlay.__hideTimer = null;
+    }
+    overlay.classList.remove('is-visible', 'is-error');
+  };
   retryBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -6703,14 +6740,15 @@ function createInjectProgressOverlay(siteName) {
     });
     await retryInjectForIframe(iframe, siteName, query);
   });
+  dismissBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    hideOverlay();
+  });
   closeBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (overlay.__hideTimer) {
-      clearTimeout(overlay.__hideTimer);
-      overlay.__hideTimer = null;
-    }
-    overlay.classList.remove('is-visible', 'is-error');
+    window.location.href = chrome.runtime.getURL('contact/contact.html');
   });
 
   return overlay;
@@ -7603,7 +7641,12 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
   }).catch(() => null);
   const runtimeConfig = backgroundConfigResponse?.success ? backgroundConfigResponse.result : null;
 
-  if (!runtimeConfig?.hasApiKey || !runtimeConfig?.baseUrl || !runtimeConfig?.model) {
+  const selectedAgentEngineSource = runtimeConfig?.selectedSource === 'custom' ? 'custom' : 'official';
+  const isRuntimeConfigReady = selectedAgentEngineSource === 'custom'
+    ? Boolean(runtimeConfig?.hasApiKey && runtimeConfig?.baseUrl && runtimeConfig?.model)
+    : Boolean(runtimeConfig?.hasApiKey);
+
+  if (!isRuntimeConfigReady) {
     const agentConfigError = chrome?.i18n?.getMessage?.('agentEngineNotConfigured') || 'Skill engine is not configured';
     updateAgentLoadingState(agentId, false, agentConfigError);
     appendAgentMessage(agentId, {

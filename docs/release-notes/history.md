@@ -1,9 +1,13 @@
-### 2026-06-12
+### 2026-06-23
 - 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
 - The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
 - 分享链路更清晰，结果转发、留存和协作会更方便。
 
 
+### 2026-06-12
+- 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
+- The request log now keeps only experience-impacting improvement directions, making version summaries more focused.
+- 分享链路更清晰，结果转发、留存和协作会更方便。
 ### V4.2.5 | 2026-06-09
 - 划词搜索相关的 API 调用切换到云端后，快捷提问能力会更稳定，后续维护和兼容也更轻松。
 - Selection-search API calls now run through the cloud, making quick queries more stable and easier to maintain over time.

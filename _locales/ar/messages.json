@@ -5,6 +5,9 @@
   "appName": {
     "message": "AI Compare — مقارنة عدة ذكاءات اصطناعية لـ GEO وإجابات العلامة"
   },
+  "devAppName": {
+    "message": "AI Compare Dev"
+  },
   "extDescription": {
     "message": "سؤال واحد، قارن إجابات ChatGPT وGemini وClaude والمزيد في تبويب واحد — مناسب لمراجعة المحتوى ومراقبة العلامة وGEO (تحسين محركات التوليد)."
   },
@@ -762,7 +765,7 @@
     "message": "اعادة المحاولة"
   },
   "injectProgressButtonClose": {
-    "message": "اغلاق"
+    "message": "اتصل بالمؤلف"
   },
   "injectProgressToastNeedQuery": {
     "message": "يرجى ادخال سؤال"
@@ -1252,6 +1255,9 @@
   },
   "contactLink": {
     "message": "اتصل بي"
+  },
+  "contactDescription": {
+    "message": "إذا تغيّرت صفحة موقع ذكاء اصطناعي، فقد تتعطل إضافتي. يمكنك التواصل معي في أي وقت وسأقوم بتحديث الإضافة."
   },
   "coffeeButtonAlt": {
     "message": "اشترِ لي قهوة"

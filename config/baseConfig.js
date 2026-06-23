@@ -17,7 +17,8 @@ const DEV_CONFIG = {
 
 const REMOTE_SITE_HANDLERS_URL = 'https://raw.githubusercontent.com/taoAIGC/AI-Shortcuts/main/config/siteHandlers.json';
 
-const DEV_BRANDING_ENABLED = DEV_CONFIG.IS_PRODUCTION === false;
+const CHROME_WEB_STORE_EXTENSION_ID = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+const CHROME_WEB_STORE_REVIEW_URL = `https://chromewebstore.google.com/detail/${CHROME_WEB_STORE_EXTENSION_ID}/reviews`;
 const DEFAULT_BRAND_ICON_PATHS = Object.freeze({
   16: 'icons/icon16.png',
   48: 'icons/icon48.png',
@@ -29,8 +30,6 @@ const DEV_BRAND_ACTION_ICON_PATHS = Object.freeze({
   48: 'icons/dev-icon48.png',
   128: 'icons/dev-icon128.png'
 });
-const CHROME_WEB_STORE_EXTENSION_ID = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
-const CHROME_WEB_STORE_REVIEW_URL = `https://chromewebstore.google.com/detail/${CHROME_WEB_STORE_EXTENSION_ID}/reviews`;
 
 function getCurrentExtensionId() {
   try {
@@ -41,12 +40,29 @@ function getCurrentExtensionId() {
 }
 
 function isDevelopmentExtensionId(extensionId = getCurrentExtensionId()) {
-  return DEV_BRANDING_ENABLED;
+  const normalizedExtensionId = String(extensionId || '').trim();
+  return Boolean(normalizedExtensionId && normalizedExtensionId !== CHROME_WEB_STORE_EXTENSION_ID);
+}
+
+function getBrandName() {
+  if (isDevelopmentExtensionId()) {
+    try {
+      return chrome?.i18n?.getMessage?.('devAppName') || 'AI Compare Dev';
+    } catch (_) {
+      return 'AI Compare Dev';
+    }
+  }
+
+  try {
+    return chrome?.i18n?.getMessage?.('appName') || 'AI Compare';
+  } catch (_) {
+    return 'AI Compare';
+  }
 }
 
 function getBrandIconAssetPath(size = 48) {
   if (isDevelopmentExtensionId()) {
-    return 'icons/paw-print.svg';
+    return DEV_BRAND_ACTION_ICON_PATHS[size] || DEV_BRAND_ACTION_ICON_PATHS[48];
   }
 
   return DEFAULT_BRAND_ICON_PATHS[size] || DEFAULT_BRAND_ICON_PATHS[48];
@@ -90,6 +106,7 @@ const ExtensionEnvironment = {
   isDevelopmentExtension() {
     return isDevelopmentExtensionId();
   },
+  getBrandName,
   getBrandIconAssetPath,
   getBrandIconUrl,
   applyBrandIconToImage,

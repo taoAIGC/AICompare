@@ -8,6 +8,7 @@ admin.initializeApp();
 const db = admin.firestore();
 const DAILY_FREE_LIMIT = Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 100);
 const DEFAULT_REGION = process.env.FUNCTION_REGION || 'us-central1';
+const BILLING_MODE = String(process.env.BILLING_MODE || 'test').trim() || 'test';
 
 function getStripe() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -37,6 +38,235 @@ function handleOptions(req, res) {
     return true;
   }
   return false;
+}
+
+function isAnthropicOfficialApi(baseUrl = '') {
+  const configuredFormat = String(process.env.OFFICIAL_AGENT_API_FORMAT || '').trim().toLowerCase();
+  if (configuredFormat === 'anthropic') {
+    return true;
+  }
+  return /\/anthropic(?:\/v\d+)?\/?$/i.test(String(baseUrl || '').trim());
+}
+
+function parseDataUrlImageSource(url = '') {
+  const match = String(url || '').match(/^data:([^;,]+);base64,(.+)$/i);
+  if (!match) {
+    return null;
+  }
+  return {
+    type: 'base64',
+    media_type: match[1],
+    data: match[2]
+  };
+}
+
+function normalizeAnthropicContent(content) {
+  if (Array.isArray(content)) {
+    const parts = [];
+    content.forEach((part) => {
+      if (!part || typeof part !== 'object') return;
+      if (part.type === 'text' && part.text) {
+        parts.push({ type: 'text', text: String(part.text) });
+        return;
+      }
+      if (part.type === 'image_url') {
+        const source = parseDataUrlImageSource(part.image_url?.url || part.url || '');
+        if (source) {
+          parts.push({ type: 'image', source });
+        }
+      }
+    });
+    return parts.length ? parts : [{ type: 'text', text: '' }];
+  }
+  return [{ type: 'text', text: String(content || '') }];
+}
+
+function buildAnthropicMessages(openAiMessages = []) {
+  const system = [];
+  const messages = [];
+
+  (Array.isArray(openAiMessages) ? openAiMessages : []).forEach((message) => {
+    const role = String(message?.role || 'user').trim();
+    const content = normalizeAnthropicContent(message?.content);
+    if (role === 'system') {
+      const text = content
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text)
+        .join('\n')
+        .trim();
+      if (text) system.push(text);
+      return;
+    }
+
+    const anthropicRole = role === 'assistant' ? 'assistant' : 'user';
+    const previous = messages[messages.length - 1];
+    if (previous && previous.role === anthropicRole) {
+      previous.content.push(...content);
+      return;
+    }
+    messages.push({
+      role: anthropicRole,
+      content
+    });
+  });
+
+  if (!messages.length) {
+    messages.push({
+      role: 'user',
+      content: [{ type: 'text', text: '' }]
+    });
+  }
+
+  return {
+    system: system.join('\n\n'),
+    messages
+  };
+}
+
+function buildAnthropicRequestBody(body = {}, model = '') {
+  const { system, messages } = buildAnthropicMessages(body.messages);
+  const maxTokens = Math.max(
+    1,
+    Number(body.max_tokens || body.maxTokens || process.env.OFFICIAL_AGENT_MAX_TOKENS || 4096) || 4096
+  );
+  const payload = {
+    model,
+    max_tokens: maxTokens,
+    messages,
+    stream: body.stream === true
+  };
+
+  if (system) payload.system = system;
+  if (body.temperature !== undefined) payload.temperature = body.temperature;
+  if (body.top_p !== undefined) payload.top_p = body.top_p;
+  if (body.stop !== undefined) {
+    payload.stop_sequences = Array.isArray(body.stop) ? body.stop : [String(body.stop)];
+  }
+  return payload;
+}
+
+function anthropicResponseToOpenAiCompletion(data = {}, model = '') {
+  const content = Array.isArray(data.content)
+    ? data.content
+        .filter((part) => part?.type === 'text' && part.text)
+        .map((part) => part.text)
+        .join('')
+    : '';
+  const inputTokens = Number(data.usage?.input_tokens) || 0;
+  const outputTokens = Number(data.usage?.output_tokens) || 0;
+
+  return {
+    id: data.id || `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: data.model || model,
+    choices: [{
+      index: 0,
+      message: {
+        role: 'assistant',
+        content
+      },
+      finish_reason: data.stop_reason || 'stop'
+    }],
+    usage: {
+      prompt_tokens: inputTokens,
+      completion_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens
+    }
+  };
+}
+
+function writeOpenAiStreamDelta(res, content = '') {
+  if (!content) return;
+  res.write(`data: ${JSON.stringify({
+    choices: [{
+      index: 0,
+      delta: { content },
+      finish_reason: null
+    }]
+  })}\n\n`);
+}
+
+async function pipeAnthropicStreamAsOpenAi(upstream, res) {
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+
+  const reader = upstream.body?.getReader?.();
+  if (!reader) {
+    res.write('data: [DONE]\n\n');
+    res.end();
+    return;
+  }
+
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let doneSent = false;
+
+  const handleLine = (rawLine = '') => {
+    const line = rawLine.trim();
+    if (!line.startsWith('data:')) return;
+    const rawPayload = line.slice(5).trim();
+    if (!rawPayload || rawPayload === '[DONE]') return;
+
+    let payload = null;
+    try {
+      payload = JSON.parse(rawPayload);
+    } catch (_) {
+      return;
+    }
+
+    if (payload.type === 'content_block_delta') {
+      writeOpenAiStreamDelta(res, payload.delta?.text || '');
+      return;
+    }
+    if (payload.type === 'message_stop') {
+      res.write('data: [DONE]\n\n');
+      doneSent = true;
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    lines.forEach(handleLine);
+  }
+
+  if (buffer) handleLine(buffer);
+  if (!doneSent) {
+    res.write('data: [DONE]\n\n');
+  }
+  res.end();
+}
+
+async function proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model }) {
+  const upstream = await fetch(`${baseUrl}/v1/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'x-api-key': apiKey,
+      'anthropic-version': process.env.OFFICIAL_AGENT_ANTHROPIC_VERSION || '2023-06-01'
+    },
+    body: JSON.stringify(buildAnthropicRequestBody(req.body || {}, model))
+  });
+
+  res.status(upstream.status);
+  if (!upstream.ok) {
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json; charset=utf-8');
+    res.send(await upstream.text());
+    return;
+  }
+
+  if (req.body?.stream === true) {
+    await pipeAnthropicStreamAsOpenAi(upstream, res);
+    return;
+  }
+
+  const data = await upstream.json();
+  res.json(anthropicResponseToOpenAiCompletion(data, model));
 }
 
 async function requireUser(req) {
@@ -199,6 +429,22 @@ function getSuccessUrl() {
 function getCancelUrl() {
   return process.env.STRIPE_CANCEL_URL || 'https://example.com/payment-cancel';
 }
+
+function getStripePrices() {
+  return {
+    monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
+    yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim()
+  };
+}
+
+exports.billingConfig = onRequest({ region: DEFAULT_REGION }, async (req, res) => {
+  if (handleOptions(req, res)) return;
+  applyCors(req, res);
+  res.json({
+    mode: BILLING_MODE,
+    prices: getStripePrices()
+  });
+});
 
 exports.createCheckoutSession = onRequest({ region: DEFAULT_REGION }, async (req, res) => {
   if (handleOptions(req, res)) return;
@@ -374,9 +620,15 @@ exports.officialAgentChat = onRequest({ region: DEFAULT_REGION, timeoutSeconds: 
 
     const apiKey = process.env.OFFICIAL_AGENT_API_KEY;
     const baseUrl = String(process.env.OFFICIAL_AGENT_API_BASE_URL || '').replace(/\/+$/, '');
-    const defaultModel = process.env.OFFICIAL_AGENT_MODEL;
-    if (!apiKey || !baseUrl) {
+    const defaultModel = String(process.env.OFFICIAL_AGENT_MODEL || '').trim();
+    const model = String(req.body?.model || defaultModel).trim();
+    if (!apiKey || !baseUrl || !model) {
       res.status(500).json({ error: 'Official API proxy is not configured' });
+      return;
+    }
+
+    if (isAnthropicOfficialApi(baseUrl)) {
+      await proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model });
       return;
     }
 
@@ -388,7 +640,7 @@ exports.officialAgentChat = onRequest({ region: DEFAULT_REGION, timeoutSeconds: 
       },
       body: JSON.stringify({
         ...req.body,
-        model: req.body?.model || defaultModel
+        model
       })
     });
 

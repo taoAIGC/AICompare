@@ -156,18 +156,15 @@
     }
 
     return {
-      baseUrl: '',
-      apiKey: '',
-      model: '',
       concurrency: 10,
       systemPrompt: ''
     };
   }
 
   const AGENT_ENGINE_DEFAULTS = resolveBundledAgentEngineDefaults();
-  const DEFAULT_MODEL = normalizeString(AGENT_ENGINE_DEFAULTS.model);
-  const DEFAULT_BASE_URL = normalizeString(AGENT_ENGINE_DEFAULTS.baseUrl).replace(/\/+$/, '');
-  const DEFAULT_API_KEY = normalizeString(AGENT_ENGINE_DEFAULTS.apiKey);
+  const DEFAULT_MODEL = '';
+  const DEFAULT_BASE_URL = '';
+  const DEFAULT_API_KEY = '';
   const DEFAULT_CONCURRENCY = Math.max(1, Number(AGENT_ENGINE_DEFAULTS.concurrency) || 10);
   const DEFAULT_SYSTEM_PROMPT = normalizeMultilineString(AGENT_ENGINE_DEFAULTS.systemPrompt);
   const LEGACY_AUTO_MIGRATED_MODEL = 'glm-5.1';
@@ -363,6 +360,14 @@
     return normalizeApiConfig({}, { useBundledDefaults: false });
   }
 
+  function normalizeOfficialAgentEngineConfig(config = {}) {
+    const normalizedConfig = normalizeApiConfig(config, { useBundledDefaults: true });
+    return {
+      concurrency: normalizedConfig.concurrency,
+      systemPrompt: normalizedConfig.systemPrompt
+    };
+  }
+
   function normalizeAgentEngineSecret(secret = {}) {
     if (typeof secret === 'string') {
       const normalizedSecret = normalizeString(secret);
@@ -389,7 +394,7 @@
       ? syncConfig
       : {};
     const normalizedLocalSecret = normalizeAgentEngineSecret(localSecret);
-    const officialConfig = normalizeApiConfig({}, { useBundledDefaults: true });
+    const officialConfig = normalizeOfficialAgentEngineConfig();
     const hasStructuredSettings = (
       Object.prototype.hasOwnProperty.call(normalizedSyncConfig, 'selectedSource') ||
       Object.prototype.hasOwnProperty.call(normalizedSyncConfig, 'customConfig')
@@ -419,8 +424,13 @@
       ...normalizedSyncConfig,
       apiKey: normalizedLocalSecret.apiKey || ''
     }, { useBundledDefaults: false });
+    const isLegacyBundledOfficialConfig = (
+      legacyCustomConfig.baseUrl === LEGACY_AUTO_MIGRATED_BASE_URL &&
+      legacyCustomConfig.model === LEGACY_AUTO_MIGRATED_MODEL
+    );
     const shouldUseLegacyCustomConfig = (
       isApiConfigConfigured(legacyCustomConfig) &&
+      !isLegacyBundledOfficialConfig &&
       !areApiConfigsEquivalent(legacyCustomConfig, officialConfig)
     );
     const selectedSource = shouldUseLegacyCustomConfig

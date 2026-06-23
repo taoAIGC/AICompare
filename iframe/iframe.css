@@ -458,7 +458,7 @@ html {
   position: absolute;
   left: 0;
   top: 0;
-  transform: translate3d(0, 4px, 0);
+  transform: translate3d(0, 2px, 0);
   z-index: 4;
   border: 1px solid rgba(154, 52, 18, 0.12);
   background: rgba(255, 251, 235, 0.98);
@@ -1018,14 +1018,36 @@ html {
 }
 
 .inject-progress-content {
+  position: relative;
   background: #ffffff;
   border: 1px solid #e6e6e6;
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 18px 16px 14px;
   min-width: 220px;
   text-align: center;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   pointer-events: auto;
+}
+
+.inject-progress-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inject-progress-dismiss:hover {
+  color: #222;
 }
 
 .inject-progress-title {
@@ -4020,6 +4042,14 @@ body {
 
 .inject-progress-detail {
   color: var(--ai-text-muted);
+}
+
+.inject-progress-dismiss {
+  color: var(--ai-text-muted);
+}
+
+.inject-progress-dismiss:hover {
+  color: var(--ai-text);
 }
 
 .inject-progress-retry,

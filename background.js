@@ -44,8 +44,6 @@ function getDefaultAgentEngineConfig() {
     : bundledDefaults;
 
   return {
-    baseUrl: String(normalizedDefaults.baseUrl || '').trim().replace(/\/+$/, ''),
-    model: String(normalizedDefaults.model || '').trim(),
     concurrency: Math.max(1, Number(normalizedDefaults.concurrency) || 10),
     systemPrompt: String(normalizedDefaults.systemPrompt || '').trim()
   };
@@ -113,13 +111,26 @@ function getExtensionActionIconPaths() {
   };
 }
 
+function getExtensionActionTitle() {
+  if (self.ExtensionEnvironment && typeof self.ExtensionEnvironment.getBrandName === 'function') {
+    return self.ExtensionEnvironment.getBrandName();
+  }
+
+  return t('appName', 'AI Compare');
+}
+
 async function applyExtensionActionBranding() {
   try {
-    await chrome.action.setIcon({
-      path: getExtensionActionIconPaths()
-    });
+    await Promise.all([
+      chrome.action.setIcon({
+        path: getExtensionActionIconPaths()
+      }),
+      chrome.action.setTitle({
+        title: getExtensionActionTitle()
+      })
+    ]);
   } catch (error) {
-    console.error('设置扩展图标失败:', error);
+    console.error('设置扩展品牌失败:', error);
   }
 }
 
@@ -250,8 +261,8 @@ async function getAgentEngineConfig() {
 
   return {
     apiKey: String(rawConfig.apiKey || '').trim(),
-    baseUrl: String(rawConfig.baseUrl || DEFAULT_AGENT_ENGINE_CONFIG.baseUrl).replace(/\/+$/, ''),
-    model: String(rawConfig.model || DEFAULT_AGENT_ENGINE_CONFIG.model).trim(),
+    baseUrl: String(rawConfig.baseUrl || DEFAULT_AGENT_ENGINE_CONFIG.baseUrl || '').replace(/\/+$/, ''),
+    model: String(rawConfig.model || DEFAULT_AGENT_ENGINE_CONFIG.model || '').trim(),
     concurrency: Math.max(1, Number(rawConfig.concurrency) || DEFAULT_AGENT_ENGINE_CONFIG.concurrency),
     systemPrompt: String(rawConfig.systemPrompt || '').trim()
   };
@@ -263,12 +274,15 @@ function isOfficialAgentEngineSource(config = {}) {
 
 function isAgentEngineRuntimeConfigured(config = {}) {
   if (isOfficialAgentEngineSource(config)) {
-    return Boolean(config.model);
+    return Boolean(getCloudFunctionsBaseUrl());
   }
   return Boolean(config.apiKey && config.baseUrl && config.model);
 }
 
 function getCloudFunctionsBaseUrl() {
+  if (typeof FirebaseConfig?.getCloudFunctionsBaseUrl === 'function') {
+    return String(FirebaseConfig.getCloudFunctionsBaseUrl() || '').trim().replace(/\/+$/, '') || 'https://aicompare.club';
+  }
   const configuredUrl = String(FirebaseConfig?.cloudFunctionsBaseUrl || '').trim().replace(/\/+$/, '');
   return configuredUrl || 'https://aicompare.club';
 }
@@ -369,7 +383,10 @@ async function fetchAgentChatCompletion(config = {}, payload = {}, options = {})
         'Content-Type': 'application/json',
         Authorization: `Bearer ${config.apiKey}`
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        model: payload.model || config.model
+      }),
       signal: options.signal
     });
   }
@@ -393,6 +410,7 @@ async function fetchAgentChatCompletion(config = {}, payload = {}, options = {})
     headers,
     body: JSON.stringify({
       ...payload,
+      model: undefined,
       locale
     }),
     signal: options.signal

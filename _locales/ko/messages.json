@@ -5,6 +5,9 @@
   "appName": {
     "message": "AI Compare — 다중 AI 비교, GEO 및 브랜드 답변 검증"
   },
+  "devAppName": {
+    "message": "AI Compare Dev"
+  },
   "extDescription": {
     "message": "한 번의 질문으로 ChatGPT, Gemini, Claude 등 여러 AI 답변을 비교. 콘텐츠 검증, 브랜드 모니터링, GEO(생성형 엔진 최적화)에 적합."
   },
@@ -762,7 +765,7 @@
     "message": "재시도"
   },
   "injectProgressButtonClose": {
-    "message": "닫기"
+    "message": "작성자에게 문의"
   },
   "injectProgressToastNeedQuery": {
     "message": "질문을 입력하세요"
@@ -1252,6 +1255,9 @@
   },
   "contactLink": {
     "message": "문의하기"
+  },
+  "contactDescription": {
+    "message": "AI 사이트 페이지가 변경되면 이 확장 프로그램이 작동하지 않을 수 있습니다. 언제든지 연락 주시면 수정하겠습니다."
   },
   "coffeeButtonAlt": {
     "message": "커피 한 잔 후원하기"

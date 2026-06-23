@@ -8,12 +8,243 @@ const crypto = require('crypto');
 const app = express();
 const port = Number(process.env.PORT || 8790);
 const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 100) || 100);
+const billingMode = String(process.env.BILLING_MODE || 'test').trim() || 'test';
 const adminSessionOrigin = String(process.env.ADMIN_SESSION_ORIGIN || '').trim();
 const adminSessionSecret = String(process.env.ADMIN_SESSION_SECRET || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
 const adminSessionCookieName = 'ai_compare_admin_session';
 const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 12 * 60 * 60) || (12 * 60 * 60));
 const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
 const adminPasswordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
+
+function isAnthropicOfficialApi(baseUrl = '') {
+  const configuredFormat = String(process.env.OFFICIAL_AGENT_API_FORMAT || '').trim().toLowerCase();
+  if (configuredFormat === 'anthropic') {
+    return true;
+  }
+  return /\/anthropic(?:\/v\d+)?\/?$/i.test(String(baseUrl || '').trim());
+}
+
+function parseDataUrlImageSource(url = '') {
+  const match = String(url || '').match(/^data:([^;,]+);base64,(.+)$/i);
+  if (!match) {
+    return null;
+  }
+  return {
+    type: 'base64',
+    media_type: match[1],
+    data: match[2]
+  };
+}
+
+function normalizeAnthropicContent(content) {
+  if (Array.isArray(content)) {
+    const parts = [];
+    content.forEach((part) => {
+      if (!part || typeof part !== 'object') return;
+      if (part.type === 'text' && part.text) {
+        parts.push({ type: 'text', text: String(part.text) });
+        return;
+      }
+      if (part.type === 'image_url') {
+        const source = parseDataUrlImageSource(part.image_url?.url || part.url || '');
+        if (source) {
+          parts.push({ type: 'image', source });
+        }
+      }
+    });
+    return parts.length ? parts : [{ type: 'text', text: '' }];
+  }
+  return [{ type: 'text', text: String(content || '') }];
+}
+
+function buildAnthropicMessages(openAiMessages = []) {
+  const system = [];
+  const messages = [];
+
+  (Array.isArray(openAiMessages) ? openAiMessages : []).forEach((message) => {
+    const role = String(message?.role || 'user').trim();
+    const content = normalizeAnthropicContent(message?.content);
+    if (role === 'system') {
+      const text = content
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text)
+        .join('\n')
+        .trim();
+      if (text) system.push(text);
+      return;
+    }
+
+    const anthropicRole = role === 'assistant' ? 'assistant' : 'user';
+    const previous = messages[messages.length - 1];
+    if (previous && previous.role === anthropicRole) {
+      previous.content.push(...content);
+      return;
+    }
+    messages.push({
+      role: anthropicRole,
+      content
+    });
+  });
+
+  if (!messages.length) {
+    messages.push({
+      role: 'user',
+      content: [{ type: 'text', text: '' }]
+    });
+  }
+
+  return {
+    system: system.join('\n\n'),
+    messages
+  };
+}
+
+function buildAnthropicRequestBody(body = {}, model = '') {
+  const { system, messages } = buildAnthropicMessages(body.messages);
+  const maxTokens = Math.max(
+    1,
+    Number(body.max_tokens || body.maxTokens || process.env.OFFICIAL_AGENT_MAX_TOKENS || 4096) || 4096
+  );
+  const payload = {
+    model,
+    max_tokens: maxTokens,
+    messages,
+    stream: body.stream === true
+  };
+
+  if (system) payload.system = system;
+  if (body.temperature !== undefined) payload.temperature = body.temperature;
+  if (body.top_p !== undefined) payload.top_p = body.top_p;
+  if (body.stop !== undefined) {
+    payload.stop_sequences = Array.isArray(body.stop) ? body.stop : [String(body.stop)];
+  }
+  return payload;
+}
+
+function anthropicResponseToOpenAiCompletion(data = {}, model = '') {
+  const content = Array.isArray(data.content)
+    ? data.content
+        .filter((part) => part?.type === 'text' && part.text)
+        .map((part) => part.text)
+        .join('')
+    : '';
+  const inputTokens = Number(data.usage?.input_tokens) || 0;
+  const outputTokens = Number(data.usage?.output_tokens) || 0;
+
+  return {
+    id: data.id || `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: data.model || model,
+    choices: [{
+      index: 0,
+      message: {
+        role: 'assistant',
+        content
+      },
+      finish_reason: data.stop_reason || 'stop'
+    }],
+    usage: {
+      prompt_tokens: inputTokens,
+      completion_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens
+    }
+  };
+}
+
+function writeOpenAiStreamDelta(res, content = '') {
+  if (!content) return;
+  res.write(`data: ${JSON.stringify({
+    choices: [{
+      index: 0,
+      delta: { content },
+      finish_reason: null
+    }]
+  })}\n\n`);
+}
+
+async function pipeAnthropicStreamAsOpenAi(upstream, res) {
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+
+  const reader = upstream.body?.getReader?.();
+  if (!reader) {
+    res.write('data: [DONE]\n\n');
+    res.end();
+    return;
+  }
+
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let doneSent = false;
+
+  const handleLine = (rawLine = '') => {
+    const line = rawLine.trim();
+    if (!line.startsWith('data:')) return;
+    const rawPayload = line.slice(5).trim();
+    if (!rawPayload || rawPayload === '[DONE]') return;
+
+    let payload = null;
+    try {
+      payload = JSON.parse(rawPayload);
+    } catch (_) {
+      return;
+    }
+
+    if (payload.type === 'content_block_delta') {
+      writeOpenAiStreamDelta(res, payload.delta?.text || '');
+      return;
+    }
+    if (payload.type === 'message_stop') {
+      res.write('data: [DONE]\n\n');
+      doneSent = true;
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    lines.forEach(handleLine);
+  }
+
+  if (buffer) handleLine(buffer);
+  if (!doneSent) {
+    res.write('data: [DONE]\n\n');
+  }
+  res.end();
+}
+
+async function proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model }) {
+  const upstream = await fetch(`${baseUrl}/v1/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'x-api-key': apiKey,
+      'anthropic-version': process.env.OFFICIAL_AGENT_ANTHROPIC_VERSION || '2023-06-01'
+    },
+    body: JSON.stringify(buildAnthropicRequestBody(req.body || {}, model))
+  });
+
+  res.status(upstream.status);
+  if (!upstream.ok) {
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json; charset=utf-8');
+    res.send(await upstream.text());
+    return;
+  }
+
+  if (req.body?.stream === true) {
+    await pipeAnthropicStreamAsOpenAi(upstream, res);
+    return;
+  }
+
+  const data = await upstream.json();
+  res.json(anthropicResponseToOpenAiCompletion(data, model));
+}
+
 const ADMIN_CLIENT_SCRIPT = String.raw`
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => {
@@ -1009,6 +1240,13 @@ function getSuccessUrl() {
 
 function getCancelUrl() {
   return process.env.STRIPE_CANCEL_URL || 'https://example.com/payment-cancel';
+}
+
+function getStripePrices() {
+  return {
+    monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
+    yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim()
+  };
 }
 
 function getExtensionMembershipUrl() {
@@ -2242,6 +2480,13 @@ app.get('/api/admin/api-usage/top-days', asyncRoute(async (req, res) => {
   res.json(await getApiUsageTopDaysData(req));
 }));
 
+app.get('/billingConfig', (_req, res) => {
+  res.json({
+    mode: billingMode,
+    prices: getStripePrices()
+  });
+});
+
 app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
   const user = await requireUser(req);
   const priceId = String(req.body?.priceId || '').trim();
@@ -2387,6 +2632,10 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
   const user = await getOptionalUser(req);
   const locale = String(req.headers['x-ai-compare-locale'] || req.body?.locale || '').trim();
   const requestedModel = String(req.body?.model || '').trim();
+  const apiKey = String(process.env.OFFICIAL_AGENT_API_KEY || '').trim();
+  const baseUrl = String(process.env.OFFICIAL_AGENT_API_BASE_URL || '').trim().replace(/\/+$/, '');
+  const defaultModel = String(process.env.OFFICIAL_AGENT_MODEL || '').trim();
+  const effectiveModel = requestedModel || defaultModel;
   let usageResult = null;
   let eventPayload = null;
 
@@ -2397,7 +2646,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
       clientHash: '',
       userType: usageResult?.plan === 'pro' ? 'pro' : 'free',
       locale,
-      model: requestedModel
+      model: effectiveModel
     };
   } else {
     const anonymousClientId = getAnonymousClientId(req);
@@ -2407,7 +2656,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
       clientHash: getAnonymousUsageDocId(anonymousClientId),
       userType: 'anonymous',
       locale,
-      model: requestedModel
+      model: effectiveModel
     };
   }
 
@@ -2417,11 +2666,13 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     console.warn('[ai-compare-backend] failed to record official API event:', error.message || error);
   }
 
-  const apiKey = String(process.env.OFFICIAL_AGENT_API_KEY || '').trim();
-  const baseUrl = String(process.env.OFFICIAL_AGENT_API_BASE_URL || '').trim().replace(/\/+$/, '');
-  const defaultModel = String(process.env.OFFICIAL_AGENT_MODEL || '').trim();
-  if (!apiKey || !baseUrl) {
+  if (!apiKey || !baseUrl || !effectiveModel) {
     res.status(500).json({ error: 'Official API proxy is not configured' });
+    return;
+  }
+
+  if (isAnthropicOfficialApi(baseUrl)) {
+    await proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model: effectiveModel });
     return;
   }
 
@@ -2433,7 +2684,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     },
     body: JSON.stringify({
       ...req.body,
-      model: requestedModel || defaultModel
+      model: effectiveModel
     })
   });
 

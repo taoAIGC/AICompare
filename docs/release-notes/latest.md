@@ -1,8 +1,8 @@
 # User Improvement Request Log
 
-Updated at: 2026-06-09 00:40:16
+Updated at: 2026-06-12 17:34:50
 Branch: dev
-Head: f2b7e17
+Head: 0ed1a9c
 
 ## Latest User-Facing Improvement Requests
 
@@ -24,5 +24,7 @@ Head: f2b7e17
 - 自动总结卡片去掉 updated 状态，并将 refresh 按钮改为分析，点击后会使用旁边选中的提示词模板汇总各 panel 回复并打开 AI 分析页。
 - 在批量提交的弹窗中，增加收藏功能：支持给当前批量提示词命名收藏，顶部展示收藏名，点击可回填，hover 可删除
 - 非中文界面下的官方 API 增加免费次数和 Pro 升级规则：免费用户和未登录用户每天可用 100 次，超过后可通过 Stripe 升级或切换自己的 API。
-- Pro 订阅入口改为跳转到独立付费计划页，用户可选择月付或年付，并在登录后继续完成 Stripe 付款。
+- 恢复扩展 ID 不是真实版本 ID 时显示测试版本插件名称和图标
+- Stripe 付费计划改为从后端 `/billingConfig` 读取，测试/上线只需切换后端环境变量，不再在扩展前端写死 Price ID。
+- 同一台 VPS 支持生产和测试付费后端隔离：正式入口走生产后端，本地开发版自动走 `/test-api` 测试后端，避免测试支付影响真实用户。
 <!-- COMMANDS:END -->

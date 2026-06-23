@@ -163,9 +163,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
+  - `BILLING_MODE`
+  - `STRIPE_PRICE_MONTHLY`
+  - `STRIPE_PRICE_YEARLY`
   - `OFFICIAL_AGENT_API_BASE_URL`
   - `OFFICIAL_AGENT_API_KEY`
   - `OFFICIAL_AGENT_MODEL`
+  - `OFFICIAL_AGENT_API_FORMAT`
   - `ADMIN_USERNAME`
   - `ADMIN_PASSWORD_HASH`
   - `ADMIN_SESSION_SECRET` recommended for admin session signing
@@ -186,6 +190,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 ### Development / Live verification
 
 - For AI site adapter debugging, the repo includes real-browser live verifier scripts under `debug/`.
+- Local or sideloaded builds whose extension id differs from the Chrome Web Store id automatically use the test toolbar name and `dev-icon` assets, making it easier to tell development builds apart from the real store version.
 - The current UI refresh uses shared surface tokens across the homepage, options, history, favorites, contact, iframe, and reusable overlays so the shell reads as one product.
 - Remote Search v1 adds three new top-level work areas:
   - `remote/`: MV3 service-worker runtime, storage helpers, protocol constants, and crypto helpers for remote pairing/search.
@@ -235,7 +240,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Static config drift can be checked with `node debug/validate-site-configs.js`.
 - `node debug/run-live-site-checks.js --sites ChatGPT` now auto-routes by site capability: iframe-supported sites use the plugin compare page directly, while non-iframe sites such as Perplexity use their dedicated verifier script.
 - Prompt-template persona benchmarking can be run with `node debug/prompt-persona-benchmark.mjs`; set `PPTOKEN_API_KEY`, optionally `PPTOKEN_API_BASE`, `PPTOKEN_MODEL`, `BENCHMARK_RUN_ID`, and `BENCHMARK_CONCURRENCY`, then inspect `debug/benchmark-results/<run-id>/` for raw answers plus the scored report.
-- The built-in skill-engine defaults are now centralized in `config/agentEngineConfig.js`, currently targeting Volcengine Ark OpenAI-compatible Coding API at `https://ark.cn-beijing.volces.com/api/coding/v3` with model `glm-5.1`; the bundled API key is stored there as ciphertext and decrypted at runtime, user-saved values still override them, and each skill uses only its own persona prompt as the system prompt.
+- The built-in skill engine now treats the official API as a cloud-hosted source: local defaults no longer include an upstream base URL, model, or bundled API key. Custom API settings still store the user-provided base URL/model locally, and each skill uses only its own persona prompt as the system prompt.
 - The built-in skill catalog now uses `config/agentCatalog.json` as the bundled source of truth, caches the latest remote snapshot in `chrome.storage.local.remoteAgentCatalog`, and tracks version/update metadata alongside the site-config updater.
 - The built-in skill catalog now also includes a dedicated `Thinking` category for Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable.
 - The bundled persona roster has been trimmed to focus on the currently supported built-in skills; Buffett, Munger, Duan Yongping, Elon Musk, and Steve Jobs are no longer shipped as standalone built-ins.
@@ -445,7 +450,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - 静态配置漂移可通过 `node debug/validate-site-configs.js` 检查。
 - `node debug/run-live-site-checks.js --sites ChatGPT` 现在会按站点能力自动选路：支持 iframe 的站点直接走插件 compare 页，不支持 iframe 的站点例如 Perplexity 则走专用 verifier。
 - 提示词人物模仿 benchmark 可通过 `node debug/prompt-persona-benchmark.mjs` 运行；设置 `PPTOKEN_API_KEY`，如有需要再传 `PPTOKEN_API_BASE`、`PPTOKEN_MODEL`、`BENCHMARK_RUN_ID`、`BENCHMARK_CONCURRENCY`，结果会落在 `debug/benchmark-results/<run-id>/`，其中包含原始回答和评分报告。
-- 内置的 Skill 引擎默认配置现已统一收口到 `config/agentEngineConfig.js`，当前默认值为火山方舟兼容 OpenAI 协议的 Coding API：`https://ark.cn-beijing.volces.com/api/coding/v3`，默认模型为 `glm-5.1`；其中内置 API Key 在配置文件中以密文形式保存、运行时再解密，用户在设置页手动保存后的值仍然优先覆盖，并且每个 Skill 只使用自己配置的 persona 提示词作为 system prompt。
+- 内置 Skill 引擎现在把官方 API 视为云端来源：本地默认配置不再包含上游 base URL、模型或内置 API Key。自定义 API 仍会保存用户填写的 base URL / model，并且每个 Skill 只使用自己配置的 persona 提示词作为 system prompt。
 - 内置 Skill 目录现已新增一组“思维工具”分类，包含多学科思维、六顶思考帽、苏格拉底追问和大佬开会，适合做多视角分析、连续追问和人物风格对照判断。
 - 现在可以通过“设置 -> Skill 设置 -> 从 URL 导入”把 GitHub 上的 `SKILL.md` 转成自定义 Skill；对应的专项验证脚本为 `node debug/verify-agent-import-runtime-playwright.js`。
 - 系统自带的 Skill 现在也支持在设置页删除。对内置 Skill 来说，这个“删除”实现为当前设备本地隐藏，因此它会同时从设置页、homepage 和 iframe 的 Skill 选择里消失，但不会改写扩展内置目录。
@@ -489,10 +494,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-12 17:19:33 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-23 10:31:36 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.gitignore`
 - `M` `STRIPE_SETUP.md`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/de/messages.json`
@@ -504,53 +508,34 @@ Last auto-update / 最近自动更新：2026-06-12 17:19:33 UTC+08:00
 - `M` `_locales/pt_BR/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `M` `backend/.env.example`
 - `M` `backend/server.js`
 - `M` `background.js`
-- `M` `config/agentCatalog.js`
-- `M` `config/agentCatalog.json`
-- `M` `config/agentCatalogData.js`
-- `M` `config/siteHandlers.json`
-- `M` `debug/extension-flow-common.js`
-- `A` `debug/live-verifier-common.js`
-- `M` `debug/run-live-site-checks.js`
-- `A` `debug/site-test-manifest.js`
-- `M` `debug/validate-site-configs.js`
-- `A` `debug/verify-doubao-live.js`
-- `A` `debug/verify-minimax-live.js`
-- `A` `debug/verify-perplexity-live.js`
-- `M` `docs/release-notes/history.md`
+- `M` `config/agentEngineConfig.js`
+- `M` `config/baseConfig.js`
+- `M` `config/firebaseConfig.js`
+- `M` `contact/contact.html`
+- `M` `docs/hybrid-site-agent-test-log.md`
 - `M` `docs/release-notes/latest.md`
 - `M` `firebase/stripe-payment.js`
-- `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
+- `M` `functions/index.js`
 - `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/timeline-utils.js`
 - `M` `manifest.json`
-- `A` `options/membership-pricing.css`
-- `A` `options/membership-pricing.html`
-- `A` `options/membership-pricing.js`
-- `M` `options/options.css`
+- `M` `options/membership-pricing.js`
 - `M` `options/options.js`
+- `M` `remote-relay/src/server.js`
 - `M` `shared/agent-prompt-utils.js`
-- `M` `shared/extraction-core.js`
-- `M` `shared/markdown-renderer.js`
-- `M` `tests/agent-catalog.test.js`
+- `M` `tests/agent-engine-config.test.js`
 - `M` `tests/agent-prompt-utils.test.js`
-- `M` `tests/extraction-core.test.js`
-- `M` `tests/iframe-timeline-utils.test.js`
-- `A` `tests/live-verifier-common.test.js`
-- `A` `tests/markdown-renderer.test.js`
-- `A` `tests/site-test-manifest.test.js`
+- `A` `tests/extension-environment.test.js`
 
 ### Recent commits / 最近提交
+- `0ed1a9c` 2026-06-12 V4.2.6 修复DeepSeek、优化部分体验
 - `b3ebeba` 2026-06-09 V4.2.5 修复划词搜索 API 调用转移到云端
 - `228016c` 2026-06-09 V4.2.4 修复豆包、点点
 - `f2b7e17` 2026-06-04 V4.2.3 优化总结体验
 - `b93fdb3` 2026-06-03 V4.2.2 修复 Google drive，优化总结答案的体验
-- `9a0949c` 2026-06-03 V4.2.1 优化分析过程的体验
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

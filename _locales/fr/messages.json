@@ -5,6 +5,9 @@
   "appName": {
     "message": "AI Compare – Comparaison multi-IA pour GEO et réponses de marque"
   },
+  "devAppName": {
+    "message": "AI Compare Dev"
+  },
   "extDescription": {
     "message": "Une question, comparez ChatGPT, Gemini, Claude et plus dans un onglet – idéal pour le contrôle de contenu, la veille de marque et le GEO (Generative Engine Optimization)."
   },
@@ -762,7 +765,7 @@
     "message": "Reessayer"
   },
   "injectProgressButtonClose": {
-    "message": "Fermer"
+    "message": "Contacter l'auteur"
   },
   "injectProgressToastNeedQuery": {
     "message": "Veuillez saisir une question"
@@ -1252,6 +1255,9 @@
   },
   "contactLink": {
     "message": "Me contacter"
+  },
+  "contactDescription": {
+    "message": "Si la page d’un site d’IA change, mon extension peut cesser de fonctionner. Vous pouvez me contacter à tout moment et je mettrai le plugin à jour."
   },
   "coffeeButtonAlt": {
     "message": "Offrez-moi un café"

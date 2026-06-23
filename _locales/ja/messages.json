@@ -5,6 +5,9 @@
   "appName": {
     "message": "AI Compare — 複数AI比較、GEO・ブランド回答の一括検証"
   },
+  "devAppName": {
+    "message": "AI Compare Dev"
+  },
   "extDescription": {
     "message": "1回の質問で ChatGPT、Gemini、Claude など複数AIの回答を比較。コンテンツ検証、ブランド監視、GEO（生成型エンジン最適化）に。"
   },
@@ -762,7 +765,7 @@
     "message": "再試行"
   },
   "injectProgressButtonClose": {
-    "message": "閉じる"
+    "message": "作者に連絡"
   },
   "injectProgressToastNeedQuery": {
     "message": "質問を入力してください"
@@ -1252,6 +1255,9 @@
   },
   "contactLink": {
     "message": "お問い合わせ"
+  },
+  "contactDescription": {
+    "message": "AI サイトのページ仕様が変わると、この拡張機能は動かなくなることがあります。いつでもご連絡いただければ、拡張機能を修正します。"
   },
   "coffeeButtonAlt": {
     "message": "コーヒーをごちそうする"

@@ -474,9 +474,9 @@ function createRelayServer(options = {}) {
       position:sticky;
       top:0;
       z-index:40;
-      margin:0 0 16px;
-      padding:12px 0 10px;
-      background:linear-gradient(180deg, rgba(247,248,251,0.98) 0%, rgba(247,248,251,0.96) 76%, rgba(247,248,251,0) 100%);
+      margin:0 0 10px;
+      padding:12px 0 0;
+      background:linear-gradient(180deg, rgba(247,248,251,0.98) 0%, rgba(247,248,251,0.94) 100%);
       backdrop-filter:blur(14px);
     }
     .share-query-bar{
@@ -510,7 +510,7 @@ function createRelayServer(options = {}) {
       min-width:0;
     }
     .share-meta-bar{
-      margin:10px 0 0;
+      margin:0 0 16px;
       padding:0 6px;
       font-size:13px;
       line-height:1.5;
@@ -695,10 +695,10 @@ function createRelayServer(options = {}) {
     }
     @media (max-width: 640px){
       .share-page{padding:14px 12px 20px}
-      .share-sticky-header{padding:10px 0 8px}
+      .share-sticky-header{padding:10px 0 0}
       .share-query-bar{padding:12px 14px;flex-direction:column;align-items:stretch}
       .share-query{font-size:16px}
-      .share-meta-bar{margin:8px 0 0;padding:0 2px;font-size:12px}
+      .share-meta-bar{margin:0 0 14px;padding:0 2px;font-size:12px}
       .share-summary-card .iframe-header{padding:14px 14px 8px}
       .share-summary-card .snapshot-panel{padding:0 14px 14px}
       .share-query-actions{flex-direction:column;align-items:stretch}
@@ -718,8 +718,8 @@ function createRelayServer(options = {}) {
           <a class="share-continue-btn" href="${escapeHtml(extensionInstallUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(messages.continueCompare)}</a>
         </div>
       </div>
-      <div class="share-meta-bar">${escapeHtml(snapshotMetaText)}</div>
     </div>
+    <div class="share-meta-bar">${escapeHtml(snapshotMetaText)}</div>
     ${summaryCard}
     <div class="share-panels">
       ${responseCards}

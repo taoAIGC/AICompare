@@ -18,6 +18,29 @@ const FirebaseConfig = {
   cloudFunctionsBaseUrl: 'https://aicompare.club'
 };
 
+function getCloudFunctionsBaseUrlForRuntime() {
+  const baseUrl = String(FirebaseConfig.cloudFunctionsBaseUrl || '').trim().replace(/\/+$/, '');
+  try {
+    const currentExtensionId = globalThis.chrome?.runtime?.id || '';
+    const productionExtensionId = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+    if (currentExtensionId && currentExtensionId !== productionExtensionId) {
+      return `${baseUrl}/test-api`;
+    }
+    if (
+      globalThis.ExtensionEnvironment &&
+      typeof globalThis.ExtensionEnvironment.isDevelopmentExtension === 'function' &&
+      globalThis.ExtensionEnvironment.isDevelopmentExtension()
+    ) {
+      return `${baseUrl}/test-api`;
+    }
+  } catch (_) {
+    // Fall back to the production endpoint when runtime environment detection is unavailable.
+  }
+  return baseUrl;
+}
+
+FirebaseConfig.getCloudFunctionsBaseUrl = getCloudFunctionsBaseUrlForRuntime;
+
 // 是否已配置（用于判断是否启用云端同步；REST 仅需 apiKey + projectId）
 function isFirebaseConfigured() {
   return !!(FirebaseConfig.apiKey && FirebaseConfig.projectId);

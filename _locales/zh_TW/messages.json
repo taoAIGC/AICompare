@@ -5,6 +5,9 @@
   "appName": {
     "message": "AI 比一比 — 多 AI 對比，GEO 與品牌答案一鍵實測"
   },
+  "devAppName": {
+    "message": "AI 比一比測試版"
+  },
   "extDescription": {
     "message": "一次提問，同時在 ChatGPT、Gemini、Claude 等 AI 中對比回答，用於內容驗證、品牌監測與 GEO（生成式引擎優化）。"
   },
@@ -1008,7 +1011,7 @@
     "message": "重試"
   },
   "injectProgressButtonClose": {
-    "message": "关闭"
+    "message": "聯絡作者"
   },
   "injectProgressToastNeedQuery": {
     "message": "請輸入问题"
@@ -1609,6 +1612,9 @@
   },
   "contactLink": {
     "message": "聯絡我"
+  },
+  "contactDescription": {
+    "message": "當 AI 站點頁面改版，我的外掛可能會失效。你可以隨時聯絡我來修改外掛。"
   },
   "coffeeButtonAlt": {
     "message": "請我喝咖啡"

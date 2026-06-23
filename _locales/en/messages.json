@@ -5,6 +5,9 @@
   "appName": {
     "message": "AI Compare — Multi-AI compare for QA & GEO "
   },
+  "devAppName": {
+    "message": "AI Compare Dev"
+  },
   "extDescription": {
     "message": "Compare answers from ChatGPT, Gemini, Claude and more in one tab—for content QA, brand monitoring, and GEO optimization."
   },
@@ -1061,7 +1064,7 @@
     "message": "Retry"
   },
   "injectProgressButtonClose": {
-    "message": "Close"
+    "message": "Contact author"
   },
   "injectProgressToastNeedQuery": {
     "message": "Please enter a question"
@@ -1662,6 +1665,9 @@
   },
   "contactLink": {
     "message": "Contact Me"
+  },
+  "contactDescription": {
+    "message": "If AI site pages change, my extension may stop working. Feel free to contact me anytime and I can update it."
   },
   "coffeeButtonAlt": {
     "message": "Buy me a coffee"

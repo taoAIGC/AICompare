@@ -16,10 +16,10 @@ This file records implementation verification for the hybrid site + skill compar
 
 ## 2026-05-18 Skill Import Follow-up
 
-- `shared/agent-prompt-utils.js` now reads bundled defaults from `config/agentEngineConfig.js`, which currently points to Ark `https://ark.cn-beijing.volces.com/api/coding/v3` + `glm-5.1`.
-- `shared/agent-prompt-utils.js` still auto-heals the previously broken `sk-* + ark + glm-5.1` combination back to the configured bundled defaults.
-- `config/agentEngineConfig.js` now stores the bundled API key as ciphertext and decrypts it at runtime before agent config normalization.
-- Built-in skill engine defaults are now centralized in `config/agentEngineConfig.js`, so the extension no longer hardcodes the bundled base URL / key / model inside runtime code.
+- `shared/agent-prompt-utils.js` now reads bundled defaults from `config/agentEngineConfig.js`, with official API upstream routing handled by the cloud endpoint.
+- `shared/agent-prompt-utils.js` still recognizes the previously broken Ark + `glm-5.1` bundled fallback as legacy official config instead of promoting it to custom API settings.
+- `config/agentEngineConfig.js` no longer stores a bundled official API key, upstream base URL, or model.
+- Built-in skill engine defaults are now centralized in `config/agentEngineConfig.js`, while official runtime upstream details live behind the cloud API.
 - Skill system prompt assembly is now single-source: only each skill's own `personaPrompt` is sent as the system prompt.
 - Imported skill descriptions now keep the full frontmatter description, or a longer first-body summary instead of truncating to one short line.
 - Skill HTTP failures now surface cleaner messages such as `HTTP 401: The API key format is incorrect` instead of dumping the whole raw JSON body.
@@ -62,10 +62,8 @@ This file records implementation verification for the hybrid site + skill compar
   - Imported URL: `https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me`
   - Imported title: `grill-me`
   - Imported description remained complete
-  - `engineBaseUrl`: `https://ark.cn-beijing.volces.com/api/coding/v3`
-  - `engineModel`: `glm-5.1`
   - `usedBuiltInAgentEngine`: `true`
-  - Skill panel produced a real assistant reply using the bundled engine config
+  - Skill panel produced a real assistant reply through the official cloud API path
 
 ## Test Matrix
 

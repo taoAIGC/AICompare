@@ -63,18 +63,15 @@ async function ensurePricingCheckoutReady() {
   throw new Error(getPricingMessage('membershipLoginHint', 'Please sign in with Google to view your membership status.'));
 }
 
-function getPriceIdForPlan(planName) {
+async function getPriceIdForPlan(planName) {
   const normalizedPlan = String(planName || '').trim();
-  return (window.STRIPE_PRICES && window.STRIPE_PRICES[normalizedPlan]) || '';
+  const prices = typeof window.getStripePrices === 'function'
+    ? await window.getStripePrices()
+    : {};
+  return String(prices?.[normalizedPlan] || '').trim();
 }
 
 async function startPricingCheckout(planName, button) {
-  const priceId = getPriceIdForPlan(planName);
-  if (!priceId || priceId.startsWith('price_REPLACE')) {
-    showPricingToast(getPricingMessage('membershipPriceNotConfigured', 'Stripe Price ID not configured. Please set it first.'));
-    return;
-  }
-
   if (button) {
     button.disabled = true;
     button.dataset.originalText = button.textContent || '';
@@ -82,6 +79,11 @@ async function startPricingCheckout(planName, button) {
   }
 
   try {
+    const priceId = await getPriceIdForPlan(planName);
+    if (!priceId || priceId.startsWith('price_REPLACE')) {
+      showPricingToast(getPricingMessage('membershipPriceNotConfigured', 'Stripe Price ID not configured. Please set it first.'));
+      return;
+    }
     await ensurePricingCheckoutReady();
     if (typeof window.startCheckout !== 'function') {
       throw new Error(getPricingMessage('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'));

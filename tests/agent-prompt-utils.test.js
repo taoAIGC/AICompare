@@ -202,3 +202,31 @@ test('resolveAgentEngineSettings keeps custom api key when local secret uses leg
   assert.equal(result.customConfig.apiKey, 'legacy-secret-key');
   assert.equal(result.effectiveConfig.apiKey, 'legacy-secret-key');
 });
+
+test('official agent engine defaults do not expose local upstream config', () => {
+  const result = agentPromptUtils.resolveAgentEngineSettings({}, {});
+
+  assert.equal(result.selectedSource, 'official');
+  assert.equal(result.officialConfig.baseUrl, undefined);
+  assert.equal(result.officialConfig.model, undefined);
+  assert.equal(result.officialConfig.apiKey, undefined);
+  assert.equal(result.effectiveConfig, result.officialConfig);
+});
+
+test('legacy bundled Ark config no longer promotes to custom source', () => {
+  const result = agentPromptUtils.resolveAgentEngineSettings(
+    {
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
+      model: 'glm-5.1',
+      concurrency: 10
+    },
+    {
+      apiKey: 'ark-legacy-local-key'
+    }
+  );
+
+  assert.equal(result.selectedSource, 'official');
+  assert.equal(result.customConfig.baseUrl, '');
+  assert.equal(result.customConfig.model, '');
+  assert.equal(result.customConfig.apiKey, '');
+});
