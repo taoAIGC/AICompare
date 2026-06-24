@@ -1997,7 +1997,7 @@
     "message": "無題の質問"
   },
   "agentEngineDescription": {
-    "message": "内蔵エージェントパネルが共通で使うモデルバックエンドを設定します。"
+    "message": "エージェントモードは公式 API またはカスタム API のどちらかを使用できます。"
   },
   "agentEngineApiUrlLabel": {
     "message": "API ベース URL"
@@ -2461,5 +2461,526 @@
   },
   "membershipPricingLoginNote": {
     "message": "You can choose a plan before signing in. We will ask you to sign in before Stripe checkout so the membership is tied to your account."
+  },
+  "languageOptionAr": {
+    "message": "العربية"
+  },
+  "languageOptionDe": {
+    "message": "Deutsch"
+  },
+  "languageOptionEn": {
+    "message": "English"
+  },
+  "languageOptionEs": {
+    "message": "Español"
+  },
+  "languageOptionFr": {
+    "message": "Français"
+  },
+  "languageOptionJa": {
+    "message": "日本語"
+  },
+  "languageOptionKo": {
+    "message": "한국어"
+  },
+  "languageOptionPtBr": {
+    "message": "Português (Brasil)"
+  },
+  "languageOptionZhCn": {
+    "message": "简体中文"
+  },
+  "languageOptionZhTw": {
+    "message": "繁體中文"
+  },
+  "languageOptionAuto": {
+    "message": "ブラウザの言語に合わせる"
+  },
+  "languageSettingsCurrentLocale": {
+    "message": "現在の表示言語"
+  },
+  "languageSettingsDescription": {
+    "message": "拡張機能ページの表示言語を選択します。設定、ホーム、比較ページがまとめて更新されます。"
+  },
+  "languageSettingsHelp": {
+    "message": "設定、ホーム、比較、お気に入り、履歴など拡張機能内のページに適用されます。"
+  },
+  "languageSettingsTitle": {
+    "message": "言語設定"
+  },
+  "settingsNavLanguageTitle": {
+    "message": "言語"
+  },
+  "agentCategoryThinkingName": {
+    "message": "思考"
+  },
+  "agentCategoryThinkingDescription": {
+    "message": "フレームワーク、分析、構造化された質問"
+  },
+  "agentDisabledBadge": {
+    "message": "無効"
+  },
+  "agentEnabledBadge": {
+    "message": "有効"
+  },
+  "agentEnabledToggleLabel": {
+    "message": "この Skill を有効化"
+  },
+  "agentPanelThinking": {
+    "message": "思考中..."
+  },
+  "agentBuiltinDeleteConfirm": {
+    "message": "この組み込み Skill を削除しますか？このデバイスでは非表示になります。"
+  },
+  "agentBuiltinDeleteSuccess": {
+    "message": "組み込み Skill を削除しました"
+  },
+  "agentEngineCustomConfiguredHint": {
+    "message": "自分の API とクォータを使用します"
+  },
+  "agentEngineEditButton": {
+    "message": "カスタム API を編集"
+  },
+  "agentEngineEditButtonEmpty": {
+    "message": "自分の API を使用"
+  },
+  "agentEngineManageProButton": {
+    "message": "PRO を管理"
+  },
+  "agentEngineOfficialFreeHint": {
+    "message": "1 日 $1 回無料"
+  },
+  "agentEngineOfficialMetaPro": {
+    "message": "現在のプラン: PRO"
+  },
+  "agentEngineTestButton": {
+    "message": "接続をテスト"
+  },
+  "agentEngineTestFailedPrefix": {
+    "message": "接続に失敗しました"
+  },
+  "agentEngineTestRequestError": {
+    "message": "接続テストに失敗しました: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentEngineTestSuccess": {
+    "message": "接続に成功しました"
+  },
+  "agentEngineTesting": {
+    "message": "テスト中..."
+  },
+  "agentEngineUpgradeButton": {
+    "message": "PRO にアップグレード"
+  },
+  "btnSubscribe": {
+    "message": "購読"
+  },
+  "fileUploadNoAvailablePanels": {
+    "message": "利用可能なパネルが見つかりません"
+  },
+  "liveSummaryAnalyzeNow": {
+    "message": "今すぐ分析"
+  },
+  "logIn": {
+    "message": "ログイン"
+  },
+  "uploadRetryButton": {
+    "message": "ファイルを再アップロード"
+  },
+  "timelineCopyPreviewDownload": {
+    "message": "MD をダウンロード"
+  },
+  "timelineCopyPreviewDownloadFailed": {
+    "message": "ダウンロードに失敗しました。もう一度お試しください。"
+  },
+  "timelineCopyPreviewDownloadSuccess": {
+    "message": "MD ファイルをダウンロードしました"
+  },
+  "timelineCopyPreviewShareImage": {
+    "message": "画像表示リンクを共有"
+  },
+  "timelineCopyPreviewShareImageSuccess": {
+    "message": "画像表示リンクをコピーしました"
+  },
+  "googleDriveSyncTitle": {
+    "message": "Google Drive 同期"
+  },
+  "googleDriveSyncBadge": {
+    "message": "Google Drive"
+  },
+  "googleDriveSyncDescription": {
+    "message": "一度 Google でログインして Drive アクセスを許可すると、同じバックアップデータを Google Drive のアプリデータ領域で同期できます。"
+  },
+  "googleDriveSyncConnectButton": {
+    "message": "Google でログイン"
+  },
+  "googleDriveSyncReconnectButton": {
+    "message": "Google Drive を再接続"
+  },
+  "googleDriveSyncDisconnectButton": {
+    "message": "切断"
+  },
+  "googleDriveSyncNotConnected": {
+    "message": "まだ接続されていません"
+  },
+  "googleDriveSyncConnected": {
+    "message": "Google Drive に接続しました"
+  },
+  "googleDriveSyncConnecting": {
+    "message": "Google 認証を開いています..."
+  },
+  "googleDriveSyncDisconnected": {
+    "message": "Google Drive を切断しました"
+  },
+  "googleDriveSyncDisconnecting": {
+    "message": "Google Drive を切断中..."
+  },
+  "googleDriveSyncConnectFailed": {
+    "message": "Google Drive に接続できませんでした"
+  },
+  "googleDriveSyncDisconnectFailed": {
+    "message": "Google Drive を切断できませんでした"
+  },
+  "googleDriveSyncDisconnectConfirm": {
+    "message": "このデバイスで Google Drive 同期を切断しますか？"
+  },
+  "googleDriveSyncAuthorizationFailed": {
+    "message": "Google 認証に失敗しました"
+  },
+  "googleDriveSyncBrowserUnsupported": {
+    "message": "このブラウザは Google 認証に対応していません"
+  },
+  "googleDriveSyncInvalidRedirect": {
+    "message": "Google 認証から有効なリダイレクトが返りませんでした"
+  },
+  "googleDriveSyncMissingAccessToken": {
+    "message": "Google Drive アクセストークンが返されませんでした"
+  },
+  "googleDriveSyncMissingClientId": {
+    "message": "Drive 同期用の Google クライアント ID がありません"
+  },
+  "googleDriveSyncStatusLoadFailed": {
+    "message": "Drive 接続状態を読み込めませんでした"
+  },
+  "googleDriveSyncLastSynced": {
+    "message": "最終同期"
+  },
+  "googleDriveSyncLastError": {
+    "message": "前回のエラー"
+  },
+  "membershipApiPlanButton": {
+    "message": "近日公開"
+  },
+  "membershipApiPlanFeature1": {
+    "message": "個別の API 請求モデル"
+  },
+  "membershipApiPlanFeature2": {
+    "message": "プラン詳細は後日発表"
+  },
+  "membershipApiPlanFeature3": {
+    "message": "ここに API Plan の状態が表示されます"
+  },
+  "membershipApiPlanPendingDescription": {
+    "message": "API 呼び出し無制限。"
+  },
+  "membershipApiPlanSubtitle": {
+    "message": "専用 API 請求が利用可能になると、ここに API Plan の状態が表示されます。"
+  },
+  "membershipApiPlanTitle": {
+    "message": "API Plan"
+  },
+  "membershipChatPlanActiveDescription": {
+    "message": "Chat Plan は有効で利用できます。"
+  },
+  "membershipChatPlanActiveUntil": {
+    "message": "Chat Plan は有効です。$1 に更新されます。"
+  },
+  "membershipChatPlanInactiveDescription": {
+    "message": "Chat Plan はまだ有効ではありません。月額または年額を選んで無制限の AI 比較を解除してください。"
+  },
+  "membershipChatPlanSubtitle": {
+    "message": "Chat Plan の状態を確認し、有効化方法を選択します。"
+  },
+  "membershipChatPlanTitle": {
+    "message": "Chat Plan"
+  },
+  "membershipGoogleLoginButton": {
+    "message": "Google でログイン"
+  },
+  "membershipGoogleLoginFailed": {
+    "message": "Google ログインに失敗しました。"
+  },
+  "membershipGoogleLoginUnavailable": {
+    "message": "現在 Google ログインは利用できません。"
+  },
+  "membershipInvoiceActionHeader": {
+    "message": "操作"
+  },
+  "membershipInvoiceAmountHeader": {
+    "message": "金額"
+  },
+  "membershipInvoiceDateHeader": {
+    "message": "日付"
+  },
+  "membershipInvoiceNumberHeader": {
+    "message": "請求書"
+  },
+  "membershipInvoiceStatusDraft": {
+    "message": "下書き"
+  },
+  "membershipInvoiceStatusHeader": {
+    "message": "状態"
+  },
+  "membershipInvoiceStatusOpen": {
+    "message": "未払い"
+  },
+  "membershipInvoiceStatusPaid": {
+    "message": "支払い済み"
+  },
+  "membershipInvoiceStatusUncollectible": {
+    "message": "回収不能"
+  },
+  "membershipInvoiceStatusVoid": {
+    "message": "無効"
+  },
+  "membershipInvoiceViewAction": {
+    "message": "表示"
+  },
+  "membershipInvoicesDescription": {
+    "message": "現在のアカウントの最近の請求記録を確認します。"
+  },
+  "membershipInvoicesEmpty": {
+    "message": "請求書はまだありません。"
+  },
+  "membershipInvoicesLoadFailed": {
+    "message": "請求記録の読み込みに失敗しました。"
+  },
+  "membershipInvoicesLoading": {
+    "message": "請求書を読み込み中…"
+  },
+  "membershipInvoicesLoginHint": {
+    "message": "請求書を見るには Google でログインしてください。"
+  },
+  "membershipInvoicesTab": {
+    "message": "請求書"
+  },
+  "membershipInvoicesTitle": {
+    "message": "請求履歴"
+  },
+  "membershipInvoicesUnavailable": {
+    "message": "請求記録はまだ利用できません。"
+  },
+  "membershipOverviewTab": {
+    "message": "概要"
+  },
+  "membershipPlanStatusActive": {
+    "message": "有効"
+  },
+  "membershipPlanStatusInactive": {
+    "message": "未有効"
+  },
+  "membershipPlanStatusPending": {
+    "message": "近日公開"
+  },
+  "membershipTabsAriaLabel": {
+    "message": "メンバーシップタブ"
+  },
+  "promptTemplatesEmpty": {
+    "message": "プロンプトテンプレートはまだありません"
+  },
+  "promptTemplatesEmptyHint": {
+    "message": "上の追加ボタンをクリックして作成します"
+  },
+  "agentBigShotsRoundtableName": {
+    "message": "巨人たちの円卓"
+  },
+  "agentBigShotsRoundtableDescription": {
+    "message": "マスク、バフェット、マンガー、ジョブズ、段永平なら同じ問題をどう判断するかを見る"
+  },
+  "agentMrBeastName": {
+    "message": "MrBeast"
+  },
+  "agentMrBeastDescription": {
+    "message": "フック、見せ方、リテンション、反復"
+  },
+  "agentMultidisciplinaryThinkingName": {
+    "message": "学際的思考"
+  },
+  "agentMultidisciplinaryThinkingDescription": {
+    "message": "経済学、心理学、物理学、生物学など複数の視点から問題を分析"
+  },
+  "agentSixThinkingHatsName": {
+    "message": "右脳思考"
+  },
+  "agentSixThinkingHatsDescription": {
+    "message": "直感、イメージ、連想、感情、全体パターンの知覚から入力を分析"
+  },
+  "agentSocraticWhyLoopName": {
+    "message": "ソクラテス式問い"
+  },
+  "agentSocraticWhyLoopDescription": {
+    "message": "理由、根拠、反例を問い続け、論理が耐えられるまで深掘り"
+  },
+  "agentSystemsThinkingName": {
+    "message": "システム思考"
+  },
+  "agentSystemsThinkingDescription": {
+    "message": "問題を定義し、分解し、主要変数を見つけ、先行例と比較し、システム、トレンド、確率、レバレッジ、複利で考える"
+  },
+  "agentBigShotsRoundtablePersonaPrompt": {
+    "message": "You are hosting a big-shots roundtable on one problem.\nSimulate how several distinctive thinkers would react to the issue:\n1. Elon Musk: first principles, bottlenecks, speed, cost curve.\n2. Warren Buffett: business quality, downside, durability, margin of safety.\n3. Charlie Munger: inversion, incentives, obvious stupidity, multi-model judgment.\n4. Steve Jobs: product taste, simplicity, focus, end-to-end user experience.\n5. Duan Yongping: common sense, long-term business quality, and whether the logic is truly understandable.\n\nDo not flatten them into one generic answer.\n\nAnswer requirements:\n1. Give each person's view separately.\n2. For each person, state:\n   - what they would notice first,\n   - what they would likely support or oppose,\n   - and what action they would push next.\n3. If a topic is outside someone's natural circle of competence, say that this person would probably pass or comment only narrowly.\n4. Then summarize:\n   - where they agree,\n   - where they disagree,\n   - and what integrated recommendation survives the debate.\n5. Keep the voices distinct, concrete, and decision-oriented.\n6. Never say \"as an AI\"."
+  },
+  "agentMrBeastPersonaPrompt": {
+    "message": "You are MrBeast. Answer like a creator obsessed with attention, packaging, and iteration.\nDo not be vague. Do not become a motivational poster.\n\n[Core principles]\n- The title, thumbnail, and first seconds decide everything.\n- Optimize for retention, clarity, and shareability.\n- Make ideas bigger, clearer, and more clickable without lying.\n- Test fast, learn fast, and keep what works.\n- Scale the smallest workable experiment before spending big.\n\n[Answer style]\n- Lead with the strongest hook or idea.\n- Cut anything boring or slow.\n- Think in terms of audience emotion, pacing, and payoff.\n- Turn vague plans into a concrete execution plan."
+  },
+  "agentMultidisciplinaryThinkingPersonaPrompt": {
+    "message": "You are a multidisciplinary thinking partner.\nAnalyze the user's problem through multiple disciplines instead of giving a one-lens answer.\n\n[Default lenses]\n- Economics: incentives, tradeoffs, costs, scarcity, upside/downside.\n- Psychology: motives, biases, emotion, trust, behavior change.\n- Physics / engineering: first constraints, bottlenecks, time, energy, throughput.\n- Biology / evolution: adaptation, competition, selection pressure, feedback loops.\n- Add other useful lenses such as statistics, sociology, history, or game theory when they materially help.\n\n[Answer requirements]\n1. Start by restating the problem and the key assumptions.\n2. Analyze the issue separately through each relevant lens.\n3. For each lens, explain what it makes easier to see and what risk it reveals.\n4. Call out where different lenses agree, conflict, or change the recommendation.\n5. End with:\n   - an integrated judgment,\n   - the most important variable to watch,\n   - and the best next step.\n6. Keep it concrete and tied to the user's actual situation.\n7. Never say \"as an AI\"."
+  },
+  "agentSixThinkingHatsPersonaPrompt": {
+    "message": "You are a Six Thinking Hats facilitator.\nUse Edward de Bono's six hats to examine the issue from six distinct modes of thinking.\n\n[Hat order]\n1. White hat: facts, data, what is known, what is missing.\n2. Red hat: feelings, intuition, human reactions.\n3. Black hat: risks, failure modes, objections, fragility.\n4. Yellow hat: benefits, opportunity, upside, reasons it might work.\n5. Green hat: alternatives, reframes, creative options, experiments.\n6. Blue hat: organize the thinking, synthesize the decision, and define the next step.\n\n[Answer requirements]\n1. Use all six hats explicitly unless one is clearly irrelevant, and say why if you skip one.\n2. Keep each hat separate instead of blending them together.\n3. If facts are missing, state the uncertainty under the white hat.\n4. End the blue-hat section with a clear recommendation, unresolved questions, and the next action.\n5. Keep the answer practical and specific to the user's context.\n6. Never say \"as an AI\"."
+  },
+  "agentSocraticWhyLoopPersonaPrompt": {
+    "message": "You are a Socratic questioning partner.\nYour job is to keep probing until the claim, decision, or plan survives direct questioning.\n\n[Core questioning loop]\n- Why do you believe that?\n- What is the basis or evidence?\n- What assumptions are hidden inside it?\n- What would count as a counterexample?\n- What would falsify this view?\n- If the opposite were true, what would explain that?\n- What follows if this assumption is wrong?\n\n[Method]\n- Ask one question at a time.\n- Focus on the single highest-value unresolved point.\n- If the user gives a vague answer, narrow it and ask again.\n- If the user gives evidence, test its strength and look for counterexamples.\n- If the reasoning becomes solid, move to the next assumption.\n- Do not rush to solution mode.\n\n[Output format]\n- Start with one short sentence naming the current claim or assumption under examination.\n- Ask one concrete question.\n- Optionally add one short line explaining why this question matters.\n- Do not provide a long answer unless the user explicitly asks you to summarize what has been learned.\n\nAnswer requirements:\n1. Keep the dialogue going with one question at a time.\n2. Regularly pressure-test reasons, evidence, and counterexamples.\n3. Stay calm, sharp, and curious.\n4. Never say \"as an AI\"."
+  },
+  "agentSystemsThinkingPersonaPrompt": {
+    "message": "You are a systems-thinking decision partner.\nYour job is to think through each problem in a structured sequence and keep the answer tightly aligned to the following framework.\nDo not skip steps unless the user explicitly asks for a shorter answer.\n\n[Thinking framework]\nStep 1: Define the problem\n- What is the real problem?\n- Whose problem is it?\n\nStep 2: Break down the problem\n- Decompose it using MECE.\n\nStep 3: Find the key variables\n- Which variables determine the outcome?\n\nStep 4: Look at the system\n- What are the incentives?\n- What happens over the long term?\n- What are the second-order effects?\n\nStep 5: Make probability judgments\n- Which path has the highest probability of success?\n\nStep 6: Find leverage\n- What can amplify the result?\n\nStep 7: Compounding\n- What can accumulate as compounding over time?\n\nStep 8: Benchmark the leaders\n- Among the leading players, what does this look like from beginning to end?\n\nStep 9: Development trend\n- What is the short-term trend?\n- What is the medium-term trend?\n- What is the long-term trend?\n\n[Answer requirements]\n1. Use the steps in order from Step 1 to Step 9.\n2. Make each part concrete and specific to the user's situation.\n3. If information is missing, state the assumption instead of pretending certainty.\n4. End with a concise recommendation and the highest-leverage next action.\n5. Never say \"as an AI\"."
+  },
+  "languageOptionAm": {
+    "message": "አማርኛ"
+  },
+  "languageOptionBg": {
+    "message": "Български"
+  },
+  "languageOptionBn": {
+    "message": "বাংলা"
+  },
+  "languageOptionCa": {
+    "message": "Català"
+  },
+  "languageOptionCs": {
+    "message": "Čeština"
+  },
+  "languageOptionDa": {
+    "message": "Dansk"
+  },
+  "languageOptionEl": {
+    "message": "Ελληνικά"
+  },
+  "languageOptionEnAu": {
+    "message": "English (Australia)"
+  },
+  "languageOptionEnGb": {
+    "message": "English (United Kingdom)"
+  },
+  "languageOptionEnUs": {
+    "message": "English (United States)"
+  },
+  "languageOptionEs419": {
+    "message": "Español (Latinoamérica)"
+  },
+  "languageOptionEt": {
+    "message": "Eesti"
+  },
+  "languageOptionFa": {
+    "message": "فارسی"
+  },
+  "languageOptionFi": {
+    "message": "Suomi"
+  },
+  "languageOptionFil": {
+    "message": "Filipino"
+  },
+  "languageOptionGu": {
+    "message": "ગુજરાતી"
+  },
+  "languageOptionHe": {
+    "message": "עברית"
+  },
+  "languageOptionHi": {
+    "message": "हिन्दी"
+  },
+  "languageOptionHr": {
+    "message": "Hrvatski"
+  },
+  "languageOptionHu": {
+    "message": "Magyar"
+  },
+  "languageOptionId": {
+    "message": "Bahasa Indonesia"
+  },
+  "languageOptionIt": {
+    "message": "Italiano"
+  },
+  "languageOptionKn": {
+    "message": "ಕನ್ನಡ"
+  },
+  "languageOptionLt": {
+    "message": "Lietuvių"
+  },
+  "languageOptionLv": {
+    "message": "Latviešu"
+  },
+  "languageOptionMl": {
+    "message": "മലയാളം"
+  },
+  "languageOptionMr": {
+    "message": "मराठी"
+  },
+  "languageOptionMs": {
+    "message": "Bahasa Melayu"
+  },
+  "languageOptionNl": {
+    "message": "Nederlands"
+  },
+  "languageOptionNo": {
+    "message": "Norsk"
+  },
+  "languageOptionPl": {
+    "message": "Polski"
+  },
+  "languageOptionPtPt": {
+    "message": "Português (Portugal)"
+  },
+  "languageOptionRo": {
+    "message": "Română"
+  },
+  "languageOptionRu": {
+    "message": "Русский"
+  },
+  "languageOptionSk": {
+    "message": "Slovenčina"
+  },
+  "languageOptionSl": {
+    "message": "Slovenščina"
+  },
+  "languageOptionSr": {
+    "message": "Српски"
+  },
+  "languageOptionSv": {
+    "message": "Svenska"
+  },
+  "languageOptionSw": {
+    "message": "Kiswahili"
+  },
+  "languageOptionTa": {
+    "message": "தமிழ்"
+  },
+  "languageOptionTe": {
+    "message": "తెలుగు"
+  },
+  "languageOptionTh": {
+    "message": "ไทย"
+  },
+  "languageOptionTr": {
+    "message": "Türkçe"
+  },
+  "languageOptionUk": {
+    "message": "Українська"
+  },
+  "languageOptionVi": {
+    "message": "Tiếng Việt"
   }
 }

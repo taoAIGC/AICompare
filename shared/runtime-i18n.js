@@ -3,7 +3,13 @@
   const AUTO_VALUE = 'auto';
   const DEFAULT_LOCALE = 'en';
   const RTL_LANGS = new Set(['ar', 'he', 'fa', 'ur']);
-  const NODE_LOCALE_DIRS = ['en', 'zh_CN', 'zh_TW', 'ja', 'ko', 'fr', 'de', 'es', 'pt_BR', 'ar'];
+  const NODE_LOCALE_DIRS = [
+    'ar', 'am', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'en_AU',
+    'en_GB', 'en_US', 'es', 'es_419', 'et', 'fa', 'fi', 'fil', 'fr', 'gu',
+    'he', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml',
+    'mr', 'ms', 'nl', 'no', 'pl', 'pt_BR', 'pt_PT', 'ro', 'ru', 'sk', 'sl',
+    'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh_CN', 'zh_TW'
+  ];
   const messageCache = new Map();
   let activeLocale = '';
   let activeMessages = {};
@@ -257,16 +263,61 @@
   function getLanguageOptions() {
     return [
       { value: AUTO_VALUE, labelKey: 'languageOptionAuto', fallback: 'Follow browser language' },
-      { value: 'en', labelKey: 'languageOptionEn', fallback: 'English' },
-      { value: 'zh_CN', labelKey: 'languageOptionZhCn', fallback: '简体中文' },
-      { value: 'zh_TW', labelKey: 'languageOptionZhTw', fallback: '繁體中文' },
-      { value: 'ja', labelKey: 'languageOptionJa', fallback: '日本語' },
-      { value: 'ko', labelKey: 'languageOptionKo', fallback: '한국어' },
-      { value: 'fr', labelKey: 'languageOptionFr', fallback: 'Français' },
+      { value: 'ar', labelKey: 'languageOptionAr', fallback: 'العربية' },
+      { value: 'am', labelKey: 'languageOptionAm', fallback: 'አማርኛ' },
+      { value: 'bg', labelKey: 'languageOptionBg', fallback: 'Български' },
+      { value: 'bn', labelKey: 'languageOptionBn', fallback: 'বাংলা' },
+      { value: 'ca', labelKey: 'languageOptionCa', fallback: 'Català' },
+      { value: 'cs', labelKey: 'languageOptionCs', fallback: 'Čeština' },
+      { value: 'da', labelKey: 'languageOptionDa', fallback: 'Dansk' },
       { value: 'de', labelKey: 'languageOptionDe', fallback: 'Deutsch' },
+      { value: 'el', labelKey: 'languageOptionEl', fallback: 'Ελληνικά' },
+      { value: 'en', labelKey: 'languageOptionEn', fallback: 'English' },
+      { value: 'en_AU', labelKey: 'languageOptionEnAu', fallback: 'English (Australia)' },
+      { value: 'en_GB', labelKey: 'languageOptionEnGb', fallback: 'English (United Kingdom)' },
+      { value: 'en_US', labelKey: 'languageOptionEnUs', fallback: 'English (United States)' },
       { value: 'es', labelKey: 'languageOptionEs', fallback: 'Español' },
+      { value: 'es_419', labelKey: 'languageOptionEs419', fallback: 'Español (Latinoamérica)' },
+      { value: 'et', labelKey: 'languageOptionEt', fallback: 'Eesti' },
+      { value: 'fa', labelKey: 'languageOptionFa', fallback: 'فارسی' },
+      { value: 'fi', labelKey: 'languageOptionFi', fallback: 'Suomi' },
+      { value: 'fil', labelKey: 'languageOptionFil', fallback: 'Filipino' },
+      { value: 'fr', labelKey: 'languageOptionFr', fallback: 'Français' },
+      { value: 'gu', labelKey: 'languageOptionGu', fallback: 'ગુજરાતી' },
+      { value: 'he', labelKey: 'languageOptionHe', fallback: 'עברית' },
+      { value: 'hi', labelKey: 'languageOptionHi', fallback: 'हिन्दी' },
+      { value: 'hr', labelKey: 'languageOptionHr', fallback: 'Hrvatski' },
+      { value: 'hu', labelKey: 'languageOptionHu', fallback: 'Magyar' },
+      { value: 'id', labelKey: 'languageOptionId', fallback: 'Bahasa Indonesia' },
+      { value: 'it', labelKey: 'languageOptionIt', fallback: 'Italiano' },
+      { value: 'ja', labelKey: 'languageOptionJa', fallback: '日本語' },
+      { value: 'kn', labelKey: 'languageOptionKn', fallback: 'ಕನ್ನಡ' },
+      { value: 'ko', labelKey: 'languageOptionKo', fallback: '한국어' },
+      { value: 'lt', labelKey: 'languageOptionLt', fallback: 'Lietuvių' },
+      { value: 'lv', labelKey: 'languageOptionLv', fallback: 'Latviešu' },
+      { value: 'ml', labelKey: 'languageOptionMl', fallback: 'മലയാളം' },
+      { value: 'mr', labelKey: 'languageOptionMr', fallback: 'मराठी' },
+      { value: 'ms', labelKey: 'languageOptionMs', fallback: 'Bahasa Melayu' },
+      { value: 'nl', labelKey: 'languageOptionNl', fallback: 'Nederlands' },
+      { value: 'no', labelKey: 'languageOptionNo', fallback: 'Norsk' },
+      { value: 'pl', labelKey: 'languageOptionPl', fallback: 'Polski' },
       { value: 'pt_BR', labelKey: 'languageOptionPtBr', fallback: 'Português (Brasil)' },
-      { value: 'ar', labelKey: 'languageOptionAr', fallback: 'العربية' }
+      { value: 'pt_PT', labelKey: 'languageOptionPtPt', fallback: 'Português (Portugal)' },
+      { value: 'ro', labelKey: 'languageOptionRo', fallback: 'Română' },
+      { value: 'ru', labelKey: 'languageOptionRu', fallback: 'Русский' },
+      { value: 'sk', labelKey: 'languageOptionSk', fallback: 'Slovenčina' },
+      { value: 'sl', labelKey: 'languageOptionSl', fallback: 'Slovenščina' },
+      { value: 'sr', labelKey: 'languageOptionSr', fallback: 'Српски' },
+      { value: 'sv', labelKey: 'languageOptionSv', fallback: 'Svenska' },
+      { value: 'sw', labelKey: 'languageOptionSw', fallback: 'Kiswahili' },
+      { value: 'ta', labelKey: 'languageOptionTa', fallback: 'தமிழ்' },
+      { value: 'te', labelKey: 'languageOptionTe', fallback: 'తెలుగు' },
+      { value: 'th', labelKey: 'languageOptionTh', fallback: 'ไทย' },
+      { value: 'tr', labelKey: 'languageOptionTr', fallback: 'Türkçe' },
+      { value: 'uk', labelKey: 'languageOptionUk', fallback: 'Українська' },
+      { value: 'vi', labelKey: 'languageOptionVi', fallback: 'Tiếng Việt' },
+      { value: 'zh_CN', labelKey: 'languageOptionZhCn', fallback: '简体中文' },
+      { value: 'zh_TW', labelKey: 'languageOptionZhTw', fallback: '繁體中文' }
     ];
   }
 

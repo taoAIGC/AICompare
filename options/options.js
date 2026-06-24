@@ -2829,7 +2829,13 @@ let currentEditingTemplateId = null;
 let currentEditingAnalysisTemplateId = null;
 let currentEditingCustomSiteId = null;
 let currentEditingAgentId = null;
-const PROMPT_TEMPLATE_LOCALE_DIRS = ['ar', 'de', 'en', 'es', 'fr', 'ja', 'ko', 'pt_BR', 'zh_CN', 'zh_TW'];
+const PROMPT_TEMPLATE_LOCALE_DIRS = [
+  'ar', 'am', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'en_AU',
+  'en_GB', 'en_US', 'es', 'es_419', 'et', 'fa', 'fi', 'fil', 'fr', 'gu',
+  'he', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml',
+  'mr', 'ms', 'nl', 'no', 'pl', 'pt_BR', 'pt_PT', 'ro', 'ru', 'sk', 'sl',
+  'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh_CN', 'zh_TW'
+];
 const PROMPT_TEMPLATE_DEFAULT_DEFINITIONS = [
   {
     id: 'risk_analysis',
@@ -2955,7 +2961,13 @@ const LEGACY_PROMPT_TEMPLATE_SIGNATURES = {
   translate_to_chinese: []
 };
 let promptTemplateSignatureMapPromise = null;
-const ANALYSIS_TEMPLATE_LOCALE_DIRS = ['ar', 'de', 'en', 'es', 'fr', 'ja', 'ko', 'pt_BR', 'zh_CN', 'zh_TW'];
+const ANALYSIS_TEMPLATE_LOCALE_DIRS = [
+  'ar', 'am', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'en_AU',
+  'en_GB', 'en_US', 'es', 'es_419', 'et', 'fa', 'fi', 'fil', 'fr', 'gu',
+  'he', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml',
+  'mr', 'ms', 'nl', 'no', 'pl', 'pt_BR', 'pt_PT', 'ro', 'ru', 'sk', 'sl',
+  'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh_CN', 'zh_TW'
+];
 let analysisTemplateDefaultDefinitionsPromise = null;
 const LEGACY_ANALYSIS_TEMPLATE_SIGNATURES = {
   analysis_summary: [],

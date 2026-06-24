@@ -494,48 +494,76 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-23 10:31:36 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-24 08:18:44 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `STRIPE_SETUP.md`
+- `A` `_locales/am/messages.json`
 - `M` `_locales/ar/messages.json`
+- `A` `_locales/bg/messages.json`
+- `A` `_locales/bn/messages.json`
+- `A` `_locales/ca/messages.json`
+- `A` `_locales/cs/messages.json`
+- `A` `_locales/da/messages.json`
 - `M` `_locales/de/messages.json`
+- `A` `_locales/el/messages.json`
 - `M` `_locales/en/messages.json`
+- `A` `_locales/en_AU/messages.json`
+- `A` `_locales/en_GB/messages.json`
+- `A` `_locales/en_US/messages.json`
 - `M` `_locales/es/messages.json`
+- `A` `_locales/es_419/messages.json`
+- `A` `_locales/et/messages.json`
+- `A` `_locales/fa/messages.json`
+- `A` `_locales/fi/messages.json`
+- `A` `_locales/fil/messages.json`
 - `M` `_locales/fr/messages.json`
+- `A` `_locales/gu/messages.json`
+- `A` `_locales/he/messages.json`
+- `A` `_locales/hi/messages.json`
+- `A` `_locales/hr/messages.json`
+- `A` `_locales/hu/messages.json`
+- `A` `_locales/id/messages.json`
+- `A` `_locales/it/messages.json`
 - `M` `_locales/ja/messages.json`
+- `A` `_locales/kn/messages.json`
 - `M` `_locales/ko/messages.json`
+- `A` `_locales/lt/messages.json`
+- `A` `_locales/lv/messages.json`
+- `A` `_locales/ml/messages.json`
+- `A` `_locales/mr/messages.json`
+- `A` `_locales/ms/messages.json`
+- `A` `_locales/nl/messages.json`
+- `A` `_locales/no/messages.json`
+- `A` `_locales/pl/messages.json`
 - `M` `_locales/pt_BR/messages.json`
+- `A` `_locales/pt_PT/messages.json`
+- `A` `_locales/ro/messages.json`
+- `A` `_locales/ru/messages.json`
+- `A` `_locales/sk/messages.json`
+- `A` `_locales/sl/messages.json`
+- `A` `_locales/sr/messages.json`
+- `A` `_locales/sv/messages.json`
+- `A` `_locales/sw/messages.json`
+- `A` `_locales/ta/messages.json`
+- `A` `_locales/te/messages.json`
+- `A` `_locales/th/messages.json`
+- `A` `_locales/tr/messages.json`
+- `A` `_locales/uk/messages.json`
+- `A` `_locales/vi/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `backend/.env.example`
-- `M` `backend/server.js`
-- `M` `background.js`
-- `M` `config/agentEngineConfig.js`
-- `M` `config/baseConfig.js`
-- `M` `config/firebaseConfig.js`
-- `M` `contact/contact.html`
-- `M` `docs/hybrid-site-agent-test-log.md`
+- `M` `config/agentCatalog.js`
 - `M` `docs/release-notes/latest.md`
-- `M` `firebase/stripe-payment.js`
-- `M` `functions/index.js`
-- `M` `iframe/iframe.css`
-- `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `M` `options/membership-pricing.js`
 - `M` `options/options.js`
-- `M` `remote-relay/src/server.js`
-- `M` `shared/agent-prompt-utils.js`
-- `M` `tests/agent-engine-config.test.js`
-- `M` `tests/agent-prompt-utils.test.js`
-- `A` `tests/extension-environment.test.js`
+- `M` `shared/runtime-i18n.js`
 
 ### Recent commits / 最近提交
+- `a191a52` 2026-06-23 V4.2.7 修复API调用
 - `0ed1a9c` 2026-06-12 V4.2.6 修复DeepSeek、优化部分体验
 - `b3ebeba` 2026-06-09 V4.2.5 修复划词搜索 API 调用转移到云端
 - `228016c` 2026-06-09 V4.2.4 修复豆包、点点
 - `f2b7e17` 2026-06-04 V4.2.3 优化总结体验
-- `b93fdb3` 2026-06-03 V4.2.2 修复 Google drive，优化总结答案的体验
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

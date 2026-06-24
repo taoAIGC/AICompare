@@ -1,8 +1,8 @@
 # User Improvement Request Log
 
-Updated at: 2026-06-12 17:34:50
+Updated at: 2026-06-23 10:44:45
 Branch: dev
-Head: 0ed1a9c
+Head: a191a52
 
 ## Latest User-Facing Improvement Requests
 
@@ -25,6 +25,7 @@ Head: 0ed1a9c
 - 在批量提交的弹窗中，增加收藏功能：支持给当前批量提示词命名收藏，顶部展示收藏名，点击可回填，hover 可删除
 - 非中文界面下的官方 API 增加免费次数和 Pro 升级规则：免费用户和未登录用户每天可用 100 次，超过后可通过 Stripe 升级或切换自己的 API。
 - 恢复扩展 ID 不是真实版本 ID 时显示测试版本插件名称和图标
-- Stripe 付费计划改为从后端 `/billingConfig` 读取，测试/上线只需切换后端环境变量，不再在扩展前端写死 Price ID。
 - 同一台 VPS 支持生产和测试付费后端隔离：正式入口走生产后端，本地开发版自动走 `/test-api` 测试后端，避免测试支付影响真实用户。
+- 检查并补齐扩展多语言支持，修复没有做好多语言支持的用户可见文案；评估 Chrome 商店还可以增加哪些语言来帮助用户增长。
+- 支持 Chrome 官方 i18n 文档说明扩展可使用的所有语言，不要有任何语言遗漏。
 <!-- COMMANDS:END -->

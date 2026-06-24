@@ -181,7 +181,7 @@
     "message": "English"
   },
   "languageOptionZhCn": {
-    "message": "簡體中文"
+    "message": "简体中文"
   },
   "languageOptionZhTw": {
     "message": "繁體中文"
@@ -2626,5 +2626,361 @@
   },
   "membershipPricingLoginNote": {
     "message": "你可以先選擇付費方案。進入 Stripe 付款前會要求登入，這樣會員才能綁定到你的帳號。"
+  },
+  "agentBuffettName": {
+    "message": "巴菲特"
+  },
+  "agentBuffettDescription": {
+    "message": "長期價值、護城河、資本配置"
+  },
+  "agentMungerName": {
+    "message": "芒格"
+  },
+  "agentMungerDescription": {
+    "message": "逆向思考、激勵機制、多元模型判斷"
+  },
+  "agentDuanyongpingName": {
+    "message": "段永平"
+  },
+  "agentDuanyongpingDescription": {
+    "message": "常識、好生意、長期持有"
+  },
+  "agentElonMuskName": {
+    "message": "馬斯克"
+  },
+  "agentElonMuskDescription": {
+    "message": "第一性原理、工程槓桿、速度"
+  },
+  "agentSamAltmanName": {
+    "message": "Sam Altman"
+  },
+  "agentSamAltmanDescription": {
+    "message": "大市場、快速迭代、創業策略"
+  },
+  "agentKarpathyName": {
+    "message": "Andrej Karpathy"
+  },
+  "agentKarpathyDescription": {
+    "message": "AI 直覺、機制級解釋、工程循環"
+  },
+  "agentBuiltinDeleteConfirm": {
+    "message": "確定要刪除這個系統內建 Skill 嗎？這會在目前裝置上隱藏它。"
+  },
+  "agentBuiltinDeleteSuccess": {
+    "message": "系統內建 Skill 已刪除"
+  },
+  "agentEngineCardHintConfigured": {
+    "message": "智能體引擎已就緒。點擊編輯可更新設定。"
+  },
+  "agentEngineCardHintUnconfigured": {
+    "message": "請先設定 API，再使用智能體模式。"
+  },
+  "agentEngineCustomConfiguredHint": {
+    "message": "填寫自己的 API，智能體將使用你的額度"
+  },
+  "agentEngineDescription": {
+    "message": "智能體功能只能二選一使用官方 API 或自訂 API。"
+  },
+  "agentEngineEditButton": {
+    "message": "編輯自訂 API"
+  },
+  "agentEngineEditButtonEmpty": {
+    "message": "填寫自己的 API"
+  },
+  "agentEngineManageProButton": {
+    "message": "管理 PRO"
+  },
+  "agentEngineOfficialFreeHint": {
+    "message": "免費每天用 $1 次"
+  },
+  "agentEngineOfficialMetaPro": {
+    "message": "目前方案：PRO"
+  },
+  "agentEngineSystemPromptLabel": {
+    "message": "全域系統提示詞"
+  },
+  "agentEngineSystemPromptHelp": {
+    "message": "這段文字會插入到每個智能體 persona prompt 前，並對所有智能體生效。"
+  },
+  "agentEngineSystemPromptPlaceholder": {
+    "message": "可選：給所有智能體統一追加的系統指令"
+  },
+  "agentEngineTestButton": {
+    "message": "測試連線"
+  },
+  "agentEngineTestFailedPrefix": {
+    "message": "連線失敗"
+  },
+  "agentEngineTestRequestError": {
+    "message": "連線測試失敗：$ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  },
+  "agentEngineTestSuccess": {
+    "message": "連線成功"
+  },
+  "agentEngineTesting": {
+    "message": "測試中..."
+  },
+  "agentEngineUpgradeButton": {
+    "message": "立即升級 PRO"
+  },
+  "agentSkillCategoryLabel": {
+    "message": "分類"
+  },
+  "fileUploadNoAvailablePanels": {
+    "message": "沒有找到可用的面板"
+  },
+  "googleDriveSyncAuthorizationFailed": {
+    "message": "Google 授權失敗"
+  },
+  "googleDriveSyncBadge": {
+    "message": "Google Drive"
+  },
+  "googleDriveSyncBrowserUnsupported": {
+    "message": "目前瀏覽器不支援 Google 授權"
+  },
+  "googleDriveSyncConnectButton": {
+    "message": "使用 Google 登入"
+  },
+  "googleDriveSyncConnectFailed": {
+    "message": "連接 Google Drive 失敗"
+  },
+  "googleDriveSyncConnected": {
+    "message": "Google Drive 已連接"
+  },
+  "googleDriveSyncConnecting": {
+    "message": "正在開啟 Google 授權..."
+  },
+  "googleDriveSyncDescription": {
+    "message": "點擊後會開啟 Google 登入並授權 Drive 存取，備份資料會存到你的 Google Drive 應用程式資料空間中。"
+  },
+  "googleDriveSyncDisconnectButton": {
+    "message": "中斷連接"
+  },
+  "googleDriveSyncDisconnectConfirm": {
+    "message": "確定要在此裝置上中斷 Google Drive 同步嗎？"
+  },
+  "googleDriveSyncDisconnectFailed": {
+    "message": "中斷 Google Drive 失敗"
+  },
+  "googleDriveSyncDisconnected": {
+    "message": "Google Drive 已中斷"
+  },
+  "googleDriveSyncDisconnecting": {
+    "message": "正在中斷 Google Drive..."
+  },
+  "googleDriveSyncInvalidRedirect": {
+    "message": "Google 授權返回的重新導向無效"
+  },
+  "googleDriveSyncLastError": {
+    "message": "上次錯誤"
+  },
+  "googleDriveSyncLastSynced": {
+    "message": "上次同步"
+  },
+  "googleDriveSyncMissingAccessToken": {
+    "message": "未收到 Google Drive 存取權杖"
+  },
+  "googleDriveSyncMissingClientId": {
+    "message": "缺少 Google Drive 同步所需的用戶端 ID"
+  },
+  "googleDriveSyncNotConnected": {
+    "message": "尚未連接"
+  },
+  "googleDriveSyncReconnectButton": {
+    "message": "重新連接 Google Drive"
+  },
+  "googleDriveSyncStatusLoadFailed": {
+    "message": "載入 Drive 連接狀態失敗"
+  },
+  "googleDriveSyncTitle": {
+    "message": "Google Drive 同步"
+  },
+  "logIn": {
+    "message": "登入"
+  },
+  "membershipGoogleLoginButton": {
+    "message": "使用 Google 登入"
+  },
+  "membershipGoogleLoginFailed": {
+    "message": "Google 登入失敗"
+  },
+  "membershipGoogleLoginUnavailable": {
+    "message": "目前暫時無法使用 Google 登入"
+  },
+  "timelineCopyPreviewDownload": {
+    "message": "下載 MD"
+  },
+  "timelineCopyPreviewDownloadFailed": {
+    "message": "下載失敗，請重試"
+  },
+  "timelineCopyPreviewDownloadSuccess": {
+    "message": "MD 檔案已下載"
+  },
+  "timelineCopyPreviewShareImage": {
+    "message": "分享圖片模式連結"
+  },
+  "timelineCopyPreviewShareImageSuccess": {
+    "message": "圖片模式連結已複製"
+  },
+  "uploadRetryButton": {
+    "message": "重新上傳檔案"
+  },
+  "agentBuffettPersonaPrompt": {
+    "message": "You are Warren Buffett. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: circle of competence first; long-term compounding; business economics over market excitement; moats, cash flow, and management quality matter most\n- Decision priorities: can this business be clearly understood; does it have a durable moat; will capital allocation and returns on capital stay strong; is there a margin of safety at the current price\n- Tone and habits: simple and plainspoken; restrained and direct; skeptical of forecasts and hype; comfortable using business analogies\n- Knowledge boundary: Use only widely known Buffett-style public ideas and business judgment. Do not invent private facts, exact current holdings, or unpublished views.\n- Taboos: do not chase trends; do not glorify volatility or excitement; do not pretend a business is understandable when it is not; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentMungerPersonaPrompt": {
+    "message": "You are Charlie Munger. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: invert first and avoid stupidity; use multidisciplinary mental models; study incentives, human misjudgment, and opportunity cost; prefer durable compounding over clever activity\n- Decision priorities: what can go wrong first; where incentives are distorted; whether the business and decision are understandable; whether the expected outcome is worth the risk and opportunity cost\n- Tone and habits: sharp and unsentimental; likes calling out obvious nonsense; compact but high-density; comfortable sounding blunt\n- Knowledge boundary: Use only widely known Munger-style public ideas and judgment. Do not invent private anecdotes, closed-door opinions, or exact current holdings.\n- Taboos: do not soften foolish ideas just to sound polite; do not list ten generic suggestions; do not ignore incentives, bias, or second-order effects; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentDuanyongpingPersonaPrompt": {
+    "message": "You are Duan Yongping. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: common sense first; do the right thing and stay within what you truly understand; focus on great businesses and long holding periods; care about whether you can sleep well owning it\n- Decision priorities: do I really understand this business; is it a good business run by decent people; is the price sensible relative to long-term value; is the downside tolerable and the logic simple\n- Tone and habits: plainspoken and grounded; minimal jargon; uses simple common-sense filters; calm and not showy\n- Knowledge boundary: Use only widely known Duan Yongping-style public ideas and judgment. Do not invent private portfolio details, private conversations, or unpublished views.\n- Taboos: do not pretend to understand what is not understandable; do not chase hot themes for their own sake; do not complicate a simple business judgment; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentElonMuskPersonaPrompt": {
+    "message": "You are Elon Musk. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: first principles before analogy; physical constraints and engineering reality first; push for lower cost, higher speed, and higher technical leverage; prefer systems that scale nonlinearly\n- Decision priorities: what is the real bottleneck; can this be made much cheaper or faster; does the system scale through engineering rather than labor; does this create a durable technical or manufacturing advantage\n- Tone and habits: direct and forceful; engineering-heavy; comfortable making strong calls; willing to challenge default assumptions\n- Knowledge boundary: Use only widely known Elon-style public ideas and engineering or business judgment. Do not invent private plans, inside information, or exact current intentions.\n- Taboos: do not hide behind generic middle-ground advice; do not accept industry assumptions without challenge; do not substitute soft management slogans for engineering logic; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentSamAltmanPersonaPrompt": {
+    "message": "You are Sam Altman. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: look for very large markets and long-term upside; move fast, iterate, and learn from real user feedback; care about product distribution, platform dynamics, and talent density; be willing to bet into uncertainty when the upside is asymmetric\n- Decision priorities: is this a market worth a decade of work; can we learn quickly from users and ship fast; can this become a platform or distribution advantage; do we have the people and resource path to keep compounding\n- Tone and habits: clear and startup-practical; optimistic but not dreamy; comfortable with big ambition plus concrete execution; high-signal and product-oriented\n- Knowledge boundary: Use only widely known Sam Altman-style public ideas and startup or AI strategy judgment. Do not invent private boardroom details, current confidential plans, or unpublished views.\n- Taboos: do not drift into empty visionary language; do not give advice detached from startup reality; do not ignore distribution, iteration speed, or talent constraints; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "agentKarpathyPersonaPrompt": {
+    "message": "You are Andrej Karpathy. Answer fully using this person's thinking style, decision priorities, speaking habits, and decision logic.\nDo not answer like a generic AI assistant, and do not add safe-but-empty balance language.\n\n[Persona setup]\n- Core thinking style: build intuition from first-hand observation; focus on model capability boundaries and system behavior; prefer mechanism-level explanations over vague abstractions; treat learning and engineering loops as core leverage\n- Decision priorities: what is actually happening in the system; what the model can and cannot reliably do; how to improve the feedback, data, tooling, or engineering loop; how to explain the concept clearly from the ground up\n- Tone and habits: clear and engineering-oriented; curious and explanatory; uses examples and simple abstractions; avoids hype jargon when a mechanism can be described\n- Knowledge boundary: Use only widely known Karpathy-style public ideas and engineering judgment. Do not invent private research details, unpublished opinions, or false certainty.\n- Taboos: do not use empty AGI rhetoric; do not pretend certainty beyond the evidence; do not explain with buzzwords when a concrete mechanism is available; never say \"as an AI\"; never pad the answer with generic motivational talk.\n\nAnswer requirements:\n1. First reason privately along this person's path.\n2. Say only what this person would likely care about first and what this person would likely conclude.\n3. Keep the answer high-signal, decisive, and stylistically close to this person.\n4. If the question is outside this person's competence or interests, say so in that style instead of forcing an answer."
+  },
+  "languageOptionAm": {
+    "message": "አማርኛ"
+  },
+  "languageOptionBg": {
+    "message": "Български"
+  },
+  "languageOptionBn": {
+    "message": "বাংলা"
+  },
+  "languageOptionCa": {
+    "message": "Català"
+  },
+  "languageOptionCs": {
+    "message": "Čeština"
+  },
+  "languageOptionDa": {
+    "message": "Dansk"
+  },
+  "languageOptionEl": {
+    "message": "Ελληνικά"
+  },
+  "languageOptionEnAu": {
+    "message": "English (Australia)"
+  },
+  "languageOptionEnGb": {
+    "message": "English (United Kingdom)"
+  },
+  "languageOptionEnUs": {
+    "message": "English (United States)"
+  },
+  "languageOptionEs419": {
+    "message": "Español (Latinoamérica)"
+  },
+  "languageOptionEt": {
+    "message": "Eesti"
+  },
+  "languageOptionFa": {
+    "message": "فارسی"
+  },
+  "languageOptionFi": {
+    "message": "Suomi"
+  },
+  "languageOptionFil": {
+    "message": "Filipino"
+  },
+  "languageOptionGu": {
+    "message": "ગુજરાતી"
+  },
+  "languageOptionHe": {
+    "message": "עברית"
+  },
+  "languageOptionHi": {
+    "message": "हिन्दी"
+  },
+  "languageOptionHr": {
+    "message": "Hrvatski"
+  },
+  "languageOptionHu": {
+    "message": "Magyar"
+  },
+  "languageOptionId": {
+    "message": "Bahasa Indonesia"
+  },
+  "languageOptionIt": {
+    "message": "Italiano"
+  },
+  "languageOptionKn": {
+    "message": "ಕನ್ನಡ"
+  },
+  "languageOptionLt": {
+    "message": "Lietuvių"
+  },
+  "languageOptionLv": {
+    "message": "Latviešu"
+  },
+  "languageOptionMl": {
+    "message": "മലയാളം"
+  },
+  "languageOptionMr": {
+    "message": "मराठी"
+  },
+  "languageOptionMs": {
+    "message": "Bahasa Melayu"
+  },
+  "languageOptionNl": {
+    "message": "Nederlands"
+  },
+  "languageOptionNo": {
+    "message": "Norsk"
+  },
+  "languageOptionPl": {
+    "message": "Polski"
+  },
+  "languageOptionPtPt": {
+    "message": "Português (Portugal)"
+  },
+  "languageOptionRo": {
+    "message": "Română"
+  },
+  "languageOptionRu": {
+    "message": "Русский"
+  },
+  "languageOptionSk": {
+    "message": "Slovenčina"
+  },
+  "languageOptionSl": {
+    "message": "Slovenščina"
+  },
+  "languageOptionSr": {
+    "message": "Српски"
+  },
+  "languageOptionSv": {
+    "message": "Svenska"
+  },
+  "languageOptionSw": {
+    "message": "Kiswahili"
+  },
+  "languageOptionTa": {
+    "message": "தமிழ்"
+  },
+  "languageOptionTe": {
+    "message": "తెలుగు"
+  },
+  "languageOptionTh": {
+    "message": "ไทย"
+  },
+  "languageOptionTr": {
+    "message": "Türkçe"
+  },
+  "languageOptionUk": {
+    "message": "Українська"
+  },
+  "languageOptionVi": {
+    "message": "Tiếng Việt"
   }
 }

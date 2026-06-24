@@ -111,16 +111,18 @@
   }
 
   function getNodeLocaleDirName(localeToken) {
-    switch (localeToken) {
-      case 'zh_cn':
-        return 'zh_CN';
-      case 'zh_tw':
-        return 'zh_TW';
-      case 'pt_br':
-        return 'pt_BR';
-      default:
-        return localeToken;
-    }
+    const normalizedToken = normalizeLocale(localeToken).replace(/-/g, '_');
+    const localeDirMap = {
+      en_au: 'en_AU',
+      en_gb: 'en_GB',
+      en_us: 'en_US',
+      es_419: 'es_419',
+      pt_br: 'pt_BR',
+      pt_pt: 'pt_PT',
+      zh_cn: 'zh_CN',
+      zh_tw: 'zh_TW'
+    };
+    return localeDirMap[normalizedToken] || normalizedToken;
   }
 
   function getNodeLocaleMessages(locale) {
