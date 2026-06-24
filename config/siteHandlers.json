@@ -1300,8 +1300,28 @@
           "[data-testid*=\"input\"]",
           "[data-testid*=\"send\"]"
         ],
-        "userMessageSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]",
+        "userMessageSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], .message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end) .flex.max-w-full.flex-col.gap-8, .message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end) .w-full.inner-item-BjaxFt",
         "exportLatestOnly": true
+      },
+      "openclawRuntime": {
+        "landingPage": {
+          "requireRootLikeUrl": true,
+          "contentPatterns": [
+            "^有什么我能帮你的吗？$",
+            "^有什么我能帮你的吗\\?$"
+          ]
+        },
+        "notSubmitted": {
+          "requireRootLikeUrl": true,
+          "urlPatterns": [
+            "^https://(?:www\\.)?doubao\\.com/chat/?$"
+          ],
+          "contentPatterns": [
+            "有什么我能帮你的吗",
+            "给我一些简单易行的健康饮食建议",
+            "制定一份健康早餐食谱"
+          ]
+        }
       },
       "historyHandler": {
         "urlFeature": "/chat/"
@@ -1309,9 +1329,11 @@
       "userPrompt": {
         "containerSelector": [
           "[data-message-id] [data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap",
-          "[data-message-id] [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]"
+          "[data-message-id] [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]",
+          ".message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)"
         ],
-        "messageNodeSelector": "[data-message-id]",
+        "textSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt",
+        "messageNodeSelector": "[data-message-id], .v_list_row",
         "requireMessageNode": true
       },
       "icon": "doubao.com.png",

@@ -2499,10 +2499,10 @@
     "message": "現在の表示言語"
   },
   "languageSettingsDescription": {
-    "message": "拡張機能ページの表示言語を選択します。設定、ホーム、比較ページがまとめて更新されます。"
+    "message": "拡張機能のページで使う表示言語を選択します。設定、ホームページ、比較ページがまとめて更新されます。"
   },
   "languageSettingsHelp": {
-    "message": "設定、ホーム、比較、お気に入り、履歴など拡張機能内のページに適用されます。"
+    "message": "設定、ホームページ、比較、お気に入り、履歴などの拡張機能ページに反映されます。"
   },
   "languageSettingsTitle": {
     "message": "言語設定"

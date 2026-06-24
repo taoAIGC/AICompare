@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Snarveier"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Nettsteder"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Ferdigheter"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synkronisering"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Språk"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Språkinnstillinger"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Velg visningsspråk for utvidelsens egne sider. Innstillinger, startside og sammenligningssider oppdateres sammen."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Dette påvirker utvidelsessider som innstillinger, startside, sammenligning, favoritter og historikk."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Gjeldende visningsspråk"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Chatprompt"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analyseprompt"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

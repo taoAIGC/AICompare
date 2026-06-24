@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Kısayollar"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Siteler"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Beceriler"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Eşitle"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Dil"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Dil ayarları"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Uzantıya ait sayfalar için görüntüleme dilini seçin. Ayarlar, ana sayfa ve karşılaştırma sayfaları birlikte güncellenir."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Bu, ayarlar, ana sayfa, karşılaştırma, favoriler ve geçmiş gibi uzantı sayfalarını etkiler."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Geçerli görüntüleme dili"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Sohbet istemi"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analiz istemi"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

@@ -6,8 +6,5 @@ repo_root="$(git rev-parse --show-toplevel)"
 
 cd "$repo_root"
 node scripts/update-readme.js
-RELEASE_NOTES_MODE=worktree node scripts/generate-release-notes.js
-RELEASE_NOTES_MODE=release node scripts/generate-release-notes.js
 git add README.md
 git add "AI Compare PrivacyPolicy.md"
-git add docs/release-notes/history.md

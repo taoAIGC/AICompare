@@ -197,6 +197,58 @@ html {
   text-decoration: none;
 }
 
+.live-summary-auto-toggle {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.live-summary-auto-toggle-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.12);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.live-summary-auto-toggle-btn.is-on,
+.live-summary-auto-toggle-btn[aria-checked="true"] {
+  background: #111111;
+  border-color: rgba(17, 17, 17, 0.18);
+}
+
+.live-summary-auto-toggle-btn:hover,
+.live-summary-auto-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08);
+}
+
+.live-summary-auto-toggle-knob {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16);
+  transition: transform 0.18s ease;
+}
+
+.live-summary-auto-toggle-btn.is-on .live-summary-auto-toggle-knob,
+.live-summary-auto-toggle-btn[aria-checked="true"] .live-summary-auto-toggle-knob {
+  transform: translateX(17px);
+}
+
 .live-summary-tab {
   flex: 0 0 auto;
   border: none;
@@ -856,6 +908,10 @@ html {
 
   .live-summary-card-title-row {
     width: 100%;
+  }
+
+  .live-summary-auto-toggle {
+    margin-left: auto;
   }
 
   .live-summary-card-subtitle-row {

@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "குறுக்குவழிகள்"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "தளங்கள்"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "திறன்கள்"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "ஒத்திசைவு"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "மொழி"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "மொழி அமைப்புகள்"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "நீட்சியின் சொந்த பக்கங்களுக்கு காட்சிமொழியைத் தேர்ந்தெடுக்கவும். அமைப்புகள், முகப்பு மற்றும் ஒப்பீட்டு பக்கங்கள் ஒன்றாக புதுப்பிக்கப்படும்."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "இது அமைப்புகள், முகப்பு, ஒப்பீடு, பிடித்தவை மற்றும் வரலாறு போன்ற நீட்சிப் பக்கங்களை பாதிக்கும்."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "தற்போதைய காட்சிமொழி"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "அரட்டை ப்ராம்ப்ட்"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "பகுப்பாய்வு ப்ராம்ப்ட்"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

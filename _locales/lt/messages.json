@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Spartieji klavišai"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Svetainės"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Įgūdžiai"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Sinchronizavimas"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Kalba"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Kalbos nustatymai"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Pasirinkite plėtinio puslapių rodymo kalbą. Nustatymai, pradžios puslapis ir palyginimo puslapiai atnaujinami kartu."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Tai veikia plėtinio puslapius, pvz., nustatymus, pradžią, palyginimą, mėgstamus ir istoriją."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Dabartinė rodymo kalba"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Pokalbio užklausa"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analizės užklausa"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

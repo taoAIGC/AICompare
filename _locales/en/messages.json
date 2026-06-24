@@ -2698,6 +2698,12 @@
   "liveSummaryRefreshCountdown": {
     "message": "Analyze ($1s)"
   },
+  "liveSummaryAutoAnalysisEnable": {
+    "message": "Enable auto summary"
+  },
+  "liveSummaryAutoAnalysisDisable": {
+    "message": "Disable auto summary"
+  },
   "liveSummaryAnalyzeNow": {
     "message": "Analyze now"
   },
@@ -2722,6 +2728,9 @@
   "liveSummaryEmptyPrompt": {
     "message": "After the countdown ends, all responses will be summarized automatically."
   },
+  "liveSummaryEmptyPromptManual": {
+    "message": "Auto summary is off. Click \"Analyze\" to summarize all answers manually."
+  },
   "liveSummaryNoDivergence": {
     "message": "The current panels are broadly aligned on the key points."
   },
@@ -2736,6 +2745,9 @@
   },
   "liveSummaryCollecting": {
     "message": "Waiting for all active panels to stabilize before summarizing..."
+  },
+  "liveSummaryCollectingManual": {
+    "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "liveSummaryRefreshing": {
     "message": "A summary is already available. Refreshing quietly..."

@@ -2499,10 +2499,10 @@
     "message": "현재 표시 언어"
   },
   "languageSettingsDescription": {
-    "message": "확장 프로그램 페이지의 표시 언어를 선택합니다. 설정, 홈, 비교 페이지가 함께 업데이트됩니다."
+    "message": "확장 프로그램 자체 페이지의 표시 언어를 선택합니다. 설정, 홈페이지, 비교 페이지가 함께 업데이트됩니다."
   },
   "languageSettingsHelp": {
-    "message": "설정, 홈, 비교, 즐겨찾기, 기록 등 확장 프로그램 자체 페이지에 적용됩니다."
+    "message": "설정, 홈페이지, 비교, 즐겨찾기, 기록 같은 확장 프로그램 페이지에 적용됩니다."
   },
   "languageSettingsTitle": {
     "message": "언어 설정"

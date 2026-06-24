@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Pikakuvakkeet"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Sivustot"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Taidot"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synkronointi"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Kieli"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Kieliasetukset"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Valitse laajennuksen omien sivujen näyttökieli. Asetukset, etusivu ja vertailusivut päivittyvät yhdessä."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Tämä vaikuttaa laajennuksen sivuihin, kuten asetuksiin, etusivuun, vertailuun, suosikkeihin ja historiaan."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Nykyinen näyttökieli"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Keskustelukehote"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analyysikehote"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

@@ -148,13 +148,13 @@
     "message": "Sites"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Habilidades"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Sincronizar"
   },
   "settingsNavProTitle": {
     "message": "Pro"
@@ -2499,10 +2499,10 @@
     "message": "Idioma de exibição atual"
   },
   "languageSettingsDescription": {
-    "message": "Escolha o idioma das páginas da extensão. Configurações, início e páginas de comparação são atualizadas juntas."
+    "message": "Escolha o idioma de exibição das páginas da extensão. Configurações, página inicial e páginas de comparação são atualizadas juntas."
   },
   "languageSettingsHelp": {
-    "message": "Isso afeta páginas da extensão como configurações, início, comparação, favoritos e histórico."
+    "message": "Isso afeta páginas da extensão como configurações, página inicial, comparação, favoritos e histórico."
   },
   "languageSettingsTitle": {
     "message": "Configurações de idioma"

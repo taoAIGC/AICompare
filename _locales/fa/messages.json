@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "میانبرها"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "سایت‌ها"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "مهارت‌ها"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "همگام‌سازی"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "زبان"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "تنظیمات زبان"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "زبان نمایش صفحه‌های متعلق به افزونه را انتخاب کنید. تنظیمات، صفحه اصلی و صفحه‌های مقایسه با هم به‌روزرسانی می‌شوند."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "این روی صفحه‌های افزونه مانند تنظیمات، صفحه اصلی، مقایسه، علاقه‌مندی‌ها و تاریخچه اثر می‌گذارد."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "زبان نمایش فعلی"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "پرامپت گفتگو"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "پرامپت تحلیل"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

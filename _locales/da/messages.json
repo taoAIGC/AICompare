@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Genveje"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Websteder"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Færdigheder"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synkronisering"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Sprog"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Sprogindstillinger"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Vælg visningssprog for udvidelsens egne sider. Indstillinger, startside og sammenligningssider opdateres sammen."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Dette påvirker udvidelsessider som indstillinger, startside, sammenligning, favoritter og historik."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Aktuelt visningssprog"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Chatprompt"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analyseprompt"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

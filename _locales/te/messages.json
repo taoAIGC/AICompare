@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "షార్ట్‌కట్‌లు"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "సైట్లు"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "స్కిల్స్"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "సింక్"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "భాష"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "భాష సెట్టింగ్‌లు"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "ఎక్స్‌టెన్షన్‌కు చెందిన పేజీల ప్రదర్శన భాషను ఎంచుకోండి. సెట్టింగ్‌లు, హోమ్‌పేజీ మరియు పోలిక పేజీలు కలిసి నవీకరించబడతాయి."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "ఇది సెట్టింగ్‌లు, హోమ్‌పేజీ, పోలిక, ఇష్టమైనవి మరియు చరిత్ర వంటి ఎక్స్‌టెన్షన్ పేజీలపై ప్రభావం చూపుతుంది."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "ప్రస్తుత ప్రదర్శన భాష"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "చాట్ ప్రాంప్ట్"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "విశ్లేషణ ప్రాంప్ట్"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

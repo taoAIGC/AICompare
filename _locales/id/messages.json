@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Pintasan"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Situs"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Keterampilan"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Sinkronisasi"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Bahasa"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Pengaturan bahasa"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Pilih bahasa tampilan untuk halaman milik ekstensi. Pengaturan, beranda, dan halaman perbandingan diperbarui bersama."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Ini memengaruhi halaman ekstensi seperti pengaturan, beranda, perbandingan, favorit, dan riwayat."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Bahasa tampilan saat ini"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Prompt Chat"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Prompt Analisis"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

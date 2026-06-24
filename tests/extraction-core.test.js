@@ -571,6 +571,51 @@ test('collectTimelinePromptRecords keeps Doubao prompt matching scoped to the us
   assert.equal(JSON.stringify(result.answers), JSON.stringify(['豆包回答正文']));
 });
 
+test('collectTimelinePromptRecords supports Doubao virtual list user rows', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const promptTextNode = createElement(doc, '你好世界');
+  promptTextNode.__order = 1;
+
+  const userRow = createElement(doc, '');
+  userRow.__order = 1;
+  userRow.querySelector = (selector) => {
+    if (selector === '[data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap, [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt') {
+      return promptTextNode;
+    }
+    return null;
+  };
+  userRow.closest = (selector) => {
+    if (selector === '[data-message-id], .v_list_row') {
+      return userRow;
+    }
+    return null;
+  };
+
+  selectorMap.set(
+    '.message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)',
+    [userRow]
+  );
+
+  const extraction = loadExtractionCore(doc);
+  const promptRecords = extraction.collectTimelinePromptRecords(doc, {
+    userPrompt: {
+      containerSelector: [
+        '[data-message-id] [data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap',
+        '[data-message-id] [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"]',
+        '.message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)'
+      ],
+      textSelector: '[data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap, [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt',
+      messageNodeSelector: '[data-message-id], .v_list_row',
+      requireMessageNode: true
+    }
+  });
+
+  assert.equal(promptRecords.length, 1);
+  assert.equal(promptRecords[0].text, '你好世界');
+});
+
 test('collectTimelinePromptRecords ignores DeepSeek status chips that are not inside user message nodes', async () => {
   const selectorMap = new Map();
   const doc = createDocument(selectorMap);

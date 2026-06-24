@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "शॉर्टकट"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "साइट्स"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "कौशल्ये"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "सिंक"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "भाषा"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "भाषा सेटिंग्ज"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "एक्स्टेंशनच्या स्वतःच्या पानांसाठी प्रदर्शन भाषा निवडा. सेटिंग्ज, होमपेज आणि तुलना पाने एकत्र अपडेट होतील."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "हे सेटिंग्ज, होमपेज, तुलना, आवडी आणि इतिहास अशा एक्स्टेंशन पानांवर लागू होते."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "सध्याची प्रदर्शन भाषा"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "चॅट प्रॉम्प्ट"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "विश्लेषण प्रॉम्प्ट"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

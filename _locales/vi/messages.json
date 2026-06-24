@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Phím tắt"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Trang web"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Kỹ năng"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Đồng bộ"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Ngôn ngữ"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Cài đặt ngôn ngữ"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Chọn ngôn ngữ hiển thị cho các trang của tiện ích. Cài đặt, trang chủ và trang so sánh sẽ cập nhật cùng nhau."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Điều này ảnh hưởng đến các trang của tiện ích như cài đặt, trang chủ, so sánh, mục yêu thích và lịch sử."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Ngôn ngữ hiển thị hiện tại"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Lời nhắc chat"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Lời nhắc phân tích"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

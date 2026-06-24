@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "קיצורים"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "אתרים"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "מיומנויות"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "סנכרון"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "שפה"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "הגדרות שפה"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "בחרו את שפת התצוגה לעמודי התוסף. ההגדרות, דף הבית ועמודי ההשוואה מתעדכנים יחד."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "זה משפיע על עמודי התוסף כמו הגדרות, דף הבית, השוואה, מועדפים והיסטוריה."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "שפת התצוגה הנוכחית"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "הנחיית צ׳אט"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "הנחיית ניתוח"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Mga Shortcut"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Mga Site"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Mga Skill"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "I-sync"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Wika"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Mga setting ng wika"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Piliin ang wikang ipapakita para sa mga page ng extension. Sabay na maa-update ang settings, homepage, at compare pages."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Nakakaapekto ito sa mga page ng extension tulad ng settings, homepage, compare, favorites, at history."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Kasalukuyang wikang ipinapakita"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Prompt sa Chat"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Prompt sa Pagsusuri"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

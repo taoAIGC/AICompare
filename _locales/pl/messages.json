@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Skróty"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Witryny"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Umiejętności"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synchronizacja"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Język"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Ustawienia języka"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Wybierz język wyświetlania stron rozszerzenia. Ustawienia, strona główna i strony porównania aktualizują się razem."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Dotyczy to stron rozszerzenia, takich jak ustawienia, strona główna, porównanie, ulubione i historia."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Bieżący język wyświetlania"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Prompt czatu"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Prompt analizy"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

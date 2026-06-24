@@ -161,10 +161,10 @@
     "message": "语言设置"
   },
   "languageSettingsDescription": {
-    "message": "选择扩展页面显示语言。切换后，设置页、首页和对比页会同步更新。"
+    "message": "选择扩展自有页面的显示语言。设置页、主页和对比页会一起更新。"
   },
   "languageSettingsHelp": {
-    "message": "这会影响设置页、首页、对比页、收藏页和历史页等扩展自有页面。"
+    "message": "这会影响设置、主页、对比、收藏和历史等扩展自有页面。"
   },
   "languageSettingsCurrentLocale": {
     "message": "当前显示语言"
@@ -2693,6 +2693,12 @@
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1s）"
   },
+  "liveSummaryAutoAnalysisEnable": {
+    "message": "开启自动总结"
+  },
+  "liveSummaryAutoAnalysisDisable": {
+    "message": "关闭自动总结"
+  },
   "liveSummaryAnalyzeNow": {
     "message": "立即分析"
   },
@@ -2717,6 +2723,9 @@
   "liveSummaryEmptyPrompt": {
     "message": "倒计时结束后，自动总结所有回答"
   },
+  "liveSummaryEmptyPromptManual": {
+    "message": "自动总结已关闭，点击“分析”手动总结所有回答"
+  },
   "liveSummaryNoDivergence": {
     "message": "当前各面板的关键观点基本一致。"
   },
@@ -2731,6 +2740,9 @@
   },
   "liveSummaryCollecting": {
     "message": "正在等待所有活跃面板回答稳定后自动总结..."
+  },
+  "liveSummaryCollectingManual": {
+    "message": "自动总结已关闭，可点击“分析”手动总结当前回答"
   },
   "liveSummaryRefreshing": {
     "message": "已有总结，正在静默刷新..."

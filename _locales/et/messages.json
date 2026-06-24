@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Otseteed"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Saidid"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Oskused"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Sünkroonimine"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Keel"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Keele seaded"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Vali laienduse lehtede kuvamiskeel. Seaded, avaleht ja võrdluslehed uuenevad koos."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "See mõjutab laienduse lehti, nagu seaded, avaleht, võrdlus, lemmikud ja ajalugu."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Praegune kuvamiskeel"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Vestluse viip"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analüüsi viip"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

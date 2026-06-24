@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Dreceres"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Llocs"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Habilitats"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Sincronització"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Idioma"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Configuració d’idioma"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Tria l’idioma de visualització de les pàgines de l’extensió. La configuració, la pàgina d’inici i les pàgines de comparació s’actualitzen alhora."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Això afecta pàgines de l’extensió com configuració, inici, comparació, preferits i historial."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Idioma de visualització actual"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Indicació de xat"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Indicació d’anàlisi"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

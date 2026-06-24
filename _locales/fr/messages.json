@@ -148,13 +148,13 @@
     "message": "Sites"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Compétences"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synchronisation"
   },
   "settingsNavProTitle": {
     "message": "Pro"
@@ -2499,10 +2499,10 @@
     "message": "Langue d’affichage actuelle"
   },
   "languageSettingsDescription": {
-    "message": "Choisissez la langue des pages de l’extension. Réglages, accueil et pages de comparaison se mettent à jour ensemble."
+    "message": "Choisissez la langue d’affichage des pages de l’extension. Les paramètres, l’accueil et les pages de comparaison se mettent à jour ensemble."
   },
   "languageSettingsHelp": {
-    "message": "Cela affecte les pages de l’extension comme les réglages, l’accueil, la comparaison, les favoris et l’historique."
+    "message": "Cela affecte les pages de l’extension comme les paramètres, l’accueil, la comparaison, les favoris et l’historique."
   },
   "languageSettingsTitle": {
     "message": "Paramètres de langue"

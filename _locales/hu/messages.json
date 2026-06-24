@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Parancsikonok"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Webhelyek"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Készségek"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Szinkronizálás"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Nyelv"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Nyelvi beállítások"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Válaszd ki a bővítmény saját oldalainak megjelenítési nyelvét. A beállítások, a kezdőlap és az összehasonlító oldalak együtt frissülnek."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Ez a bővítmény oldalait érinti, például a beállításokat, kezdőlapot, összehasonlítást, kedvenceket és előzményeket."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Jelenlegi megjelenítési nyelv"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Chat prompt"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Elemzési prompt"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

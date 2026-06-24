@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Skratky"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Weby"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Zručnosti"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synchronizácia"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Jazyk"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Nastavenia jazyka"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Vyberte jazyk zobrazenia pre stránky rozšírenia. Nastavenia, domovská stránka a porovnávacie stránky sa aktualizujú spolu."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Ovplyvní to stránky rozšírenia, ako sú nastavenia, domovská stránka, porovnanie, obľúbené a história."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Aktuálny jazyk zobrazenia"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Chatový prompt"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analytický prompt"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

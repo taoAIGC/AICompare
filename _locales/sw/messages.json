@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Njia za mkato"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Tovuti"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Ujuzi"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Sawazisha"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Lugha"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Mipangilio ya lugha"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Chagua lugha ya kuonyesha kwa kurasa za kiendelezi. Mipangilio, ukurasa wa mwanzo na kurasa za kulinganisha husasishwa pamoja."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Hii huathiri kurasa za kiendelezi kama mipangilio, ukurasa wa mwanzo, kulinganisha, vipendwa na historia."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Lugha ya sasa ya kuonyesha"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Kidokezo cha gumzo"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Kidokezo cha uchambuzi"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

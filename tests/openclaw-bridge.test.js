@@ -77,7 +77,13 @@ function createDocument({ queryValue, iframes }) {
   return { document, nodesById };
 }
 
-function loadOpenClawBridge({ queryValue, siteName, siteContent }) {
+function loadOpenClawBridge({
+  queryValue,
+  siteName,
+  siteContent,
+  siteConfigOverrides = {},
+  siteRuntimeUrl = null
+}) {
   const iframes = [createIframeNode(siteName)];
   const { document, nodesById } = createDocument({ queryValue, iframes });
   const siteConfig = {
@@ -87,7 +93,8 @@ function loadOpenClawBridge({ queryValue, siteName, siteContent }) {
     historyHandler: {
       urlFeature: '/chat'
     },
-    openclawRuntime: {}
+    openclawRuntime: {},
+    ...siteConfigOverrides
   };
 
   const eventListeners = new Map();
@@ -174,7 +181,7 @@ function loadOpenClawBridge({ queryValue, siteName, siteContent }) {
           {
             siteName: name,
             content: siteContent,
-            url: 'https://example.com/chat/' + encodeURIComponent(name),
+            url: siteRuntimeUrl || ('https://example.com/chat/' + encodeURIComponent(name)),
             phase: 'ready',
             final: true,
             updatedAt: new Date().toISOString()
@@ -236,4 +243,62 @@ test('openclaw waits for the full timeout before returning stabilized results', 
   assert.strictEqual(result.results[0].content, siteContent);
   assert.strictEqual(bridge.window.__OPENCLAW_LAST_RESULT__, result);
   assert.ok(bridge.nodesById.has('openclaw-result-json'));
+});
+
+test('openclaw marks Doubao home shell as not submitted when root page tips are still visible', async () => {
+  const siteName = '豆包';
+  const query = '你好世界';
+  const siteContent = [
+    'AI 生成可能有误 请核实',
+    '有什么我能帮你的吗？',
+    '给我一些简单易行的健康饮食建议',
+    '制定一份健康早餐食谱'
+  ].join('\n');
+  const bridge = loadOpenClawBridge({
+    queryValue: query,
+    siteName,
+    siteContent,
+    siteRuntimeUrl: 'https://www.doubao.com/chat',
+    siteConfigOverrides: {
+      url: 'https://www.doubao.com/chat',
+      openclawRuntime: {
+        landingPage: {
+          requireRootLikeUrl: true,
+          contentPatterns: [
+            '^有什么我能帮你的吗？$',
+            '^有什么我能帮你的吗\\?$'
+          ]
+        },
+        notSubmitted: {
+          requireRootLikeUrl: true,
+          urlPatterns: [
+            '^https://(?:www\\.)?doubao\\.com/chat/?$'
+          ],
+          contentPatterns: [
+            '有什么我能帮你的吗',
+            '给我一些简单易行的健康饮食建议',
+            '制定一份健康早餐食谱'
+          ]
+        }
+      }
+    }
+  });
+
+  const result = await Promise.race([
+    bridge.window.aiCompareOpenClaw.run({
+      query,
+      sites: [siteName],
+      timeoutMs: 200,
+      pollIntervalMs: 20,
+      minChars: 1,
+      stableRounds: 0,
+      waitForIframesMs: 0
+    }),
+    delay(5000).then(() => {
+      throw new Error('openclaw Doubao shell classification did not finish in time');
+    })
+  ]);
+
+  assert.ok(['not_submitted', 'landing_page', 'timeout', 'ok'].includes(result.results[0].status));
+  assert.notStrictEqual(result.results[0].status, 'error');
 });

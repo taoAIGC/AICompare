@@ -229,6 +229,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Timeline copy now keeps each site response as one block, so multi-paragraph answers stay together instead of being split into numbered sub-answers.
 - Timeline copy preview now preserves list markers like `•` when the source answer contains bullet lists.
 - DeepSeek timeline copy / auto-summary now recognizes user prompts from both legacy `.ds-message` rows and the newer `[data-message-author-role="user"]` structure, so existing answers are less likely to be misreported as prompt-matching failures.
+- Doubao's timeline prompt matching now also supports the newer virtual-list user rows under `.message-list-zLoNs1 .v_list_row`, so copy/summary flows can still pair the right question with the generated answer after the recent page refresh.
 - The timeline copy preview now has a new-tab analysis path: the preview modal can open the default extension compare page, pass the question/summary/raw answers through `chrome.storage.session`, and reuse the existing compare flow without going through OpenClaw.
 - The timeline copy preview also supports selectable analysis prompt templates, and the Settings page includes a matching analysis prompt template manager with default presets.
 - The Auto summary card now lets you pick an analysis prompt template inline and use the `Analyze` button to gather the latest panel replies into a dedicated AI analysis page.
@@ -276,9 +277,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Hermes compatibility now uses a thin project plugin under `.hermes/plugins/ai-compare-hard-router/`, which reuses `openclaw/ai-compare-openclaw-fast.js` as the shared execution core instead of trying to load the OpenClaw plugin format directly.
 - Hermes project plugins must be enabled explicitly with `HERMES_ENABLE_PROJECT_PLUGINS=true`, and the Hermes-side compatibility notes live in `docs/hermes-openclaw-plugin-compat.md`.
 - When using Hermes API Server as the custom browser-extension API, remember that command-line checks and browser-extension checks are different: `curl` can succeed while the extension still gets `HTTP 403` if Hermes has not allowed the extension origin. Because the options page calls Hermes from `chrome-extension://...`, Hermes must include the extension origin in `API_SERVER_CORS_ORIGINS`, for example `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi`. A working minimal setup is `baseUrl=http://localhost:8642/v1`, `model=hermes-agent`, `Authorization: Bearer <API_SERVER_KEY>`, plus the matching `API_SERVER_CORS_ORIGINS` entry and a Hermes gateway restart after config changes.
-- GitHub packaging now maintains two release-note docs before producing the zip artifact:
-  `docs/release-notes/latest.md` stores the running user-facing improvement request log, and `docs/release-notes/history.md` appends one user-facing version summary per packaged build.
-- Local git commits now auto-refresh the release-note docs in `.githooks/pre-commit`, and `.githooks/post-commit` first validates that `scripts/package-extension.sh` still matches the current runtime file set before pushing the committed branch to `origin`, so updated `README.md`, privacy docs, `history.md`, and the release zip recipe stay in sync.
+- `docs/release-notes/history.md` is the manual update source for the contact page changelog and should be edited directly when release notes need to change.
+- Local git commits still refresh `README.md` and validate packaging in the git hooks, while `docs/release-notes/history.md` is now maintained manually instead of being auto-generated.
 
 ---
 
@@ -442,6 +442,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - Claude 可通过 `node debug/verify-claude-live.js` 验证，它会连接当前 Chrome 的 `DevToolsActivePort`，检查真实的输入 -> 点击发送 -> 会话创建链路。`node debug/inspect-claude-response.js` 会把外层壳层和 `main .font-claude-response` 的答案正文分别打印出来。
 - 时间线复制现在会把每个站点的回答保留为一个整体，多段落内容不会再被拆成编号子回答。
 - DeepSeek 的时间线复制 / 自动总结现在同时兼容旧版 `.ds-message` 和新版 `[data-message-author-role="user"]` 提问节点，页面里已经有答案时不容易再被误报成提问匹配失败。
+- 豆包的时间线提问识别现在也兼容新版虚拟列表 `.message-list-zLoNs1 .v_list_row` 用户消息结构，复制 / 自动总结在页面改版后仍能更稳定地把问题和回答配对起来。
 - ChatGPT / Gemini / DeepSeek 也已支持走扩展自身端到端链路的验证脚本：`node debug/verify-chatgpt-live.js`、`node debug/verify-gemini-live.js`、`node debug/verify-deepseek-live.js`。
 - 其他较复杂站点也有对应脚本，例如 `debug/verify-minimax-live.js`、`debug/verify-manus-live.js`、`debug/verify-metaso-live.js`、`debug/verify-ai-studio-live.js`、`debug/verify-yuanbao-live.js`、`debug/verify-qianwen-live.js`、`debug/verify-qwen-live.js`。
 - 元宝 / Qwen / 千问 的验证脚本现已改为走页面上的真实发送按钮或“新建对话”引导路径，而不是只依赖 Enter。
@@ -494,76 +495,79 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-24 08:18:44 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-24 13:55:12 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `A` `_locales/am/messages.json`
+- `M` `.githooks/pre-commit`
+- `M` `_locales/am/messages.json`
 - `M` `_locales/ar/messages.json`
-- `A` `_locales/bg/messages.json`
-- `A` `_locales/bn/messages.json`
-- `A` `_locales/ca/messages.json`
-- `A` `_locales/cs/messages.json`
-- `A` `_locales/da/messages.json`
+- `M` `_locales/bg/messages.json`
+- `M` `_locales/bn/messages.json`
+- `M` `_locales/ca/messages.json`
+- `M` `_locales/cs/messages.json`
+- `M` `_locales/da/messages.json`
 - `M` `_locales/de/messages.json`
-- `A` `_locales/el/messages.json`
+- `M` `_locales/el/messages.json`
 - `M` `_locales/en/messages.json`
-- `A` `_locales/en_AU/messages.json`
-- `A` `_locales/en_GB/messages.json`
-- `A` `_locales/en_US/messages.json`
 - `M` `_locales/es/messages.json`
-- `A` `_locales/es_419/messages.json`
-- `A` `_locales/et/messages.json`
-- `A` `_locales/fa/messages.json`
-- `A` `_locales/fi/messages.json`
-- `A` `_locales/fil/messages.json`
+- `M` `_locales/es_419/messages.json`
+- `M` `_locales/et/messages.json`
+- `M` `_locales/fa/messages.json`
+- `M` `_locales/fi/messages.json`
+- `M` `_locales/fil/messages.json`
 - `M` `_locales/fr/messages.json`
-- `A` `_locales/gu/messages.json`
-- `A` `_locales/he/messages.json`
-- `A` `_locales/hi/messages.json`
-- `A` `_locales/hr/messages.json`
-- `A` `_locales/hu/messages.json`
-- `A` `_locales/id/messages.json`
-- `A` `_locales/it/messages.json`
+- `M` `_locales/gu/messages.json`
+- `M` `_locales/he/messages.json`
+- `M` `_locales/hi/messages.json`
+- `M` `_locales/hr/messages.json`
+- `M` `_locales/hu/messages.json`
+- `M` `_locales/id/messages.json`
+- `M` `_locales/it/messages.json`
 - `M` `_locales/ja/messages.json`
-- `A` `_locales/kn/messages.json`
+- `M` `_locales/kn/messages.json`
 - `M` `_locales/ko/messages.json`
-- `A` `_locales/lt/messages.json`
-- `A` `_locales/lv/messages.json`
-- `A` `_locales/ml/messages.json`
-- `A` `_locales/mr/messages.json`
-- `A` `_locales/ms/messages.json`
-- `A` `_locales/nl/messages.json`
-- `A` `_locales/no/messages.json`
-- `A` `_locales/pl/messages.json`
+- `M` `_locales/lt/messages.json`
+- `M` `_locales/lv/messages.json`
+- `M` `_locales/ml/messages.json`
+- `M` `_locales/mr/messages.json`
+- `M` `_locales/ms/messages.json`
+- `M` `_locales/nl/messages.json`
+- `M` `_locales/no/messages.json`
+- `M` `_locales/pl/messages.json`
 - `M` `_locales/pt_BR/messages.json`
-- `A` `_locales/pt_PT/messages.json`
-- `A` `_locales/ro/messages.json`
-- `A` `_locales/ru/messages.json`
-- `A` `_locales/sk/messages.json`
-- `A` `_locales/sl/messages.json`
-- `A` `_locales/sr/messages.json`
-- `A` `_locales/sv/messages.json`
-- `A` `_locales/sw/messages.json`
-- `A` `_locales/ta/messages.json`
-- `A` `_locales/te/messages.json`
-- `A` `_locales/th/messages.json`
-- `A` `_locales/tr/messages.json`
-- `A` `_locales/uk/messages.json`
-- `A` `_locales/vi/messages.json`
+- `M` `_locales/pt_PT/messages.json`
+- `M` `_locales/ro/messages.json`
+- `M` `_locales/ru/messages.json`
+- `M` `_locales/sk/messages.json`
+- `M` `_locales/sl/messages.json`
+- `M` `_locales/sr/messages.json`
+- `M` `_locales/sv/messages.json`
+- `M` `_locales/sw/messages.json`
+- `M` `_locales/ta/messages.json`
+- `M` `_locales/te/messages.json`
+- `M` `_locales/th/messages.json`
+- `M` `_locales/tr/messages.json`
+- `M` `_locales/uk/messages.json`
+- `M` `_locales/vi/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `config/agentCatalog.js`
-- `M` `docs/release-notes/latest.md`
+- `M` `config/siteHandlers.json`
+- `M` `docs/release-notes/history.md`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
+- `M` `iframe/iframe.js`
+- `M` `iframe/inject.js`
 - `M` `manifest.json`
-- `M` `options/options.js`
-- `M` `shared/runtime-i18n.js`
+- `M` `tests/extraction-core.test.js`
+- `M` `tests/openclaw-bridge.test.js`
+- `A` `tests/runtime-i18n-locales.test.js`
 
 ### Recent commits / 最近提交
+- `b1831f6` 2026-06-24 V 4.2.8 补充多语言包
 - `a191a52` 2026-06-23 V4.2.7 修复API调用
 - `0ed1a9c` 2026-06-12 V4.2.6 修复DeepSeek、优化部分体验
 - `b3ebeba` 2026-06-09 V4.2.5 修复划词搜索 API 调用转移到云端
 - `228016c` 2026-06-09 V4.2.4 修复豆包、点点
-- `f2b7e17` 2026-06-04 V4.2.3 优化总结体验
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

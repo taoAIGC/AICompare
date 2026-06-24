@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "શોર્ટકટ્સ"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "સાઇટ્સ"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "કૌશલ્યો"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "સિંક"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "ભાષા"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "ભાષા સેટિંગ્સ"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "એક્સ્ટેન્શનની પોતાની પેજ માટે દર્શાવાની ભાષા પસંદ કરો. સેટિંગ્સ, હોમપેજ અને સરખામણી પેજ સાથે અપડેટ થશે."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "આ સેટિંગ્સ, હોમપેજ, સરખામણી, મનપસંદ અને ઇતિહાસ જેવી એક્સ્ટેન્શન પેજને અસર કરે છે."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "હાલની દર્શાવાની ભાષા"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "ચેટ પ્રોમ્પ્ટ"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "વિશ્લેષણ પ્રોમ્પ્ટ"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

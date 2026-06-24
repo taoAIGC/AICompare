@@ -142,7 +142,7 @@
     "message": "API 設定"
   },
   "settingsNavShortcutsTitle": {
-    "message": "快捷"
+    "message": "捷徑"
   },
   "settingsNavSitesTitle": {
     "message": "站點"
@@ -166,10 +166,10 @@
     "message": "語言設定"
   },
   "languageSettingsDescription": {
-    "message": "選擇擴充功能頁面的顯示語言。切換後，設定頁、首頁與對比頁會同步更新。"
+    "message": "選擇擴充功能自有頁面的顯示語言。設定頁、首頁和比較頁會一起更新。"
   },
   "languageSettingsHelp": {
-    "message": "這會影響設定頁、首頁、對比頁、收藏頁與歷史頁等擴充功能自有頁面。"
+    "message": "這會影響設定、首頁、比較、收藏和歷史等擴充功能自有頁面。"
   },
   "languageSettingsCurrentLocale": {
     "message": "目前顯示語言"
@@ -2531,6 +2531,12 @@
   "liveSummaryRefreshCountdown": {
     "message": "分析（$1s）"
   },
+  "liveSummaryAutoAnalysisEnable": {
+    "message": "開啟自動總結"
+  },
+  "liveSummaryAutoAnalysisDisable": {
+    "message": "關閉自動總結"
+  },
   "liveSummaryAnalyzeNow": {
     "message": "立即分析"
   },
@@ -2555,6 +2561,9 @@
   "liveSummaryEmptyPrompt": {
     "message": "倒數結束後，自動總結所有回答"
   },
+  "liveSummaryEmptyPromptManual": {
+    "message": "自動總結已關閉，點擊「分析」手動總結所有回答"
+  },
   "liveSummaryNoDivergence": {
     "message": "目前各面板的重點觀點大致一致。"
   },
@@ -2569,6 +2578,9 @@
   },
   "liveSummaryCollecting": {
     "message": "正在等待所有活躍面板回答穩定後自動總結..."
+  },
+  "liveSummaryCollectingManual": {
+    "message": "自動總結已關閉，可點擊「分析」手動總結目前回答"
   },
   "liveSummaryRefreshing": {
     "message": "已有總結，正在靜默更新..."

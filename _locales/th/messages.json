@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "ทางลัด"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "ไซต์"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "ทักษะ"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "ซิงค์"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "ภาษา"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "การตั้งค่าภาษา"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "เลือกภาษาที่ใช้แสดงสำหรับหน้าของส่วนขยาย การตั้งค่า หน้าแรก และหน้าเปรียบเทียบจะอัปเดตพร้อมกัน"
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "สิ่งนี้มีผลกับหน้าของส่วนขยาย เช่น การตั้งค่า หน้าแรก การเปรียบเทียบ รายการโปรด และประวัติ"
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "ภาษาที่แสดงในปัจจุบัน"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "พรอมป์ต์แชท"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "พรอมป์ต์วิเคราะห์"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

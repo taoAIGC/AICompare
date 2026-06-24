@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Пречице"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Сајтови"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Вештине"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Синхронизација"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Језик"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Подешавања језика"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Изаберите језик приказа за странице проширења. Подешавања, почетна страница и странице поређења ажурирају се заједно."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Ово утиче на странице проширења као што су подешавања, почетна, поређење, омиљено и историја."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Тренутни језик приказа"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Чет упит"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Упит за анализу"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

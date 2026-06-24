@@ -142,37 +142,37 @@
     "message": "API settings"
   },
   "settingsNavShortcutsTitle": {
-    "message": "Shortcuts"
+    "message": "Genvägar"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Webbplatser"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Färdigheter"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synkronisering"
   },
   "settingsNavLanguageTitle": {
-    "message": "Language"
+    "message": "Språk"
   },
   "settingsNavProTitle": {
     "message": "Pro"
   },
   "languageSettingsTitle": {
-    "message": "Language settings"
+    "message": "Språkinställningar"
   },
   "languageSettingsDescription": {
-    "message": "Choose the display language for extension-owned pages. Settings, homepage, and compare pages update together."
+    "message": "Välj visningsspråk för tilläggets egna sidor. Inställningar, startsida och jämförelsesidor uppdateras tillsammans."
   },
   "languageSettingsHelp": {
-    "message": "This affects extension-owned pages like settings, homepage, compare, favorites, and history."
+    "message": "Detta påverkar tilläggssidor som inställningar, startsida, jämförelse, favoriter och historik."
   },
   "languageSettingsCurrentLocale": {
-    "message": "Current display language"
+    "message": "Aktuellt visningsspråk"
   },
   "languageOptionAuto": {
     "message": "Follow browser language"
@@ -822,7 +822,7 @@
     "message": "Compare responses from multiple AI platforms with AI Compare"
   },
   "promptTemplatesTitle": {
-    "message": "Chat Prompt"
+    "message": "Chattprompt"
   },
   "promptTemplatesLabel": {
     "message": "Template:"
@@ -1907,7 +1907,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analysis Prompt"
+    "message": "Analysprompt"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."

@@ -145,16 +145,16 @@
     "message": "Kurzbefehle"
   },
   "settingsNavSitesTitle": {
-    "message": "Sites"
+    "message": "Websites"
   },
   "settingsNavSkillsTitle": {
-    "message": "Skills"
+    "message": "Fähigkeiten"
   },
   "settingsNavApiTitle": {
     "message": "API"
   },
   "settingsNavSyncTitle": {
-    "message": "Sync"
+    "message": "Synchronisierung"
   },
   "settingsNavProTitle": {
     "message": "Pro"
@@ -2499,7 +2499,7 @@
     "message": "Aktuelle Anzeigesprache"
   },
   "languageSettingsDescription": {
-    "message": "Wähle die Anzeigesprache für Erweiterungsseiten. Einstellungen, Startseite und Vergleichsseiten werden gemeinsam aktualisiert."
+    "message": "Wähle die Anzeigesprache für die Erweiterungsseiten. Einstellungen, Startseite und Vergleichsseiten werden gemeinsam aktualisiert."
   },
   "languageSettingsHelp": {
     "message": "Dies betrifft Erweiterungsseiten wie Einstellungen, Startseite, Vergleich, Favoriten und Verlauf."

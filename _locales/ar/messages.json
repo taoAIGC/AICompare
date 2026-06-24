@@ -142,7 +142,7 @@
     "message": "إعدادات API"
   },
   "settingsNavShortcutsTitle": {
-    "message": "اختصارات"
+    "message": "الاختصارات"
   },
   "settingsNavSitesTitle": {
     "message": "المواقع"
@@ -151,7 +151,7 @@
     "message": "المهارات"
   },
   "settingsNavApiTitle": {
-    "message": "API"
+    "message": "واجهة API"
   },
   "settingsNavSyncTitle": {
     "message": "المزامنة"
@@ -2499,7 +2499,7 @@
     "message": "لغة العرض الحالية"
   },
   "languageSettingsDescription": {
-    "message": "اختر لغة عرض صفحات الإضافة. سيتم تحديث الإعدادات والصفحة الرئيسية وصفحات المقارنة معًا."
+    "message": "اختر لغة العرض للصفحات التابعة للإضافة. يتم تحديث الإعدادات والصفحة الرئيسية وصفحات المقارنة معًا."
   },
   "languageSettingsHelp": {
     "message": "ينطبق هذا على صفحات الإضافة مثل الإعدادات والصفحة الرئيسية والمقارنة والمفضلة والسجل."

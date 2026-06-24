@@ -37,6 +37,9 @@ const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STO
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
 const DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY = 'defaultAnalysisTemplateId';
+const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY = 'liveSummaryAutoAnalysisEnabled';
+const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY = 'aiCompare.liveSummaryAutoAnalysisEnabled';
+let suppressNextIframeQuerySuggestions = false;
 
 async function ensureIframeAgentCatalogReady() {
   if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
@@ -70,6 +73,7 @@ const liveSummaryState = {
   activeEntryKey: '',
   visibleEntryKeys: [],
   submittedEntryKeys: [],
+  autoAnalysisEnabled: true,
   status: 'hidden',
   version: 0,
   displayedVersion: 0,
@@ -195,6 +199,12 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
   if (namespace === 'sync' && changes[DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY]) {
     void refreshOpenAnalysisTemplateSelects();
+  }
+  if (namespace === 'sync' && changes[LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY]) {
+    setLiveSummaryAutoAnalysisEnabled(
+      changes[LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY]?.newValue,
+      { persist: false }
+    );
   }
   if (namespace === 'local' && changes[AGENT_HIDDEN_IDS_STORAGE_KEY]) {
     renderSideNav().catch((error) => {
@@ -855,6 +865,7 @@ function getLiveSummaryElements() {
     title: document.getElementById('liveSummaryTitle'),
     tabs: document.getElementById('liveSummaryTabs'),
     pendingSummarizeButton: document.getElementById('liveSummaryPendingSummarizeButton'),
+    autoAnalysisToggleButton: document.getElementById('liveSummaryAutoAnalysisToggleButton'),
     hint: document.getElementById('liveSummaryHint'),
     meta: document.getElementById('liveSummaryMeta'),
     body: document.getElementById('liveSummaryCardBody'),
@@ -870,6 +881,177 @@ function getLiveSummaryElements() {
     copyButton: document.getElementById('liveSummaryCopyButton'),
     immediateAnalyzeButton: document.getElementById('liveSummaryImmediateAnalyzeButton')
   };
+}
+
+function isLiveSummaryAutoAnalysisEnabled() {
+  return liveSummaryState.autoAnalysisEnabled !== false;
+}
+
+function normalizeLiveSummaryAutoAnalysisEnabled(value) {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'false' || normalized === '0' || normalized === 'off') {
+      return false;
+    }
+    if (normalized === 'true' || normalized === '1' || normalized === 'on') {
+      return true;
+    }
+  }
+  return value !== false && value !== 0;
+}
+
+function getCachedLiveSummaryAutoAnalysisEnabled() {
+  try {
+    const cachedValue = window.localStorage?.getItem?.(LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY);
+    if (cachedValue === null || typeof cachedValue === 'undefined') {
+      return null;
+    }
+    return normalizeLiveSummaryAutoAnalysisEnabled(cachedValue);
+  } catch (error) {
+    console.warn('读取自动总结开关缓存失败:', error);
+    return null;
+  }
+}
+
+function setCachedLiveSummaryAutoAnalysisEnabled(enabled = true) {
+  const normalizedEnabled = normalizeLiveSummaryAutoAnalysisEnabled(enabled);
+  try {
+    window.localStorage?.setItem?.(
+      LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY,
+      normalizedEnabled ? 'true' : 'false'
+    );
+  } catch (error) {
+    console.warn('写入自动总结开关缓存失败:', error);
+  }
+  return normalizedEnabled;
+}
+
+async function getStoredLiveSummaryAutoAnalysisEnabled() {
+  const cachedValue = getCachedLiveSummaryAutoAnalysisEnabled();
+  if (cachedValue !== null) {
+    return cachedValue;
+  }
+  try {
+    const data = await chrome.storage.sync.get(LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY);
+    if (!Object.prototype.hasOwnProperty.call(data || {}, LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY)) {
+      return true;
+    }
+    return setCachedLiveSummaryAutoAnalysisEnabled(
+      data?.[LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY]
+    );
+  } catch (error) {
+    console.warn('加载自动总结开关失败:', error);
+    return true;
+  }
+}
+
+async function setStoredLiveSummaryAutoAnalysisEnabled(enabled = true) {
+  const normalizedEnabled = setCachedLiveSummaryAutoAnalysisEnabled(enabled);
+  try {
+    await chrome.storage.sync.set({
+      [LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY]: normalizedEnabled
+    });
+    return normalizedEnabled;
+  } catch (error) {
+    console.error('保存自动总结开关失败:', error);
+    throw error;
+  }
+}
+
+function getLiveSummaryAutoAnalysisToggleText(enabled = isLiveSummaryAutoAnalysisEnabled()) {
+  return enabled
+    ? t('liveSummaryAutoAnalysisDisable', '关闭自动总结')
+    : t('liveSummaryAutoAnalysisEnable', '开启自动总结');
+}
+
+function refreshLiveSummaryAutoAnalysisToggle() {
+  const { autoAnalysisToggleButton } = getLiveSummaryElements();
+  if (!(autoAnalysisToggleButton instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const enabled = isLiveSummaryAutoAnalysisEnabled();
+  const toggleText = getLiveSummaryAutoAnalysisToggleText(enabled);
+  autoAnalysisToggleButton.classList.toggle('is-on', enabled);
+  autoAnalysisToggleButton.setAttribute('aria-checked', enabled ? 'true' : 'false');
+  autoAnalysisToggleButton.title = toggleText;
+  autoAnalysisToggleButton.setAttribute('aria-label', toggleText);
+}
+
+function clearAllLiveSummaryAutoAnalysisDueAt() {
+  liveSummaryState.summariesByEntryKey.forEach((record, entryKey) => {
+    const query = normalizeLiveSummaryQuery(record?.query || getLiveSummaryEntryQuery(entryKey));
+    setLiveSummaryRecord(query, {
+      autoAnalysisDueAt: 0
+    }, entryKey);
+  });
+}
+
+function rearmVisibleLiveSummaryAutoAnalysis() {
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    return;
+  }
+
+  const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys)
+    ? liveSummaryState.visibleEntryKeys
+    : [];
+  visibleEntryKeys.forEach((entryKey) => {
+    const record = getLiveSummaryRecord('', entryKey);
+    const query = normalizeLiveSummaryQuery(record?.query || getLiveSummaryEntryQuery(entryKey));
+    const hasSummary = Boolean(stripSummaryText(record?.summaryText || ''));
+    const shouldArm = Boolean(
+      query
+      && !record?.isStreaming
+      && !hasSummary
+      && (record?.status === 'collecting' || record?.status === 'refreshing')
+    );
+    if (!shouldArm) {
+      return;
+    }
+
+    const nextDueAt = resolveLiveSummaryAutoAnalysisDueAt({
+      existingDueAt: 0,
+      hasExistingSummary: false,
+      shouldArmAutoAnalysis: true,
+      delayMs: LIVE_SUMMARY_AUTO_ANALYSIS_DELAY_MS
+    });
+    setLiveSummaryRecord(query, {
+      autoAnalysisDueAt: nextDueAt
+    }, entryKey);
+    scheduleLiveSummaryAutoAnalysis(query, entryKey);
+    scheduleLiveSummaryRefresh(LIVE_SUMMARY_RECHECK_DELAY_MS, {
+      query,
+      entryKey,
+      preserveActiveEntry: true
+    });
+  });
+}
+
+function setLiveSummaryAutoAnalysisEnabled(enabled = true, options = {}) {
+  const nextEnabled = normalizeLiveSummaryAutoAnalysisEnabled(enabled);
+  setCachedLiveSummaryAutoAnalysisEnabled(nextEnabled);
+  if (liveSummaryState.autoAnalysisEnabled === nextEnabled) {
+    refreshLiveSummaryAutoAnalysisToggle();
+    renderLiveSummaryCard();
+    return nextEnabled;
+  }
+
+  liveSummaryState.autoAnalysisEnabled = nextEnabled;
+
+  if (!nextEnabled) {
+    clearLiveSummaryPendingTimer();
+    clearLiveSummaryAutoAnalysisTimer();
+    clearAllLiveSummaryAutoAnalysisDueAt();
+  } else {
+    rearmVisibleLiveSummaryAutoAnalysis();
+  }
+
+  refreshLiveSummaryAutoAnalysisToggle();
+  renderLiveSummaryCard();
+  if (options?.persist !== false) {
+    void setStoredLiveSummaryAutoAnalysisEnabled(nextEnabled);
+  }
+  return nextEnabled;
 }
 
 function clearLiveSummaryPendingTimer() {
@@ -975,6 +1157,10 @@ function setLiveSummaryAutoAnalysisDueAt(query = '', entryKey = '', dueAt = 0) {
 }
 
 function ensureLiveSummaryAutoAnalysisDueAt(query = '', entryKey = '') {
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    setLiveSummaryAutoAnalysisDueAt(query, entryKey, 0);
+    return 0;
+  }
   const currentDueAt = getLiveSummaryAutoAnalysisDueAt(query, entryKey);
   if (currentDueAt) {
     return currentDueAt;
@@ -1376,6 +1562,9 @@ function getLiveSummaryTabLabel(query = '') {
 }
 
 function getLiveSummaryTabCountdownSeconds(query = '', entryKey = '') {
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    return 0;
+  }
   const dueAt = getLiveSummaryAutoAnalysisDueAt(query, entryKey);
   if (!dueAt || dueAt <= Date.now()) {
     return 0;
@@ -1389,6 +1578,9 @@ function isLiveSummaryTabThinking(query = '', entryKey = '') {
 }
 
 function hasLiveSummaryVisibleCountdown() {
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    return false;
+  }
   const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys) ? liveSummaryState.visibleEntryKeys : [];
   return visibleEntryKeys.some((entryKey) => {
     const query = getLiveSummaryEntryQuery(entryKey);
@@ -1397,6 +1589,9 @@ function hasLiveSummaryVisibleCountdown() {
 }
 
 function getLiveSummaryPendingCountdownTargets() {
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    return [];
+  }
   const visibleEntryKeys = Array.isArray(liveSummaryState.visibleEntryKeys) ? liveSummaryState.visibleEntryKeys : [];
   const analysisTemplateReady = isLiveSummaryAnalysisTemplateReady();
   const targets = [];
@@ -1997,7 +2192,13 @@ function escapeLiveSummaryHtml(text = '') {
 }
 
 function renderLiveSummaryEmptyStateHtml(options = {}) {
-  const promptText = String(options.promptText || t('liveSummaryEmptyPrompt', '倒计时结束后，自动总结所有回答')).trim();
+  const promptText = String(
+    options.promptText || (
+      isLiveSummaryAutoAnalysisEnabled()
+        ? t('liveSummaryEmptyPrompt', '倒计时结束后，自动总结所有回答')
+        : t('liveSummaryEmptyPromptManual', '自动总结已关闭，点击“分析”手动总结所有回答')
+    )
+  ).trim();
   const actionText = String(options.actionText || t('liveSummarySummarizeNow', '立即总结')).trim();
   const disabledAttributes = options.actionDisabled ? ' disabled aria-disabled="true"' : '';
   return `
@@ -2076,7 +2277,9 @@ function formatLiveSummaryMeta() {
     if (String(activeRecord.summaryError || '').trim()) {
       return String(activeRecord.summaryError || '').trim();
     }
-    return t('liveSummaryCollecting', '正在等待各面板回答稳定后自动总结...');
+    return isLiveSummaryAutoAnalysisEnabled()
+      ? t('liveSummaryCollecting', '正在等待各面板回答稳定后自动总结...')
+      : t('liveSummaryCollectingManual', '自动总结已关闭，可点击“分析”手动总结当前回答');
   }
 
   if (activeRecord.status === 'refreshing') {
@@ -2156,6 +2359,10 @@ function formatLiveSummaryHintSiteNames(siteNames = []) {
 
 function formatLiveSummaryRefreshButtonText(activeRecord = getActiveLiveSummaryRecord()) {
   if (activeRecord?.isStreaming) {
+    return t('liveSummaryRefresh', '分析');
+  }
+
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
     return t('liveSummaryRefresh', '分析');
   }
 
@@ -2498,6 +2705,7 @@ function renderLiveSummaryCard() {
     title,
     tabs,
     pendingSummarizeButton,
+    autoAnalysisToggleButton,
     hint,
     meta,
     body,
@@ -2515,6 +2723,9 @@ function renderLiveSummaryCard() {
   }
   if (title instanceof HTMLElement) {
     title.textContent = t('liveSummaryTitle', 'Auto summary');
+  }
+  if (autoAnalysisToggleButton instanceof HTMLButtonElement) {
+    refreshLiveSummaryAutoAnalysisToggle();
   }
   const activeRecord = getActiveLiveSummaryRecord();
   const activeEntryKey = getLiveSummaryCurrentEntryKey();
@@ -2641,7 +2852,7 @@ function markLiveSummaryCollecting(query = '', entryKey = '', options = {}) {
   clearLiveSummaryPendingTimer(resolvedEntryKey);
   const existingRecord = getLiveSummaryRecord(normalizedQuery, resolvedEntryKey);
   const hasExistingSummary = Boolean(existingRecord.summaryText);
-  const shouldArmAutoAnalysis = options.armAutoAnalysis !== false;
+  const shouldArmAutoAnalysis = options.armAutoAnalysis !== false && isLiveSummaryAutoAnalysisEnabled();
   const nextDueAt = resolveLiveSummaryAutoAnalysisDueAt({
     existingDueAt: existingRecord.autoAnalysisDueAt,
     hasExistingSummary,
@@ -2927,6 +3138,9 @@ function scheduleLiveSummaryRefresh(delayMs = LIVE_SUMMARY_RECHECK_DELAY_MS) {
   const options = arguments[1] && typeof arguments[1] === 'object'
     ? arguments[1]
     : {};
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    return;
+  }
   const target = resolveLiveSummaryRefreshTarget(options.query || '', options.entryKey || '');
   if (!target.query || !target.entryKey) {
     if (options.preserveActiveEntry === true) {
@@ -2990,7 +3204,7 @@ async function refreshLiveSummaryForCurrentQuery(options = {}) {
   }
 
   if (shouldDeferLiveSummaryCollection(query, requestSource, entryKey)) {
-  markLiveSummaryCollecting(query, entryKey, { armAutoAnalysis: false });
+    markLiveSummaryCollecting(query, entryKey, { armAutoAnalysis: false });
     return;
   }
 
@@ -3004,6 +3218,9 @@ async function refreshLiveSummaryForCurrentQuery(options = {}) {
 
   if (!skipRuntimeStatusCheck && !status.allReady && !forceGenerate) {
     markLiveSummaryCollecting(query, entryKey);
+    if (!isLiveSummaryAutoAnalysisEnabled()) {
+      return;
+    }
     scheduleLiveSummaryRefresh(LIVE_SUMMARY_RECHECK_DELAY_MS, {
       query,
       entryKey,
@@ -3306,6 +3523,9 @@ async function refreshLiveSummaryForCurrentQuery(options = {}) {
 }
 
 function scheduleLiveSummaryAutoAnalysis(query = '', entryKey = '') {
+  if (!isLiveSummaryAutoAnalysisEnabled()) {
+    return;
+  }
   const timelineEntry = getLiveSummaryTimelineEntry(query, entryKey);
   const normalizedQuery = normalizeLiveSummaryQuery(timelineEntry?.query || '');
   const resolvedEntryKey = getLiveSummaryEntryKey(timelineEntry);
@@ -3337,9 +3557,10 @@ function scheduleLiveSummaryAutoAnalysis(query = '', entryKey = '') {
   liveSummaryState.autoAnalysisTimersByEntryKey.set(resolvedEntryKey, nextTimer);
 }
 
-function initializeLiveSummaryCard() {
+async function initializeLiveSummaryCard() {
   const {
     card,
+    autoAnalysisToggleButton,
     analysisTemplateTabs,
     analysisTemplateDefaultButton,
     shareButton,
@@ -3350,9 +3571,19 @@ function initializeLiveSummaryCard() {
     analysisTemplateSelect,
     content
   } = getLiveSummaryElements();
+  const storedAutoAnalysisEnabled = await getStoredLiveSummaryAutoAnalysisEnabled();
+  setLiveSummaryAutoAnalysisEnabled(storedAutoAnalysisEnabled, { persist: false });
   void hydrateLiveSummaryAnalysisTemplateSelect(liveSummaryContext.selectedAnalysisTemplateId).catch((error) => {
     console.warn('加载自动总结分析提示词模板失败:', error);
   });
+  refreshLiveSummaryAutoAnalysisToggle();
+
+  if (autoAnalysisToggleButton instanceof HTMLButtonElement && autoAnalysisToggleButton.dataset.bound !== '1') {
+    autoAnalysisToggleButton.addEventListener('click', () => {
+      setLiveSummaryAutoAnalysisEnabled(!isLiveSummaryAutoAnalysisEnabled());
+    });
+    autoAnalysisToggleButton.dataset.bound = '1';
+  }
 
   [shareButton, downloadButton, copyButton].forEach((button) => {
     if (!(button instanceof HTMLButtonElement) || !(card instanceof HTMLElement)) return;
@@ -3577,6 +3808,9 @@ function initializeLiveSummaryCard() {
   }
 
   window.addEventListener(AI_COMPARE_RUNTIME_EVENT, () => {
+    if (!isLiveSummaryAutoAnalysisEnabled()) {
+      return;
+    }
     const currentSummaryQuery = getLiveSummaryCurrentQuery();
     const currentEntryKey = getLiveSummaryCurrentEntryKey();
     if (!currentSummaryQuery) return;
@@ -3663,6 +3897,7 @@ function refreshIframeDynamicI18n() {
     searchButton.textContent = t('startCompare', 'PK');
   }
 
+  refreshLiveSummaryAutoAnalysisToggle();
   refreshIframeControlTitles();
   refreshIframeFavoriteI18n();
 }
@@ -10972,7 +11207,12 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
     if (inputWrapper) {
         inputWrapper.classList.remove('compact');
     }
-    showQuerySuggestions(query);
+    if (suppressNextIframeQuerySuggestions) {
+        suppressNextIframeQuerySuggestions = false;
+        hideQuerySuggestionsPanel();
+    } else {
+        showQuerySuggestions(query);
+    }
     updateFavoriteButtonVisibility(query);
 });
 
@@ -11356,11 +11596,7 @@ async function showQuerySuggestions(query) {
         e.preventDefault();
       });
       suggestionItem.addEventListener('click', () => {
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-          searchInput.value = recommendedQuery.query;
-          updateFavoriteButtonVisibility(recommendedQuery.query);
-        }
+        setIframeSearchInputValue(recommendedQuery.query, { suppressSuggestions: true });
         querySuggestions.style.display = 'none';
       });
       querySuggestions.appendChild(suggestionItem);
@@ -11492,13 +11728,17 @@ function clearIframeSearchInput() {
   searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-function setIframeSearchInputValue(query) {
+function setIframeSearchInputValue(query, options = {}) {
   const searchInput = document.getElementById('searchInput');
   if (!searchInput) return false;
 
   searchInput.value = String(query || '').trim();
+  suppressNextIframeQuerySuggestions = options.suppressSuggestions === true;
   searchInput.dispatchEvent(new Event('input', { bubbles: true }));
   searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+  if (options.suppressSuggestions === true) {
+    hideQuerySuggestionsPanel();
+  }
   return true;
 }
 
@@ -12586,7 +12826,7 @@ function initQuickTooltips() {
 // 在页面加载时调用
 document.addEventListener('DOMContentLoaded', async () => {
   initializeI18n();
-  initializeLiveSummaryCard();
+  await initializeLiveSummaryCard();
   setDeepResearchButtonBusy(false);
   initializeTimelinePanel();
   const deepResearchButton = getDeepResearchButton();
@@ -13259,9 +13499,11 @@ function showFavorites() {
     let html = `<div class="favorites-section"><div class="favorites-title">${favoritesTitle}</div>`;
     
     favoritePrompts.forEach((prompt, index) => {
+      const safePromptAttr = escapeAttr(prompt);
+      const safePromptHtml = escapeHtml(prompt);
       html += `
-        <div class="favorite-item" data-prompt="${prompt.replace(/"/g, '&quot;')}" data-index="${index}">
-          <div class="favorite-item-content">${prompt}</div>
+        <div class="favorite-item" data-prompt="${safePromptAttr}" data-index="${index}">
+          <div class="favorite-item-content">${safePromptHtml}</div>
           <div class="favorite-item-actions">
           
            <!--
@@ -13292,12 +13534,12 @@ function showFavorites() {
       content.addEventListener('click', (e) => {
         e.stopPropagation();
         const prompt = item.getAttribute('data-prompt');
-        document.getElementById('searchInput').value = prompt;
+        setIframeSearchInputValue(prompt, { suppressSuggestions: true });
         queryList.style.display = 'none';
-        document.getElementById('toggleIcon').src = '../icons/down.svg';
-        
-        // 更新收藏按钮状态
-        updateFavoriteButtonVisibility(prompt);
+        const toggleIcon = document.getElementById('toggleIcon');
+        if (toggleIcon) {
+          toggleIcon.src = '../icons/down.svg';
+        }
 
         // 埋点：从收藏列表选择提示词
         trackEvent('iframe_prompt_favorite_select', {
