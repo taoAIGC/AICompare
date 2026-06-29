@@ -101,6 +101,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - Any new user-facing copy must be internationalized before it ships. Do not hardcode new UI text, toast text, modal text, button labels, status text, or completion messages directly in JavaScript/HTML/CSS if they can be shown to users.
 - Add a `chrome.i18n` message key first, wire the UI to that key, and only use a literal fallback string as a defensive fallback.
 - When updating an existing user-facing message, update the corresponding entries under `_locales/` in the same change. Do not leave new keys only in code.
+- When changing existing copy, update the corresponding message in every supported locale during the same change. Do not ship a wording update in only one language while leaving other locale entries stale.
 - Progress, success, error, empty-state, and retry-related text are also user-facing copy and must follow the same localization rule.
 
 ## Site Testing Rules

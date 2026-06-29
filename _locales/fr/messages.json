@@ -3,13 +3,13 @@
     "message": "AI Compare"
   },
   "appName": {
-    "message": "AI Compare – Comparaison multi-IA pour GEO et réponses de marque"
+    "message": "AI Compare – comparaison multi-IA"
   },
   "devAppName": {
     "message": "AI Compare Dev"
   },
   "extDescription": {
-    "message": "Une question, comparez ChatGPT, Gemini, Claude et plus dans un onglet – idéal pour le contrôle de contenu, la veille de marque et le GEO (Generative Engine Optimization)."
+    "message": "Comparez ChatGPT, Gemini, Claude et plus dans un onglet pour QA de contenu, veille de marque et GEO."
   },
   "configTitle": {
     "message": "Sites IA"
@@ -27,6 +27,9 @@
   },
   "inputPlaceholder": {
     "message": "Saisissez le contenu a rechercher..."
+  },
+  "homepagePkStarterQuery": {
+    "message": "Quels sont les risques si l’on ne compare pas les résultats de différentes IA et qu’on n’en utilise qu’une seule ?"
   },
   "fileUploadButtonTitle": {
     "message": "Televerser un fichier vers tous les sites IA"
@@ -2390,6 +2393,9 @@
   "liveSummaryEmptyPrompt": {
     "message": "Une fois le compte à rebours terminé, toutes les réponses seront résumées automatiquement."
   },
+  "liveSummaryEmptyPromptManual": {
+    "message": "Le résumé automatique est désactivé."
+  },
   "liveSummaryNoDivergence": {
     "message": "Les panneaux actuels sont globalement alignés sur les points clés."
   },
@@ -2982,5 +2988,47 @@
   },
   "languageOptionVi": {
     "message": "Tiếng Việt"
+  },
+  "liveSummaryAutoAnalysisDisable": {
+    "message": "Disable auto summary"
+  },
+  "liveSummaryAutoAnalysisEnable": {
+    "message": "Enable auto summary"
+  },
+  "liveSummaryCollectingManual": {
+    "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
+  },
+  "aiErrorBalanceInsufficient": {
+    "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
+  },
+  "aiErrorFreeQuotaExceeded": {
+    "message": "Today's free AI usage limit has been reached. You can upgrade to PRO or switch to your own API."
+  },
+  "aiErrorApiNotConfigured": {
+    "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."
+  },
+  "aiErrorAuthFailed": {
+    "message": "AI service authentication failed. Please contact the administrator to check the API key."
+  },
+  "aiErrorModelUnavailable": {
+    "message": "The current AI model is unavailable. Please try again later or contact the administrator to switch models."
+  },
+  "aiErrorContentTooLong": {
+    "message": "The content is too long for the AI to process at once. Please shorten it and try again."
+  },
+  "aiErrorRateLimited": {
+    "message": "Too many requests were sent in a short time. Please try again later."
+  },
+  "aiErrorServiceBusy": {
+    "message": "The AI service is temporarily busy. Please try again later."
+  },
+  "aiErrorNetworkFailed": {
+    "message": "A network error occurred and the AI service could not be reached. Please check your connection and try again."
+  },
+  "aiErrorUnknown": {
+    "message": "AI generation failed. Please try again later. If the problem continues, contact the administrator."
+  },
+  "aiErrorTechnicalDetails": {
+    "message": "Technical details"
   }
 }

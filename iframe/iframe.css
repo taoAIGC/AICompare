@@ -405,7 +405,7 @@ html {
 .live-summary-analysis-template-tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   flex: 0 1 auto;
   width: auto;
@@ -428,52 +428,56 @@ html {
 .live-summary-template-cluster {
   position: relative;
   align-items: flex-start;
-  gap: 2px;
+  gap: 0;
 }
 
 .live-summary-analysis-template-tab {
   appearance: none;
   -webkit-appearance: none;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 244, 244, 0.98));
-  color: #222;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #676767;
   border-radius: 999px;
   min-width: 0;
   max-width: 100%;
-  min-height: 34px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 11px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  font: 600 12px/1.2 var(--ai-font-sans);
+  gap: 5px;
+  font: 500 12px/1.2 var(--ai-font-sans);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
 }
 
 .live-summary-analysis-template-tab:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.94);
-  border-color: rgba(17, 17, 17, 0.12);
+  background: rgba(17, 17, 17, 0.035);
+  color: #222;
 }
 
 .live-summary-analysis-template-tab[aria-selected="true"]:hover:not(:disabled) {
-  background: #111111;
-  border-color: rgba(17, 17, 17, 0.16);
-  color: #ffffff;
+  background: rgba(17, 17, 17, 0.08);
+  border-color: rgba(17, 17, 17, 0.08);
+  color: #111111;
 }
 
-.live-summary-analysis-template-tab:focus-visible,
-.live-summary-analysis-template-tab[aria-selected="true"] {
+.live-summary-analysis-template-tab:focus-visible {
   outline: none;
+  background: rgba(17, 17, 17, 0.04);
+  border-color: rgba(17, 17, 17, 0.08);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.05);
+}
+
+.live-summary-analysis-template-tab[aria-selected="true"] {
   border-color: rgba(17, 17, 17, 0.16);
-  background: #111111;
-  color: #ffffff;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  background: rgba(17, 17, 17, 0.075);
+  color: #111111;
+  font-weight: 600;
 }
 
 .live-summary-analysis-template-tab:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -487,17 +491,17 @@ html {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: rgba(17, 17, 17, 0.08);
-  color: inherit;
-  font: 600 10px/1 var(--ai-font-sans);
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #8b8b8b;
+  font: 500 10px/1 var(--ai-font-sans);
   flex: 0 0 auto;
 }
 
 .live-summary-analysis-template-tab[aria-selected="true"] .live-summary-analysis-template-tab-default {
-  background: rgba(255, 255, 255, 0.18);
+  color: #737373;
 }
 
 .live-summary-analysis-template-tab.is-placeholder {

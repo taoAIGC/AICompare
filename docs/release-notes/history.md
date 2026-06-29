@@ -1,10 +1,12 @@
 ### 2026-06-24
 - 多语言和界面文案得到补强，不同语言环境下使用会更自然。
-- 分享链路更清晰，结果转发、留存和协作会更方便。
+- Multilingual interface copy has been strengthened, making the experience feel more natural across different language settings.
 
 
 ### 2026-06-23
 - 分享链路更清晰，结果转发、留存和协作会更方便。
+- Sharing flows are clearer, making it easier to forward, keep, and collaborate on results.
+
 ### 2026-06-12
 - 需求日志只保留真正影响体验的改进方向，版本总结会更聚焦。
 - The request log now keeps only experience-impacting improvement directions, making version summaries more focused.

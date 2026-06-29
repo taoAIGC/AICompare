@@ -28,6 +28,9 @@
   "inputPlaceholder": {
     "message": "검색할 내용을 입력하세요..."
   },
+  "homepagePkStarterQuery": {
+    "message": "여러 AI의 결과를 비교하지 않고 하나의 AI만 사용하면 어떤 위험이 있나요?"
+  },
   "fileUploadButtonTitle": {
     "message": "모든 AI 사이트에 파일 업로드"
   },
@@ -2390,6 +2393,9 @@
   "liveSummaryEmptyPrompt": {
     "message": "카운트다운이 끝나면 모든 답변을 자동으로 요약합니다."
   },
+  "liveSummaryEmptyPromptManual": {
+    "message": "자동 요약이 꺼져 있습니다."
+  },
   "liveSummaryNoDivergence": {
     "message": "현재 패널들은 핵심 포인트에서 대체로 일치합니다."
   },
@@ -2982,5 +2988,47 @@
   },
   "languageOptionVi": {
     "message": "Tiếng Việt"
+  },
+  "liveSummaryAutoAnalysisDisable": {
+    "message": "Disable auto summary"
+  },
+  "liveSummaryAutoAnalysisEnable": {
+    "message": "Enable auto summary"
+  },
+  "liveSummaryCollectingManual": {
+    "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
+  },
+  "aiErrorBalanceInsufficient": {
+    "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
+  },
+  "aiErrorFreeQuotaExceeded": {
+    "message": "Today's free AI usage limit has been reached. You can upgrade to PRO or switch to your own API."
+  },
+  "aiErrorApiNotConfigured": {
+    "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."
+  },
+  "aiErrorAuthFailed": {
+    "message": "AI service authentication failed. Please contact the administrator to check the API key."
+  },
+  "aiErrorModelUnavailable": {
+    "message": "The current AI model is unavailable. Please try again later or contact the administrator to switch models."
+  },
+  "aiErrorContentTooLong": {
+    "message": "The content is too long for the AI to process at once. Please shorten it and try again."
+  },
+  "aiErrorRateLimited": {
+    "message": "Too many requests were sent in a short time. Please try again later."
+  },
+  "aiErrorServiceBusy": {
+    "message": "The AI service is temporarily busy. Please try again later."
+  },
+  "aiErrorNetworkFailed": {
+    "message": "A network error occurred and the AI service could not be reached. Please check your connection and try again."
+  },
+  "aiErrorUnknown": {
+    "message": "AI generation failed. Please try again later. If the problem continues, contact the administrator."
+  },
+  "aiErrorTechnicalDetails": {
+    "message": "Technical details"
   }
 }

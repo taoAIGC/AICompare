@@ -495,10 +495,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-24 13:55:12 UTC+08:00
+Last auto-update / 最近自动更新：2026-06-30 00:34:42 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.githooks/pre-commit`
+- `M` `AGENTS.md`
 - `M` `_locales/am/messages.json`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/bg/messages.json`
@@ -509,6 +509,9 @@ Last auto-update / 最近自动更新：2026-06-24 13:55:12 UTC+08:00
 - `M` `_locales/de/messages.json`
 - `M` `_locales/el/messages.json`
 - `M` `_locales/en/messages.json`
+- `M` `_locales/en_AU/messages.json`
+- `M` `_locales/en_GB/messages.json`
+- `M` `_locales/en_US/messages.json`
 - `M` `_locales/es/messages.json`
 - `M` `_locales/es_419/messages.json`
 - `M` `_locales/et/messages.json`
@@ -551,23 +554,28 @@ Last auto-update / 最近自动更新：2026-06-24 13:55:12 UTC+08:00
 - `M` `_locales/vi/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
-- `M` `config/siteHandlers.json`
+- `M` `background.js`
+- `A` `docs/.edge-store-translation-cache.json`
+- `A` `docs/edge-store-full-descriptions-structured.md`
+- `A` `docs/edge-store-full-descriptions-translated-failures.txt`
+- `A` `docs/edge-store-full-descriptions-translated-structured.md`
+- `A` `docs/edge-store-full-descriptions.md`
+- `A` `docs/edge-store-missing-descriptions.md`
 - `M` `docs/release-notes/history.md`
+- `M` `homepage/homepage.js`
 - `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
-- `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `manifest.json`
-- `M` `tests/extraction-core.test.js`
-- `M` `tests/openclaw-bridge.test.js`
-- `A` `tests/runtime-i18n-locales.test.js`
+- `A` `outputs/.~AI-Compare-BP.pptx`
+- `A` `outputs/AI-Compare-BP.pptx`
+- `A` `"outputs/AI\346\257\224\344\270\200\346\257\224\344\273\213\347\273\215260629.pdf"`
 
 ### Recent commits / 最近提交
+- `dd789ee` 2026-06-24 V4.2.9 自动总结增加开关，修复豆包站点
 - `b1831f6` 2026-06-24 V 4.2.8 补充多语言包
 - `a191a52` 2026-06-23 V4.2.7 修复API调用
 - `0ed1a9c` 2026-06-12 V4.2.6 修复DeepSeek、优化部分体验
 - `b3ebeba` 2026-06-09 V4.2.5 修复划词搜索 API 调用转移到云端
-- `228016c` 2026-06-09 V4.2.4 修复豆包、点点
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

@@ -28,6 +28,9 @@
   "inputPlaceholder": {
     "message": "Enter content to search..."
   },
+  "homepagePkStarterQuery": {
+    "message": "What risks come with using only one AI instead of comparing different AI results?"
+  },
   "fileUploadButtonTitle": {
     "message": "Upload file to all AI sites"
   },
@@ -2729,7 +2732,7 @@
     "message": "After the countdown ends, all responses will be summarized automatically."
   },
   "liveSummaryEmptyPromptManual": {
-    "message": "Auto summary is off. Click \"Analyze\" to summarize all answers manually."
+    "message": "Auto summary is off."
   },
   "liveSummaryNoDivergence": {
     "message": "The current panels are broadly aligned on the key points."
@@ -2994,5 +2997,38 @@
   },
   "languageOptionVi": {
     "message": "Tiếng Việt"
+  },
+  "aiErrorBalanceInsufficient": {
+    "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
+  },
+  "aiErrorFreeQuotaExceeded": {
+    "message": "Today's free AI usage limit has been reached. You can upgrade to PRO or switch to your own API."
+  },
+  "aiErrorApiNotConfigured": {
+    "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."
+  },
+  "aiErrorAuthFailed": {
+    "message": "AI service authentication failed. Please contact the administrator to check the API key."
+  },
+  "aiErrorModelUnavailable": {
+    "message": "The current AI model is unavailable. Please try again later or contact the administrator to switch models."
+  },
+  "aiErrorContentTooLong": {
+    "message": "The content is too long for the AI to process at once. Please shorten it and try again."
+  },
+  "aiErrorRateLimited": {
+    "message": "Too many requests were sent in a short time. Please try again later."
+  },
+  "aiErrorServiceBusy": {
+    "message": "The AI service is temporarily busy. Please try again later."
+  },
+  "aiErrorNetworkFailed": {
+    "message": "A network error occurred and the AI service could not be reached. Please check your connection and try again."
+  },
+  "aiErrorUnknown": {
+    "message": "AI generation failed. Please try again later. If the problem continues, contact the administrator."
+  },
+  "aiErrorTechnicalDetails": {
+    "message": "Technical details"
   }
 }

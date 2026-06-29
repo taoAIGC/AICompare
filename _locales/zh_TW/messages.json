@@ -28,6 +28,9 @@
   "inputPlaceholder": {
     "message": "輸入要搜尋的內容"
   },
+  "homepagePkStarterQuery": {
+    "message": "不比較不同 AI 的結果，只使用單一 AI，會有什麼風險？"
+  },
   "fileUploadButtonTitle": {
     "message": "上傳檔案到所有AI站點"
   },
@@ -2562,7 +2565,7 @@
     "message": "倒數結束後，自動總結所有回答"
   },
   "liveSummaryEmptyPromptManual": {
-    "message": "自動總結已關閉，點擊「分析」手動總結所有回答"
+    "message": "自動總結已關閉。"
   },
   "liveSummaryNoDivergence": {
     "message": "目前各面板的重點觀點大致一致。"
@@ -2994,5 +2997,38 @@
   },
   "languageOptionVi": {
     "message": "Tiếng Việt"
+  },
+  "aiErrorBalanceInsufficient": {
+    "message": "AI 服務餘額不足，暫時無法產生結果。請聯絡管理員儲值或更換 API Key。"
+  },
+  "aiErrorFreeQuotaExceeded": {
+    "message": "今天的免費 AI 使用次數已用完。你可以升級 PRO，或切換為自己的 API。"
+  },
+  "aiErrorApiNotConfigured": {
+    "message": "AI 服務尚未設定完成，請稍後再試或聯絡管理員。"
+  },
+  "aiErrorAuthFailed": {
+    "message": "AI 服務認證失敗，請聯絡管理員檢查 API Key。"
+  },
+  "aiErrorModelUnavailable": {
+    "message": "目前 AI 模型暫不可用，請稍後再試或聯絡管理員切換模型。"
+  },
+  "aiErrorContentTooLong": {
+    "message": "內容太長，AI 無法一次處理。請減少輸入內容後重試。"
+  },
+  "aiErrorRateLimited": {
+    "message": "請求太頻繁了，請稍後再試。"
+  },
+  "aiErrorServiceBusy": {
+    "message": "AI 服務暫時繁忙，請稍後重試。"
+  },
+  "aiErrorNetworkFailed": {
+    "message": "網路連線異常，暫時無法連接 AI 服務。請檢查網路後重試。"
+  },
+  "aiErrorUnknown": {
+    "message": "AI 生成失敗，請稍後重試。如果問題持續出現，請聯絡管理員。"
+  },
+  "aiErrorTechnicalDetails": {
+    "message": "技術詳情"
   }
 }

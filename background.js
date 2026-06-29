@@ -923,6 +923,147 @@ async function streamStandaloneAnalysis(port, payload = {}, requestId = '') {
 async function parseAgentErrorMessage(response) {
   const fallback = `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
 
+  const buildFriendlyAgentErrorMessage = (status, rawMessage = '', options = {}) => {
+    const normalizedMessage = String(rawMessage || '').trim();
+    const lowerMessage = normalizedMessage.toLowerCase();
+    const technicalDetail = normalizedMessage
+      ? `HTTP ${status}: ${normalizedMessage}`
+      : `HTTP ${status || 'unknown'}: ${response.statusText || 'Request failed'}`;
+    const withDetails = (key, fallbackMessage) => {
+      const userMessage = t(key, fallbackMessage);
+      const detailsLabel = t('aiErrorTechnicalDetails', 'Technical details');
+      return `${userMessage}\n${detailsLabel}: ${technicalDetail}`;
+    };
+
+    if (
+      status === 402 ||
+      lowerMessage.includes('insufficient balance') ||
+      lowerMessage.includes('insufficient_balance') ||
+      lowerMessage.includes('balance is insufficient') ||
+      lowerMessage.includes('insufficient quota') ||
+      lowerMessage.includes('余额不足')
+    ) {
+      return withDetails(
+        'aiErrorBalanceInsufficient',
+        'The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key.'
+      );
+    }
+
+    if (
+      lowerMessage.includes('free official api requests') ||
+      lowerMessage.includes('free ai usage limit') ||
+      lowerMessage.includes('daily free') ||
+      lowerMessage.includes('免费')
+    ) {
+      return withDetails(
+        'aiErrorFreeQuotaExceeded',
+        'Today\'s free AI usage limit has been reached. You can upgrade to PRO or switch to your own API.'
+      );
+    }
+
+    if (
+      lowerMessage.includes('not configured') ||
+      lowerMessage.includes('missing api') ||
+      lowerMessage.includes('missing required') ||
+      lowerMessage.includes('未配置')
+    ) {
+      return withDetails(
+        'aiErrorApiNotConfigured',
+        'The AI service is not fully configured yet. Please try again later or contact the administrator.'
+      );
+    }
+
+    if (
+      status === 401 ||
+      status === 403 ||
+      lowerMessage.includes('invalid api key') ||
+      lowerMessage.includes('unauthorized') ||
+      lowerMessage.includes('forbidden') ||
+      lowerMessage.includes('authentication') ||
+      lowerMessage.includes('permission denied') ||
+      lowerMessage.includes('鉴权') ||
+      lowerMessage.includes('认证失败')
+    ) {
+      return withDetails(
+        'aiErrorAuthFailed',
+        'AI service authentication failed. Please contact the administrator to check the API key.'
+      );
+    }
+
+    if (
+      lowerMessage.includes('model') && (
+        lowerMessage.includes('not found') ||
+        lowerMessage.includes('not exist') ||
+        lowerMessage.includes('invalid') ||
+        lowerMessage.includes('unavailable') ||
+        lowerMessage.includes('does not support')
+      )
+    ) {
+      return withDetails(
+        'aiErrorModelUnavailable',
+        'The current AI model is unavailable. Please try again later or contact the administrator to switch models.'
+      );
+    }
+
+    if (
+      status === 413 ||
+      lowerMessage.includes('context length') ||
+      lowerMessage.includes('maximum context') ||
+      lowerMessage.includes('token limit') ||
+      lowerMessage.includes('too many tokens') ||
+      lowerMessage.includes('payload too large') ||
+      lowerMessage.includes('content too long') ||
+      lowerMessage.includes('内容太长')
+    ) {
+      return withDetails(
+        'aiErrorContentTooLong',
+        'The content is too long for the AI to process at once. Please shorten it and try again.'
+      );
+    }
+
+    if (
+      status === 429 ||
+      lowerMessage.includes('rate limit') ||
+      lowerMessage.includes('too many requests') ||
+      lowerMessage.includes('请求太频繁')
+    ) {
+      return withDetails(
+        'aiErrorRateLimited',
+        'Too many requests were sent in a short time. Please try again later.'
+      );
+    }
+
+    if (
+      status === 408 ||
+      status === 500 ||
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      lowerMessage.includes('timeout') ||
+      lowerMessage.includes('temporarily unavailable') ||
+      lowerMessage.includes('service unavailable') ||
+      lowerMessage.includes('overloaded') ||
+      lowerMessage.includes('busy')
+    ) {
+      return withDetails(
+        'aiErrorServiceBusy',
+        'The AI service is temporarily busy. Please try again later.'
+      );
+    }
+
+    if (options.isNetworkError) {
+      return withDetails(
+        'aiErrorNetworkFailed',
+        'A network error occurred and the AI service could not be reached. Please check your connection and try again.'
+      );
+    }
+
+    return withDetails(
+      'aiErrorUnknown',
+      'AI generation failed. Please try again later. If the problem continues, contact the administrator.'
+    );
+  };
+
   try {
     const rawText = await response.text();
     const requestUrl = String(response?.url || '').trim();
@@ -935,7 +1076,7 @@ async function parseAgentErrorMessage(response) {
     };
 
     if (!rawText) {
-      return withAuthHint(fallback);
+      return withAuthHint(buildFriendlyAgentErrorMessage(response.status, fallback));
     }
 
     try {
@@ -947,15 +1088,15 @@ async function parseAgentErrorMessage(response) {
         ''
       ).trim();
       if (message) {
-        return withAuthHint(`HTTP ${response.status}: ${message}`);
+        return withAuthHint(buildFriendlyAgentErrorMessage(response.status, message));
       }
     } catch (_) {
       // ignore json parse errors and fall back to raw text
     }
 
-    return withAuthHint(`HTTP ${response.status}: ${rawText.trim()}`);
+    return withAuthHint(buildFriendlyAgentErrorMessage(response.status, rawText.trim()));
   } catch (_) {
-    return fallback;
+    return buildFriendlyAgentErrorMessage(response.status, fallback, { isNetworkError: true });
   }
 }
 
@@ -1842,9 +1983,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       
       // 标记为新用户（用于显示 pin 引导）
       await chrome.storage.local.set({ 
-        pinGuideShown: false 
+        pinGuideShown: false,
+        homepagePkStarterShown: false
       });
-      console.log('已标记为新用户（pinGuideShown: false）');
+      console.log('已标记为新用户（pinGuideShown: false, homepagePkStarterShown: false）');
       
       // 处理 favoriteSites 数据
       if (!favoriteSites || !favoriteSites.length) {

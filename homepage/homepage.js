@@ -23,6 +23,7 @@ const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
     navigator.platform || navigator.userAgentData?.platform || navigator.userAgent || ''
 );
 const HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY = 'homepageBatchFavorites';
+const HOMEPAGE_PK_STARTER_STORAGE_KEY = 'homepagePkStarterShown';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
@@ -120,6 +121,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
             homepageActiveBatchFavoriteId = '';
         }
         renderBatchModeFavorites();
+    }
+    if (namespace === 'local' && changes[HOMEPAGE_PK_STARTER_STORAGE_KEY]) {
+        void initializeHomepagePkStarterQuery();
     }
     if (namespace === 'local' && (changes._planCache || changes._planCacheAt || changes.firebase_uid)) {
         void initializeHomepageMembershipBanner();
@@ -227,6 +231,56 @@ function refreshHomepageDynamicI18n() {
     refreshBatchModeFavoriteNameI18n();
     renderBatchModeFavorites();
     renderSiteTypeTabs();
+}
+
+async function markHomepagePkStarterCompleted() {
+    try {
+        await chrome.storage.local.set({
+            [HOMEPAGE_PK_STARTER_STORAGE_KEY]: true
+        });
+    } catch (error) {
+        console.warn('Failed to persist homepage PK starter completion:', error);
+    }
+}
+
+async function initializeHomepagePkStarterQuery() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) {
+        return;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('query')) {
+        return;
+    }
+
+    if (String(searchInput.value || '').trim()) {
+        return;
+    }
+
+    try {
+        const stored = await chrome.storage.local.get([HOMEPAGE_PK_STARTER_STORAGE_KEY]);
+        if (stored?.[HOMEPAGE_PK_STARTER_STORAGE_KEY] !== false) {
+            return;
+        }
+    } catch (error) {
+        console.warn('Failed to read homepage PK starter state:', error);
+        return;
+    }
+
+    const starterQuery = t('homepagePkStarterQuery', '不比较不同AI的结果，只使用单一AI，会有什么风险？');
+    if (!starterQuery) {
+        return;
+    }
+
+    searchInput.value = starterQuery;
+    searchInput.dispatchEvent(new Event('input'));
+
+    try {
+        await showQuerySuggestions(starterQuery);
+    } catch (error) {
+        console.warn('Failed to show homepage PK starter suggestions:', error);
+    }
 }
 
 function openHomepageMembershipPage() {
@@ -1088,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeI18n();
     perfMark('i18n_init_end');
     perfMeasure('i18n_init_duration', 'i18n_init_start', 'i18n_init_end');
+    void initializeHomepagePkStarterQuery();
     void initializeHomepageMembershipBanner();
 
     // 初始化保存按钮，避免被异步站点列表初始化阻塞
@@ -2004,10 +2059,15 @@ async function handleQuery(query) {
         }
 
         if (selectionContext.hasRunnableIframePanels) {
+            if (processedQuery) {
+                void markHomepagePkStarterCompleted();
+            }
             window.location.href = buildHomepageIframeSearchUrl(processedQuery, {
                 selectionContext,
                 includeSidePanelParam: true
             });
+        } else if (processedQuery && (selectionContext.externalSiteNames.length > 0 || selectionContext.customExternalSiteIds.length > 0)) {
+            void markHomepagePkStarterCompleted();
         }
     } catch (error) {
         console.error('homepage 查询处理失败:', error);

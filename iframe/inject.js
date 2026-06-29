@@ -1357,39 +1357,6 @@ async function executeFocus(step) {
   const maxAttempts = step.maxAttempts || (step.waitForElement ? DEFAULT_STEP_MAX_ATTEMPTS : 1);
   const retryInterval = step.retryInterval || 200;
   let attempts = 0;
-
-  const canTreatFocusAsReady = (target) => {
-    if (!target) return false;
-    const activeElement = document.activeElement;
-    if (activeElement === target || target.contains?.(activeElement)) {
-      return true;
-    }
-
-    const isTextInputLike =
-      target.tagName === 'TEXTAREA' ||
-      target.tagName === 'INPUT' ||
-      target.isContentEditable === true ||
-      target.getAttribute?.('role') === 'textbox';
-
-    if (!isTextInputLike) {
-      return false;
-    }
-
-    const isDisabled =
-      target.disabled === true ||
-      target.getAttribute?.('aria-disabled') === 'true' ||
-      target.matches?.('[disabled], [aria-disabled="true"], .disabled, .is-disabled');
-
-    if (isDisabled) {
-      return false;
-    }
-
-    const rect = typeof target.getBoundingClientRect === 'function'
-      ? target.getBoundingClientRect()
-      : { width: 0, height: 0 };
-    const hasVisibleBox = rect.width > 0 || rect.height > 0;
-    return hasVisibleBox;
-  };
   
   const tryFocus = async () => {
     // 尝试查找元素
@@ -1406,20 +1373,7 @@ async function executeFocus(step) {
       element.focus();
       console.log('聚焦元素:', foundSelector);
       await new Promise(resolve => setTimeout(resolve, 30));
-      if (canTreatFocusAsReady(element)) {
-        if (document.activeElement !== element) {
-          console.warn('焦点未成为 activeElement，但元素已可继续输入，视为聚焦成功:', foundSelector);
-        }
-        return;
-      }
-      attempts++;
-      if (attempts < maxAttempts && (step.waitForElement || step.maxAttempts)) {
-        reportStepRetry(attempts, maxAttempts);
-        console.log(`焦点未生效，${retryInterval}ms后重试 (${attempts}/${maxAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, retryInterval));
-        return tryFocus();
-      }
-      throw createRetryExhaustedError(t('injectProgressErrorElementNotFound', '未找到元素'));
+      return;
     }
     
     // 元素未找到，如果允许重试则重试

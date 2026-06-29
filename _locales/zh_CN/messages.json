@@ -28,6 +28,9 @@
   "inputPlaceholder": {
     "message": "输入要搜索的内容"
   },
+  "homepagePkStarterQuery": {
+    "message": "不比较不同AI的结果，只使用单一AI，会有什么风险？"
+  },
   "fileUploadButtonTitle": {
     "message": "上传文件到所有AI站点"
   },
@@ -2724,7 +2727,7 @@
     "message": "倒计时结束后，自动总结所有回答"
   },
   "liveSummaryEmptyPromptManual": {
-    "message": "自动总结已关闭，点击“分析”手动总结所有回答"
+    "message": "自动总结已关闭。"
   },
   "liveSummaryNoDivergence": {
     "message": "当前各面板的关键观点基本一致。"
@@ -2989,5 +2992,38 @@
   },
   "languageOptionVi": {
     "message": "Tiếng Việt"
+  },
+  "aiErrorBalanceInsufficient": {
+    "message": "AI 服务余额不足，暂时无法生成结果。请联系管理员充值或更换 API Key。"
+  },
+  "aiErrorFreeQuotaExceeded": {
+    "message": "今天的免费 AI 使用次数已用完。你可以升级 PRO，或切换为自己的 API。"
+  },
+  "aiErrorApiNotConfigured": {
+    "message": "AI 服务暂未配置完成，请稍后再试或联系管理员。"
+  },
+  "aiErrorAuthFailed": {
+    "message": "AI 服务认证失败，请联系管理员检查 API Key。"
+  },
+  "aiErrorModelUnavailable": {
+    "message": "当前 AI 模型暂不可用，请稍后再试或联系管理员切换模型。"
+  },
+  "aiErrorContentTooLong": {
+    "message": "内容太长，AI 无法一次处理。请减少输入内容后重试。"
+  },
+  "aiErrorRateLimited": {
+    "message": "请求太频繁了，请稍后再试。"
+  },
+  "aiErrorServiceBusy": {
+    "message": "AI 服务暂时繁忙，请稍后重试。"
+  },
+  "aiErrorNetworkFailed": {
+    "message": "网络连接异常，暂时无法连接 AI 服务。请检查网络后重试。"
+  },
+  "aiErrorUnknown": {
+    "message": "AI 生成失败，请稍后重试。如果问题持续出现，请联系管理员。"
+  },
+  "aiErrorTechnicalDetails": {
+    "message": "技术详情"
   }
 }
