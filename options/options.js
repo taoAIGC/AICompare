@@ -482,14 +482,19 @@ async function refreshOfficialAgentEngineMeta() {
   const isPro = planInfo?.plan === 'pro';
   const dailyFreeLimit = getOfficialAgentEngineDailyFreeLimit();
   const billingEnabled = isOfficialAgentEngineBillingEnabledForCurrentLocale();
+  const dailyFreeLimitText = String(dailyFreeLimit);
   upgradeButton.dataset.plan = isPro ? 'pro' : 'free';
 
   officialMeta.textContent = isPro
     ? getMessageWithFallback('agentEngineOfficialMetaPro', 'Current plan: PRO')
     : (!billingEnabled
-      ? getMessageWithFallback('agentEngineOfficialMetaChineseFree', 'Official API is currently free in Chinese UI.')
+      ? (
+        getMessage('agentEngineOfficialMetaChineseFree', [dailyFreeLimitText])
+        || getMessage('agentEngineOfficialMetaFree', [dailyFreeLimitText])
+        || `Use the built-in API, free ${dailyFreeLimit} times per day.`
+      )
       : (
-      getMessage('agentEngineOfficialMetaFree', [String(dailyFreeLimit)])
+      getMessage('agentEngineOfficialMetaFree', [dailyFreeLimitText])
       || `Use the built-in API, free ${dailyFreeLimit} times per day.`
       )
     );

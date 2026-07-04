@@ -117,6 +117,62 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - Nano Banana / Flow must be validated in the real user Chrome profile because the root page first requires opening a new project before the prompt editor appears.
 - Nano Banana's prompt input is the Slate editor `div[role="textbox"][data-slate-editor="true"]`.
 
+## Selector Stability Rules
+
+- Treat selector stability as a first-class adaptation requirement. Do not choose a selector only because it works once in DevTools.
+- Prefer stable machine-facing attributes first:
+  `data-testid`, `data-test`, `data-qa`, stable business `data-*`, stable `id`, stable `name`.
+- Next prefer stable structural targeting:
+  a durable parent/container selector plus a control-type selector inside it, such as `textarea`, `input`, `button`, `[contenteditable="true"]`, or `[role="textbox"]`.
+- Next prefer semantic/state attributes:
+  `role`, `type`, `aria-label`, `aria-pressed`, `aria-checked`, `aria-disabled`, `autocomplete`, `accept`.
+- Use visible copy only as a fallback, not as the primary path:
+  `text:发送`, `text:深入研究`, placeholders, and similar user-facing strings are expected to drift.
+- Do not use hashed or obviously generated class names as the only primary selector unless no better contract exists and real-browser validation proved they are the most stable option available.
+- Do not use positional selectors such as `nth-child`, broad descendant chains, or page-wide unscoped selectors as the main path when a stable container or control attribute exists.
+- Every action selector should be written as a fallback chain when the site is non-trivial. Order the selector array from most stable to least stable, with copy-based selectors last.
+- `focus`, `setValue`, and `triggerEvents` for the same input must share the same selector family whenever possible. Do not maintain three unrelated locator strategies for the same control.
+- For editor inputs, identify the real editor type first:
+  native `textarea` / `input`, `contenteditable`, Slate, ProseMirror, Lexical, or a custom React editor. Match both the selector strategy and the write primitive to that editor type.
+- For send buttons, prefer stable button/container attributes and submit semantics over copy. Treat text labels as fallback only.
+- For toggles such as deep-research switches, prefer on-state selectors and stateful attributes over the button label text.
+- For answer extraction, prefer message-list containers, message rows, and assistant-content subtrees. Avoid page-wide text extraction when structured answer nodes exist.
+
+### Selector Stability Priority
+
+- `S` tier:
+  `data-testid`, stable `data-*`, stable `id`
+- `A` tier:
+  stable parent container + element type, stable `name`, stable `role`, stable submit semantics
+- `B` tier:
+  `aria-label`, `placeholder`, stable adjacent-icon/button regions, other secondary semantic attributes
+- `C` tier:
+  visible text, hashed classes, positional selectors, long DOM chains
+
+- Primary selectors should come from `S` or `A` tier whenever possible.
+- `B` tier may be used as fallback.
+- `C` tier should be fallback-only unless the real page exposes no more stable contract and that choice is documented in the evidence.
+
+### Action Verification Rules
+
+- A selector match alone is never a passing result.
+- `focus` passes only if the target really becomes active or the page enters the expected focused state.
+- `setValue` / `replace` passes only if the intended value is actually present in the editor after the write path completes.
+- `sendKeys` passes only if the key path is delivered to the intended editor and produces the expected page transition.
+- `click` passes only if the click causes the intended state change, such as button enablement change, URL transition, new message creation, or task/progress state.
+- `wait` should prefer waiting for a meaningful state transition rather than relying on fixed sleeps alone.
+- If the action succeeds only with a specific event replay sequence, record that event sequence explicitly instead of hiding the dependency behind retries.
+
+### New Site Selector Checklist
+
+- Identify the stable container before finalizing leaf selectors.
+- Record the real editor/widget type before choosing `inputType` or write behavior.
+- Build selector arrays from stable to unstable rather than storing one fragile selector.
+- Validate the exact action path in the real Chrome extension flow, not only on the standalone site page.
+- Verify behavior success after each critical action:
+  focus applied, value written, button enabled, query submitted, answer row created, final answer extractable.
+- If a text-based or placeholder-based selector is kept, document why stronger attributes were unavailable.
+
 ## New Site Flow Template
 
 - When adding a new site, first confirm whether the landing page is already the real workspace or only an entry page. If it is an entry page, record the required bootstrap clicks before the actual prompt editor appears.

@@ -214,7 +214,26 @@ function interpolateMessage(template, substitutions = []) {
 function refreshHomepageDynamicI18n() {
     const searchButton = document.getElementById('searchButton');
     if (searchButton) {
-        searchButton.textContent = t('startCompare', 'PK');
+        const compareLabel = t('startCompare', 'PK');
+        searchButton.textContent = compareLabel;
+        searchButton.title = compareLabel;
+        searchButton.setAttribute('aria-label', compareLabel);
+    }
+
+    const fileUploadButton = document.getElementById('fileUploadButton');
+    if (fileUploadButton) {
+        const fileUploadTitle = t('fileUploadButtonTitle', 'Upload file to all AI sites');
+        fileUploadButton.title = fileUploadTitle;
+        fileUploadButton.setAttribute('aria-label', fileUploadTitle);
+        fileUploadButton.setAttribute('data-tooltip', fileUploadTitle);
+    }
+
+    const batchModeButton = document.getElementById('batchModeButton');
+    if (batchModeButton) {
+        const batchModeTitle = t('homepageBatchModeButtonTitle', 'Batch mode');
+        batchModeButton.title = batchModeTitle;
+        batchModeButton.setAttribute('aria-label', batchModeTitle);
+        batchModeButton.setAttribute('data-tooltip', batchModeTitle);
     }
 
     const saveBtn = document.getElementById('saveSitesBtn');

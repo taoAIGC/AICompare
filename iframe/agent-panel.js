@@ -55,6 +55,45 @@
         return '';
     }
 
+    function isSafeUserFacingLinkUrl(rawUrl = '') {
+        const value = String(rawUrl || '').trim();
+        if (!value) return false;
+        if (/^https?:\/\//i.test(value)) return true;
+        if (/^chrome-extension:\/\//i.test(value)) {
+            try {
+                return new URL(value).origin === window.location.origin;
+            } catch (_) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    function renderUserFacingErrorHtml(message = '') {
+        const normalized = String(message || '').trim();
+        if (!normalized) {
+            return '';
+        }
+        const urlPattern = /(https?:\/\/[^\s<>"']+|chrome-extension:\/\/[^\s<>"']+)/g;
+        return normalized
+            .split(/\n{2,}/)
+            .map((paragraph) => {
+                const lines = paragraph.split('\n').map((line) => (
+                    escapeHtml(line).replace(urlPattern, (url) => {
+                        const safeUrl = String(url || '').replace(/[).,;:!?]+$/, '');
+                        const trailing = String(url || '').slice(safeUrl.length);
+                        if (!isSafeUserFacingLinkUrl(safeUrl)) {
+                            return `${escapeHtml(safeUrl)}${escapeHtml(trailing)}`;
+                        }
+                        const escapedUrl = escapeHtmlAttribute(safeUrl);
+                        return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(safeUrl)}</a>${escapeHtml(trailing)}`;
+                    })
+                ));
+                return `<p>${lines.join('<br>')}</p>`;
+            })
+            .join('');
+    }
+
     function renderInlineMarkdown(text) {
         const source = String(text ?? '');
         const codeTokens = [];
@@ -250,6 +289,9 @@
                 ? MarkdownRenderer.renderMarkdownToHtml
                 : renderMarkdownToHtml;
             return `<div class="agent-message-content agent-markdown">${renderMarkdown(content)}</div>`;
+        }
+        if (message.isError) {
+            return `<div class="agent-message-content">${renderUserFacingErrorHtml(content)}</div>`;
         }
         return `<div class="agent-message-content">${escapeHtml(content)}</div>`;
     }

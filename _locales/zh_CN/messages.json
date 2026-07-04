@@ -2993,6 +2993,9 @@
   "languageOptionVi": {
     "message": "Tiếng Việt"
   },
+  "aiErrorOfficialBalanceInsufficient": {
+    "message": "官网API 余额不足。建议您使用自定义API：$1"
+  },
   "aiErrorBalanceInsufficient": {
     "message": "AI 服务余额不足，暂时无法生成结果。请联系管理员充值或更换 API Key。"
   },

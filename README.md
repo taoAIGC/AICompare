@@ -495,7 +495,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-06-30 00:34:42 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-05 01:02:01 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `AGENTS.md`
@@ -555,27 +555,26 @@ Last auto-update / 最近自动更新：2026-06-30 00:34:42 UTC+08:00
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `background.js`
-- `A` `docs/.edge-store-translation-cache.json`
-- `A` `docs/edge-store-full-descriptions-structured.md`
-- `A` `docs/edge-store-full-descriptions-translated-failures.txt`
-- `A` `docs/edge-store-full-descriptions-translated-structured.md`
-- `A` `docs/edge-store-full-descriptions.md`
-- `A` `docs/edge-store-missing-descriptions.md`
-- `M` `docs/release-notes/history.md`
+- `M` `config/baseConfig.js`
+- `M` `config/siteHandlers.json`
+- `M` `docs/edge-store-full-descriptions-translated-structured.md`
+- `A` `docs/release-notes/latest.md`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
-- `M` `iframe/iframe.css`
+- `M` `iframe/agent-panel.js`
+- `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `manifest.json`
-- `A` `outputs/.~AI-Compare-BP.pptx`
-- `A` `outputs/AI-Compare-BP.pptx`
-- `A` `"outputs/AI\346\257\224\344\270\200\346\257\224\344\273\213\347\273\215260629.pdf"`
+- `M` `options/options.js`
+- `M` `tests/extraction-core.test.js`
 
 ### Recent commits / 最近提交
+- `8e007c4` 2026-06-30 V4.3.0 首次安装插件 具有默认的搜索词
 - `dd789ee` 2026-06-24 V4.2.9 自动总结增加开关，修复豆包站点
 - `b1831f6` 2026-06-24 V 4.2.8 补充多语言包
 - `a191a52` 2026-06-23 V4.2.7 修复API调用
 - `0ed1a9c` 2026-06-12 V4.2.6 修复DeepSeek、优化部分体验
-- `b3ebeba` 2026-06-09 V4.2.5 修复划词搜索 API 调用转移到云端
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

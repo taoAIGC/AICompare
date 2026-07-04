@@ -1,8 +1,6 @@
 {
-  "version": "1.2.7",
-  "lastUpdated": "2026-05-04T13:56:47.698Z",
-  "description": "支持重试功能",
-  "author": "AIShortcuts",
+  "version": "1.2.8",
+  "lastUpdated": "2026-07-04T13:56:47.698Z",
   "sites": [
     {
       "name": "ChatGPT",
@@ -378,7 +376,7 @@
     {
       "name": "Grok",
       "url": "https://grok.com/",
-      "enabled": true,
+      "enabled": false,
       "supportUrlQuery": false,
       "region": "US",
       "hidden": false,
@@ -572,7 +570,7 @@
     {
       "name": "Claude",
       "url": "https://claude.ai/chat",
-      "enabled": false,
+      "enabled": true,
       "supportUrlQuery": false,
       "region": "US",
       "hidden": false,
@@ -1136,11 +1134,14 @@
           {
             "action": "focus",
             "selector": [
-              "textarea[placeholder=\"发消息...\"]",
+              ".semi-input-textarea-wrapper > textarea.semi-input-textarea",
+              "textarea.semi-input-textarea.semi-input-textarea-autosize",
               "textarea[data-testid=\"chat_input_input\"]",
-              "[role=\"textbox\"]",
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[placeholder*=\"发消息\"]",
               "textarea[placeholder=\"输入主题和报告要求\"]",
-              ".message-input-textarea-separation"
+              ".message-input-textarea-separation",
+              "[role=\"textbox\"]"
             ],
             "description": "聚焦豆包输入框",
             "waitForElement": true,
@@ -1150,11 +1151,14 @@
           {
             "action": "setValue",
             "selector": [
-              "textarea[placeholder=\"发消息...\"]",
+              ".semi-input-textarea-wrapper > textarea.semi-input-textarea",
+              "textarea.semi-input-textarea.semi-input-textarea-autosize",
               "textarea[data-testid=\"chat_input_input\"]",
-              "[role=\"textbox\"]",
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[placeholder*=\"发消息\"]",
               "textarea[placeholder=\"输入主题和报告要求\"]",
-              ".message-input-textarea-separation"
+              ".message-input-textarea-separation",
+              "[role=\"textbox\"]"
             ],
             "description": "设置豆包输入框的值",
             "waitForElement": true,
@@ -1164,11 +1168,14 @@
           {
             "action": "triggerEvents",
             "selector": [
-              "textarea[placeholder=\"发消息...\"]",
+              ".semi-input-textarea-wrapper > textarea.semi-input-textarea",
+              "textarea.semi-input-textarea.semi-input-textarea-autosize",
               "textarea[data-testid=\"chat_input_input\"]",
-              "[role=\"textbox\"]",
+              "textarea[placeholder=\"发消息...\"]",
+              "textarea[placeholder*=\"发消息\"]",
               "textarea[placeholder=\"输入主题和报告要求\"]",
-              ".message-input-textarea-separation"
+              ".message-input-textarea-separation",
+              "[role=\"textbox\"]"
             ],
             "events": [
               "beforeinput",
@@ -1192,6 +1199,8 @@
             "action": "click",
             "selector": [
               "#flow-end-msg-send",
+              ".send-btn-wrapper > button#flow-end-msg-send",
+              ".send-btn-wrapper > button",
               ".message-input-right-button-send button",
               ".message-input-right-button-send [role=\"button\"]",
               ".message-input-right-button-send .omni-button-content-btn",
@@ -1201,7 +1210,7 @@
             ],
             "required": true,
             "condition": {
-              "selector": "textarea[placeholder=\"发消息...\"], textarea[data-testid=\"chat_input_input\"], textarea[placeholder=\"输入主题和报告要求\"], .message-input-textarea-separation, [role=\"textbox\"]"
+              "selector": ".semi-input-textarea-wrapper > textarea.semi-input-textarea, textarea.semi-input-textarea.semi-input-textarea-autosize, textarea[data-testid=\"chat_input_input\"], textarea[placeholder=\"发消息...\"], textarea[placeholder*=\"发消息\"], textarea[placeholder=\"输入主题和报告要求\"], .message-input-textarea-separation, [role=\"textbox\"]"
             },
             "retryOnDisabled": true,
             "waitForElement": true,
@@ -1216,8 +1225,11 @@
           {
             "action": "focus",
             "selector": [
+              ".semi-input-textarea-wrapper > textarea.semi-input-textarea",
+              "textarea.semi-input-textarea.semi-input-textarea-autosize",
+              "textarea[data-testid=\"chat_input_input\"]",
               "textarea[placeholder=\"发消息...\"]",
-              "textarea[data-testid=\"chat_input_input\"]"
+              "textarea[placeholder*=\"发消息\"]"
             ],
             "description": "聚焦豆包输入框准备文件粘贴",
             "waitForElement": true,
@@ -1239,12 +1251,15 @@
       },
       "deepResearchHandler": {
         "enabledSelectors": [
-          "div[data-slate-editor=\"true\"][role=\"textbox\"]"
+          "[role=\"textbox\"][data-slate-editor=\"true\"][aria-multiline=\"true\"]",
+          "div[data-slate-editor=\"true\"][data-slate-node=\"value\"][contenteditable=\"true\"][role=\"textbox\"]"
         ],
         "steps": [
           {
             "action": "click",
             "selector": [
+              "button[data-component-type=\"skill-item\"][data-input-engine-action-source=\"actionbar\"][data-skill-id=\"skill_bar_button_25\"]",
+              "button[data-skill-id=\"skill_bar_button_25\"]",
               "text:深入研究",
               "text:Deep Research"
             ],
@@ -1254,7 +1269,7 @@
       },
       "contentExtractor": {
         "latestVisibleResponse": {
-          "messageSelector": ".message-list-zLoNs1 [data-message-id] .container-enLQFx, .message-list-zLoNs1 [data-message-id] .container-qX9Csx, .message-list-zLoNs1 [data-message-id] .container-h3Yzeb",
+          "messageSelector": ".message-list-zLoNs1 [data-message-id].relative.grid [data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"] [data-streaming=\"false\"], .message-list-zLoNs1 [data-message-id].relative.grid [data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"] .container-enLQFx, .message-list-zLoNs1 [data-message-id].relative.grid [data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"] .container-qX9Csx, .message-list-zLoNs1 [data-message-id].relative.grid [data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"] .container-h3Yzeb",
           "ignoredAncestorSelectors": [
             "[class*=\"suggest-message\"]",
             "[class*=\"copy\"]",
@@ -1269,12 +1284,16 @@
         "containerSelector": ".message-list-zLoNs1",
         "messageContainer": ".message-list-zLoNs1 [data-message-id]",
         "contentSelectors": [
+          "[data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"] [data-streaming=\"false\"]",
+          "[data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"]",
           ".container-enLQFx",
           ".container-fBOrXO",
           ".container-qX9Csx",
           ".container-h3Yzeb"
         ],
         "fallbackSelectors": [
+          ".message-list-zLoNs1 [data-message-id].relative.grid [data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"] [data-streaming=\"false\"]",
+          ".message-list-zLoNs1 [data-message-id].relative.grid [data-container-type=\"block-v2\"] [data-plugin-identifier][data-render-engine=\"node\"]",
           ".message-list-zLoNs1 [data-message-id] .container-enLQFx",
           ".message-list-zLoNs1 [data-message-id] .container-qX9Csx",
           ".message-list-zLoNs1 [data-message-id] .container-fBOrXO",
@@ -1288,7 +1307,9 @@
           ".menu",
           "button",
           "textarea",
+          "[role=\"textbox\"]",
           "[placeholder=\"发消息...\"]",
+          "[placeholder*=\"发消息\"]",
           ".copy-button",
           "[class*=\"copy\"]",
           ".regenerate-button",
@@ -1300,7 +1321,7 @@
           "[data-testid*=\"input\"]",
           "[data-testid*=\"send\"]"
         ],
-        "userMessageSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], .message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end) .flex.max-w-full.flex-col.gap-8, .message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end) .w-full.inner-item-BjaxFt",
+        "userMessageSelector": ".message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end [data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, .message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], .message-list-zLoNs1 .v_list_row:has([data-message-id].flex-row.flex.w-full.justify-end) [data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, .message-list-zLoNs1 .v_list_row:has([data-message-id].flex-row.flex.w-full.justify-end) [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], .message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end) .flex.max-w-full.flex-col.gap-8, .message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end) .w-full.inner-item-BjaxFt",
         "exportLatestOnly": true
       },
       "openclawRuntime": {
@@ -1328,12 +1349,12 @@
       },
       "userPrompt": {
         "containerSelector": [
-          "[data-message-id] [data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap",
-          "[data-message-id] [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"]",
+          ".message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end",
+          ".message-list-zLoNs1 .v_list_row:has([data-message-id].flex-row.flex.w-full.justify-end)",
           ".message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)"
         ],
         "textSelector": "[data-plugin-identifier=\"block_type:10000\"] .whitespace-pre-wrap, [data-plugin-identifier*=\"send-message-box\"] [data-testid=\"message_text_content\"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt",
-        "messageNodeSelector": "[data-message-id], .v_list_row",
+        "messageNodeSelector": "[data-message-id].flex-row.flex.w-full.justify-end, [data-message-id], .v_list_row",
         "requireMessageNode": true
       },
       "icon": "doubao.com.png",

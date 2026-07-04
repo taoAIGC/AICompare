@@ -2998,6 +2998,9 @@
   "languageOptionVi": {
     "message": "Tiếng Việt"
   },
+  "aiErrorOfficialBalanceInsufficient": {
+    "message": "官網 API 餘額不足。建議您使用自訂 API：$1"
+  },
   "aiErrorBalanceInsufficient": {
     "message": "AI 服務餘額不足，暫時無法產生結果。請聯絡管理員儲值或更換 API Key。"
   },

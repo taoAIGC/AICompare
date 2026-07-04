@@ -63,6 +63,8 @@ const ACTIVE_SEARCH_MONITOR_INTERVAL_MS = 1500;
 const ACTIVE_SEARCH_MONITOR_SETTLE_MS = 400;
 const ACTIVE_SEARCH_MONITOR_TIMEOUT_MS = 60000;
 const ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS = 2;
+const ACTIVE_SEARCH_CONTEXT_STORAGE_KEY = '__aiCompareActiveSearchContext';
+const ACTIVE_SEARCH_CONTEXT_MAX_AGE_MS = ACTIVE_SEARCH_MONITOR_TIMEOUT_MS + 30000;
 
 function t(key, fallback = '', substitutions = undefined) {
   try {
@@ -307,12 +309,65 @@ function buildSearchContentComparable(text) {
   return cleanExtractedText(String(text || '').replace(/\u200B/g, '')).replace(/\s+/g, ' ').trim();
 }
 
+function persistActiveSearchContext(context) {
+  try {
+    if (!context?.siteName || !context?.query || !context?.searchId) return;
+    sessionStorage.setItem(ACTIVE_SEARCH_CONTEXT_STORAGE_KEY, JSON.stringify({
+      siteName: String(context.siteName || '').trim(),
+      query: String(context.query || '').trim(),
+      searchId: String(context.searchId || '').trim(),
+      storedAt: Date.now()
+    }));
+  } catch (_) {
+    // ignore
+  }
+}
+
+function readPersistedActiveSearchContext() {
+  try {
+    const raw = sessionStorage.getItem(ACTIVE_SEARCH_CONTEXT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const siteName = String(parsed?.siteName || '').trim();
+    const query = String(parsed?.query || '').trim();
+    const searchId = String(parsed?.searchId || '').trim();
+    const storedAt = Number(parsed?.storedAt) || 0;
+
+    if (!siteName || !query || !searchId || !storedAt) {
+      sessionStorage.removeItem(ACTIVE_SEARCH_CONTEXT_STORAGE_KEY);
+      return null;
+    }
+
+    if (Date.now() - storedAt > ACTIVE_SEARCH_CONTEXT_MAX_AGE_MS) {
+      sessionStorage.removeItem(ACTIVE_SEARCH_CONTEXT_STORAGE_KEY);
+      return null;
+    }
+
+    return { siteName, query, searchId, storedAt };
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearPersistedActiveSearchContext(expectedSearchId = '') {
+  try {
+    const current = readPersistedActiveSearchContext();
+    if (expectedSearchId && current?.searchId && current.searchId !== expectedSearchId) {
+      return;
+    }
+    sessionStorage.removeItem(ACTIVE_SEARCH_CONTEXT_STORAGE_KEY);
+  } catch (_) {
+    // ignore
+  }
+}
+
 function waitForMs(duration) {
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(duration) || 0)));
 }
 
 function stopActiveSearchMonitor(reason = 'replaced') {
   if (!__activeSearchMonitor) return;
+  const stoppedSearchId = __activeSearchMonitor.searchId || '';
   if (__activeSearchMonitor.mutationObserver) {
     __activeSearchMonitor.mutationObserver.disconnect();
   }
@@ -325,6 +380,9 @@ function stopActiveSearchMonitor(reason = 'replaced') {
   __activeSearchMonitor.stopped = true;
   __activeSearchMonitor.stopReason = reason;
   __activeSearchMonitor = null;
+  if (['ready', 'error', 'timeout'].includes(String(reason || ''))) {
+    clearPersistedActiveSearchContext(stoppedSearchId);
+  }
 }
 
 async function resolveCurrentPageUrl(preferredSiteName = null) {
@@ -741,6 +799,11 @@ function startActiveSearchMonitor(siteName, query, searchId) {
   };
 
   __activeSearchMonitor = monitor;
+  persistActiveSearchContext({
+    siteName: monitor.siteName,
+    query: monitor.query,
+    searchId: monitor.searchId
+  });
   postMonitorRuntimeUpdate(monitor, {
     phase: 'submitted',
     force: true
@@ -767,6 +830,33 @@ function startActiveSearchMonitor(siteName, query, searchId) {
   scheduleActiveSearchMonitor(monitor, ACTIVE_SEARCH_MONITOR_SETTLE_MS);
   return monitor;
 }
+
+function resumePersistedActiveSearchMonitorIfNeeded() {
+  if (!isRunningInExtensionIframe() || __activeSearchMonitor) {
+    return;
+  }
+
+  const context = readPersistedActiveSearchContext();
+  if (!context) {
+    return;
+  }
+
+  const resume = () => {
+    if (__activeSearchMonitor) return;
+    startActiveSearchMonitor(context.siteName, context.query, context.searchId);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(resume, 600);
+    }, { once: true });
+    return;
+  }
+
+  setTimeout(resume, 600);
+}
+
+resumePersistedActiveSearchMonitorIfNeeded();
 
 function createRetryExhaustedError(message) {
   const error = new Error(message);

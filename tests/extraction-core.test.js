@@ -578,6 +578,66 @@ test('collectTimelinePromptRecords supports Doubao virtual list user rows', asyn
   const promptTextNode = createElement(doc, '你好世界');
   promptTextNode.__order = 1;
 
+  const directUserRow = createElement(doc, '');
+  directUserRow.__order = 1;
+  directUserRow.querySelector = (selector) => {
+    if (selector === '[data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap, [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt') {
+      return promptTextNode;
+    }
+    return null;
+  };
+  directUserRow.closest = (selector) => {
+    if (selector === '[data-message-id].flex-row.flex.w-full.justify-end, [data-message-id], .v_list_row') {
+      return directUserRow;
+    }
+    return null;
+  };
+
+  const virtualUserRow = createElement(doc, '');
+  virtualUserRow.__order = 1;
+  virtualUserRow.querySelector = directUserRow.querySelector;
+  virtualUserRow.closest = directUserRow.closest;
+
+  selectorMap.set(
+    '.message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end',
+    [directUserRow]
+  );
+  selectorMap.set(
+    '.message-list-zLoNs1 .v_list_row:has([data-message-id].flex-row.flex.w-full.justify-end)',
+    [virtualUserRow]
+  );
+  selectorMap.set(
+    '.message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)',
+    [virtualUserRow]
+  );
+
+  const extraction = loadExtractionCore(doc);
+  const promptRecords = extraction.collectTimelinePromptRecords(doc, {
+    userPrompt: {
+      containerSelector: [
+        '.message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end',
+        '.message-list-zLoNs1 .v_list_row:has([data-message-id].flex-row.flex.w-full.justify-end)',
+        '.message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)'
+      ],
+      textSelector: '[data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap, [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt',
+      messageNodeSelector: '[data-message-id].flex-row.flex.w-full.justify-end, [data-message-id], .v_list_row',
+      requireMessageNode: true
+    }
+  });
+
+  assert.equal(promptRecords.length, 1);
+  assert.equal(promptRecords[0].text, '你好世界');
+});
+
+test('collectTimelinePromptRecords does not treat Doubao assistant rows as prompts when block_type matches', async () => {
+  const selectorMap = new Map();
+  const doc = createDocument(selectorMap);
+
+  const promptTextNode = createElement(doc, '用户提问');
+  promptTextNode.__order = 1;
+  const assistantTextNode = createElement(doc, '助手回答');
+  assistantTextNode.__order = 2;
+
   const userRow = createElement(doc, '');
   userRow.__order = 1;
   userRow.querySelector = (selector) => {
@@ -587,33 +647,40 @@ test('collectTimelinePromptRecords supports Doubao virtual list user rows', asyn
     return null;
   };
   userRow.closest = (selector) => {
-    if (selector === '[data-message-id], .v_list_row') {
+    if (selector === '[data-message-id].flex-row.flex.w-full.justify-end, [data-message-id], .v_list_row') {
       return userRow;
     }
     return null;
   };
 
+  const assistantRow = createElement(doc, '');
+  assistantRow.__order = 2;
+  assistantRow.querySelector = () => assistantTextNode;
+  assistantRow.closest = () => assistantRow;
+
   selectorMap.set(
-    '.message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)',
+    '.message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end',
     [userRow]
+  );
+  selectorMap.set(
+    '[data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap',
+    [promptTextNode, assistantTextNode]
   );
 
   const extraction = loadExtractionCore(doc);
   const promptRecords = extraction.collectTimelinePromptRecords(doc, {
     userPrompt: {
       containerSelector: [
-        '[data-message-id] [data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap',
-        '[data-message-id] [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"]',
-        '.message-list-zLoNs1 .v_list_row:has(.flex-row.flex.w-full.justify-end)'
+        '.message-list-zLoNs1 [data-message-id].flex-row.flex.w-full.justify-end'
       ],
       textSelector: '[data-plugin-identifier="block_type:10000"] .whitespace-pre-wrap, [data-plugin-identifier*="send-message-box"] [data-testid="message_text_content"], .flex-row.flex.w-full.justify-end .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt .flex.max-w-full.flex-col.gap-8, .w-full.inner-item-BjaxFt',
-      messageNodeSelector: '[data-message-id], .v_list_row',
+      messageNodeSelector: '[data-message-id].flex-row.flex.w-full.justify-end, [data-message-id], .v_list_row',
       requireMessageNode: true
     }
   });
 
   assert.equal(promptRecords.length, 1);
-  assert.equal(promptRecords[0].text, '你好世界');
+  assert.equal(promptRecords[0].text, '用户提问');
 });
 
 test('collectTimelinePromptRecords ignores DeepSeek status chips that are not inside user message nodes', async () => {

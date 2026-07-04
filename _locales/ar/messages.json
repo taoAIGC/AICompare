@@ -2998,6 +2998,9 @@
   "liveSummaryCollectingManual": {
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
+  "aiErrorOfficialBalanceInsufficient": {
+    "message": "رصيد واجهة API الرسمية غير كافٍ. نوصي باستخدام واجهة API مخصصة: $1"
+  },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },

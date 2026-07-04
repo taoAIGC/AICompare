@@ -372,9 +372,13 @@ async function hydrateBundledSiteConfigIfNeeded() {
   const versionComparison = compareVersions(localVersion, cachedVersion);
   const cacheLooksRemoteManaged = siteConfigSource === 'remote' || Boolean(lastUpdateTime);
   const bundledDiffersFromCache = JSON.stringify(localSites) !== JSON.stringify(cachedSites);
+  const shouldForceBundledInDev =
+    ExtensionEnvironment.isDevelopmentExtension() &&
+    bundledDiffersFromCache;
   const shouldRefreshFromBundled =
     cachedSites.length === 0
     || versionComparison > 0
+    || shouldForceBundledInDev
     || (versionComparison === 0 && !cacheLooksRemoteManaged && bundledDiffersFromCache);
 
   if (shouldRefreshFromBundled) {

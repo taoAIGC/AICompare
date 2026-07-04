@@ -2998,6 +2998,9 @@
   "liveSummaryCollectingManual": {
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
+  "aiErrorOfficialBalanceInsufficient": {
+    "message": "공식 API 잔액이 부족합니다. 사용자 지정 API를 사용하는 것을 권장합니다: $1"
+  },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },

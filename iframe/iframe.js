@@ -2191,6 +2191,45 @@ function escapeLiveSummaryHtml(text = '') {
     .replace(/'/g, '&#39;');
 }
 
+function isSafeUserFacingLinkUrl(rawUrl = '') {
+  const value = String(rawUrl || '').trim();
+  if (!value) return false;
+  if (/^https?:\/\//i.test(value)) return true;
+  if (/^chrome-extension:\/\//i.test(value)) {
+    try {
+      return new URL(value).origin === window.location.origin;
+    } catch (_) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function renderUserFacingErrorHtml(message = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  const urlPattern = /(https?:\/\/[^\s<>"']+|chrome-extension:\/\/[^\s<>"']+)/g;
+  return normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => {
+      const lines = paragraph.split('\n').map((line) => (
+        escapeLiveSummaryHtml(line).replace(urlPattern, (url) => {
+          const safeUrl = String(url || '').replace(/[).,;:!?]+$/, '');
+          const trailing = String(url || '').slice(safeUrl.length);
+          if (!isSafeUserFacingLinkUrl(safeUrl)) {
+            return `${escapeLiveSummaryHtml(safeUrl)}${escapeLiveSummaryHtml(trailing)}`;
+          }
+          const escapedUrl = escapeLiveSummaryHtml(safeUrl);
+          return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapedUrl}</a>${escapeLiveSummaryHtml(trailing)}`;
+        })
+      ));
+      return `<p>${lines.join('<br>')}</p>`;
+    })
+    .join('');
+}
+
 function renderLiveSummaryEmptyStateHtml(options = {}) {
   const promptText = String(
     options.promptText || (
@@ -2224,8 +2263,10 @@ function renderLiveSummaryContentHtml(summaryText = '', summaryError = '', optio
     if (!normalizedError && options.showEmptyAction) {
       return renderLiveSummaryEmptyStateHtml(options);
     }
-    const fallbackText = normalizedError || t('liveSummaryEmpty', '暂无可展示的总结。');
-    return `<p>${escapeLiveSummaryHtml(fallbackText)}</p>`;
+    if (normalizedError) {
+      return renderUserFacingErrorHtml(normalizedError);
+    }
+    return `<p>${escapeLiveSummaryHtml(t('liveSummaryEmpty', '暂无可展示的总结。'))}</p>`;
   }
 
   if (typeof MarkdownRenderer.renderMarkdownToHtml === 'function') {

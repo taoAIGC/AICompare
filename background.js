@@ -18,6 +18,15 @@ const AgentCatalog = self.AICompareAgentCatalog || {};
 const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
 const UI_LANGUAGE_STORAGE_KEY = 'uiLanguage';
+const UI_LANGUAGE_AUTO_VALUE = 'auto';
+const UI_LANGUAGE_DEFAULT_LOCALE = 'en';
+const UI_LANGUAGE_LOCALE_DIRS = [
+  'ar', 'am', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'en_AU',
+  'en_GB', 'en_US', 'es', 'es_419', 'et', 'fa', 'fi', 'fil', 'fr', 'gu',
+  'he', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml',
+  'mr', 'ms', 'nl', 'no', 'pl', 'pt_BR', 'pt_PT', 'ro', 'ru', 'sk', 'sl',
+  'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh_CN', 'zh_TW'
+];
 const AGENT_ENGINE_STORAGE_KEY = 'agentEngineConfig';
 const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
@@ -61,6 +70,7 @@ const agentRuntimeState = {
   keepalivePorts: new Map(),
   keepaliveTimers: new Map()
 };
+const runtimeI18nMessagesCache = new Map();
 
 function getBrowserUiLocale() {
   try {
@@ -97,6 +107,111 @@ function t(key, fallback = '', substitutions = undefined) {
   } catch (_) {
     return fallback;
   }
+}
+
+function normalizeRuntimeLocale(locale = '') {
+  const value = String(locale || '').trim().replace('-', '_');
+  if (!value) return '';
+  const lower = value.toLowerCase();
+  if (lower === 'auto') return UI_LANGUAGE_AUTO_VALUE;
+  if (lower === 'zh_cn' || lower === 'zh_hans') return 'zh_CN';
+  if (lower === 'zh_tw' || lower === 'zh_hk' || lower === 'zh_mo' || lower === 'zh_hant') return 'zh_TW';
+  if (lower === 'pt_br') return 'pt_BR';
+  const [lang, region] = value.split('_');
+  if (!region) return lang.toLowerCase();
+  return `${lang.toLowerCase()}_${region.toUpperCase()}`;
+}
+
+function getRuntimeLocaleChain(locale = '') {
+  const normalized = normalizeRuntimeLocale(locale) || UI_LANGUAGE_DEFAULT_LOCALE;
+  const chain = [normalized];
+  if (normalized.includes('_')) {
+    const base = normalized.split('_')[0];
+    if (base && !chain.includes(base)) {
+      chain.push(base);
+    }
+  }
+  if (!chain.includes(UI_LANGUAGE_DEFAULT_LOCALE)) {
+    chain.push(UI_LANGUAGE_DEFAULT_LOCALE);
+  }
+  return chain.filter((token, index, list) => token && list.indexOf(token) === index);
+}
+
+function getRuntimeLocaleDirCandidates(locale = '') {
+  const normalized = normalizeRuntimeLocale(locale);
+  const candidates = [];
+  if (!normalized) return candidates;
+  if (UI_LANGUAGE_LOCALE_DIRS.includes(normalized)) candidates.push(normalized);
+  if (normalized === 'zh') candidates.push('zh_CN');
+  if (normalized.includes('_')) {
+    const base = normalized.split('_')[0];
+    if (UI_LANGUAGE_LOCALE_DIRS.includes(base)) candidates.push(base);
+    if (base === 'zh') candidates.push('zh_CN');
+  }
+  return candidates.filter((token, index, list) => token && list.indexOf(token) === index);
+}
+
+async function getRuntimeI18nLocale() {
+  let requestedLocale = UI_LANGUAGE_AUTO_VALUE;
+  try {
+    const stored = await chrome.storage.sync.get(UI_LANGUAGE_STORAGE_KEY);
+    requestedLocale = normalizeRuntimeLocale(stored?.[UI_LANGUAGE_STORAGE_KEY]) || UI_LANGUAGE_AUTO_VALUE;
+  } catch (_) {
+    requestedLocale = UI_LANGUAGE_AUTO_VALUE;
+  }
+  if (requestedLocale && requestedLocale !== UI_LANGUAGE_AUTO_VALUE) {
+    return requestedLocale;
+  }
+  return normalizeRuntimeLocale(getBrowserUiLocale()) || UI_LANGUAGE_DEFAULT_LOCALE;
+}
+
+async function getRuntimeI18nMessages(locale = '') {
+  const cacheKey = normalizeRuntimeLocale(locale) || UI_LANGUAGE_DEFAULT_LOCALE;
+  if (runtimeI18nMessagesCache.has(cacheKey)) {
+    return runtimeI18nMessagesCache.get(cacheKey);
+  }
+
+  const merged = {};
+  const dirs = [];
+  getRuntimeLocaleChain(cacheKey).forEach((token) => {
+    getRuntimeLocaleDirCandidates(token).forEach((dir) => {
+      if (!dirs.includes(dir)) {
+        dirs.push(dir);
+      }
+    });
+  });
+
+  for (let index = dirs.length - 1; index >= 0; index -= 1) {
+    const dir = dirs[index];
+    try {
+      const response = await fetch(chrome.runtime.getURL(`_locales/${dir}/messages.json`));
+      if (!response.ok) continue;
+      Object.assign(merged, await response.json());
+    } catch (_) {}
+  }
+  runtimeI18nMessagesCache.set(cacheKey, merged);
+  return merged;
+}
+
+function substituteRuntimeMessage(template = '', substitutions = undefined) {
+  const values = Array.isArray(substitutions)
+    ? substitutions
+    : (substitutions === undefined || substitutions === null ? [] : [substitutions]);
+  return values.reduce((result, value, index) => (
+    result.replaceAll(`$${index + 1}`, String(value))
+  ), String(template || ''));
+}
+
+async function getRuntimeI18nTranslator() {
+  const locale = await getRuntimeI18nLocale();
+  const messages = await getRuntimeI18nMessages(locale);
+  return (key, fallback = '', substitutions = undefined) => {
+    const runtimeMessage = String(messages?.[key]?.message || '').trim();
+    if (runtimeMessage) {
+      return substituteRuntimeMessage(runtimeMessage, substitutions);
+    }
+    return t(key, fallback, substitutions);
+  };
 }
 
 function getExtensionActionIconPaths() {
@@ -922,6 +1037,14 @@ async function streamStandaloneAnalysis(port, payload = {}, requestId = '') {
 
 async function parseAgentErrorMessage(response) {
   const fallback = `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
+  const rt = await getRuntimeI18nTranslator();
+  const customApiSettingsUrl = (() => {
+    try {
+      return chrome.runtime.getURL('options/options.html#agent-engine');
+    } catch (_) {
+      return 'options/options.html#agent-engine';
+    }
+  })();
 
   const buildFriendlyAgentErrorMessage = (status, rawMessage = '', options = {}) => {
     const normalizedMessage = String(rawMessage || '').trim();
@@ -929,11 +1052,14 @@ async function parseAgentErrorMessage(response) {
     const technicalDetail = normalizedMessage
       ? `HTTP ${status}: ${normalizedMessage}`
       : `HTTP ${status || 'unknown'}: ${response.statusText || 'Request failed'}`;
-    const withDetails = (key, fallbackMessage) => {
-      const userMessage = t(key, fallbackMessage);
-      const detailsLabel = t('aiErrorTechnicalDetails', 'Technical details');
+    const withDetails = (key, fallbackMessage, substitutions = undefined) => {
+      const userMessage = rt(key, fallbackMessage, substitutions);
+      const detailsLabel = rt('aiErrorTechnicalDetails', 'Technical details');
       return `${userMessage}\n${detailsLabel}: ${technicalDetail}`;
     };
+    const withoutDetails = (key, fallbackMessage, substitutions = undefined) => (
+      rt(key, fallbackMessage, substitutions)
+    );
 
     if (
       status === 402 ||
@@ -943,6 +1069,13 @@ async function parseAgentErrorMessage(response) {
       lowerMessage.includes('insufficient quota') ||
       lowerMessage.includes('余额不足')
     ) {
+      if (options.isOfficialAgentApi) {
+        return withoutDetails(
+          'aiErrorOfficialBalanceInsufficient',
+          'The official API balance is insufficient. We recommend using a custom API: $1',
+          [customApiSettingsUrl]
+        );
+      }
       return withDetails(
         'aiErrorBalanceInsufficient',
         'The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key.'
@@ -1067,6 +1200,7 @@ async function parseAgentErrorMessage(response) {
   try {
     const rawText = await response.text();
     const requestUrl = String(response?.url || '').trim();
+    const isOfficialAgentApi = /\/officialAgentChat(?:\?|$)/i.test(requestUrl);
     const isHermesLocalApi = /:\/\/(?:localhost|127\.0\.0\.1):8642\/v1\//i.test(requestUrl);
     const withAuthHint = (baseMessage) => {
       if (!isHermesLocalApi || (response.status !== 401 && response.status !== 403)) {
@@ -1076,7 +1210,7 @@ async function parseAgentErrorMessage(response) {
     };
 
     if (!rawText) {
-      return withAuthHint(buildFriendlyAgentErrorMessage(response.status, fallback));
+      return withAuthHint(buildFriendlyAgentErrorMessage(response.status, fallback, { isOfficialAgentApi }));
     }
 
     try {
@@ -1088,15 +1222,19 @@ async function parseAgentErrorMessage(response) {
         ''
       ).trim();
       if (message) {
-        return withAuthHint(buildFriendlyAgentErrorMessage(response.status, message));
+        return withAuthHint(buildFriendlyAgentErrorMessage(response.status, message, { isOfficialAgentApi }));
       }
     } catch (_) {
       // ignore json parse errors and fall back to raw text
     }
 
-    return withAuthHint(buildFriendlyAgentErrorMessage(response.status, rawText.trim()));
+    return withAuthHint(buildFriendlyAgentErrorMessage(response.status, rawText.trim(), { isOfficialAgentApi }));
   } catch (_) {
-    return buildFriendlyAgentErrorMessage(response.status, fallback, { isNetworkError: true });
+    const requestUrl = String(response?.url || '').trim();
+    return buildFriendlyAgentErrorMessage(response.status, fallback, {
+      isNetworkError: true,
+      isOfficialAgentApi: /\/officialAgentChat(?:\?|$)/i.test(requestUrl)
+    });
   }
 }
 
@@ -2982,6 +3120,9 @@ async function createContextMenu() {
 
 // 监听存储变化，当配置更改时更新右键菜单
 chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && Object.prototype.hasOwnProperty.call(changes || {}, UI_LANGUAGE_STORAGE_KEY)) {
+    runtimeI18nMessagesCache.clear();
+  }
   if (namespace === 'sync' && (changes.buttonConfig || changes.promptTemplates || changes.analysisPromptTemplates)) {
     createContextMenu();
   }

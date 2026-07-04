@@ -558,6 +558,7 @@ body.search-bar-bottom .query-suggestions {
     padding: 0;
     background: transparent;
     flex-shrink: 0;
+    z-index: 1002;
     transition: transform 0.18s ease, opacity 0.12s ease;
 }
 
@@ -600,7 +601,7 @@ body.search-bar-bottom .query-suggestions {
 }
 
 .file-upload-btn {
-    position: static;
+    position: relative;
     background: transparent;
     border: 1px solid transparent;
     cursor: pointer;
@@ -621,6 +622,57 @@ body.search-bar-bottom .query-suggestions {
     border-color: var(--ai-border);
     transform: translateY(-1px);
     box-shadow: none;
+}
+
+.input-actions .file-upload-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translate(-50%, 4px);
+    max-width: 240px;
+    padding: 6px 10px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #ffffff;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+    z-index: 1003;
+}
+
+.input-actions .file-upload-btn[data-tooltip]::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 3px);
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(15, 23, 42, 0.92);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+    z-index: 1003;
+}
+
+.input-actions .file-upload-btn[data-tooltip]:hover::after,
+.input-actions .file-upload-btn[data-tooltip]:focus-visible::after {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.input-actions .file-upload-btn[data-tooltip]:hover::before,
+.input-actions .file-upload-btn[data-tooltip]:focus-visible::before {
+    opacity: 1;
+    visibility: visible;
 }
 
 .file-upload-btn img {
