@@ -19,6 +19,9 @@
 !/debug/verify-nano-banana-live.js
 !/debug/verify-dots-ai-config.js
 !/debug/verify-dots-ai-live.js
+!/debug/failure-logs.html
+!/debug/failure-logs.js
+!/debug/failure-logs.css
 /agent.md
 /AGENTS.md
 

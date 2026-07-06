@@ -783,6 +783,9 @@
   "promptTemplatesDescription": {
     "message": "自訂搜尋建議按鈕的提示詞範本"
   },
+  "templateEnabledToggleLabel": {
+    "message": "啟用這個提示詞範本"
+  },
   "promptTemplatesEmpty": {
     "message": "尚無提示詞範本"
   },

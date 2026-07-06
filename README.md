@@ -152,6 +152,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `/admin`
   - `/admin/orders`
   - `/admin/api-usage`
+  - `/admin/failure-logs`
 - Admin API routes:
   - `/api/admin/orders/summary`
   - `/api/admin/orders/list`
@@ -159,6 +160,11 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `/api/admin/api-usage/summary`
   - `/api/admin/api-usage/trend`
   - `/api/admin/api-usage/top-days`
+  - `/api/admin/failure-logs/summary`
+  - `/api/admin/failure-logs/trend`
+  - `/api/admin/failure-logs/list`
+  - `/api/admin/failure-logs/top-targets`
+  - `/api/failure-logs/batch`
 - Required backend env vars:
   - `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
   - `STRIPE_SECRET_KEY`
@@ -170,6 +176,9 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `OFFICIAL_AGENT_API_KEY`
   - `OFFICIAL_AGENT_MODEL`
   - `OFFICIAL_AGENT_API_FORMAT`
+  - `OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION` optional, used to estimate official API input token cost
+  - `OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION` optional, used to estimate official API output token cost
+  - `OFFICIAL_AGENT_COST_CURRENCY` optional, defaults to `usd`
   - `ADMIN_USERNAME`
   - `ADMIN_PASSWORD_HASH`
   - `ADMIN_SESSION_SECRET` recommended for admin session signing
@@ -186,10 +195,14 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - API usage note:
   - `officialApiEvents` is now written on each `officialAgentChat` request so Pro usage can be counted going forward.
   - Historical free / anonymous totals can still be read from `users/{uid}/usage/{date}` and `anonymousUsage/{hash}/usage/{date}`.
+- Failure log note:
+  - Local site/API failure logs are automatically uploaded in small batches to `/api/failure-logs/batch` for signed-in users and anonymous devices.
+  - The backend stores only the safe failure-log fields in `failureLogEvents`, including `queryPreview` and `queryHash`, not API keys, full prompts, or AI responses.
 
 ### Development / Live verification
 
 - For AI site adapter debugging, the repo includes real-browser live verifier scripts under `debug/`.
+- Local failure logs can be inspected from `debug/failure-logs.html` in debug packages. The page reads `chrome.storage.local`, summarizes site/API failures, supports date/category/search/sync filters, JSON export, manual cleanup, manual VPS sync, and keeps at most 30 days or 2000 records locally.
 - Local or sideloaded builds whose extension id differs from the Chrome Web Store id automatically use the test toolbar name and `dev-icon` assets, making it easier to tell development builds apart from the real store version.
 - The current UI refresh uses shared surface tokens across the homepage, options, history, favorites, contact, iframe, and reusable overlays so the shell reads as one product.
 - Remote Search v1 adds three new top-level work areas:
@@ -416,6 +429,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 ### 开发 / 实时验证
 
 - 仓库在 `debug/` 目录下提供了面向真实浏览器会话的 AI 站点验证脚本，便于排查站点适配问题。
+- 调试包可打开 `debug/failure-logs.html` 查看本地失败日志。该页面读取 `chrome.storage.local`，可汇总站点/API 失败，支持日期、类型、搜索和同步状态筛选、JSON 导出、手动清理、手动同步到 VPS，并按 30 天或最多 2000 条在本地保留。
 - 本次 UI 优化已把主页、选项页、历史记录、收藏记录、联系页、iframe 工作台和复用弹窗统一到同一套 surface token 语言里，让壳层看起来像同一个产品。
 - 远程搜索 v1 新增了三块顶层目录：
   - `remote/`：MV3 service worker 远程运行时、存储助手、协议常量与加密辅助。
@@ -495,10 +509,12 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-05 01:02:01 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-07 00:08:32 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `AGENTS.md`
+- `M` `.gitignore`
+- `M` `AI Compare PrivacyPolicy.md`
+- `M` `STRIPE_SETUP.md`
 - `M` `_locales/am/messages.json`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/bg/messages.json`
@@ -554,27 +570,40 @@ Last auto-update / 最近自动更新：2026-07-05 01:02:01 UTC+08:00
 - `M` `_locales/vi/messages.json`
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
+- `M` `backend/server.js`
 - `M` `background.js`
-- `M` `config/baseConfig.js`
-- `M` `config/siteHandlers.json`
-- `M` `docs/edge-store-full-descriptions-translated-structured.md`
-- `A` `docs/release-notes/latest.md`
-- `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `M` `iframe/agent-panel.js`
+- `A` `debug/failure-logs.css`
+- `A` `debug/failure-logs.html`
+- `A` `debug/failure-logs.js`
+- `M` `docs/release-notes/latest.md`
+- `M` `functions/index.js`
+- `M` `iframe/agent-panel.html`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `iframe/inject.js`
 - `M` `manifest.json`
+- `M` `options/options.css`
+- `M` `options/options.html`
 - `M` `options/options.js`
-- `M` `tests/extraction-core.test.js`
+- `A` `shared/failure-log-sync.js`
+- `A` `shared/failure-log.js`
+- `M` `shared/markdown-renderer.js`
+- `M` `shared/prompt-template-utils.js`
+- `A` `tests/failure-log-sync.test.js`
+- `A` `tests/failure-log.test.js`
+- `M` `tests/markdown-renderer.test.js`
+- `A` `tests/prompt-template-utils.test.js`
+- `A` `vendor/markdown-it/LICENSE`
+- `A` `vendor/markdown-it/index.cjs.js`
+- `A` `vendor/markdown-it/markdown-it.min.js`
 
 ### Recent commits / 最近提交
+- `c25a3a1` 2026-07-05 V4.3.1 修复豆包站点，默认站点去掉grok
 - `8e007c4` 2026-06-30 V4.3.0 首次安装插件 具有默认的搜索词
 - `dd789ee` 2026-06-24 V4.2.9 自动总结增加开关，修复豆包站点
 - `b1831f6` 2026-06-24 V 4.2.8 补充多语言包
 - `a191a52` 2026-06-23 V4.2.7 修复API调用
-- `0ed1a9c` 2026-06-12 V4.2.6 修复DeepSeek、优化部分体验
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

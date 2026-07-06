@@ -15,6 +15,58 @@ const adminSessionCookieName = 'ai_compare_admin_session';
 const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 12 * 60 * 60) || (12 * 60 * 60));
 const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
 const adminPasswordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
+const failureLogDailyUploadLimit = Math.max(1, Number(process.env.FAILURE_LOG_DAILY_UPLOAD_LIMIT || 2000) || 2000);
+const failureLogBatchLimit = 50;
+const officialAgentInputTokenPricePerMillion = Math.max(
+  0,
+  Number(process.env.OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION || 0) || 0
+);
+const officialAgentOutputTokenPricePerMillion = Math.max(
+  0,
+  Number(process.env.OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION || 0) || 0
+);
+const officialAgentCostCurrency = String(process.env.OFFICIAL_AGENT_COST_CURRENCY || 'usd').trim().toLowerCase() || 'usd';
+
+function normalizeTokenUsage(usage = {}) {
+  const promptTokens = Math.max(0, Math.round(Number(
+    usage.prompt_tokens ?? usage.promptTokens ?? usage.input_tokens ?? usage.inputTokens ?? 0
+  ) || 0));
+  const completionTokens = Math.max(0, Math.round(Number(
+    usage.completion_tokens ?? usage.completionTokens ?? usage.output_tokens ?? usage.outputTokens ?? 0
+  ) || 0));
+  const explicitTotal = Number(usage.total_tokens ?? usage.totalTokens);
+  const totalTokens = Math.max(0, Math.round(Number.isFinite(explicitTotal)
+    ? explicitTotal
+    : promptTokens + completionTokens));
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens
+  };
+}
+
+function extractTokenUsageFromPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object') {
+    return normalizeTokenUsage();
+  }
+  if (payload.usage && typeof payload.usage === 'object') {
+    return normalizeTokenUsage(payload.usage);
+  }
+  return normalizeTokenUsage(payload);
+}
+
+function estimateOfficialApiCost(usage = {}) {
+  const tokenUsage = normalizeTokenUsage(usage);
+  const estimatedCost = (
+    (tokenUsage.promptTokens / 1000000) * officialAgentInputTokenPricePerMillion
+    + (tokenUsage.completionTokens / 1000000) * officialAgentOutputTokenPricePerMillion
+  );
+  return {
+    ...tokenUsage,
+    estimatedCost: Number(estimatedCost.toFixed(8)),
+    currency: officialAgentCostCurrency
+  };
+}
 
 function isAnthropicOfficialApi(baseUrl = '') {
   const configuredFormat = String(process.env.OFFICIAL_AGENT_API_FORMAT || '').trim().toLowerCase();
@@ -177,6 +229,7 @@ async function pipeAnthropicStreamAsOpenAi(upstream, res) {
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
   let doneSent = false;
+  const usage = normalizeTokenUsage();
 
   const handleLine = (rawLine = '') => {
     const line = rawLine.trim();
@@ -193,6 +246,20 @@ async function pipeAnthropicStreamAsOpenAi(upstream, res) {
 
     if (payload.type === 'content_block_delta') {
       writeOpenAiStreamDelta(res, payload.delta?.text || '');
+      return;
+    }
+    if (payload.type === 'message_start' && payload.message?.usage) {
+      const nextUsage = normalizeTokenUsage(payload.message.usage);
+      usage.promptTokens = Math.max(usage.promptTokens, nextUsage.promptTokens);
+      usage.completionTokens = Math.max(usage.completionTokens, nextUsage.completionTokens);
+      usage.totalTokens = usage.promptTokens + usage.completionTokens;
+      return;
+    }
+    if (payload.type === 'message_delta' && payload.usage) {
+      const nextUsage = normalizeTokenUsage(payload.usage);
+      usage.promptTokens = Math.max(usage.promptTokens, nextUsage.promptTokens);
+      usage.completionTokens = Math.max(usage.completionTokens, nextUsage.completionTokens);
+      usage.totalTokens = usage.promptTokens + usage.completionTokens;
       return;
     }
     if (payload.type === 'message_stop') {
@@ -215,9 +282,10 @@ async function pipeAnthropicStreamAsOpenAi(upstream, res) {
     res.write('data: [DONE]\n\n');
   }
   res.end();
+  return usage;
 }
 
-async function proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model }) {
+async function proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model, recordUsageEvent }) {
   const upstream = await fetch(`${baseUrl}/v1/messages`, {
     method: 'POST',
     headers: {
@@ -231,18 +299,82 @@ async function proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, mode
 
   res.status(upstream.status);
   if (!upstream.ok) {
+    if (recordUsageEvent) await recordUsageEvent({ upstreamStatus: upstream.status });
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json; charset=utf-8');
     res.send(await upstream.text());
     return;
   }
 
   if (req.body?.stream === true) {
-    await pipeAnthropicStreamAsOpenAi(upstream, res);
+    const tokenUsage = await pipeAnthropicStreamAsOpenAi(upstream, res);
+    if (recordUsageEvent) await recordUsageEvent({ tokenUsage, upstreamStatus: upstream.status });
     return;
   }
 
   const data = await upstream.json();
-  res.json(anthropicResponseToOpenAiCompletion(data, model));
+  const converted = anthropicResponseToOpenAiCompletion(data, model);
+  if (recordUsageEvent) await recordUsageEvent({
+    tokenUsage: extractTokenUsageFromPayload(converted),
+    upstreamStatus: upstream.status,
+    upstreamModel: data.model || model
+  });
+  res.json(converted);
+}
+
+function buildOfficialOpenAiRequestBody(body = {}, model = '') {
+  const payload = {
+    ...body,
+    model
+  };
+  if (payload.stream === true) {
+    payload.stream_options = {
+      ...(payload.stream_options && typeof payload.stream_options === 'object' ? payload.stream_options : {}),
+      include_usage: true
+    };
+  }
+  return payload;
+}
+
+async function pipeOpenAiStreamAndCollectUsage(upstream, res) {
+  const reader = upstream.body?.getReader?.();
+  if (!reader) {
+    res.write(await upstream.text());
+    return normalizeTokenUsage();
+  }
+
+  const decoder = new TextDecoder('utf-8');
+  const usage = normalizeTokenUsage();
+  let buffer = '';
+
+  const collectFromLine = (rawLine = '') => {
+    const line = rawLine.trim();
+    if (!line.startsWith('data:')) return;
+    const rawPayload = line.slice(5).trim();
+    if (!rawPayload || rawPayload === '[DONE]') return;
+    try {
+      const payload = JSON.parse(rawPayload);
+      const nextUsage = extractTokenUsageFromPayload(payload);
+      usage.promptTokens = Math.max(usage.promptTokens, nextUsage.promptTokens);
+      usage.completionTokens = Math.max(usage.completionTokens, nextUsage.completionTokens);
+      usage.totalTokens = Math.max(usage.totalTokens, nextUsage.totalTokens, usage.promptTokens + usage.completionTokens);
+    } catch (_) {
+      // Preserve streaming even if a vendor emits non-JSON diagnostic lines.
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const chunkText = decoder.decode(value, { stream: true });
+    buffer += chunkText;
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    lines.forEach(collectFromLine);
+    res.write(Buffer.from(value));
+  }
+
+  if (buffer) collectFromLine(buffer);
+  return usage;
 }
 
 const ADMIN_CLIENT_SCRIPT = String.raw`
@@ -310,6 +442,57 @@ function getNextPath() {
   return next.startsWith('/admin') ? next : '/admin';
 }
 
+const ADMIN_REMEMBER_KEY = 'aiCompareAdminRememberedCredentials';
+
+function loadRememberedAdminCredentials() {
+  try {
+    const raw = window.localStorage.getItem(ADMIN_REMEMBER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      username: String(parsed.username || ''),
+      password: String(parsed.password || '')
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveRememberedAdminCredentials(username, password) {
+  try {
+    window.localStorage.setItem(ADMIN_REMEMBER_KEY, JSON.stringify({
+      username: String(username || ''),
+      password: String(password || '')
+    }));
+  } catch (_) {
+    // Ignore localStorage failures; login should still work.
+  }
+}
+
+function clearRememberedAdminCredentials() {
+  try {
+    window.localStorage.removeItem(ADMIN_REMEMBER_KEY);
+  } catch (_) {
+    // Ignore localStorage failures.
+  }
+}
+
+function hydrateRememberedAdminCredentials(usernameInput, passwordInput, rememberInput) {
+  const remembered = loadRememberedAdminCredentials();
+  if (!remembered) return;
+  usernameInput.value = remembered.username;
+  passwordInput.value = remembered.password;
+  rememberInput.checked = true;
+}
+
+function persistRememberedAdminCredentials(usernameInput, passwordInput, rememberInput) {
+  if (rememberInput.checked) {
+    saveRememberedAdminCredentials(usernameInput.value.trim(), passwordInput.value);
+    return;
+  }
+  clearRememberedAdminCredentials();
+}
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('zh-CN');
 }
@@ -320,6 +503,14 @@ function formatAmount(value, currency = 'usd') {
   return normalizedCurrency + ' ' + amount.toLocaleString('zh-CN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  });
+}
+
+function formatCost(value, currency = 'usd') {
+  const normalizedCurrency = String(currency || 'usd').toUpperCase();
+  return normalizedCurrency + ' ' + Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 6
   });
 }
 
@@ -353,7 +544,7 @@ async function loadOverview() {
     { label: '当前有效 Pro', value: formatNumber(orderSummary.activeProUsers), note: '含 trialing / active' },
     { label: '近 30 天付费订单', value: formatNumber(orderSummary.thirtyDayPaidOrders), note: '按已支付发票统计' },
     { label: '今日 API 请求', value: formatNumber(apiSummary.today.totalRequests), note: 'free + pro + anonymous' },
-    { label: '近 30 天 API 请求', value: formatNumber(apiSummary.last30Days.totalRequests), note: '事件聚合结果' }
+    { label: '近 30 天 API Tokens', value: formatNumber(apiSummary.last30Days.totalTokens), note: formatCost(apiSummary.last30Days.estimatedCost, apiSummary.last30Days.currency) }
   ];
   document.getElementById('overviewCards').innerHTML = renderCards(cards);
   document.getElementById('overviewJson').textContent = JSON.stringify({ orderSummary, apiSummary }, null, 2);
@@ -412,9 +603,11 @@ async function loadApiUsagePage() {
   ]);
   document.getElementById('apiCards').innerHTML = renderCards([
     { label: '今日总请求', value: formatNumber(summary.today.totalRequests) },
+    { label: '今日 Tokens', value: formatNumber(summary.today.totalTokens), note: formatCost(summary.today.estimatedCost, summary.today.currency) },
     { label: '今日活跃登录用户', value: formatNumber(summary.today.activeUsers) },
     { label: '今日活跃匿名设备', value: formatNumber(summary.today.activeAnonymousClients) },
-    { label: '近 30 天总请求', value: formatNumber(summary.last30Days.totalRequests) }
+    { label: '近 30 天总请求', value: formatNumber(summary.last30Days.totalRequests) },
+    { label: '近 30 天 Tokens', value: formatNumber(summary.last30Days.totalTokens), note: formatCost(summary.last30Days.estimatedCost, summary.last30Days.currency) }
   ]);
 
   const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
@@ -426,11 +619,13 @@ async function loadApiUsagePage() {
         + '<td>' + escapeHtml(formatNumber(item.pro.requests)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.anonymous.requests)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalTokens)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.estimatedCost, item.currency)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
       + '</tr>'
     )).join('')
-    : renderEmptyRow('暂无 API 趋势数据', 7);
+    : renderEmptyRow('暂无 API 趋势数据', 9);
 
   const topDays = Array.isArray(topDaysPayload.days) ? topDaysPayload.days : [];
   document.getElementById('apiTopDaysBody').innerHTML = topDays.length
@@ -441,22 +636,93 @@ async function loadApiUsagePage() {
         + '<td>' + escapeHtml(formatNumber(item.free.requests)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.pro.requests)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.anonymous.requests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalTokens)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.estimatedCost, item.currency)) + '</td>'
       + '</tr>'
     )).join('')
-    : renderEmptyRow('暂无峰值日数据', 5);
+    : renderEmptyRow('暂无峰值日数据', 7);
+}
+
+function getFailureFilters() {
+  const days = document.getElementById('failureDays')?.value || '7';
+  const category = document.getElementById('failureCategory')?.value || 'all';
+  const query = document.getElementById('failureQuery')?.value || '';
+  return new URLSearchParams({ days, category, query });
+}
+
+async function loadFailureLogsPage() {
+  const filters = getFailureFilters();
+  const [summary, trendPayload, topTargetsPayload, listPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/failure-logs/summary'),
+    fetchAdminJson('/api/admin/failure-logs/trend?days=30'),
+    fetchAdminJson('/api/admin/failure-logs/top-targets?' + filters.toString() + '&limit=20'),
+    fetchAdminJson('/api/admin/failure-logs/list?' + filters.toString() + '&limit=100')
+  ]);
+  document.getElementById('failureCards').innerHTML = renderCards([
+    { label: '今日失败总数', value: formatNumber(summary.today.totalFailures) },
+    { label: '今日失败站点数', value: formatNumber(summary.today.failedSites) },
+    { label: '今日 API 失败', value: formatNumber(summary.today.apiFailures) },
+    { label: '近 7 天失败', value: formatNumber(summary.last7Days.totalFailures) },
+    { label: '近 30 天失败', value: formatNumber(summary.last30Days.totalFailures) },
+    { label: '最常失败目标', value: summary.today.topTarget || '暂无' }
+  ]);
+
+  const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('failureTrendBody').innerHTML = trend.length
+    ? trend.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.siteFailures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.apiFailures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalFailures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.failedSites)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无失败趋势数据', 5);
+
+  const topTargets = Array.isArray(topTargetsPayload.targets) ? topTargetsPayload.targets : [];
+  document.getElementById('failureTopTargetsBody').innerHTML = topTargets.length
+    ? topTargets.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
+        + '<td>' + escapeHtml(item.target || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.failures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.records)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无高频失败目标', 4);
+
+  const logs = Array.isArray(listPayload.logs) ? listPayload.logs : [];
+  document.getElementById('failureLogsBody').innerHTML = logs.length
+    ? logs.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(formatDate(item.lastSeenAt || item.createdAt || item.uploadedAt)) + '</td>'
+        + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
+        + '<td>' + escapeHtml(item.category === 'api' ? (item.apiKind || 'API') : (item.siteName || '未知站点')) + '</td>'
+        + '<td>' + escapeHtml(item.phase || '-') + '</td>'
+        + '<td>' + escapeHtml(item.status || '-') + '</td>'
+        + '<td>' + escapeHtml(item.errorMessage || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.repeatCount || 1)) + '</td>'
+        + '<td>' + escapeHtml(item.uploaderType === 'anonymous' ? '匿名' : '登录用户') + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无失败日志', 8);
 }
 
 async function bootAdminPage(pageName) {
   const usernameInput = document.getElementById('usernameInput');
   const passwordInput = document.getElementById('passwordInput');
+  const rememberInput = document.getElementById('rememberPasswordInput');
   const saveButton = document.getElementById('saveTokenButton');
   const clearButton = document.getElementById('clearTokenButton');
   const statusEl = document.getElementById('tokenStatus');
+  hydrateRememberedAdminCredentials(usernameInput, passwordInput, rememberInput);
 
   saveButton.addEventListener('click', async () => {
     try {
       statusEl.textContent = '正在登录...';
       await createAdminSession(usernameInput.value.trim(), passwordInput.value);
+      persistRememberedAdminCredentials(usernameInput, passwordInput, rememberInput);
       statusEl.textContent = '管理员登录成功，正在刷新页面。';
       window.location.reload();
     } catch (error) {
@@ -473,12 +739,22 @@ async function bootAdminPage(pageName) {
     }
     usernameInput.value = '';
     passwordInput.value = '';
+    rememberInput.checked = false;
+    clearRememberedAdminCredentials();
   });
 
   try {
     if (pageName === 'overview') await loadOverview();
     if (pageName === 'orders') await loadOrdersPage();
     if (pageName === 'apiUsage') await loadApiUsagePage();
+    if (pageName === 'failureLogs') {
+      document.getElementById('failureSearchButton')?.addEventListener('click', () => {
+        loadFailureLogsPage().catch((error) => {
+          statusEl.textContent = error.message || String(error);
+        });
+      });
+      await loadFailureLogsPage();
+    }
     statusEl.textContent = '数据已刷新，管理员会话有效。';
   } catch (error) {
     statusEl.textContent = error.message || String(error);
@@ -488,14 +764,17 @@ async function bootAdminPage(pageName) {
 async function bootAdminLoginPage() {
   const usernameInput = document.getElementById('usernameInput');
   const passwordInput = document.getElementById('passwordInput');
+  const rememberInput = document.getElementById('rememberPasswordInput');
   const saveButton = document.getElementById('saveTokenButton');
   const clearButton = document.getElementById('clearTokenButton');
   const statusEl = document.getElementById('tokenStatus');
+  hydrateRememberedAdminCredentials(usernameInput, passwordInput, rememberInput);
 
   saveButton.addEventListener('click', async () => {
     try {
       statusEl.textContent = '正在登录...';
       await createAdminSession(usernameInput.value.trim(), passwordInput.value);
+      persistRememberedAdminCredentials(usernameInput, passwordInput, rememberInput);
       statusEl.textContent = '管理员登录成功，正在跳转。';
       window.location.href = getNextPath();
     } catch (error) {
@@ -506,6 +785,8 @@ async function bootAdminLoginPage() {
   clearButton.addEventListener('click', async () => {
     usernameInput.value = '';
     passwordInput.value = '';
+    rememberInput.checked = false;
+    clearRememberedAdminCredentials();
     try {
       await destroyAdminSession();
     } catch (_) {
@@ -644,7 +925,7 @@ const ADMIN_STYLES = `
     padding: 2px 6px;
     border-radius: 6px;
   }
-  textarea, input[type="text"], input[type="password"] {
+  textarea, input[type="text"], input[type="password"], input[type="search"], select {
     width: 100%;
     border-radius: 20px;
     border: 1px solid var(--border);
@@ -656,6 +937,17 @@ const ADMIN_STYLES = `
   textarea {
     min-height: 128px;
     resize: vertical;
+  }
+  .remember-password-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .remember-password-row input {
+    margin-top: 2px;
   }
   .token-actions {
     display: flex;
@@ -713,6 +1005,23 @@ const ADMIN_STYLES = `
   .panel h3 {
     margin: 0 0 14px;
     font-size: 17px;
+  }
+  .filter-row {
+    display: grid;
+    grid-template-columns: 150px 170px 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+  .filter-row label {
+    display: grid;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .filter-row button {
+    background: var(--accent);
+    color: #fff;
+    height: 52px;
   }
   table {
     width: 100%;
@@ -1077,6 +1386,14 @@ function getRecentDateKeys(days, endDate = new Date()) {
   return result;
 }
 
+function sortDateRowsDescending(rows = [], key = 'date') {
+  return [...(Array.isArray(rows) ? rows : [])].sort((left, right) => {
+    const leftValue = String(left?.[key] || '');
+    const rightValue = String(right?.[key] || '');
+    return rightValue.localeCompare(leftValue);
+  });
+}
+
 function getTimestampSeconds(value) {
   if (!value) return 0;
   if (typeof value.toDate === 'function') return Math.floor(value.toDate().getTime() / 1000);
@@ -1220,9 +1537,19 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
   });
 }
 
-async function recordOfficialApiEvent({ uid = '', clientHash = '', userType = 'free', locale = '', model = '' } = {}) {
+async function recordOfficialApiEvent({
+  uid = '',
+  clientHash = '',
+  userType = 'free',
+  locale = '',
+  model = '',
+  upstreamModel = '',
+  tokenUsage = {},
+  upstreamStatus = 0
+} = {}) {
   requireFirebaseAdmin();
   const normalizedUserType = ['free', 'pro', 'anonymous'].includes(userType) ? userType : 'free';
+  const tokenCost = estimateOfficialApiCost(tokenUsage);
   await db.collection('officialApiEvents').add({
     dateKey: getTodayKey(),
     uid: String(uid || ''),
@@ -1230,12 +1557,217 @@ async function recordOfficialApiEvent({ uid = '', clientHash = '', userType = 'f
     userType: normalizedUserType,
     locale: String(locale || '').trim(),
     model: String(model || '').trim(),
+    upstreamModel: String(upstreamModel || model || '').trim(),
+    upstreamStatus: Math.max(0, Math.round(Number(upstreamStatus) || 0)),
+    promptTokens: tokenCost.promptTokens,
+    completionTokens: tokenCost.completionTokens,
+    totalTokens: tokenCost.totalTokens,
+    estimatedCost: tokenCost.estimatedCost,
+    currency: tokenCost.currency,
+    hasTokenUsage: tokenCost.totalTokens > 0,
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
 }
 
+function safeLogString(value, limit = 500) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return limit > 0 && text.length > limit ? `${text.slice(0, limit)}...` : text;
+}
+
+function sanitizeFailureLogUrl(url) {
+  const raw = safeLogString(url, 600);
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw, raw.startsWith('http') ? undefined : 'https://example.invalid');
+    Array.from(parsed.searchParams.keys()).forEach((key) => {
+      if (/(token|key|auth|code|secret|password|session|credential|access|refresh)/i.test(key)) {
+        parsed.searchParams.set(key, '[redacted]');
+      }
+    });
+    if (!/^https?:\/\//i.test(raw)) {
+      return safeLogString(`${parsed.pathname}${parsed.search}${parsed.hash}`, 600);
+    }
+    return safeLogString(parsed.toString(), 600);
+  } catch (_) {
+    return raw.replace(/([?&][^=]*(?:token|key|auth|code|secret|password|session|credential|access|refresh)[^=]*=)[^&#]*/ig, '$1[redacted]');
+  }
+}
+
+function safeLogMetadata(metadata) {
+  if (!metadata || typeof metadata !== 'object') return {};
+  const result = {};
+  Object.entries(metadata).slice(0, 30).forEach(([key, value]) => {
+    if (/(token|key|auth|code|secret|password|session|credential|access|refresh)/i.test(key)) {
+      result[safeLogString(key, 80)] = '[redacted]';
+      return;
+    }
+    if (value == null || ['string', 'number', 'boolean'].includes(typeof value)) {
+      result[safeLogString(key, 80)] = typeof value === 'string' ? safeLogString(value, 300) : value;
+    }
+  });
+  return result;
+}
+
+function normalizeFailureLogUploadItem(item = {}) {
+  const clientRecordId = safeLogString(item.id || item.clientRecordId || '', 120);
+  if (!clientRecordId) {
+    const error = new Error('failure log id is required');
+    error.status = 400;
+    throw error;
+  }
+  const category = item.category === 'api' ? 'api' : 'site';
+  const dateKey = safeLogString(item.dateKey || getTodayKey(), 20);
+  return {
+    clientRecordId,
+    dateKey,
+    createdAt: safeLogString(item.createdAt || '', 40),
+    lastSeenAt: safeLogString(item.lastSeenAt || item.createdAt || '', 40),
+    category,
+    source: safeLogString(item.source || '', 40),
+    siteName: safeLogString(item.siteName || '', 120),
+    apiKind: safeLogString(item.apiKind || '', 40),
+    phase: safeLogString(item.phase || (category === 'api' ? 'http' : 'submit'), 60),
+    status: Number(item.status) || 0,
+    errorCode: safeLogString(item.errorCode || '', 120),
+    errorMessage: safeLogString(item.errorMessage || 'Unknown failure', 800),
+    pageUrl: sanitizeFailureLogUrl(item.pageUrl || ''),
+    runtimeUrl: sanitizeFailureLogUrl(item.runtimeUrl || ''),
+    model: safeLogString(item.model || '', 120),
+    locale: safeLogString(item.locale || '', 40),
+    queryPreview: safeLogString(item.queryPreview || '', 120),
+    queryHash: safeLogString(item.queryHash || '', 100),
+    repeatCount: Math.max(1, Number(item.repeatCount) || 1),
+    metadata: safeLogMetadata(item.metadata)
+  };
+}
+
+function createFailureLogUploadDocId({ uploaderType, uid, clientHash, clientRecordId }) {
+  return crypto
+    .createHash('sha256')
+    .update([
+      String(uploaderType || ''),
+      String(uid || clientHash || ''),
+      String(clientRecordId || '')
+    ].join('|'))
+    .digest('hex');
+}
+
+async function getFailureLogUploader(req) {
+  const user = await getOptionalUser(req);
+  if (user?.uid) {
+    return {
+      uploaderType: 'user',
+      uid: user.uid,
+      clientHash: ''
+    };
+  }
+  const anonymousClientId = getAnonymousClientId(req);
+  if (!anonymousClientId) {
+    const error = new Error('Authentication or anonymous client id is required');
+    error.status = 401;
+    throw error;
+  }
+  return {
+    uploaderType: 'anonymous',
+    uid: '',
+    clientHash: getAnonymousUsageDocId(anonymousClientId)
+  };
+}
+
+async function enforceFailureLogUploadLimit(uploader, dateKey, count) {
+  const uploaderKey = uploader.uid || uploader.clientHash;
+  const usageId = crypto
+    .createHash('sha256')
+    .update(`${uploader.uploaderType}|${uploaderKey}|${dateKey}`)
+    .digest('hex');
+  const usageRef = db.collection('failureLogUploadUsage').doc(usageId);
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(usageRef);
+    const used = snap.exists ? Math.max(0, Number(snap.data().count) || 0) : 0;
+    if (used + count > failureLogDailyUploadLimit) {
+      const error = new Error('Failure log daily upload limit exceeded');
+      error.status = 429;
+      throw error;
+    }
+    transaction.set(usageRef, {
+      uploaderType: uploader.uploaderType,
+      uid: uploader.uid,
+      clientHash: uploader.clientHash,
+      dateKey,
+      count: used + count,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+}
+
+async function recordFailureLogBatch(req) {
+  requireFirebaseAdmin();
+  const logs = Array.isArray(req.body?.logs) ? req.body.logs : null;
+  if (!logs) {
+    const error = new Error('logs must be an array');
+    error.status = 400;
+    throw error;
+  }
+  if (logs.length > failureLogBatchLimit) {
+    const error = new Error(`logs must contain at most ${failureLogBatchLimit} records`);
+    error.status = 400;
+    throw error;
+  }
+  const uploader = await getFailureLogUploader(req);
+  const normalizedLogs = logs.map(normalizeFailureLogUploadItem);
+  const countByDate = new Map();
+  normalizedLogs.forEach((item) => {
+    countByDate.set(item.dateKey, (countByDate.get(item.dateKey) || 0) + 1);
+  });
+  for (const [dateKey, count] of countByDate.entries()) {
+    await enforceFailureLogUploadLimit(uploader, dateKey, count);
+  }
+
+  const extensionVersion = safeLogString(req.body?.extensionVersion || '', 40);
+  const requestLocale = safeLogString(req.body?.locale || '', 40);
+  const batch = db.batch();
+  const acceptedIds = [];
+  normalizedLogs.forEach((item) => {
+    const docId = createFailureLogUploadDocId({
+      ...uploader,
+      clientRecordId: item.clientRecordId
+    });
+    acceptedIds.push(item.clientRecordId);
+    batch.set(db.collection('failureLogEvents').doc(docId), {
+      ...item,
+      uploaderType: uploader.uploaderType,
+      uid: uploader.uid,
+      clientHash: uploader.clientHash,
+      extensionVersion,
+      requestLocale,
+      uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+  if (normalizedLogs.length) {
+    await batch.commit();
+  }
+  return {
+    ok: true,
+    accepted: acceptedIds.length,
+    acceptedIds
+  };
+}
+
 function getSuccessUrl() {
   return process.env.STRIPE_SUCCESS_URL || 'https://example.com/payment-success';
+}
+
+function getCheckoutSuccessUrl() {
+  const successUrl = getSuccessUrl();
+  try {
+    const url = new URL(successUrl);
+    url.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+    return url.toString().replace('%7BCHECKOUT_SESSION_ID%7D', '{CHECKOUT_SESSION_ID}');
+  } catch (_error) {
+    const separator = successUrl.includes('?') ? '&' : '?';
+    return `${successUrl}${separator}session_id={CHECKOUT_SESSION_ID}`;
+  }
 }
 
 function getCancelUrl() {
@@ -1289,6 +1821,10 @@ function getPaymentSuccessPageHtml() {
       --accent-soft: rgba(24, 24, 24, 0.06);
       --success: #17803d;
       --success-soft: rgba(23, 128, 61, 0.10);
+      --pending: #9f6a15;
+      --pending-soft: rgba(159, 106, 21, 0.12);
+      --danger: #b9382f;
+      --danger-soft: rgba(185, 56, 47, 0.10);
       --shadow: 0 24px 70px rgba(38, 24, 12, 0.10);
     }
     * { box-sizing: border-box; }
@@ -1330,11 +1866,27 @@ function getPaymentSuccessPageHtml() {
       font-weight: 800;
       letter-spacing: 0.02em;
     }
+    .badge.is-pending {
+      background: var(--pending-soft);
+      color: var(--pending);
+    }
+    .badge.is-failed {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
     .badge-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: currentColor;
+    }
+    .badge-spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      animation: spin 760ms linear infinite;
     }
     h1 {
       margin: 18px 0 12px;
@@ -1355,6 +1907,32 @@ function getPaymentSuccessPageHtml() {
       border-radius: 22px;
       background: var(--surface-strong);
       border: 1px solid var(--border);
+    }
+    .panel[hidden],
+    .actions[hidden],
+    .fine-print[hidden] {
+      display: none;
+    }
+    .result {
+      display: grid;
+      gap: 8px;
+      margin-top: 22px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(24, 24, 24, 0.04);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .result-row strong {
+      color: var(--text);
+      font-weight: 800;
+      text-align: right;
     }
     .panel-title {
       margin: 0 0 10px;
@@ -1412,6 +1990,9 @@ function getPaymentSuccessPageHtml() {
       padding: 2px 6px;
       border-radius: 8px;
     }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     @media (max-width: 640px) {
       body {
         padding: 18px;
@@ -1429,17 +2010,30 @@ function getPaymentSuccessPageHtml() {
       .button {
         width: 100%;
       }
+      .result-row {
+        display: grid;
+        gap: 2px;
+      }
+      .result-row strong {
+        text-align: left;
+      }
     }
   </style>
 </head>
 <body>
   <main class="shell">
     <section class="card">
-      <div class="badge"><span class="badge-dot"></span>Payment successful</div>
-      <h1>Your Pro subscription is on the way.</h1>
-      <p class="lead">Your payment was completed successfully. AICompare will activate your Pro membership as soon as Stripe webhook sync finishes, which usually takes just a few seconds.</p>
+      <div class="badge is-pending" id="statusBadge"><span class="badge-spinner" id="statusIcon"></span><span id="statusLabel">Checking payment result</span></div>
+      <h1 id="pageTitle">Waiting for your payment result.</h1>
+      <p class="lead" id="pageLead">We are confirming the final Stripe payment status. This usually takes a few seconds, so please keep this page open.</p>
 
-      <div class="panel">
+      <div class="result" id="paymentResult" aria-live="polite">
+        <div class="result-row"><span>Checkout status</span><strong id="checkoutStatus">Checking</strong></div>
+        <div class="result-row"><span>Payment status</span><strong id="paymentStatus">Waiting</strong></div>
+        <div class="result-row"><span>Membership sync</span><strong id="membershipStatus">Waiting</strong></div>
+      </div>
+
+      <div class="panel" id="nextPanel" hidden>
         <h2 class="panel-title">What to do next</h2>
         <ol class="steps">
           <li>Return to the extension Pro page.</li>
@@ -1448,14 +2042,107 @@ function getPaymentSuccessPageHtml() {
         </ol>
       </div>
 
-      <div class="actions">
-        <a class="button button-primary" href="${membershipUrl}">Open Pro Membership</a>
+      <div class="actions" id="successActions" hidden>
+        <a class="button button-primary" href="${membershipUrl}" id="membershipLink">Open Pro Membership</a>
         <a class="button button-secondary" href="/">Back to AICompare site</a>
       </div>
 
-      <p class="fine-print">If you closed the extension earlier, reopening it and visiting the Pro page again is enough. Membership status is confirmed by the backend after Stripe finishes the subscription event sync.</p>
+      <p class="fine-print" id="successNote" hidden>If you closed the extension earlier, reopening it and visiting the Pro page again is enough. Membership status is confirmed by the backend after Stripe finishes the subscription event sync.</p>
     </section>
   </main>
+  <script>
+    const sessionId = new URLSearchParams(window.location.search).get('session_id') || '';
+    const statusBadge = document.getElementById('statusBadge');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusLabel = document.getElementById('statusLabel');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageLead = document.getElementById('pageLead');
+    const checkoutStatus = document.getElementById('checkoutStatus');
+    const paymentStatus = document.getElementById('paymentStatus');
+    const membershipStatus = document.getElementById('membershipStatus');
+    const nextPanel = document.getElementById('nextPanel');
+    const successActions = document.getElementById('successActions');
+    const successNote = document.getElementById('successNote');
+    const membershipLink = document.getElementById('membershipLink');
+
+    function updateResult(data) {
+      checkoutStatus.textContent = data.checkoutStatus || 'Checking';
+      paymentStatus.textContent = data.paymentStatus || 'Waiting';
+      membershipStatus.textContent = data.subscriptionStatus || data.membershipStatus || 'Waiting';
+    }
+
+    function setPending(data) {
+      updateResult(data || {});
+      statusBadge.className = 'badge is-pending';
+      statusIcon.className = 'badge-spinner';
+      statusLabel.textContent = 'Waiting for payment result';
+      pageTitle.textContent = 'Waiting for your payment result.';
+      pageLead.textContent = 'We are confirming the final Stripe payment status. This usually takes a few seconds, so please keep this page open.';
+      nextPanel.hidden = true;
+      successActions.hidden = true;
+      successNote.hidden = true;
+    }
+
+    function setSuccess(data) {
+      updateResult(data || {});
+      statusBadge.className = 'badge';
+      statusIcon.className = 'badge-dot';
+      statusLabel.textContent = 'Payment successful';
+      pageTitle.textContent = 'Your Pro payment is complete.';
+      pageLead.textContent = 'Stripe confirmed the payment successfully. You can now open AICompare and check your Pro membership status.';
+      nextPanel.hidden = false;
+      successActions.hidden = false;
+      successNote.hidden = false;
+    }
+
+    function setFailed(data) {
+      updateResult(data || {});
+      statusBadge.className = 'badge is-failed';
+      statusIcon.className = 'badge-dot';
+      statusLabel.textContent = 'Payment not completed';
+      pageTitle.textContent = 'We could not confirm this payment.';
+      pageLead.textContent = 'The checkout session did not finish with a successful payment. You can return to AICompare and start a new checkout if needed.';
+      nextPanel.hidden = true;
+      successActions.hidden = true;
+      successNote.hidden = true;
+    }
+
+    async function pollPaymentStatus() {
+      if (!sessionId) {
+        setPending({ checkoutStatus: 'Waiting for session', paymentStatus: 'Waiting', membershipStatus: 'Waiting' });
+        window.setTimeout(pollPaymentStatus, 3000);
+        return;
+      }
+
+      try {
+        const response = await fetch('/payment-status?session_id=' + encodeURIComponent(sessionId), {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
+        const data = await response.json();
+        if (data.state === 'success') {
+          setSuccess(data);
+          return;
+        }
+        if (data.state === 'failed') {
+          setFailed(data);
+          return;
+        }
+        setPending(data);
+      } catch (_error) {
+        setPending({ checkoutStatus: 'Checking', paymentStatus: 'Waiting', membershipStatus: 'Waiting' });
+      }
+      window.setTimeout(pollPaymentStatus, 3000);
+    }
+
+    membershipLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      window.location.href = membershipLink.href;
+    });
+
+    pollPaymentStatus();
+  </script>
 </body>
 </html>`;
 }
@@ -1689,7 +2376,8 @@ function createAdminPage({ pageName, title, description, content }) {
   const active = {
     overview: pageName === 'overview' ? 'active' : '',
     orders: pageName === 'orders' ? 'active' : '',
-    apiUsage: pageName === 'apiUsage' ? 'active' : ''
+    apiUsage: pageName === 'apiUsage' ? 'active' : '',
+    failureLogs: pageName === 'failureLogs' ? 'active' : ''
   };
   return `<!doctype html>
 <html lang="zh-CN">
@@ -1710,6 +2398,7 @@ function createAdminPage({ pageName, title, description, content }) {
           <a class="nav-link ${active.overview}" href="/admin">总览</a>
           <a class="nav-link ${active.orders}" href="/admin/orders">会员订单</a>
           <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">API 使用</a>
+          <a class="nav-link ${active.failureLogs}" href="/admin/failure-logs">失败日志</a>
         </nav>
       </article>
       <aside class="token-panel">
@@ -1717,6 +2406,10 @@ function createAdminPage({ pageName, title, description, content }) {
         <p>使用独立后台账号密码登录。登录成功后，服务端会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
         <input id="usernameInput" type="text" autocomplete="username" placeholder="管理员账号" />
         <input id="passwordInput" type="password" autocomplete="current-password" placeholder="管理员密码" />
+        <label class="remember-password-row">
+          <input id="rememberPasswordInput" type="checkbox" />
+          <span>保存账号密码（仅在可信设备使用）</span>
+        </label>
         <div class="token-actions">
           <button id="saveTokenButton" type="button">登录</button>
           <button id="clearTokenButton" type="button">退出/清空</button>
@@ -1725,12 +2418,64 @@ function createAdminPage({ pageName, title, description, content }) {
       </aside>
     </section>
     ${content}
-    <p class="footer-note">说明：会员订单统计优先使用 Stripe 发票/订阅数据；API 统计只覆盖官方代理接口 <code>/officialAgentChat</code>。历史 Pro 数据从事件埋点上线日开始完整。</p>
+    <p class="footer-note">说明：会员订单统计优先使用 Stripe 发票/订阅数据；API 统计只覆盖官方代理接口 <code>/officialAgentChat</code>。失败日志只保存脱敏后的错误摘要、queryPreview 和 queryHash。</p>
   </main>
   <script>${ADMIN_CLIENT_SCRIPT}</script>
   <script>bootAdminPage(${JSON.stringify(pageName)});</script>
 </body>
 </html>`;
+}
+
+async function getPaymentStatusSnapshot(sessionId) {
+  const normalizedSessionId = String(sessionId || '').trim();
+  if (!/^cs_(test|live)_[A-Za-z0-9_]+$/.test(normalizedSessionId)) {
+    return {
+      state: 'pending',
+      checkoutStatus: 'Waiting for session',
+      paymentStatus: 'Waiting',
+      membershipStatus: 'Waiting'
+    };
+  }
+
+  const stripe = getStripe();
+  let session = null;
+  try {
+    session = await stripe.checkout.sessions.retrieve(normalizedSessionId, {
+      expand: ['subscription']
+    });
+  } catch (error) {
+    if (error?.statusCode === 404 || error?.code === 'resource_missing') {
+      return {
+        state: 'pending',
+        checkoutStatus: 'Looking up',
+        paymentStatus: 'Waiting',
+        membershipStatus: 'Waiting'
+      };
+    }
+    throw error;
+  }
+
+  const checkoutStatus = String(session.status || '').trim() || 'unknown';
+  const paymentStatus = String(session.payment_status || '').trim() || 'unknown';
+  const subscription = session.subscription && typeof session.subscription === 'object'
+    ? session.subscription
+    : null;
+  const subscriptionStatus = String(subscription?.status || '').trim();
+  const paymentSucceeded = checkoutStatus === 'complete' && paymentStatus === 'paid';
+  const paymentFailed = checkoutStatus === 'expired'
+    || ['canceled', 'failed'].includes(paymentStatus)
+    || (checkoutStatus === 'complete' && paymentStatus === 'unpaid');
+
+  if (paymentSucceeded && subscription) {
+    await updateUserFromSubscription(subscription);
+  }
+
+  return {
+    state: paymentSucceeded ? 'success' : (paymentFailed ? 'failed' : 'pending'),
+    checkoutStatus,
+    paymentStatus,
+    subscriptionStatus: subscriptionStatus || (paymentSucceeded ? 'syncing' : 'Waiting')
+  };
 }
 
 function getOverviewPageHtml() {
@@ -1833,12 +2578,14 @@ function getApiUsagePageHtml() {
               <th>Pro 请求</th>
               <th>匿名请求</th>
               <th>总请求</th>
+              <th>总 Tokens</th>
+              <th>估算成本</th>
               <th>活跃登录用户</th>
               <th>活跃匿名设备</th>
             </tr>
           </thead>
           <tbody id="apiTrendBody">
-            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+            <tr><td colspan="9" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
@@ -1852,10 +2599,86 @@ function getApiUsagePageHtml() {
               <th>免费</th>
               <th>Pro</th>
               <th>匿名</th>
+              <th>总 Tokens</th>
+              <th>估算成本</th>
             </tr>
           </thead>
           <tbody id="apiTopDaysBody">
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getFailureLogsPageHtml() {
+  return createAdminPage({
+    pageName: 'failureLogs',
+    title: '失败日志后台',
+    description: '查看扩展同步到 VPS 的站点执行失败和 API 请求失败，默认按最新失败时间倒序。',
+    content: `
+      <h2 class="section-title">核心指标</h2>
+      <section id="failureCards" class="grid"></section>
+      <section class="card panel">
+        <h3>筛选</h3>
+        <div class="filter-row">
+          <label>天数 <select id="failureDays"><option value="1">今天</option><option value="7" selected>近 7 天</option><option value="30">近 30 天</option></select></label>
+          <label>类型 <select id="failureCategory"><option value="all">全部</option><option value="site">站点失败</option><option value="api">API 失败</option></select></label>
+          <label>搜索 <input id="failureQuery" type="search" placeholder="站点、API、阶段、错误信息" /></label>
+          <button id="failureSearchButton" type="button">刷新</button>
+        </div>
+      </section>
+      <section class="card panel">
+        <h3>近 30 天趋势</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>站点失败</th>
+              <th>API 失败</th>
+              <th>总失败</th>
+              <th>失败站点数</th>
+            </tr>
+          </thead>
+          <tbody id="failureTrendBody">
             <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>高频失败站点 / API</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>目标</th>
+              <th>失败次数</th>
+              <th>记录数</th>
+            </tr>
+          </thead>
+          <tbody id="failureTopTargetsBody">
+            <tr><td colspan="4" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>最近失败日志</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>类型</th>
+              <th>站点 / API</th>
+              <th>阶段</th>
+              <th>状态码</th>
+              <th>错误信息</th>
+              <th>次数</th>
+              <th>来源</th>
+            </tr>
+          </thead>
+          <tbody id="failureLogsBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
@@ -1866,10 +2689,15 @@ function getApiUsagePageHtml() {
 function createEmptyUsageDay(dateKey) {
   return {
     date: dateKey,
-    free: { requests: 0, activeUsers: 0 },
-    pro: { requests: 0, activeUsers: 0 },
-    anonymous: { requests: 0, activeUsers: 0 },
+    free: { requests: 0, activeUsers: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 },
+    pro: { requests: 0, activeUsers: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 },
+    anonymous: { requests: 0, activeUsers: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 },
     totalRequests: 0,
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    estimatedCost: 0,
+    currency: officialAgentCostCurrency,
     activeUsers: 0,
     activeAnonymousClients: 0
   };
@@ -2176,13 +3004,13 @@ async function getOrderTrendData(req) {
   const currency = String(invoices[0]?.currency || subscriptions[0]?.items?.data?.[0]?.price?.currency || 'usd');
   return {
     currency,
-    days: dateKeys.map((dateKey) => trend.get(dateKey) || {
+    days: sortDateRowsDescending(dateKeys.map((dateKey) => trend.get(dateKey) || {
       date: dateKey,
       newSubscriptions: 0,
       renewedSubscriptions: 0,
       canceledSubscriptions: 0,
       revenueAmount: 0
-    })
+    }))
   };
 }
 
@@ -2235,6 +3063,32 @@ async function collectUsageEvents(dateKeys) {
   const proUsersByDay = new Map();
   const freeUsersByDay = new Map();
   const anonymousClientsByDay = new Map();
+  const tokenStatsByDay = new Map();
+
+  const addTokenStats = (dateKey, userType, data) => {
+    if (!tokenStatsByDay.has(dateKey)) {
+      tokenStatsByDay.set(dateKey, {
+        free: { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 },
+        pro: { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 },
+        anonymous: { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 },
+        total: { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 }
+      });
+    }
+    const stats = tokenStatsByDay.get(dateKey);
+    const bucket = stats[userType] || stats.free;
+    const promptTokens = Math.max(0, Number(data.promptTokens) || 0);
+    const completionTokens = Math.max(0, Number(data.completionTokens) || 0);
+    const totalTokens = Math.max(0, Number(data.totalTokens) || 0);
+    const estimatedCost = Math.max(0, Number(data.estimatedCost) || 0);
+    bucket.promptTokens += promptTokens;
+    bucket.completionTokens += completionTokens;
+    bucket.totalTokens += totalTokens;
+    bucket.estimatedCost += estimatedCost;
+    stats.total.promptTokens += promptTokens;
+    stats.total.completionTokens += completionTokens;
+    stats.total.totalTokens += totalTokens;
+    stats.total.estimatedCost += estimatedCost;
+  };
 
   eventSnapshot.forEach((doc) => {
     const data = doc.data() || {};
@@ -2247,18 +3101,21 @@ async function collectUsageEvents(dateKeys) {
       proByDay.set(dateKey, (proByDay.get(dateKey) || 0) + 1);
       if (!proUsersByDay.has(dateKey)) proUsersByDay.set(dateKey, new Set());
       if (uid) proUsersByDay.get(dateKey).add(uid);
+      addTokenStats(dateKey, 'pro', data);
       return;
     }
     if (userType === 'free') {
       freeEventsByDay.set(dateKey, (freeEventsByDay.get(dateKey) || 0) + 1);
       if (!freeUsersByDay.has(dateKey)) freeUsersByDay.set(dateKey, new Set());
       if (uid) freeUsersByDay.get(dateKey).add(uid);
+      addTokenStats(dateKey, 'free', data);
       return;
     }
     if (userType === 'anonymous') {
       anonymousEventsByDay.set(dateKey, (anonymousEventsByDay.get(dateKey) || 0) + 1);
       if (!anonymousClientsByDay.has(dateKey)) anonymousClientsByDay.set(dateKey, new Set());
       if (clientHash) anonymousClientsByDay.get(dateKey).add(clientHash);
+      addTokenStats(dateKey, 'anonymous', data);
     }
   });
 
@@ -2268,7 +3125,8 @@ async function collectUsageEvents(dateKeys) {
     anonymousEventsByDay,
     proUsersByDay,
     freeUsersByDay,
-    anonymousClientsByDay
+    anonymousClientsByDay,
+    tokenStatsByDay
   };
 }
 
@@ -2281,6 +3139,19 @@ function mergeSetValues(...sets) {
     }
   }
   return merged;
+}
+
+function roundCost(value) {
+  return Number((Number(value) || 0).toFixed(8));
+}
+
+function createUsageTokenBucket(stats = {}) {
+  return {
+    promptTokens: Math.max(0, Math.round(Number(stats.promptTokens) || 0)),
+    completionTokens: Math.max(0, Math.round(Number(stats.completionTokens) || 0)),
+    totalTokens: Math.max(0, Math.round(Number(stats.totalTokens) || 0)),
+    estimatedCost: roundCost(stats.estimatedCost)
+  };
 }
 
 async function buildUsageTrend(days) {
@@ -2305,12 +3176,22 @@ async function buildUsageTrend(days) {
     const proUsers = mergeSetValues(events.proUsersByDay.get(dateKey));
     const anonymousClients = mergeSetValues(counters.anonymousActivityByDay.get(dateKey), events.anonymousClientsByDay.get(dateKey));
     const activeUsers = mergeSetValues(freeUsers, proUsers);
+    const tokenStats = events.tokenStatsByDay.get(dateKey) || {};
+    const freeTokens = createUsageTokenBucket(tokenStats.free);
+    const proTokens = createUsageTokenBucket(tokenStats.pro);
+    const anonymousTokens = createUsageTokenBucket(tokenStats.anonymous);
+    const totalTokens = createUsageTokenBucket(tokenStats.total);
     return {
       date: dateKey,
-      free: { requests: freeRequests, activeUsers: freeUsers.size, userIds: Array.from(freeUsers) },
-      pro: { requests: proRequests, activeUsers: proUsers.size, userIds: Array.from(proUsers) },
-      anonymous: { requests: anonymousRequests, activeUsers: anonymousClients.size, clientIds: Array.from(anonymousClients) },
+      free: { requests: freeRequests, activeUsers: freeUsers.size, userIds: Array.from(freeUsers), ...freeTokens },
+      pro: { requests: proRequests, activeUsers: proUsers.size, userIds: Array.from(proUsers), ...proTokens },
+      anonymous: { requests: anonymousRequests, activeUsers: anonymousClients.size, clientIds: Array.from(anonymousClients), ...anonymousTokens },
       totalRequests: freeRequests + proRequests + anonymousRequests,
+      promptTokens: totalTokens.promptTokens,
+      completionTokens: totalTokens.completionTokens,
+      totalTokens: totalTokens.totalTokens,
+      estimatedCost: totalTokens.estimatedCost,
+      currency: officialAgentCostCurrency,
       activeUsers: activeUsers.size,
       activeAnonymousClients: anonymousClients.size
     };
@@ -2320,25 +3201,50 @@ async function buildUsageTrend(days) {
 function summarizeUsageRange(days) {
   const summary = days.reduce((acc, item) => {
     acc.totalRequests += item.totalRequests;
+    acc.promptTokens += item.promptTokens || 0;
+    acc.completionTokens += item.completionTokens || 0;
+    acc.totalTokens += item.totalTokens || 0;
+    acc.estimatedCost += item.estimatedCost || 0;
     acc.free.requests += item.free.requests;
+    acc.free.promptTokens += item.free.promptTokens || 0;
+    acc.free.completionTokens += item.free.completionTokens || 0;
+    acc.free.totalTokens += item.free.totalTokens || 0;
+    acc.free.estimatedCost += item.free.estimatedCost || 0;
     acc.pro.requests += item.pro.requests;
+    acc.pro.promptTokens += item.pro.promptTokens || 0;
+    acc.pro.completionTokens += item.pro.completionTokens || 0;
+    acc.pro.totalTokens += item.pro.totalTokens || 0;
+    acc.pro.estimatedCost += item.pro.estimatedCost || 0;
     acc.anonymous.requests += item.anonymous.requests;
+    acc.anonymous.promptTokens += item.anonymous.promptTokens || 0;
+    acc.anonymous.completionTokens += item.anonymous.completionTokens || 0;
+    acc.anonymous.totalTokens += item.anonymous.totalTokens || 0;
+    acc.anonymous.estimatedCost += item.anonymous.estimatedCost || 0;
     for (const uid of item.free.userIds || []) acc.free.userIds.add(uid);
     for (const uid of item.pro.userIds || []) acc.pro.userIds.add(uid);
     for (const clientHash of item.anonymous.clientIds || []) acc.anonymous.clientIds.add(clientHash);
     return acc;
   }, {
     totalRequests: 0,
-    free: { requests: 0, userIds: new Set() },
-    pro: { requests: 0, userIds: new Set() },
-    anonymous: { requests: 0, clientIds: new Set() }
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    estimatedCost: 0,
+    free: { requests: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0, userIds: new Set() },
+    pro: { requests: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0, userIds: new Set() },
+    anonymous: { requests: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0, clientIds: new Set() }
   });
   const activeUsers = mergeSetValues(summary.free.userIds, summary.pro.userIds);
   return {
     totalRequests: summary.totalRequests,
-    free: { requests: summary.free.requests, activeUsers: summary.free.userIds.size },
-    pro: { requests: summary.pro.requests, activeUsers: summary.pro.userIds.size },
-    anonymous: { requests: summary.anonymous.requests, activeUsers: summary.anonymous.clientIds.size },
+    promptTokens: Math.round(summary.promptTokens),
+    completionTokens: Math.round(summary.completionTokens),
+    totalTokens: Math.round(summary.totalTokens),
+    estimatedCost: roundCost(summary.estimatedCost),
+    currency: officialAgentCostCurrency,
+    free: { requests: summary.free.requests, activeUsers: summary.free.userIds.size, ...createUsageTokenBucket(summary.free) },
+    pro: { requests: summary.pro.requests, activeUsers: summary.pro.userIds.size, ...createUsageTokenBucket(summary.pro) },
+    anonymous: { requests: summary.anonymous.requests, activeUsers: summary.anonymous.clientIds.size, ...createUsageTokenBucket(summary.anonymous) },
     activeUsers: activeUsers.size,
     activeAnonymousClients: summary.anonymous.clientIds.size
   };
@@ -2354,7 +3260,7 @@ async function getApiUsageSummaryData() {
 
 async function getApiUsageTrendData(req) {
   const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
-  return { days: await buildUsageTrend(days) };
+  return { days: sortDateRowsDescending(await buildUsageTrend(days)) };
 }
 
 async function getApiUsageTopDaysData(req) {
@@ -2364,6 +3270,173 @@ async function getApiUsageTopDaysData(req) {
     .sort((left, right) => right.totalRequests - left.totalRequests)
     .slice(0, limit);
   return { days };
+}
+
+function serializeFailureLogDoc(doc) {
+  const data = doc.data() || {};
+  return {
+    id: doc.id,
+    clientRecordId: String(data.clientRecordId || ''),
+    dateKey: String(data.dateKey || ''),
+    createdAt: data.createdAt || '',
+    lastSeenAt: data.lastSeenAt || '',
+    category: data.category === 'api' ? 'api' : 'site',
+    source: String(data.source || ''),
+    siteName: String(data.siteName || ''),
+    apiKind: String(data.apiKind || ''),
+    phase: String(data.phase || ''),
+    status: Number(data.status) || 0,
+    errorCode: String(data.errorCode || ''),
+    errorMessage: String(data.errorMessage || ''),
+    pageUrl: String(data.pageUrl || ''),
+    runtimeUrl: String(data.runtimeUrl || ''),
+    model: String(data.model || ''),
+    locale: String(data.locale || ''),
+    queryPreview: String(data.queryPreview || ''),
+    queryHash: String(data.queryHash || ''),
+    repeatCount: Math.max(1, Number(data.repeatCount) || 1),
+    uploaderType: data.uploaderType === 'anonymous' ? 'anonymous' : 'user',
+    extensionVersion: String(data.extensionVersion || ''),
+    uploadedAt: timestampToIso(data.uploadedAt),
+    updatedAt: timestampToIso(data.updatedAt)
+  };
+}
+
+async function listFailureLogEvents(dateKeys) {
+  requireFirebaseAdmin();
+  const snapshot = await db.collection('failureLogEvents')
+    .where('dateKey', '>=', dateKeys[0])
+    .where('dateKey', '<=', dateKeys[dateKeys.length - 1])
+    .get();
+  const allowed = new Set(dateKeys);
+  const rows = [];
+  snapshot.forEach((doc) => {
+    const row = serializeFailureLogDoc(doc);
+    if (allowed.has(row.dateKey)) rows.push(row);
+  });
+  return rows;
+}
+
+function summarizeFailureLogs(rows, dateKey = '') {
+  const filtered = dateKey ? rows.filter((row) => row.dateKey === dateKey) : rows;
+  const failedSites = new Set();
+  const targetCounts = new Map();
+  let totalFailures = 0;
+  let apiFailures = 0;
+  let siteFailures = 0;
+  filtered.forEach((row) => {
+    const count = Math.max(1, Number(row.repeatCount) || 1);
+    totalFailures += count;
+    if (row.category === 'api') {
+      apiFailures += count;
+    } else {
+      siteFailures += count;
+      if (row.siteName) failedSites.add(row.siteName);
+    }
+    const target = row.category === 'api' ? (row.apiKind || 'API') : (row.siteName || '未知站点');
+    targetCounts.set(target, (targetCounts.get(target) || 0) + count);
+  });
+  const topTarget = Array.from(targetCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+  return {
+    totalFailures,
+    siteFailures,
+    apiFailures,
+    failedSites: failedSites.size,
+    topTarget: topTarget ? `${topTarget[0]} (${topTarget[1]})` : ''
+  };
+}
+
+async function getFailureLogsSummaryData() {
+  const dateKeys = getRecentDateKeys(30);
+  const rows = await listFailureLogEvents(dateKeys);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  return {
+    today: summarizeFailureLogs(rows, todayKey),
+    last7Days: summarizeFailureLogs(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey))),
+    last30Days: summarizeFailureLogs(rows)
+  };
+}
+
+async function getFailureLogsTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const rows = await listFailureLogEvents(dateKeys);
+  const daysPayload = dateKeys.map((dateKey) => {
+    const summary = summarizeFailureLogs(rows, dateKey);
+    return {
+      date: dateKey,
+      totalFailures: summary.totalFailures,
+      siteFailures: summary.siteFailures,
+      apiFailures: summary.apiFailures,
+      failedSites: summary.failedSites
+    };
+  });
+  return { days: sortDateRowsDescending(daysPayload) };
+}
+
+function filterFailureRows(rows, req) {
+  const category = String(req.query?.category || 'all').trim();
+  const query = String(req.query?.query || '').trim().toLowerCase();
+  return rows.filter((row) => {
+    if (category !== 'all' && row.category !== category) return false;
+    if (!query) return true;
+    return [
+      row.siteName,
+      row.apiKind,
+      row.phase,
+      row.status,
+      row.errorCode,
+      row.errorMessage,
+      row.source,
+      row.model,
+      row.locale
+    ].join(' ').toLowerCase().includes(query);
+  });
+}
+
+async function getFailureLogsListData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 100), 1, 200);
+  const cursor = String(req.query?.cursor || '').trim();
+  const rows = filterFailureRows(await listFailureLogEvents(getRecentDateKeys(days)), req);
+  rows.sort((left, right) => {
+    const rightTs = Date.parse(right.lastSeenAt || right.createdAt || right.uploadedAt || 0) || 0;
+    const leftTs = Date.parse(left.lastSeenAt || left.createdAt || left.uploadedAt || 0) || 0;
+    return rightTs - leftTs;
+  });
+  const startIndex = cursor ? rows.findIndex((item) => item.id === cursor) + 1 : 0;
+  const pageItems = rows.slice(Math.max(0, startIndex), Math.max(0, startIndex) + limit);
+  const nextCursor = rows.length > startIndex + limit ? pageItems[pageItems.length - 1]?.id || '' : '';
+  return {
+    logs: pageItems,
+    nextCursor,
+    total: rows.length
+  };
+}
+
+async function getFailureLogsTopTargetsData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 20), 1, 50);
+  const rows = filterFailureRows(await listFailureLogEvents(getRecentDateKeys(days)), req);
+  const byTarget = new Map();
+  rows.forEach((row) => {
+    const target = row.category === 'api' ? (row.apiKind || 'API') : (row.siteName || '未知站点');
+    const key = `${row.category}|${target}`;
+    const current = byTarget.get(key) || {
+      category: row.category,
+      target,
+      failures: 0,
+      records: 0
+    };
+    current.failures += Math.max(1, Number(row.repeatCount) || 1);
+    current.records += 1;
+    byTarget.set(key, current);
+  });
+  return {
+    targets: Array.from(byTarget.values())
+      .sort((left, right) => right.failures - left.failures)
+      .slice(0, limit)
+  };
 }
 
 async function requireAdminPage(req, res) {
@@ -2397,6 +3470,12 @@ app.get('/payment-success', (_req, res) => {
   res.send(getPaymentSuccessPageHtml());
 });
 
+app.get('/payment-status', asyncRoute(async (req, res) => {
+  const snapshot = await getPaymentStatusSnapshot(req.query?.session_id);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(snapshot);
+}));
+
 app.get('/payment-cancel', (_req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getPaymentCancelPageHtml());
@@ -2423,6 +3502,12 @@ app.get('/admin/api-usage', asyncRoute(async (req, res) => {
   if (!await requireAdminPage(req, res)) return;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getApiUsagePageHtml());
+}));
+
+app.get('/admin/failure-logs', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getFailureLogsPageHtml());
 }));
 
 app.get('/api/admin/orders/summary', asyncRoute(async (req, res) => {
@@ -2480,6 +3565,30 @@ app.get('/api/admin/api-usage/top-days', asyncRoute(async (req, res) => {
   res.json(await getApiUsageTopDaysData(req));
 }));
 
+app.get('/api/admin/failure-logs/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFailureLogsSummaryData());
+}));
+
+app.get('/api/admin/failure-logs/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFailureLogsTrendData(req));
+}));
+
+app.get('/api/admin/failure-logs/list', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFailureLogsListData(req));
+}));
+
+app.get('/api/admin/failure-logs/top-targets', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFailureLogsTopTargetsData(req));
+}));
+
+app.post('/api/failure-logs/batch', asyncRoute(async (req, res) => {
+  res.json(await recordFailureLogBatch(req));
+}));
+
 app.get('/billingConfig', (_req, res) => {
   res.json({
     mode: billingMode,
@@ -2513,7 +3622,7 @@ app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
     mode: 'subscription',
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: getSuccessUrl(),
+    success_url: getCheckoutSuccessUrl(),
     cancel_url: getCancelUrl(),
     metadata: { firebaseUid: user.uid },
     subscription_data: {
@@ -2660,33 +3769,47 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     };
   }
 
-  try {
-    await recordOfficialApiEvent(eventPayload);
-  } catch (error) {
-    console.warn('[ai-compare-backend] failed to record official API event:', error.message || error);
-  }
+  const recordUsageEvent = async (extra = {}) => {
+    try {
+      await recordOfficialApiEvent({
+        ...eventPayload,
+        ...extra
+      });
+    } catch (error) {
+      console.warn('[ai-compare-backend] failed to record official API event:', error.message || error);
+    }
+  };
 
   if (!apiKey || !baseUrl || !effectiveModel) {
+    await recordUsageEvent({ upstreamStatus: 0 });
     res.status(500).json({ error: 'Official API proxy is not configured' });
     return;
   }
 
-  if (isAnthropicOfficialApi(baseUrl)) {
-    await proxyAnthropicOfficialAgentChat(req, res, { apiKey, baseUrl, model: effectiveModel });
-    return;
-  }
+  let upstream = null;
+  try {
+    if (isAnthropicOfficialApi(baseUrl)) {
+      await proxyAnthropicOfficialAgentChat(req, res, {
+        apiKey,
+        baseUrl,
+        model: effectiveModel,
+        recordUsageEvent
+      });
+      return;
+    }
 
-  const upstream = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      ...req.body,
-      model: effectiveModel
-    })
-  });
+    upstream = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(buildOfficialOpenAiRequestBody(req.body || {}, effectiveModel))
+    });
+  } catch (error) {
+    await recordUsageEvent({ upstreamStatus: 0 });
+    throw error;
+  }
 
   res.status(upstream.status);
   if (usageResult?.billingEnabled) {
@@ -2707,18 +3830,38 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     }
   });
 
-  if (!upstream.body) {
-    res.send(await upstream.text());
+  if (req.body?.stream === true) {
+    const tokenUsage = upstream.ok ? await pipeOpenAiStreamAndCollectUsage(upstream, res) : normalizeTokenUsage();
+    if (!upstream.ok && upstream.body) {
+      const errorText = await upstream.text();
+      res.send(errorText);
+    } else {
+      res.end();
+    }
+    await recordUsageEvent({
+      tokenUsage,
+      upstreamStatus: upstream.status,
+      upstreamModel: effectiveModel
+    });
     return;
   }
 
-  const reader = upstream.body.getReader();
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    res.write(Buffer.from(value));
+  const responseText = await upstream.text();
+  let tokenUsage = normalizeTokenUsage();
+  let upstreamModel = effectiveModel;
+  try {
+    const payload = JSON.parse(responseText);
+    tokenUsage = extractTokenUsageFromPayload(payload);
+    upstreamModel = String(payload.model || effectiveModel);
+  } catch (_) {
+    // Non-JSON upstream responses are still proxied; they just cannot provide token usage.
   }
-  res.end();
+  await recordUsageEvent({
+    tokenUsage,
+    upstreamStatus: upstream.status,
+    upstreamModel
+  });
+  res.send(responseText);
 }));
 
 app.listen(port, '0.0.0.0', () => {

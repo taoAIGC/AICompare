@@ -431,6 +431,54 @@ html {
   gap: 0;
 }
 
+.live-summary-analysis-template-edit-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  opacity: 0;
+  transform: translateX(-4px);
+  pointer-events: none;
+  cursor: pointer;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.live-summary-analysis-template-edit-btn img {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+  opacity: 0.58;
+}
+
+.live-summary-template-cluster:hover .live-summary-analysis-template-edit-btn,
+.live-summary-template-cluster:focus-within .live-summary-analysis-template-edit-btn,
+.live-summary-analysis-template-edit-btn:focus-visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.live-summary-analysis-template-edit-btn:hover {
+  background: rgba(17, 17, 17, 0.05);
+}
+
+.live-summary-analysis-template-edit-btn:hover img,
+.live-summary-analysis-template-edit-btn:focus-visible img {
+  opacity: 0.82;
+}
+
+.live-summary-analysis-template-edit-btn:focus-visible {
+  outline: none;
+  background: rgba(17, 17, 17, 0.05);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+}
+
 .live-summary-analysis-template-tab {
   appearance: none;
   -webkit-appearance: none;

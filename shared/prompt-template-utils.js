@@ -59,14 +59,29 @@
 
     return {
       ...template,
+      enabled: template.enabled !== false,
+      hidden: template.hidden === true,
       type: normalizePromptTemplateType(template.type, DEFAULT_PROMPT_TEMPLATE_TYPE, allowedTypes)
     };
+  }
+
+  function isPromptTemplateVisible(template) {
+    return Boolean(
+      template
+      && template.name
+      && template.query
+      && template.hidden !== true
+    );
+  }
+
+  function isPromptTemplateEnabled(template) {
+    return isPromptTemplateVisible(template) && template.enabled !== false;
   }
 
   function sortPromptTemplates(templates, allowedTypes = DEFAULT_PROMPT_TEMPLATE_TYPES) {
     return (Array.isArray(templates) ? templates : [])
       .map(template => normalizePromptTemplate(template, allowedTypes))
-      .filter(template => template && template.name && template.query)
+      .filter(template => isPromptTemplateVisible(template))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   }
 
@@ -91,10 +106,12 @@
     requestedType,
     allowedTypes = DEFAULT_PROMPT_TEMPLATE_TYPES
   ) {
-    return filterPromptTemplatesByType(templates, requestedType, allowedTypes).map(template => ({
-      ...template,
-      query: String(template.query).replace('{query}', query)
-    }));
+    return filterPromptTemplatesByType(templates, requestedType, allowedTypes)
+      .filter(template => isPromptTemplateEnabled(template))
+      .map(template => ({
+        ...template,
+        query: String(template.query).replace('{query}', query)
+      }));
   }
 
   return {
@@ -102,6 +119,8 @@
     DEFAULT_PROMPT_TEMPLATE_TYPES,
     buildPromptTemplateSuggestions,
     filterPromptTemplatesByType,
+    isPromptTemplateEnabled,
+    isPromptTemplateVisible,
     normalizePromptTemplate,
     normalizePromptTemplateType,
     normalizePromptTemplateTypes,

@@ -58,6 +58,7 @@ let __timelinePromptObserver = null;
 let __timelinePromptLastSignature = null;
 let __activeSearchMonitor = null;
 let __lastStableSearchRuntime = null;
+let __lastExtractionDiagnostics = null;
 
 const ACTIVE_SEARCH_MONITOR_INTERVAL_MS = 1500;
 const ACTIVE_SEARCH_MONITOR_SETTLE_MS = 400;
@@ -73,6 +74,140 @@ function t(key, fallback = '', substitutions = undefined) {
   } catch (_) {
     return fallback;
   }
+}
+
+function recordLocalFailure(event = {}) {
+  try {
+    const logger = window.AIFailureLog?.logFailure;
+    if (typeof logger === 'function') {
+      logger({
+        pageUrl: window.location.href,
+        runtimeUrl: window.location.href,
+        ...event
+      }).catch((error) => {
+        console.warn('记录本地失败日志失败:', error);
+      });
+    }
+  } catch (error) {
+    console.warn('记录本地失败日志失败:', error);
+  }
+}
+
+function compactDiagnosticText(value, limit = 240) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > limit ? `${text.slice(0, limit)}...` : text;
+}
+
+function toSelectorList(selector) {
+  return (Array.isArray(selector) ? selector : [selector])
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+}
+
+function isElementVisibleForDiagnostics(element) {
+  if (!element) return false;
+  try {
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+function querySelectorDiagnostics(selector) {
+  const normalizedSelector = String(selector || '').trim();
+  if (!normalizedSelector) {
+    return { selector: '', count: 0, visibleCount: 0, error: '' };
+  }
+
+  try {
+    let nodes = [];
+    if (normalizedSelector.startsWith('text:')) {
+      const textToFind = normalizedSelector.slice(5).toLowerCase();
+      nodes = Array.from(document.querySelectorAll('button, [role="button"], a'))
+        .filter((candidate) => {
+          const text = candidate.textContent || candidate.innerText || candidate.getAttribute('aria-label') || '';
+          return text.toLowerCase().includes(textToFind);
+        });
+    } else {
+      nodes = Array.from(document.querySelectorAll(normalizedSelector));
+    }
+    return {
+      selector: normalizedSelector,
+      count: nodes.length,
+      visibleCount: nodes.filter(isElementVisibleForDiagnostics).length,
+      error: ''
+    };
+  } catch (error) {
+    return {
+      selector: normalizedSelector,
+      count: 0,
+      visibleCount: 0,
+      error: error?.message || String(error)
+    };
+  }
+}
+
+function summarizeSelectorDiagnostics(selector, limit = 6) {
+  return toSelectorList(selector)
+    .slice(0, limit)
+    .map(querySelectorDiagnostics)
+    .map((item) => {
+      const base = `${item.selector}=>${item.count}/${item.visibleCount}`;
+      return item.error ? `${base}:${compactDiagnosticText(item.error, 80)}` : base;
+    })
+    .join(' | ');
+}
+
+function findFirstMatchedSelector(selector) {
+  return toSelectorList(selector)
+    .map(querySelectorDiagnostics)
+    .find((item) => item.count > 0)?.selector || '';
+}
+
+function countSelectorMatches(selector) {
+  return toSelectorList(selector)
+    .map(querySelectorDiagnostics)
+    .reduce((sum, item) => sum + item.count, 0);
+}
+
+function describeElementForDiagnostics(element) {
+  if (!element) return '';
+  const tag = String(element.tagName || '').toLowerCase();
+  const id = element.id ? `#${element.id}` : '';
+  const role = element.getAttribute?.('role') ? `[role="${element.getAttribute('role')}"]` : '';
+  const testId = element.getAttribute?.('data-testid') ? `[data-testid="${element.getAttribute('data-testid')}"]` : '';
+  const placeholder = element.getAttribute?.('placeholder') ? `[placeholder="${element.getAttribute('placeholder')}"]` : '';
+  return compactDiagnosticText(`${tag}${id}${role}${testId}${placeholder}`, 180);
+}
+
+function buildStepFailureMetadata(step = {}, stepIndex = 0, totalSteps = 0) {
+  const selectorList = toSelectorList(step.selector);
+  const selectorDiagnostics = selectorList.map(querySelectorDiagnostics);
+  const matchedSelector = selectorDiagnostics.find((item) => item.count > 0)?.selector || '';
+  const selectorMatchCount = selectorDiagnostics.reduce((sum, item) => sum + item.count, 0);
+  const visibleSelectorMatchCount = selectorDiagnostics.reduce((sum, item) => sum + item.visibleCount, 0);
+
+  return {
+    stepIndex,
+    totalSteps,
+    action: step.action || '',
+    description: step.description || '',
+    firstSelector: selectorList[0] || '',
+    matchedSelector,
+    selectorMatchCount,
+    visibleSelectorMatchCount,
+    selectorSummary: summarizeSelectorDiagnostics(step.selector),
+    waitForElement: step.waitForElement === true,
+    retryOnDisabled: step.retryOnDisabled === true,
+    maxAttempts: Number(step.maxAttempts) || 0,
+    retryInterval: Number(step.retryInterval) || 0,
+    currentUrl: window.location.href,
+    pageTitle: document.title || '',
+    activeElement: describeElementForDiagnostics(document.activeElement)
+  };
 }
 
 function isRunningInExtensionIframe() {
@@ -490,6 +625,90 @@ function looksLikePlaceholderAnswerContent(content) {
   return Boolean(window.AICompareExtraction?.looksLikePlaceholderAnswerContent?.(content));
 }
 
+function rememberActiveSearchPendingReason(monitor, reason, details = {}) {
+  if (!monitor) return;
+  monitor.lastPendingReason = String(reason || 'generic_timeout').trim() || 'generic_timeout';
+  monitor.lastPendingUrl = String(details.url || monitor.lastPendingUrl || monitor.lastUrl || '').trim();
+  monitor.lastObservedContentLength = Number.isFinite(details.contentLength)
+    ? details.contentLength
+    : (Number.isFinite(monitor.lastObservedContentLength) ? monitor.lastObservedContentLength : 0);
+  monitor.lastObservedContentPreview = String(details.contentPreview || monitor.lastObservedContentPreview || '').slice(0, 160);
+}
+
+function buildActiveSearchTimeoutFailure(monitor) {
+  const phase = String(monitor?.phase || '').trim();
+  let timeoutReason = String(monitor?.lastPendingReason || '').trim();
+  const extractionDiagnostics = __lastExtractionDiagnostics || {};
+
+  if (!timeoutReason) {
+    if (phase === 'submitted' || phase === 'waiting_response') {
+      timeoutReason = 'submitted_without_extractable_content';
+    } else if (phase === 'streaming') {
+      timeoutReason = 'streaming_never_stabilized';
+    } else {
+      timeoutReason = 'generic_timeout';
+    }
+  }
+
+  return {
+    timeoutReason,
+    errorCode: `site_timeout_${timeoutReason}`,
+    metadata: {
+      attempts: monitor?.attempts || 0,
+      timeoutMs: monitor?.timeoutMs || 0,
+      searchId: monitor?.searchId || '',
+      runtimePhase: phase || 'timeout',
+      timeoutReason,
+      lastUrl: monitor?.lastUrl || monitor?.lastPendingUrl || '',
+      lastContentLength: Number(monitor?.lastObservedContentLength || String(monitor?.lastContent || '').length) || 0,
+      stableRounds: monitor?.stableRounds || 0,
+      extractionMethod: extractionDiagnostics.extractionMethod || '',
+      extractionStatus: extractionDiagnostics.extractionStatus || '',
+      extractionSelectorSummary: extractionDiagnostics.selectorSummary || '',
+      messageContainerCount: Number(extractionDiagnostics.messageContainerCount) || 0,
+      contentSelectorHitCount: Number(extractionDiagnostics.contentSelectorHitCount) || 0,
+      fallbackSelectorHitCount: Number(extractionDiagnostics.fallbackSelectorHitCount) || 0
+    }
+  };
+}
+
+function collectExtractionSelectorDiagnostics(contentExtractor = {}) {
+  const contentSelectorHits = toSelectorList(contentExtractor.contentSelectors).map(querySelectorDiagnostics);
+  const fallbackSelectorHits = toSelectorList(contentExtractor.fallbackSelectors).map(querySelectorDiagnostics);
+  const latestVisibleSelector = contentExtractor.latestVisibleResponse?.messageSelector || '';
+  const messageContainerCount = countSelectorMatches(contentExtractor.messageContainer);
+  const latestVisibleCount = countSelectorMatches(latestVisibleSelector);
+  const userMessageCount = countSelectorMatches(contentExtractor.userMessageSelector);
+  const contentSelectorHitCount = contentSelectorHits.reduce((sum, item) => sum + item.count, 0);
+  const fallbackSelectorHitCount = fallbackSelectorHits.reduce((sum, item) => sum + item.count, 0);
+  const selectorSummary = [
+    contentSelectorHits.slice(0, 4).map((item) => `content:${item.selector}=>${item.count}/${item.visibleCount}`).join(' | '),
+    fallbackSelectorHits.slice(0, 3).map((item) => `fallback:${item.selector}=>${item.count}/${item.visibleCount}`).join(' | ')
+  ].filter(Boolean).join(' | ');
+
+  return {
+    messageContainerCount,
+    latestVisibleCount,
+    userMessageCount,
+    contentSelectorHitCount,
+    fallbackSelectorHitCount,
+    selectorSummary: compactDiagnosticText(selectorSummary, 300)
+  };
+}
+
+function rememberExtractionDiagnostics(siteName, contentExtractor = {}, patch = {}) {
+  const selectorDiagnostics = collectExtractionSelectorDiagnostics(contentExtractor);
+  __lastExtractionDiagnostics = {
+    siteName: String(siteName || '').trim(),
+    updatedAt: new Date().toISOString(),
+    extractionMethod: String(patch.extractionMethod || '').trim(),
+    extractionStatus: String(patch.extractionStatus || '').trim(),
+    contentLength: Number(patch.contentLength) || 0,
+    ...selectorDiagnostics
+  };
+  return __lastExtractionDiagnostics;
+}
+
 function shouldTreatAsPendingSiteContent(siteHandler, content, url) {
   if (looksLikeConfiguredPendingContent(content, siteHandler)) {
     return true;
@@ -684,10 +903,21 @@ async function runActiveSearchMonitorCheck(monitor) {
   try {
     const elapsed = Date.now() - monitor.createdAt;
     if (elapsed >= monitor.timeoutMs) {
+      const timeoutFailure = buildActiveSearchTimeoutFailure(monitor);
       await postMonitorRuntimeUpdate(monitor, {
         phase: 'timeout',
         final: true,
         error: t('openclawStatusTimedOut', 'Timed out')
+      });
+      recordLocalFailure({
+        category: 'site',
+        source: 'inject',
+        siteName: monitor.siteName,
+        phase: 'timeout',
+        errorCode: timeoutFailure.errorCode,
+        errorMessage: t('openclawStatusTimedOut', 'Timed out'),
+        query: monitor.query,
+        metadata: timeoutFailure.metadata
       });
       stopActiveSearchMonitor('timeout');
       return;
@@ -702,6 +932,10 @@ async function runActiveSearchMonitorCheck(monitor) {
     const hasRequiredUrl = !requireHistoryUrlFeature || urlMatchesHistoryFeature(url, requiredUrlFeature);
 
     if (!normalizedContent) {
+      rememberActiveSearchPendingReason(monitor, 'submitted_without_extractable_content', {
+        url,
+        contentLength: 0
+      });
       await postMonitorRuntimeUpdate(monitor, {
         phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
         content: '',
@@ -711,6 +945,11 @@ async function runActiveSearchMonitorCheck(monitor) {
     }
 
     if (shouldTreatAsPendingSiteContent(siteHandler, content, url)) {
+      rememberActiveSearchPendingReason(monitor, 'pending_or_shell_content', {
+        url,
+        contentLength: String(content || '').length,
+        contentPreview: String(content || '').replace(/\s+/g, ' ').trim()
+      });
       await postMonitorRuntimeUpdate(monitor, {
         phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
         content: '',
@@ -720,6 +959,11 @@ async function runActiveSearchMonitorCheck(monitor) {
     }
 
     if (looksLikePlaceholderAnswerContent(content)) {
+      rememberActiveSearchPendingReason(monitor, 'placeholder_content', {
+        url,
+        contentLength: String(content || '').length,
+        contentPreview: String(content || '').replace(/\s+/g, ' ').trim()
+      });
       await postMonitorRuntimeUpdate(monitor, {
         phase: monitor.attempts <= 1 ? 'submitted' : 'waiting_response',
         content: '',
@@ -731,10 +975,16 @@ async function runActiveSearchMonitorCheck(monitor) {
     const isErrorContent = content.includes('无法自动提取') || content.includes('内容提取失败');
     monitor.lastContent = content;
     monitor.lastUrl = url;
+    monitor.lastObservedContentLength = String(content || '').length;
 
     if (normalizedContent !== monitor.lastComparableContent) {
       monitor.lastComparableContent = normalizedContent;
       monitor.stableRounds = 0;
+      rememberActiveSearchPendingReason(monitor, 'streaming_never_stabilized', {
+        url,
+        contentLength: String(content || '').length,
+        contentPreview: String(content || '').replace(/\s+/g, ' ').trim()
+      });
       await postMonitorRuntimeUpdate(monitor, {
         phase: isErrorContent ? 'error' : 'streaming',
         content,
@@ -757,6 +1007,13 @@ async function runActiveSearchMonitorCheck(monitor) {
 
     monitor.stableRounds = (monitor.stableRounds || 0) + 1;
     const isReady = monitor.stableRounds >= ACTIVE_SEARCH_MONITOR_STABLE_ROUNDS && hasRequiredUrl && !looksLikePlaceholderAnswerContent(content);
+    if (!isReady && !hasRequiredUrl) {
+      rememberActiveSearchPendingReason(monitor, 'history_url_not_ready', {
+        url,
+        contentLength: String(content || '').length,
+        contentPreview: String(content || '').replace(/\s+/g, ' ').trim()
+      });
+    }
     await postMonitorRuntimeUpdate(monitor, {
       phase: isReady ? 'ready' : 'streaming',
       content,
@@ -789,6 +1046,10 @@ function startActiveSearchMonitor(siteName, query, searchId) {
     lastComparableContent: '',
     lastContent: '',
     lastUrl: '',
+    lastPendingReason: '',
+    lastPendingUrl: '',
+    lastObservedContentLength: 0,
+    lastObservedContentPreview: '',
     lastPostedSignature: '',
     isChecking: false,
     stopped: false,
@@ -926,6 +1187,14 @@ async function executeSiteHandler(query, handlerConfig, siteName = null, options
   
   if (!handlerConfig || !handlerConfig.steps) {
     console.error('❌ 无效的处理器配置');
+    recordLocalFailure({
+      category: 'site',
+      source: 'inject',
+      siteName,
+      phase: 'handler_config',
+      errorMessage: t('injectProgressErrorInvalidHandler', '无效的处理器配置'),
+      query
+    });
     if (siteName && emitProgress) {
       postInjectProgress({
         siteName,
@@ -1035,6 +1304,15 @@ async function executeSiteHandler(query, handlerConfig, siteName = null, options
         __currentInjectStepMeta = null;
         continue;
       }
+      recordLocalFailure({
+        category: 'site',
+        source: 'inject',
+        siteName,
+        phase: error?.message && /超时|timeout/i.test(error.message) ? 'timeout' : 'submit',
+        errorMessage: error?.message || String(error),
+        query,
+        metadata: buildStepFailureMetadata(step, i + 1, handlerConfig.steps.length)
+      });
       const manualRetryRequired = error?.manualRetryRequired === true ||
         step?.retryOnDisabled === true ||
         step?.waitForElement === true ||
@@ -3365,6 +3643,18 @@ window.addEventListener('message', async function(event) {
                 found: false,
                 error: error?.message || String(error)
             };
+            recordLocalFailure({
+                category: 'site',
+                source: 'inject',
+                siteName: event.data.siteName || siteHandler?.name || domain,
+                phase: 'scroll',
+                errorMessage: error?.message || String(error),
+                query: event.data.query,
+                metadata: {
+                    requestType: 'SCROLL_TO_PROMPT',
+                    occurrenceIndex: Number(event.data.occurrenceIndex) || 0
+                }
+            });
         }
 
         window.parent.postMessage({
@@ -3391,6 +3681,18 @@ window.addEventListener('message', async function(event) {
                 found: false,
                 error: error?.message || String(error)
             };
+            recordLocalFailure({
+                category: 'site',
+                source: 'inject',
+                siteName: event.data.siteName || siteHandler?.name || domain,
+                phase: 'extract',
+                errorMessage: error?.message || String(error),
+                query: event.data.query,
+                metadata: {
+                    requestType: 'EXTRACT_PROMPT_RESPONSE',
+                    occurrenceIndex: Number(event.data.occurrenceIndex) || 0
+                }
+            });
         }
 
         window.parent.postMessage({
@@ -3425,6 +3727,17 @@ window.addEventListener('message', async function(event) {
                 console.log('✅ 内容提取完成，已发送结果');
             } catch (error) {
                 console.error('❌ 内容提取失败:', error);
+                recordLocalFailure({
+                    category: 'site',
+                    source: 'inject',
+                    siteName: event.data.siteName,
+                    phase: 'extract',
+                    errorMessage: error?.message || String(error),
+                    metadata: {
+                        requestType: 'EXTRACT_CONTENT',
+                        requestId: event.data.requestId || ''
+                    }
+                });
                 
                 // 发送错误结果
                 window.parent.postMessage({
@@ -3513,6 +3826,21 @@ window.addEventListener('message', async function(event) {
             }
         } catch (error) {
             console.error(`❌ ${siteHandler.name} 处理失败:`, error);
+            recordLocalFailure({
+                category: 'site',
+                source: 'inject',
+                siteName: siteHandler.name,
+                phase: error?.message && /超时|timeout/i.test(error.message) ? 'timeout' : 'submit',
+                errorMessage: error?.message || String(error),
+                query: event.data.query,
+                metadata: {
+                    searchId,
+                    manualRetryRequired: error?.manualRetryRequired === true,
+                    currentUrl: window.location.href,
+                    pageTitle: document.title || '',
+                    activeElement: describeElementForDiagnostics(document.activeElement)
+                }
+            });
             postInjectProgress({
                 siteName: siteHandler.name,
                 status: 'error',
@@ -3542,6 +3870,18 @@ window.addEventListener('message', async function(event) {
     console.warn('🔍 调试信息 - 消息类型:', event.data.type);
     console.warn('🔍 调试信息 - 查询内容:', event.data.query);
     if (event.data.query) {
+        recordLocalFailure({
+            category: 'site',
+            source: 'inject',
+            siteName: event.data.siteName || domain,
+            phase: 'handler_missing',
+            errorMessage: t('injectProgressErrorNoSiteHandler', '未找到站点处理器'),
+            query: event.data.query,
+            metadata: {
+                domain,
+                messageType: event.data.type || ''
+            }
+        });
         postInjectProgress({
             siteName: event.data.siteName || domain,
             status: 'error',
@@ -3693,6 +4033,17 @@ async function extractPageContent(preferredSiteName = null) {
             // 没有找到站点配置，返回提示信息
             const siteName = siteHandler ? siteHandler.name : domain;
             console.log(`⚠️ 未找到 ${siteName} 的内容提取配置，返回提示信息`);
+            __lastExtractionDiagnostics = {
+                siteName,
+                updatedAt: new Date().toISOString(),
+                extractionMethod: 'missing-content-extractor',
+                extractionStatus: 'error',
+                contentLength: 0,
+                selectorSummary: '',
+                messageContainerCount: 0,
+                contentSelectorHitCount: 0,
+                fallbackSelectorHitCount: 0
+            };
             content = `无法自动提取 ${siteName} 的详细内容，请手动复制。\n\n提示：该站点可能尚未配置内容提取规则，或者页面结构发生了变化。`;
         }
         
@@ -3914,6 +4265,10 @@ async function extractWithConfig(contentExtractor, siteName, siteHandler = null)
     const startTime = performance.now();
     let content = '';
     let extractionMethod = '';
+    rememberExtractionDiagnostics(siteName, contentExtractor, {
+        extractionMethod: 'start',
+        extractionStatus: 'running'
+    });
     
     try {
         const sharedResult = await window.AICompareExtraction?.extractDocumentContent?.(document, siteName, { contentExtractor }, {
@@ -3923,13 +4278,28 @@ async function extractWithConfig(contentExtractor, siteName, siteHandler = null)
 
         if (sharedResult?.content && !sharedResult.content.includes('无法自动提取')) {
             extractionMethod = sharedResult.extractionMethod || 'shared-core';
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod,
+                extractionStatus: 'ok',
+                contentLength: String(sharedResult.content || '').length
+            });
             console.log(`✅ 共享提取内核成功: ${extractionMethod}`);
             return sharedResult.content;
         }
 
         if (sharedResult?.pending) {
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod: sharedResult.extractionMethod || 'shared-core',
+                extractionStatus: 'pending',
+                contentLength: String(sharedResult.content || '').length
+            });
             console.log('⏳ 共享提取仍处于 pending，继续尝试额外兜底提取');
         } else if (contentExtractor?.latestVisibleResponse) {
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod: sharedResult?.extractionMethod || 'latestVisibleResponse',
+                extractionStatus: 'empty',
+                contentLength: String(sharedResult?.content || '').length
+            });
             console.log('⏳ latestVisibleResponse 尚未给出稳定内容，继续尝试额外兜底提取');
         }
         
@@ -3939,10 +4309,20 @@ async function extractWithConfig(contentExtractor, siteName, siteHandler = null)
         
         if (content.trim() && !content.includes('无法自动提取') && !looksLikeConfiguredPageShell(siteHandler, content)) {
             extractionMethod = '智能检测';
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod,
+                extractionStatus: 'ok',
+                contentLength: String(content || '').length
+            });
             console.log('✅ 智能内容检测成功');
             return content;
         }
         if (content.trim()) {
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod: '智能检测',
+                extractionStatus: 'shell',
+                contentLength: String(content || '').length
+            });
             console.log('⏳ 智能内容检测命中页面壳，继续尝试通用提取');
         }
         
@@ -3952,15 +4332,30 @@ async function extractWithConfig(contentExtractor, siteName, siteHandler = null)
         
         if (content.trim() && !content.includes('无法自动提取') && !looksLikeConfiguredPageShell(siteHandler, content)) {
             extractionMethod = '通用提取';
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod,
+                extractionStatus: 'ok',
+                contentLength: String(content || '').length
+            });
             console.log('✅ 通用内容提取成功');
             return content;
         }
         if (content.trim()) {
+            rememberExtractionDiagnostics(siteName, contentExtractor, {
+                extractionMethod: '通用提取',
+                extractionStatus: 'shell',
+                contentLength: String(content || '').length
+            });
             console.log('⏳ 通用内容提取命中页面壳，放弃该结果');
         }
         
     } catch (error) {
         console.error('❌ 内容提取过程中发生错误:', error);
+        rememberExtractionDiagnostics(siteName, contentExtractor, {
+            extractionMethod: extractionMethod || 'unknown',
+            extractionStatus: 'error',
+            contentLength: 0
+        });
         return `内容提取失败: ${error.message}`;
     } finally {
         const endTime = performance.now();

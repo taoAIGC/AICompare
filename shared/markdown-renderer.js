@@ -1,5 +1,5 @@
 (function(root, factory) {
-  const api = factory();
+  const api = factory(root);
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
@@ -8,7 +8,9 @@
   if (root && typeof root === 'object') {
     root.AICompareMarkdownRenderer = api;
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(root) {
+  let markdownItInstance = null;
+
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
       switch (char) {
@@ -32,10 +34,6 @@
       .replace(/<br\s*\/?>/gi, '\n');
   }
 
-  function escapeRegExp(value) {
-    return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
   function sanitizeUrl(rawUrl) {
     const value = String(rawUrl || '').trim();
     if (!value) return '';
@@ -43,48 +41,6 @@
       return value;
     }
     return '';
-  }
-
-  function renderInlineMarkdown(text) {
-    const source = String(text ?? '');
-    const codeTokens = [];
-    let html = escapeHtml(source);
-
-    html = html.replace(/`([^`\n]+)`/g, (_, code) => {
-      const token = `__AI_COMPARE_CODE_${codeTokens.length}__`;
-      codeTokens.push(`<code>${code}</code>`);
-      return token;
-    });
-
-    html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (_, alt, url, title) => {
-      const safeUrl = sanitizeUrl(url);
-      if (!safeUrl) {
-        return escapeHtml(`![${alt}](${url})`);
-      }
-      const titleAttr = title ? ` title="${escapeHtmlAttribute(title)}"` : '';
-      return `<img src="${escapeHtmlAttribute(safeUrl)}" alt="${escapeHtmlAttribute(alt)}"${titleAttr}>`;
-    });
-
-    html = html.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (_, label, url, title) => {
-      const safeUrl = sanitizeUrl(url);
-      if (!safeUrl) {
-        return `[${label}](${url})`;
-      }
-      const titleAttr = title ? ` title="${escapeHtmlAttribute(title)}"` : '';
-      return `<a href="${escapeHtmlAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer"${titleAttr}>${label}</a>`;
-    });
-
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
-    html = html.replace(/(^|[^\w])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>');
-    html = html.replace(/(^|[^\w])_([^_\n]+)_(?!\w)/g, '$1<em>$2</em>');
-    html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
-
-    codeTokens.forEach((markup, index) => {
-      html = html.replace(new RegExp(escapeRegExp(`__AI_COMPARE_CODE_${index}__`), 'g'), markup);
-    });
-
-    return html;
   }
 
   function splitMarkdownTableRow(line) {
@@ -150,251 +106,156 @@
     return delimiterCells.every(isMarkdownTableDelimiterCell);
   }
 
-  function normalizeMarkdownTableCells(cells, columnCount) {
-    const normalizedCells = Array.isArray(cells) ? cells.slice(0, columnCount) : [];
-    while (normalizedCells.length < columnCount) {
-      normalizedCells.push('');
-    }
-    return normalizedCells;
+  function looksLikeMarkdownTableRow(line) {
+    const trimmed = String(line || '').trim();
+    return Boolean(trimmed) && trimmed.includes('|');
   }
 
   function hasMeaningfulMarkdownTableCells(cells) {
     return (Array.isArray(cells) ? cells : []).some((cell) => String(cell || '').trim());
   }
 
-  function getMarkdownTableAlignments(delimiterCells) {
-    return delimiterCells.map((cell) => {
-      const normalizedCell = String(cell || '').trim();
-      if (/^:-+:$/.test(normalizedCell)) {
-        return 'center';
-      }
-      if (/^-+:$/.test(normalizedCell)) {
-        return 'right';
-      }
-      if (/^:-+$/.test(normalizedCell)) {
-        return 'left';
-      }
-      return '';
-    });
-  }
-
-  function looksLikeMarkdownTableRow(line) {
-    const trimmed = String(line || '').trim();
-    return Boolean(trimmed) && trimmed.includes('|');
-  }
-
-  function buildMarkdownTableCellHtml(tagName, cell, align = '') {
-    const styleAttr = align ? ` style="text-align:${escapeHtmlAttribute(align)};"` : '';
-    return `<${tagName}${styleAttr}>${renderInlineMarkdown(cell)}</${tagName}>`;
-  }
-
-  function renderMarkdownTable(headerCells, alignments, bodyRows = []) {
-    const columnCount = Math.max(
-      Array.isArray(headerCells) ? headerCells.length : 0,
-      Array.isArray(alignments) ? alignments.length : 0,
-      ...(Array.isArray(bodyRows) ? bodyRows.map((row) => Array.isArray(row) ? row.length : 0) : [0])
-    );
-
-    if (!columnCount) {
-      return '';
-    }
-
-    const normalizedHeaderCells = normalizeMarkdownTableCells(headerCells, columnCount);
-    const normalizedAlignments = normalizeMarkdownTableCells(alignments, columnCount);
-    const normalizedBodyRows = (Array.isArray(bodyRows) ? bodyRows : [])
-      .map((row) => normalizeMarkdownTableCells(row, columnCount));
-
-    const nonEmptyBodyRows = normalizedBodyRows.filter((row) => hasMeaningfulMarkdownTableCells(row));
-    if (!hasMeaningfulMarkdownTableCells(normalizedHeaderCells) && !nonEmptyBodyRows.length) {
-      return '';
-    }
-
-    const headerHtml = normalizedHeaderCells
-      .map((cell, index) => buildMarkdownTableCellHtml('th', cell, normalizedAlignments[index] || ''))
-      .join('');
-    const bodyHtml = nonEmptyBodyRows.length
-      ? `<tbody>${nonEmptyBodyRows.map((row) => (
-          `<tr>${row.map((cell, index) => buildMarkdownTableCellHtml('td', cell, normalizedAlignments[index] || '')).join('')}</tr>`
-        )).join('')}</tbody>`
-      : '';
-
-    return `<table><thead><tr>${headerHtml}</tr></thead>${bodyHtml}</table>`;
-  }
-
-  function renderMarkdownToHtml(markdown) {
-    const source = normalizeMarkdownLineBreaks(markdown).trim();
-    if (!source) {
+  function compactMarkdownTables(markdown) {
+    const source = normalizeMarkdownLineBreaks(markdown);
+    if (!String(source || '').trim()) {
       return '';
     }
 
     const lines = source.split('\n');
-    const blocks = [];
-    let paragraphLines = [];
-    let listType = null;
-    let listItems = [];
-    let inCodeBlock = false;
-    let codeFence = '';
-    let codeLang = '';
-    let codeLines = [];
-    let blockquoteLines = [];
-
-    function flushParagraph() {
-      if (!paragraphLines.length) return;
-      const renderedParagraph = renderInlineMarkdown(paragraphLines.join('\n')).replace(/\n/g, '<br>');
-      blocks.push(`<p>${renderedParagraph}</p>`);
-      paragraphLines = [];
-    }
-
-    function flushList() {
-      if (!listType || !listItems.length) {
-        listType = null;
-        listItems = [];
-        return;
-      }
-      const tag = listType === 'ol' ? 'ol' : 'ul';
-      const itemsHtml = listItems.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join('');
-      blocks.push(`<${tag}>${itemsHtml}</${tag}>`);
-      listType = null;
-      listItems = [];
-    }
-
-    function flushBlockquote() {
-      if (!blockquoteLines.length) return;
-      const content = renderMarkdownToHtml(blockquoteLines.join('\n'));
-      blocks.push(`<blockquote>${content}</blockquote>`);
-      blockquoteLines = [];
-    }
-
-    function flushCodeBlock() {
-      if (!inCodeBlock) return;
-      const languageClass = codeLang ? ` class="language-${escapeHtmlAttribute(codeLang)}"` : '';
-      blocks.push(`<pre><code${languageClass}>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
-      inCodeBlock = false;
-      codeFence = '';
-      codeLang = '';
-      codeLines = [];
-    }
+    const compactedLines = [];
 
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
-      if (inCodeBlock) {
-        if (line.startsWith(codeFence)) {
-          flushCodeBlock();
-        } else {
-          codeLines.push(line);
-        }
+      const nextLine = lines[index + 1] || '';
+
+      if (!isMarkdownTableStart(line, nextLine)) {
+        compactedLines.push(line);
         continue;
       }
 
-      const fenceMatch = line.match(/^(```+|~~~+)\s*([\w-]+)?\s*$/);
-      if (fenceMatch) {
-        flushParagraph();
-        flushList();
-        flushBlockquote();
-        inCodeBlock = true;
-        codeFence = fenceMatch[1];
-        codeLang = String(fenceMatch[2] || '').trim();
-        codeLines = [];
-        continue;
-      }
+      const headerLine = line;
+      const delimiterLine = nextLine;
+      const headerCells = splitMarkdownTableRow(headerLine);
+      const keptBodyRows = [];
+      index += 2;
 
-      const trimmed = line.trim();
-      if (!trimmed) {
-        flushParagraph();
-        flushList();
-        flushBlockquote();
-        continue;
-      }
-
-      if (isMarkdownTableStart(line, lines[index + 1] || '')) {
-        flushParagraph();
-        flushList();
-        flushBlockquote();
-
-        const headerCells = splitMarkdownTableRow(line);
-        const delimiterCells = splitMarkdownTableRow(lines[index + 1] || '');
-        const alignments = getMarkdownTableAlignments(delimiterCells);
-        const bodyRows = [];
-        index += 2;
-
-        while (index < lines.length) {
-          const rowLine = lines[index];
-          if (!looksLikeMarkdownTableRow(rowLine)) {
-            index -= 1;
-            break;
-          }
-          const rowCells = splitMarkdownTableRow(rowLine);
-          if (hasMeaningfulMarkdownTableCells(rowCells)) {
-            bodyRows.push(rowCells);
-          }
-          index += 1;
+      while (index < lines.length) {
+        const rowLine = lines[index];
+        if (!looksLikeMarkdownTableRow(rowLine)) {
+          index -= 1;
+          break;
         }
 
-        blocks.push(renderMarkdownTable(headerCells, alignments, bodyRows));
-        continue;
-      }
-
-      const blockquoteMatch = line.match(/^\s*>\s?(.*)$/);
-      if (blockquoteMatch) {
-        flushParagraph();
-        flushList();
-        blockquoteLines.push(blockquoteMatch[1]);
-        continue;
-      }
-      flushBlockquote();
-
-      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-      if (headingMatch) {
-        flushParagraph();
-        flushList();
-        const level = headingMatch[1].length;
-        blocks.push(`<h${level}>${renderInlineMarkdown(headingMatch[2].trim())}</h${level}>`);
-        continue;
-      }
-
-      if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
-        flushParagraph();
-        flushList();
-        blocks.push('<hr>');
-        continue;
-      }
-
-      const orderedListMatch = line.match(/^\s*\d+\.\s+(.+)$/);
-      if (orderedListMatch) {
-        flushParagraph();
-        if (listType && listType !== 'ol') {
-          flushList();
+        const rowCells = splitMarkdownTableRow(rowLine);
+        if (hasMeaningfulMarkdownTableCells(rowCells)) {
+          keptBodyRows.push(rowLine);
         }
-        listType = 'ol';
-        listItems.push(orderedListMatch[1].trim());
-        continue;
+        index += 1;
       }
 
-      const unorderedListMatch = line.match(/^\s*[-*+]\s+(.+)$/);
-      if (unorderedListMatch) {
-        flushParagraph();
-        if (listType && listType !== 'ul') {
-          flushList();
-        }
-        listType = 'ul';
-        listItems.push(unorderedListMatch[1].trim());
-        continue;
+      if (hasMeaningfulMarkdownTableCells(headerCells) || keptBodyRows.length > 0) {
+        compactedLines.push(headerLine, delimiterLine, ...keptBodyRows);
       }
-
-      flushList();
-      paragraphLines.push(trimmed);
     }
 
-    flushBlockquote();
-    flushParagraph();
-    flushList();
-    flushCodeBlock();
+    return compactedLines.join('\n');
+  }
 
-    return blocks.join('');
+  function resolveMarkdownItFactory() {
+    if (root && typeof root.markdownit === 'function') {
+      return root.markdownit;
+    }
+
+    if (typeof module !== 'undefined' && module.exports) {
+      try {
+        const required = require('../vendor/markdown-it/markdown-it.min.js');
+        return required?.default || required;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  function createMarkdownItRenderer() {
+    const markdownItFactory = resolveMarkdownItFactory();
+    if (typeof markdownItFactory !== 'function') {
+      return null;
+    }
+
+    const renderer = markdownItFactory({
+      html: false,
+      breaks: true,
+      linkify: false,
+      typographer: false
+    });
+
+    renderer.validateLink = (url) => Boolean(sanitizeUrl(url));
+
+    const defaultLinkOpen = renderer.renderer.rules.link_open
+      || ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+
+    renderer.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+      const hrefIndex = tokens[idx].attrIndex('href');
+      const hrefValue = hrefIndex >= 0 ? tokens[idx].attrs[hrefIndex][1] : '';
+      const safeUrl = sanitizeUrl(hrefValue);
+
+      if (!safeUrl) {
+        return '';
+      }
+
+      tokens[idx].attrs[hrefIndex][1] = safeUrl;
+      tokens[idx].attrSet('target', '_blank');
+      tokens[idx].attrSet('rel', 'noopener noreferrer');
+      return defaultLinkOpen(tokens, idx, options, env, self);
+    };
+
+    const defaultImage = renderer.renderer.rules.image
+      || ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+
+    renderer.renderer.rules.image = (tokens, idx, options, env, self) => {
+      const srcIndex = tokens[idx].attrIndex('src');
+      const srcValue = srcIndex >= 0 ? tokens[idx].attrs[srcIndex][1] : '';
+      const safeUrl = sanitizeUrl(srcValue);
+
+      if (!safeUrl) {
+        return escapeHtml(tokens[idx].content || '');
+      }
+
+      tokens[idx].attrs[srcIndex][1] = safeUrl;
+      return defaultImage(tokens, idx, options, env, self);
+    };
+
+    return renderer;
+  }
+
+  function getMarkdownItRenderer() {
+    if (markdownItInstance) {
+      return markdownItInstance;
+    }
+
+    markdownItInstance = createMarkdownItRenderer();
+    return markdownItInstance;
+  }
+
+  function renderMarkdownToHtml(markdown) {
+    const normalizedSource = compactMarkdownTables(markdown).trim();
+    if (!normalizedSource) {
+      return '';
+    }
+
+    const renderer = getMarkdownItRenderer();
+    if (!renderer || typeof renderer.render !== 'function') {
+      return '';
+    }
+
+    return String(renderer.render(normalizedSource) || '').trim();
   }
 
   return {
     escapeHtml,
-    renderMarkdownToHtml
+    renderMarkdownToHtml,
+    sanitizeUrl
   };
 });

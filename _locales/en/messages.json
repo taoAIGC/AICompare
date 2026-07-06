@@ -644,6 +644,18 @@
     "message": "Search Engine",
     "description": "The name for the search engine"
   },
+  "diagnosticsSettingsTitle": {
+    "message": "Diagnostic Logs",
+    "description": "Section title for diagnostic log settings on the shortcuts settings page"
+  },
+  "failureLogSyncTitle": {
+    "message": "Sync failure diagnostic logs",
+    "description": "Title for the failure diagnostic log auto-sync toggle"
+  },
+  "failureLogSyncDescription": {
+    "message": "Automatically upload sanitized site/API failure logs to help diagnose issues and improve stability. Logs do not include API keys, full prompts, or full responses.",
+    "description": "Description for the failure diagnostic log auto-sync toggle"
+  },
   "sendShortcutTitle": {
     "message": "Submit Shortcut",
     "description": "Title for the submit shortcut setting"
@@ -832,6 +844,9 @@
   },
   "promptTemplatesDescription": {
     "message": "Customize prompt templates for AI comparison search"
+  },
+  "templateEnabledToggleLabel": {
+    "message": "Enable this prompt template"
   },
   "promptTemplatesEmpty": {
     "message": "No prompt templates yet"

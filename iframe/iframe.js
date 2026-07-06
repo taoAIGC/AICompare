@@ -874,6 +874,7 @@ function getLiveSummaryElements() {
     retryCluster: document.getElementById('liveSummaryRetryCluster'),
     templateCluster: document.getElementById('liveSummaryTemplateCluster'),
     analysisTemplateTabs: document.getElementById('liveSummaryAnalysisTemplateTabs'),
+    analysisTemplateEditButton: document.getElementById('liveSummaryAnalysisTemplateEditButton'),
     analysisTemplateDefaultButton: document.getElementById('liveSummaryAnalysisTemplateDefaultButton'),
     analysisTemplateSelect: document.getElementById('liveSummaryAnalysisTemplateSelect'),
     shareButton: document.getElementById('liveSummaryShareButton'),
@@ -2660,6 +2661,7 @@ function refreshLiveSummaryAnalysisTemplateSelectLabel() {
   const {
     analysisTemplateSelect,
     analysisTemplateTabs,
+    analysisTemplateEditButton,
     analysisTemplateDefaultButton
   } = getLiveSummaryElements();
   if (!(analysisTemplateSelect instanceof HTMLSelectElement)) {
@@ -2684,8 +2686,31 @@ function refreshLiveSummaryAnalysisTemplateSelectLabel() {
   if (analysisTemplateDefaultButton instanceof HTMLButtonElement) {
     analysisTemplateDefaultButton.title = selectedBaseLabel;
   }
+  if (analysisTemplateEditButton instanceof HTMLButtonElement) {
+    refreshLiveSummaryAnalysisTemplateEditButton();
+  }
   analysisTemplateSelect.title = selectedBaseLabel;
   analysisTemplateSelect.setAttribute('aria-label', selectedBaseLabel ? `${selectLabel} ${selectedBaseLabel}` : selectLabel);
+}
+
+function getLiveSummaryAnalysisTemplateEditLabel() {
+  return t('editPromptTemplate', 'Edit prompt templates');
+}
+
+function refreshLiveSummaryAnalysisTemplateEditButton() {
+  const { analysisTemplateEditButton } = getLiveSummaryElements();
+  if (!(analysisTemplateEditButton instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const label = getLiveSummaryAnalysisTemplateEditLabel();
+  analysisTemplateEditButton.title = label;
+  analysisTemplateEditButton.setAttribute('aria-label', label);
+}
+
+function openLiveSummaryAnalysisTemplateSettings() {
+  const targetUrl = chrome.runtime.getURL('options/options.html#analysis-prompt-templates');
+  window.open(targetUrl, '_blank');
 }
 
 function refreshLiveSummaryHintText() {
@@ -3603,6 +3628,7 @@ async function initializeLiveSummaryCard() {
     card,
     autoAnalysisToggleButton,
     analysisTemplateTabs,
+    analysisTemplateEditButton,
     analysisTemplateDefaultButton,
     shareButton,
     downloadButton,
@@ -3618,6 +3644,7 @@ async function initializeLiveSummaryCard() {
     console.warn('加载自动总结分析提示词模板失败:', error);
   });
   refreshLiveSummaryAutoAnalysisToggle();
+  refreshLiveSummaryAnalysisTemplateEditButton();
 
   if (autoAnalysisToggleButton instanceof HTMLButtonElement && autoAnalysisToggleButton.dataset.bound !== '1') {
     autoAnalysisToggleButton.addEventListener('click', () => {
@@ -3744,6 +3771,15 @@ async function initializeLiveSummaryCard() {
       }
     });
     analysisTemplateTabs.dataset.bound = '1';
+  }
+
+  if (analysisTemplateEditButton instanceof HTMLButtonElement && analysisTemplateEditButton.dataset.bound !== '1') {
+    analysisTemplateEditButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openLiveSummaryAnalysisTemplateSettings();
+    });
+    analysisTemplateEditButton.dataset.bound = '1';
   }
 
   if (analysisTemplateDefaultButton instanceof HTMLButtonElement && analysisTemplateDefaultButton.dataset.bound !== '1') {
@@ -3939,6 +3975,7 @@ function refreshIframeDynamicI18n() {
   }
 
   refreshLiveSummaryAutoAnalysisToggle();
+  refreshLiveSummaryAnalysisTemplateEditButton();
   refreshIframeControlTitles();
   refreshIframeFavoriteI18n();
 }
@@ -5923,9 +5960,12 @@ async function copyTextToClipboard(text) {
   }
 }
 
-function sortAnalysisPromptTemplates(templates = []) {
+function sortAnalysisPromptTemplates(templates = [], options = {}) {
+  const enabledOnly = options?.enabledOnly !== false;
+
   return (Array.isArray(templates) ? templates : [])
-    .filter((template) => template && template.name && template.query)
+    .filter((template) => template && template.name && template.query && template.hidden !== true)
+    .filter((template) => !enabledOnly || template.enabled !== false)
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
@@ -6008,7 +6048,7 @@ async function resolvePreferredAnalysisTemplateId(templates = [], selectedTempla
 async function loadAnalysisPromptTemplates() {
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
-    return sortAnalysisPromptTemplates(analysisPromptTemplates);
+    return sortAnalysisPromptTemplates(analysisPromptTemplates, { enabledOnly: true });
   } catch (error) {
     console.warn('加载分析提示词模板失败:', error);
     return [];

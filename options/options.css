@@ -486,6 +486,18 @@ button.agent-engine-option-card {
   line-height: 1.4;
 }
 
+#failureLogSyncConfig .site-config {
+  margin-bottom: 0;
+}
+
+#failureLogSyncConfig .failure-log-sync-row {
+  align-items: flex-start;
+}
+
+#failureLogSyncConfig .failure-log-sync-copy {
+  font-weight: normal;
+}
+
 .drag-handle {
   cursor: grab;
   color: #999;
@@ -2068,7 +2080,9 @@ h1 {
 }
 
 .template-item .edit-template-btn,
+.template-item .delete-template-btn,
 .template-item .edit-analysis-template-btn,
+.template-item .delete-analysis-template-btn,
 .template-item .edit-agent-custom-btn,
 .template-item .delete-agent-custom-btn {
   opacity: 0;
@@ -2077,7 +2091,9 @@ h1 {
 }
 
 .template-item:hover .edit-template-btn,
+.template-item:hover .delete-template-btn,
 .template-item:hover .edit-analysis-template-btn,
+.template-item:hover .delete-analysis-template-btn,
 .template-item:hover .edit-agent-custom-btn,
 .template-item:hover .delete-agent-custom-btn {
   opacity: 1;
@@ -2218,6 +2234,16 @@ h1 {
 .template-badge-default {
   background: var(--ai-accent-soft);
   color: var(--ai-accent);
+}
+
+.template-badge-disabled {
+  background: rgba(17, 17, 17, 0.06);
+  color: var(--ai-text-muted);
+}
+
+.template-item[data-enabled="false"] .template-code {
+  color: var(--ai-text-muted);
+  background: linear-gradient(180deg, #f6f6f6 0%, #f0f0f0 100%);
 }
 
 .state-panel {

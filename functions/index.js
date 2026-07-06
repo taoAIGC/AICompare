@@ -426,6 +426,18 @@ function getSuccessUrl() {
   return process.env.STRIPE_SUCCESS_URL || 'https://example.com/payment-success';
 }
 
+function getCheckoutSuccessUrl() {
+  const successUrl = getSuccessUrl();
+  try {
+    const url = new URL(successUrl);
+    url.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+    return url.toString().replace('%7BCHECKOUT_SESSION_ID%7D', '{CHECKOUT_SESSION_ID}');
+  } catch (_error) {
+    const separator = successUrl.includes('?') ? '&' : '?';
+    return `${successUrl}${separator}session_id={CHECKOUT_SESSION_ID}`;
+  }
+}
+
 function getCancelUrl() {
   return process.env.STRIPE_CANCEL_URL || 'https://example.com/payment-cancel';
 }
@@ -476,7 +488,7 @@ exports.createCheckoutSession = onRequest({ region: DEFAULT_REGION }, async (req
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: getSuccessUrl(),
+      success_url: getCheckoutSuccessUrl(),
       cancel_url: getCancelUrl(),
       metadata: { firebaseUid: user.uid },
       subscription_data: {

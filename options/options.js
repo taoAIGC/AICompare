@@ -14,6 +14,7 @@ const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_S
 const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
 const DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY = 'defaultAnalysisTemplateId';
 const GOOGLE_DRIVE_SYNC_STORAGE_KEY = 'googleDriveSyncConfig';
+const FAILURE_LOG_SYNC_ENABLED_KEY = 'failureLogSyncEnabled';
 const LOCAL_SYNC_KEYS = ['pkHistory', 'favoriteFolders', AGENT_ENGINE_SECRET_STORAGE_KEY, CUSTOM_AGENTS_STORAGE_KEY, AGENT_HIDDEN_IDS_STORAGE_KEY];
 const SYNC_KEYS = [
   'buttonConfig',
@@ -2530,9 +2531,40 @@ async function initializeButtonConfigs() {
       }
     }
 
+    await initializeFailureLogSyncConfig();
   } catch (error) {
     console.error('初始化按钮配置失败:', error);
   }
+}
+
+async function initializeFailureLogSyncConfig() {
+  const container = document.getElementById('failureLogSyncConfig');
+  if (!container) return;
+
+  const stored = await chrome.storage.local.get(FAILURE_LOG_SYNC_ENABLED_KEY);
+  const enabled = stored?.[FAILURE_LOG_SYNC_ENABLED_KEY] !== false;
+  container.innerHTML = `
+    <div class="site-config">
+      <div class="site-header failure-log-sync-row">
+        <label class="switch">
+          <input type="checkbox" id="failureLogSyncSwitch" ${enabled ? 'checked' : ''}>
+          <span class="slider round"></span>
+        </label>
+        <div class="site-setting-meta site-name-display failure-log-sync-copy">
+          <span class="site-setting-title">${getMessage('failureLogSyncTitle') || 'Sync failure diagnostic logs'}</span>
+          <div class="site-config-help">${getMessage('failureLogSyncDescription') || 'Automatically upload sanitized site/API failure logs to help diagnose issues and improve stability. Logs do not include API keys, full prompts, or full responses.'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const switchElement = container.querySelector('#failureLogSyncSwitch');
+  switchElement?.addEventListener('change', async (event) => {
+    await chrome.storage.local.set({
+      [FAILURE_LOG_SYNC_ENABLED_KEY]: event.target.checked
+    });
+    showToast(getMessage("saveSuccess"));
+  });
 }
 
 const DEFAULT_SETTINGS_SECTION = 'quick-entry';
@@ -3014,6 +3046,21 @@ const LEGACY_ANALYSIS_TEMPLATE_SIGNATURES = {
 };
 let analysisTemplateSignatureMapPromise = null;
 
+function isTemplateEnabled(template) {
+  return template?.enabled !== false;
+}
+
+function isTemplateVisible(template) {
+  return Boolean(template?.name && template?.query && template?.hidden !== true);
+}
+
+function sortAnalysisTemplatesForDisplay(templates = [], { enabledOnly = false } = {}) {
+  return (Array.isArray(templates) ? templates : [])
+    .filter((template) => isTemplateVisible(template))
+    .filter((template) => !enabledOnly || isTemplateEnabled(template))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+}
+
 // 初始化提示词模板管理
 async function initializePromptTemplates() {
   try {
@@ -3042,7 +3089,9 @@ function buildRuntimeDefaultPromptTemplates() {
     query: getMessage(definition.queryKey) || definition.fallbackQuery,
     type: definition.type,
     order: definition.order,
-    isDefault: true
+    isDefault: true,
+    enabled: true,
+    hidden: false
   }));
 }
 
@@ -3182,7 +3231,9 @@ async function buildRuntimeDefaultAnalysisTemplates() {
     name: getMessage(definition.nameKey) || definition.fallbackName,
     query: getMessage(definition.queryKey) || definition.fallbackQuery,
     order: definition.order,
-    isDefault: true
+    isDefault: true,
+    enabled: true,
+    hidden: false
   }));
 }
 
@@ -3321,7 +3372,9 @@ async function loadTemplatesList() {
     
     const sortedTemplates = getPromptTemplateUtils()?.sortPromptTemplates
       ? getPromptTemplateUtils().sortPromptTemplates(promptTemplates, configuredTemplateTypes)
-      : promptTemplates.sort((a, b) => (a.order || 0) - (b.order || 0));
+      : (Array.isArray(promptTemplates) ? promptTemplates : [])
+        .filter((template) => isTemplateVisible(template))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
     
     if (sortedTemplates.length === 0) {
       container.innerHTML = `
@@ -3334,23 +3387,43 @@ async function loadTemplatesList() {
     }
     
     container.innerHTML = sortedTemplates.map(template => `
-      <div class="template-item" data-template-id="${template.id}">
+      <div class="template-item" data-template-id="${template.id}" data-enabled="${isTemplateEnabled(template) ? 'true' : 'false'}">
         <div class="template-item-head">
           <div class="template-item-body">
-            <h4 class="template-item-title">${template.name}</h4>
+            <div class="template-item-title-row">
+              <h4 class="template-item-title">${escapeHtml(template.name)}</h4>
+              <label
+                class="agent-enabled-switch"
+                aria-label="${escapeHtml(getMessageWithFallback('templateEnabledToggleLabel', 'Enable this prompt template'))}"
+                title="${escapeHtml(getMessageWithFallback('templateEnabledToggleLabel', 'Enable this prompt template'))}"
+              >
+                <input
+                  type="checkbox"
+                  class="agent-enabled-switch-input template-enabled-switch-input"
+                  data-template-id="${escapeHtml(template.id)}"
+                  ${isTemplateEnabled(template) ? 'checked' : ''}
+                >
+                <span class="agent-enabled-switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
             <div class="template-meta">
               <span>${getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
               <span class="template-badge">${getPromptTemplateTypeLabel(template.type)}</span>
+              ${isTemplateEnabled(template)
+                ? `<span class="template-badge">${escapeHtml(getMessageWithFallback('customSiteEnabledBadge', 'Enabled'))}</span>`
+                : `<span class="template-badge template-badge-disabled">${escapeHtml(getMessageWithFallback('customSiteDisabledBadge', 'Disabled'))}</span>`}
             </div>
           </div>
           <div class="template-actions">
             <button class="edit-template-btn icon-action-btn" data-template-id="${template.id}" title="${getMessage('editButton')}" aria-label="${getMessage('editButton')}">
               <img src="../icons/edit.svg" alt="">
             </button>
-            ${!template.isDefault ? `<button class="delete-template-btn danger-btn" data-template-id="${template.id}" data-i18n="deleteButton">删除</button>` : ''}
+            <button class="delete-template-btn icon-action-btn" type="button" data-template-id="${template.id}" title="${getMessageWithFallback('deleteButton', 'Delete')}" aria-label="${getMessageWithFallback('deleteButton', 'Delete')}">
+              <img src="../icons/trash.svg" alt="">
+            </button>
           </div>
         </div>
-        <div class="template-code">${template.query}</div>
+        <div class="template-code preserve-lines">${escapeHtml(template.query)}</div>
       </div>
     `).join('');
     
@@ -3396,6 +3469,7 @@ function bindTemplateEvents() {
   const templatesList = document.getElementById('templatesList');
   if (templatesList) {
     templatesList.addEventListener('click', handleTemplateListClick);
+    templatesList.addEventListener('change', handleTemplateListChange);
   }
 }
 
@@ -3410,6 +3484,44 @@ async function handleTemplateListClick(event) {
   } else if (deleteBtn) {
     const templateId = deleteBtn.getAttribute('data-template-id');
     if (templateId) await deleteTemplate(templateId);
+  }
+}
+
+async function handleTemplateListChange(event) {
+  const toggleInput = event.target.closest('.template-enabled-switch-input');
+  if (!toggleInput) {
+    return;
+  }
+
+  const templateId = String(toggleInput.dataset.templateId || '').trim();
+  const nextEnabled = toggleInput.checked === true;
+  if (!templateId) {
+    return;
+  }
+
+  toggleInput.disabled = true;
+
+  try {
+    const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
+    const nextTemplates = (Array.isArray(promptTemplates) ? promptTemplates : []).map((template) => {
+      if (template?.id !== templateId) {
+        return template;
+      }
+      return {
+        ...template,
+        enabled: nextEnabled
+      };
+    });
+
+    await chrome.storage.sync.set({ promptTemplates: nextTemplates });
+    await loadTemplatesList();
+    showToast(getMessage('templateSavedSuccess'));
+  } catch (error) {
+    console.error('更新聊天提示词启用状态失败:', error);
+    toggleInput.checked = !nextEnabled;
+    showToast(getMessageWithFallback('saveFailed', 'Save failed'), 3000);
+  } finally {
+    toggleInput.disabled = false;
   }
 }
 
@@ -3518,7 +3630,9 @@ async function saveTemplate() {
         query,
         type,
         order,
-        isDefault: false
+        isDefault: false,
+        enabled: true,
+        hidden: false
       };
       promptTemplates.push(newTemplate);
     }
@@ -3558,9 +3672,26 @@ async function deleteTemplate(templateId) {
   
   try {
     const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
-    const filteredTemplates = promptTemplates.filter(t => t.id !== templateId);
+    const currentTemplates = Array.isArray(promptTemplates) ? promptTemplates : [];
+    const targetTemplate = currentTemplates.find((template) => template?.id === templateId);
+    if (!targetTemplate) {
+      return;
+    }
+
+    const nextTemplates = targetTemplate.isDefault === true
+      ? currentTemplates.map((template) => {
+        if (template?.id !== templateId) {
+          return template;
+        }
+        return {
+          ...template,
+          enabled: false,
+          hidden: true
+        };
+      })
+      : currentTemplates.filter((template) => template?.id !== templateId);
     
-    await chrome.storage.sync.set({ promptTemplates: filteredTemplates });
+    await chrome.storage.sync.set({ promptTemplates: nextTemplates });
     await loadTemplatesList();
     showToast(getMessage('templateDeletedSuccess'));
     
@@ -3609,7 +3740,7 @@ async function getStoredDefaultAnalysisTemplateId() {
 }
 
 async function resolveDefaultAnalysisTemplateId(templates = []) {
-  const normalizedTemplates = Array.isArray(templates) ? templates : [];
+  const normalizedTemplates = sortAnalysisTemplatesForDisplay(templates, { enabledOnly: true });
   if (!normalizedTemplates.length) {
     return '';
   }
@@ -3646,9 +3777,7 @@ async function loadAnalysisTemplatesList() {
     const container = document.getElementById('analysisTemplatesList');
     if (!container) return;
 
-    const sortedTemplates = (Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [])
-      .filter(template => template?.name && template?.query)
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sortedTemplates = sortAnalysisTemplatesForDisplay(analysisPromptTemplates);
     const defaultTemplateId = await resolveDefaultAnalysisTemplateId(sortedTemplates);
 
     if (sortedTemplates.length === 0) {
@@ -3662,28 +3791,48 @@ async function loadAnalysisTemplatesList() {
     }
 
     container.innerHTML = sortedTemplates.map(template => `
-      <div class="template-item" data-template-id="${template.id}">
+      <div class="template-item" data-template-id="${template.id}" data-enabled="${isTemplateEnabled(template) ? 'true' : 'false'}">
         <div class="template-item-head">
           <div class="template-item-body">
-            <h4 class="template-item-title">${template.name}</h4>
+            <div class="template-item-title-row">
+              <h4 class="template-item-title">${escapeHtml(template.name)}</h4>
+              <label
+                class="agent-enabled-switch"
+                aria-label="${escapeHtml(getMessageWithFallback('templateEnabledToggleLabel', 'Enable this prompt template'))}"
+                title="${escapeHtml(getMessageWithFallback('templateEnabledToggleLabel', 'Enable this prompt template'))}"
+              >
+                <input
+                  type="checkbox"
+                  class="agent-enabled-switch-input analysis-template-enabled-switch-input"
+                  data-template-id="${escapeHtml(template.id)}"
+                  ${isTemplateEnabled(template) ? 'checked' : ''}
+                >
+                <span class="agent-enabled-switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
             <div class="template-meta">
               <span>${getMessage('templateOrderLabel') || 'Order'}: ${template.order}</span>
               <span class="template-badge">${getMessage('analysisPromptTemplateBadge') || 'Analysis'}</span>
-              ${template.id === defaultTemplateId ? `<span class="template-badge template-badge-default">${getMessage('analysisTemplateDefaultBadge') || 'Default'}</span>` : ''}
+              ${isTemplateEnabled(template)
+                ? `<span class="template-badge">${escapeHtml(getMessageWithFallback('customSiteEnabledBadge', 'Enabled'))}</span>`
+                : `<span class="template-badge template-badge-disabled">${escapeHtml(getMessageWithFallback('customSiteDisabledBadge', 'Disabled'))}</span>`}
+              ${isTemplateEnabled(template) && template.id === defaultTemplateId ? `<span class="template-badge template-badge-default">${getMessage('analysisTemplateDefaultBadge') || 'Default'}</span>` : ''}
             </div>
           </div>
           <div class="template-actions">
-            ${template.id === defaultTemplateId
+            ${template.id === defaultTemplateId && isTemplateEnabled(template)
               ? `<button class="btn-secondary template-default-btn is-active" type="button" data-template-id="${template.id}" disabled>${getMessage('analysisTemplateDefaultActiveButton') || '默认中'}</button>`
-              : `<button class="btn-secondary template-default-btn" type="button" data-template-id="${template.id}">${getMessage('analysisTemplateSetDefaultButton') || '设为默认'}</button>`
+              : `<button class="btn-secondary template-default-btn" type="button" data-template-id="${template.id}" ${isTemplateEnabled(template) ? '' : 'disabled'}>${getMessage('analysisTemplateSetDefaultButton') || '设为默认'}</button>`
             }
             <button class="edit-analysis-template-btn icon-action-btn" data-template-id="${template.id}" title="${getMessage('editButton')}" aria-label="${getMessage('editButton')}">
               <img src="../icons/edit.svg" alt="">
             </button>
-            ${!template.isDefault ? `<button class="delete-analysis-template-btn danger-btn" data-template-id="${template.id}">${getMessage('deleteButton') || 'Delete'}</button>` : ''}
+            <button class="delete-analysis-template-btn icon-action-btn" type="button" data-template-id="${template.id}" title="${getMessage('deleteButton') || 'Delete'}" aria-label="${getMessage('deleteButton') || 'Delete'}">
+              <img src="../icons/trash.svg" alt="">
+            </button>
           </div>
         </div>
-        <div class="template-code preserve-lines">${template.query}</div>
+        <div class="template-code preserve-lines">${escapeHtml(template.query)}</div>
       </div>
     `).join('');
   } catch (error) {
@@ -3717,6 +3866,7 @@ function bindAnalysisTemplateEvents() {
 
   document.getElementById('saveAnalysisTemplate')?.addEventListener('click', saveAnalysisTemplate);
   document.getElementById('analysisTemplatesList')?.addEventListener('click', handleAnalysisTemplateListClick);
+  document.getElementById('analysisTemplatesList')?.addEventListener('change', handleAnalysisTemplateListChange);
 }
 
 async function showAnalysisTemplateDialog(template = null) {
@@ -3797,7 +3947,9 @@ async function saveAnalysisTemplate() {
         name,
         query,
         order,
-        isDefault: false
+        isDefault: false,
+        enabled: true,
+        hidden: false
       });
     }
 
@@ -3838,13 +3990,27 @@ async function deleteAnalysisTemplate(templateId) {
 
   try {
     const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
-    const filteredTemplates = analysisPromptTemplates.filter(t => t.id !== templateId);
-    await chrome.storage.sync.set({ analysisPromptTemplates: filteredTemplates });
-    const storedDefaultId = await getStoredDefaultAnalysisTemplateId();
-    if (storedDefaultId === templateId) {
-      const nextDefaultId = filteredTemplates[0]?.id ? String(filteredTemplates[0].id) : '';
-      await setDefaultAnalysisTemplateId(nextDefaultId);
+    const currentTemplates = Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : [];
+    const targetTemplate = currentTemplates.find((template) => template?.id === templateId);
+    if (!targetTemplate) {
+      return;
     }
+
+    const nextTemplates = targetTemplate.isDefault === true
+      ? currentTemplates.map((template) => {
+        if (template?.id !== templateId) {
+          return template;
+        }
+        return {
+          ...template,
+          enabled: false,
+          hidden: true
+        };
+      })
+      : currentTemplates.filter((template) => template?.id !== templateId);
+
+    await chrome.storage.sync.set({ analysisPromptTemplates: nextTemplates });
+    await setDefaultAnalysisTemplateId(await resolveDefaultAnalysisTemplateId(nextTemplates));
     await loadAnalysisTemplatesList();
     showToast(getMessage('templateDeletedSuccess'));
   } catch (error) {
@@ -3860,6 +4026,13 @@ async function setAnalysisTemplateAsDefault(templateId) {
   }
 
   try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const targetTemplate = sortAnalysisTemplatesForDisplay(analysisPromptTemplates, { enabledOnly: true })
+      .find((template) => String(template?.id || '').trim() === normalizedId);
+    if (!targetTemplate) {
+      return;
+    }
+
     await setDefaultAnalysisTemplateId(normalizedId);
     await loadAnalysisTemplatesList();
     showToast(getMessage('analysisTemplateDefaultSaved') || '默认分析提示词已更新');
@@ -3883,6 +4056,45 @@ async function handleAnalysisTemplateListClick(event) {
   } else if (deleteBtn) {
     const templateId = deleteBtn.getAttribute('data-template-id');
     if (templateId) await deleteAnalysisTemplate(templateId);
+  }
+}
+
+async function handleAnalysisTemplateListChange(event) {
+  const toggleInput = event.target.closest('.analysis-template-enabled-switch-input');
+  if (!toggleInput) {
+    return;
+  }
+
+  const templateId = String(toggleInput.dataset.templateId || '').trim();
+  const nextEnabled = toggleInput.checked === true;
+  if (!templateId) {
+    return;
+  }
+
+  toggleInput.disabled = true;
+
+  try {
+    const { analysisPromptTemplates = [] } = await chrome.storage.sync.get('analysisPromptTemplates');
+    const nextTemplates = (Array.isArray(analysisPromptTemplates) ? analysisPromptTemplates : []).map((template) => {
+      if (template?.id !== templateId) {
+        return template;
+      }
+      return {
+        ...template,
+        enabled: nextEnabled
+      };
+    });
+
+    await chrome.storage.sync.set({ analysisPromptTemplates: nextTemplates });
+    await setDefaultAnalysisTemplateId(await resolveDefaultAnalysisTemplateId(nextTemplates));
+    await loadAnalysisTemplatesList();
+    showToast(getMessage('templateSavedSuccess'));
+  } catch (error) {
+    console.error('更新分析提示词启用状态失败:', error);
+    toggleInput.checked = !nextEnabled;
+    showToast(getMessageWithFallback('saveFailed', 'Save failed'), 3000);
+  } finally {
+    toggleInput.disabled = false;
   }
 }
 

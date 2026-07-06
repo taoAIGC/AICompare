@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>失败日志 Debug</title>
+  <link rel="stylesheet" href="failure-logs.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">AI 比一比 Debug</p>
+        <h1>本地失败日志</h1>
+        <p class="subtitle">仅保存在当前浏览器的 chrome.storage.local，用于排查站点执行失败和 API 请求失败。</p>
+      </div>
+      <div class="hero-actions">
+        <button id="syncButton" type="button">立即同步</button>
+        <button id="exportButton" type="button">导出 JSON</button>
+        <button id="pruneButton" type="button">清理过期</button>
+        <button id="clearButton" type="button" class="danger">清空日志</button>
+      </div>
+    </header>
+
+    <section class="filters" aria-label="日志筛选">
+      <label>
+        日期范围
+        <select id="daysFilter">
+          <option value="1">今天</option>
+          <option value="7" selected>近 7 天</option>
+          <option value="30">近 30 天</option>
+        </select>
+      </label>
+      <label>
+        类型
+        <select id="categoryFilter">
+          <option value="all">全部</option>
+          <option value="site">站点失败</option>
+          <option value="api">API 失败</option>
+        </select>
+      </label>
+      <label>
+        同步状态
+        <select id="syncFilter">
+          <option value="all">全部</option>
+          <option value="pending">未同步</option>
+          <option value="failed">同步失败</option>
+          <option value="synced">已同步</option>
+        </select>
+      </label>
+      <label class="search-field">
+        搜索
+        <input id="searchInput" type="search" placeholder="站点、API、阶段或错误信息">
+      </label>
+    </section>
+
+    <section class="summary-grid" aria-label="日志汇总">
+      <article class="summary-card">
+        <span>今日失败总数</span>
+        <strong id="todayTotal">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>今日失败站点数</span>
+        <strong id="todaySites">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>今日 API 失败</span>
+        <strong id="todayApi">0</strong>
+      </article>
+      <article class="summary-card wide">
+        <span>最常失败站点 / API</span>
+        <strong id="topTarget">暂无</strong>
+      </article>
+      <article class="summary-card wide">
+        <span>最常失败原因</span>
+        <strong id="topReason">暂无</strong>
+      </article>
+      <article class="summary-card wide">
+        <span>最常站点 + 原因</span>
+        <strong id="topSiteReason">暂无</strong>
+      </article>
+      <article class="summary-card">
+        <span>待同步</span>
+        <strong id="syncPending">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>已同步</span>
+        <strong id="syncSynced">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>同步失败</span>
+        <strong id="syncFailed">0</strong>
+      </article>
+    </section>
+
+    <section class="table-card">
+      <div class="table-header">
+        <h2>失败记录</h2>
+        <p id="recordCount">0 条</p>
+      </div>
+      <div id="statusMessage" class="status-message" hidden></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>类型</th>
+              <th>站点 / API</th>
+              <th>阶段</th>
+              <th>状态码</th>
+              <th>错误信息</th>
+              <th>次数</th>
+              <th>同步状态</th>
+              <th>详情</th>
+            </tr>
+          </thead>
+          <tbody id="logsBody">
+            <tr>
+              <td colspan="9" class="empty">正在加载...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="../shared/failure-log.js"></script>
+  <script src="../shared/failure-log-sync.js"></script>
+  <script src="failure-logs.js"></script>
+</body>
+</html>

@@ -639,6 +639,18 @@
     "message": "搜索引擎",
     "description": "搜索引擎的名称"
   },
+  "diagnosticsSettingsTitle": {
+    "message": "诊断日志",
+    "description": "快捷设置页中诊断日志设置分组标题"
+  },
+  "failureLogSyncTitle": {
+    "message": "同步失败诊断日志",
+    "description": "失败诊断日志自动同步开关标题"
+  },
+  "failureLogSyncDescription": {
+    "message": "自动上传脱敏后的站点/API 失败日志，用于排查问题和提升稳定性；不包含 API Key、完整提示词或完整回复。",
+    "description": "失败诊断日志自动同步开关说明"
+  },
   "sendShortcutTitle": {
     "message": "发送快捷键",
     "description": "发送快捷键设置项标题"
@@ -827,6 +839,9 @@
   },
   "promptTemplatesDescription": {
     "message": "自定义搜索建议按钮的提示词模板"
+  },
+  "templateEnabledToggleLabel": {
+    "message": "启用这个提示词模板"
   },
   "promptTemplatesEmpty": {
     "message": "暂无提示词模板"

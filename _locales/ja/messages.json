@@ -3033,5 +3033,8 @@
   },
   "aiErrorTechnicalDetails": {
     "message": "Technical details"
+  },
+  "templateEnabledToggleLabel": {
+    "message": "この Skill を有効化"
   }
 }

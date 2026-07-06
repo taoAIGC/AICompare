@@ -1,4 +1,6 @@
 importScripts(
+  './shared/failure-log.js',
+  './shared/failure-log-sync.js',
   './shared/site-launch-utils.js',
   './config/agentCatalogData.js',
   './config/agentCatalog.js',
@@ -17,6 +19,8 @@ const SiteLaunchUtils = self.SiteLaunchUtils || {};
 const AgentCatalog = self.AICompareAgentCatalog || {};
 const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
+const FailureLog = self.AIFailureLog || {};
+const FailureLogSync = self.AIFailureLogSync || {};
 const UI_LANGUAGE_STORAGE_KEY = 'uiLanguage';
 const UI_LANGUAGE_AUTO_VALUE = 'auto';
 const UI_LANGUAGE_DEFAULT_LOCALE = 'en';
@@ -32,6 +36,9 @@ const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_ENGINE_USAGE_STORAGE_KEY = 'agentOfficialUsage';
 const AGENT_ENGINE_ANONYMOUS_CLIENT_ID_STORAGE_KEY = 'agentOfficialAnonymousClientId';
+const FAILURE_LOG_SYNC_ALARM = 'failure-log-sync';
+let failureLogSyncTimer = null;
+let failureLogSyncInFlight = null;
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
@@ -490,20 +497,137 @@ async function getFirebaseIdTokenIfAvailable() {
   return refreshBackgroundFirebaseIdToken(auth);
 }
 
-async function fetchAgentChatCompletion(config = {}, payload = {}, options = {}) {
-  if (!isOfficialAgentEngineSource(config)) {
-    return fetch(`${config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`
-      },
-      body: JSON.stringify({
-        ...payload,
-        model: payload.model || config.model
-      }),
-      signal: options.signal
+function getAgentFailureApiKind(config = {}) {
+  return isOfficialAgentEngineSource(config) ? 'official' : 'custom';
+}
+
+function getAgentFailureQuery(payload = {}) {
+  const messages = Array.isArray(payload.messages) ? payload.messages : [];
+  const lastUserMessage = [...messages].reverse().find((message) => message?.role === 'user');
+  const content = lastUserMessage?.content;
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => typeof part?.text === 'string' ? part.text : '')
+      .filter(Boolean)
+      .join('\n');
+  }
+  return '';
+}
+
+function recordFailureLog(event = {}) {
+  if (event?.error?.name === 'AbortError') {
+    return;
+  }
+  try {
+    const logger = FailureLog?.logFailure;
+    if (typeof logger === 'function') {
+      logger(event).catch((error) => {
+        console.warn('记录失败日志失败:', error);
+      });
+    }
+  } catch (error) {
+    console.warn('记录失败日志失败:', error);
+  }
+}
+
+async function syncFailureLogsNow(options = {}) {
+  if (failureLogSyncInFlight && !options.force) {
+    return failureLogSyncInFlight;
+  }
+  if (typeof FailureLogSync?.syncFailureLogs !== 'function') {
+    return { ok: false, uploaded: 0, error: 'Failure log sync module is unavailable' };
+  }
+  failureLogSyncInFlight = FailureLogSync.syncFailureLogs({
+    force: options.force === true,
+    failureLog: FailureLog,
+    getBaseUrl: getCloudFunctionsBaseUrl,
+    getIdToken: getFirebaseIdTokenIfAvailable,
+    getAnonymousClientId: getOrCreateAnonymousClientId,
+    locale: getBrowserUiLocale(),
+    extensionVersion: chrome.runtime.getManifest?.()?.version || ''
+  }).finally(() => {
+    failureLogSyncInFlight = null;
+  });
+  return failureLogSyncInFlight;
+}
+
+function scheduleFailureLogSync(delayMs = 3000, options = {}) {
+  if (failureLogSyncTimer) {
+    clearTimeout(failureLogSyncTimer);
+  }
+  failureLogSyncTimer = setTimeout(() => {
+    failureLogSyncTimer = null;
+    syncFailureLogsNow(options).catch((error) => {
+      console.warn('失败日志同步失败:', error?.message || error);
     });
+  }, Math.max(0, Number(delayMs) || 0));
+}
+
+function createFailureLogSyncAlarm() {
+  if (!chrome.alarms || typeof chrome.alarms.create !== 'function') {
+    return;
+  }
+  chrome.alarms.create(FAILURE_LOG_SYNC_ALARM, {
+    periodInMinutes: 15
+  });
+}
+
+async function fetchAgentChatCompletion(config = {}, payload = {}, options = {}) {
+  const apiKind = getAgentFailureApiKind(config);
+  const query = getAgentFailureQuery(payload);
+  const model = payload.model || config.model || '';
+  if (!isOfficialAgentEngineSource(config)) {
+    try {
+      const response = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`
+        },
+        body: JSON.stringify({
+          ...payload,
+          model: payload.model || config.model
+        }),
+        signal: options.signal
+      });
+      if (!response.ok) {
+        recordFailureLog({
+          category: 'api',
+          source: 'background',
+          apiKind,
+          phase: 'http',
+          status: response.status,
+          errorMessage: response.statusText || 'Custom API request failed',
+          runtimeUrl: `${config.baseUrl || ''}/chat/completions`,
+          model,
+          query,
+          metadata: {
+            selectedSource: config.selectedSource || 'custom'
+          }
+        });
+      }
+      return response;
+    } catch (error) {
+      recordFailureLog({
+        category: 'api',
+        source: 'background',
+        apiKind,
+        phase: 'network',
+        status: 0,
+        errorMessage: error?.message || String(error),
+        runtimeUrl: `${config.baseUrl || ''}/chat/completions`,
+        model,
+        query,
+        metadata: {
+          selectedSource: config.selectedSource || 'custom'
+        },
+        error
+      });
+      throw error;
+    }
   }
 
   const [idToken, clientId] = await Promise.all([
@@ -520,16 +644,59 @@ async function fetchAgentChatCompletion(config = {}, payload = {}, options = {})
     headers.Authorization = `Bearer ${idToken}`;
   }
 
-  return fetch(`${getCloudFunctionsBaseUrl()}/officialAgentChat`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      ...payload,
-      model: undefined,
-      locale
-    }),
-    signal: options.signal
-  });
+  const officialUrl = `${getCloudFunctionsBaseUrl()}/officialAgentChat`;
+  try {
+    const response = await fetch(officialUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ...payload,
+        model: undefined,
+        locale
+      }),
+      signal: options.signal
+    });
+    if (!response.ok) {
+      recordFailureLog({
+        category: 'api',
+        source: 'background',
+        apiKind,
+        phase: 'http',
+        status: response.status,
+        errorMessage: response.statusText || 'Official API request failed',
+        runtimeUrl: officialUrl,
+        model,
+        locale,
+        query,
+        metadata: {
+          selectedSource: config.selectedSource || 'official',
+          hasFirebaseToken: !!idToken,
+          hasAnonymousClientId: !!clientId
+        }
+      });
+    }
+    return response;
+  } catch (error) {
+    recordFailureLog({
+      category: 'api',
+      source: 'background',
+      apiKind,
+      phase: 'network',
+      status: 0,
+      errorMessage: error?.message || String(error),
+      runtimeUrl: officialUrl,
+      model,
+      locale,
+      query,
+      metadata: {
+        selectedSource: config.selectedSource || 'official',
+        hasFirebaseToken: !!idToken,
+        hasAnonymousClientId: !!clientId
+      },
+      error
+    });
+    throw error;
+  }
 }
 
 function getOfficialUsageDateKey() {
@@ -1378,6 +1545,22 @@ async function executeAgentJob(job) {
       job.status = 'cancelled';
       return;
     }
+    recordFailureLog({
+      category: 'api',
+      source: 'agent',
+      apiKind: getAgentFailureApiKind(config),
+      phase: 'agent',
+      status: 0,
+      errorMessage: error?.message || String(error),
+      model: config.model,
+      query: getAgentFailureQuery({ messages: job.messages }),
+      metadata: {
+        agentId: job.agentId,
+        panelId: job.panelId,
+        selectedSource: config.selectedSource || 'official'
+      },
+      error
+    });
     job.status = 'error';
     sendAgentRuntimeEvent(job, {
       event: 'error',
@@ -1549,7 +1732,9 @@ function getDefaultPromptTemplates() {
       query: chrome.i18n.getMessage('defaultTemplateRiskAnalysisQuery') || 'Review this topic as a risk assessment. Start with the 3-5 biggest risks, then for each one explain: why it matters, what could trigger it, how serious the impact would be, and how to prevent or reduce it. End with the single risk that deserves attention first.\n\nTopic: {query}',
       type: 'information',
       order: 1,
-      isDefault: true
+      isDefault: true,
+      enabled: true,
+      hidden: false
     },
     {
       id: 'best_practice',
@@ -1557,7 +1742,9 @@ function getDefaultPromptTemplates() {
       query: chrome.i18n.getMessage('defaultTemplateBestPracticeQuery') || 'Turn this topic into a practical best-practice checklist. Start with the goal and success criteria, then list the most important practices to follow, common mistakes to avoid, and a short step-by-step plan someone can use right away.\n\nTopic: {query}',
       type: 'information',
       order: 2,
-      isDefault: true
+      isDefault: true,
+      enabled: true,
+      hidden: false
     },
     {
       id: 'translate_to_chinese',
@@ -1565,7 +1752,9 @@ function getDefaultPromptTemplates() {
       query: chrome.i18n.getMessage('defaultTemplateTranslateToChineseQuery') || 'Translate the following content into Chinese:\n\n{query}',
       type: 'information',
       order: 3,
-      isDefault: true
+      isDefault: true,
+      enabled: true,
+      hidden: false
     }
   ];
 }
@@ -1774,7 +1963,9 @@ async function buildRuntimeDefaultAnalysisTemplates() {
     name: chrome.i18n.getMessage(definition.nameKey) || definition.fallbackName,
     query: chrome.i18n.getMessage(definition.queryKey) || definition.fallbackQuery,
     order: definition.order,
-    isDefault: true
+    isDefault: true,
+    enabled: true,
+    hidden: false
   }));
 }
 
@@ -1978,7 +2169,7 @@ async function getPromptTemplates() {
   try {
     const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
     return promptTemplates
-      .filter(template => template?.name && template?.query)
+      .filter(template => template?.name && template?.query && template?.hidden !== true && template?.enabled !== false)
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   } catch (error) {
     console.error('加载提示词模板失败:', error);
@@ -2009,6 +2200,8 @@ function parseTemplateIdFromMenuItemId(menuItemId) {
 // 扩展启动时检查配置更新
 chrome.runtime.onStartup.addListener(async () => {
   try {
+    createFailureLogSyncAlarm();
+    scheduleFailureLogSync(5000);
     await applyExtensionActionBranding();
     // 开发环境调试：显示当前扩展ID
     logExtensionIdForDevelopment();
@@ -2046,6 +2239,8 @@ chrome.runtime.onStartup.addListener(async () => {
 // 扩展安装和更新时的统一处理
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
+    createFailureLogSyncAlarm();
+    scheduleFailureLogSync(5000);
     await applyExtensionActionBranding();
     console.log('扩展事件触发:', details.reason, '版本:', details.previousVersion, '->', chrome.runtime.getManifest().version);
     
@@ -2479,13 +2674,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // 处理来自 iframe 的消息
-chrome.runtime.onMessage.addListener((message, sender) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.action === 'syncFailureLogsNow') {
+    syncFailureLogsNow({ force: message.force === true })
+      .then((result) => {
+        sendResponse({ ok: true, result });
+      })
+      .catch((error) => {
+        console.warn('手动同步失败日志失败:', error);
+        sendResponse({ ok: false, error: error?.message || String(error) });
+      });
+    return true;
+  }
   if (message.action === 'executeHandler') {
     (async () => {
       const siteHandler = await getHandlerForUrl(message.url);
       if (siteHandler && siteHandler.searchHandler) {
         executeSiteHandler(sender.tab.id, message.query, siteHandler).catch(error => {
           console.error('站点处理失败:', error);
+          recordFailureLog({
+            category: 'site',
+            source: 'background',
+            siteName: siteHandler.name,
+            phase: 'submit',
+            errorMessage: error?.message || String(error),
+            pageUrl: message.url,
+            query: message.query,
+            metadata: {
+              tabId: sender.tab?.id || 0
+            },
+            error
+          });
         });
       }
     })().catch((error) => {
@@ -2535,6 +2754,18 @@ async function executeSiteHandler(tabId, query, siteHandler) {
     }
   } catch (error) {
     console.error(`${siteHandler.name} 处理过程出错:`, error);
+    recordFailureLog({
+      category: 'site',
+      source: 'background',
+      siteName: siteHandler.name,
+      phase: 'submit',
+      errorMessage: error?.message || String(error),
+      query,
+      metadata: {
+        tabId
+      },
+      error
+    });
     throw error;
   }
 }
@@ -2950,15 +3181,19 @@ function createRemoteReconnectAlarm() {
 }
 
 chrome.alarms?.onAlarm.addListener((alarm) => {
-  if (alarm?.name !== REMOTE_RECONNECT_ALARM) {
+  if (alarm?.name === FAILURE_LOG_SYNC_ALARM) {
+    syncFailureLogsNow().catch((error) => {
+      console.warn('失败日志定时同步失败:', error?.message || error);
+    });
     return;
   }
-
-  ensureRemoteSearchRuntime()
-    .then((runtime) => runtime.ensureConnection())
-    .catch((error) => {
-      console.error('远程搜索重连检查失败:', error);
-    });
+  if (alarm?.name === REMOTE_RECONNECT_ALARM) {
+    ensureRemoteSearchRuntime()
+      .then((runtime) => runtime.ensureConnection())
+      .catch((error) => {
+        console.error('远程搜索重连检查失败:', error);
+      });
+  }
 });
 
 chrome.notifications?.onButtonClicked.addListener((notificationId, buttonIndex) => {
@@ -3122,6 +3357,9 @@ async function createContextMenu() {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && Object.prototype.hasOwnProperty.call(changes || {}, UI_LANGUAGE_STORAGE_KEY)) {
     runtimeI18nMessagesCache.clear();
+  }
+  if (namespace === 'local' && Object.prototype.hasOwnProperty.call(changes || {}, FailureLog.STORAGE_KEY || 'aiCompareFailureLogs')) {
+    scheduleFailureLogSync(3000);
   }
   if (namespace === 'sync' && (changes.buttonConfig || changes.promptTemplates || changes.analysisPromptTemplates)) {
     createContextMenu();

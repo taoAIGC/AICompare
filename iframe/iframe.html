@@ -116,6 +116,15 @@
                             data-i18n-aria-label="analysisPromptTemplateSelectLabel"
                         ></div>
                         <button
+                            id="liveSummaryAnalysisTemplateEditButton"
+                            class="live-summary-analysis-template-edit-btn"
+                            type="button"
+                            aria-label=""
+                            title=""
+                        >
+                            <img src="../icons/edit.svg" alt="" aria-hidden="true">
+                        </button>
+                        <button
                             id="liveSummaryAnalysisTemplateDefaultButton"
                             class="live-summary-analysis-template-default-btn"
                             type="button"
@@ -215,6 +224,7 @@
     <script src="../config/baseConfig.js"></script>
     <script src="../config/analytics.js"></script>
     <script src="../shared/runtime-i18n.js"></script>
+    <script src="../vendor/markdown-it/markdown-it.min.js"></script>
     <script src="../shared/markdown-renderer.js"></script>
     <script src="../shared/prompt-template-utils.js"></script>
     <script src="../shared/submit-shortcut-utils.js"></script>

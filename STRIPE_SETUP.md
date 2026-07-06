@@ -23,12 +23,16 @@ STRIPE_CANCEL_URL=https://aicompare.club/payment-cancel
 OFFICIAL_AGENT_API_BASE_URL=https://your-official-api.example/v1
 OFFICIAL_AGENT_API_KEY=your_official_api_key
 OFFICIAL_AGENT_MODEL=your-default-model
+OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION=0
+OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION=0
+OFFICIAL_AGENT_COST_CURRENCY=usd
 OFFICIAL_API_DAILY_FREE_LIMIT=100
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=replace_with_sha256_hex
 ADMIN_SESSION_SECRET=replace_with_random_secret
 ADMIN_SESSION_TTL_SECONDS=43200
 ADMIN_SESSION_ORIGIN=https://aicompare.club
+FAILURE_LOG_DAILY_UPLOAD_LIMIT=2000
 ```
 
 注意：
@@ -57,6 +61,7 @@ ADMIN_SESSION_ORIGIN=https://aicompare.club
 - `/admin`：概览页
 - `/admin/orders`：会员订单页
 - `/admin/api-usage`：API 使用页
+- `/admin/failure-logs`：失败日志页
 
 后台登录流程：
 
@@ -123,7 +128,7 @@ firebase deploy --only functions,firestore:rules
 2. 点击订阅
 3. 在测试模式下使用 Stripe 测试卡 `4242 4242 4242 4242`
 4. 调用 `officialAgentChat` 时，登录用户携带 Firebase ID Token，未登录用户携带匿名 client id；免费/未登录用户在非中文界面每天可用 100 次，超过后函数返回 402
-5. VPS backend 会在每次官方 API 请求时新增一条 `officialApiEvents` 记录，供后台统计 Pro / free / anonymous 使用量
+5. VPS backend 会在每次官方 API 请求时新增一条 `officialApiEvents` 记录，供后台统计 Pro / free / anonymous 使用量；如果上游返回 `usage`，还会记录 prompt/completion/total tokens 和按环境变量单价估算的成本
 
 如果在正式模式下测试，测试卡会被拒绝，这是正常现象。
 
