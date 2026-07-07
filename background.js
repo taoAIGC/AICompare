@@ -566,6 +566,74 @@ function scheduleFailureLogSync(delayMs = 3000, options = {}) {
   }, Math.max(0, Number(delayMs) || 0));
 }
 
+function normalizeSiteUsageList(items = [], limit = 30) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : [])
+    .map((item) => String(item || '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
+}
+
+function createSiteUsageClientEventId() {
+  try {
+    if (self.crypto?.randomUUID) {
+      return self.crypto.randomUUID();
+    }
+  } catch (_) {
+    // Fall through to timestamp/random fallback.
+  }
+  return `site_usage_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function recordSiteCompareUsageEvent(payload = {}) {
+  const baseUrl = getCloudFunctionsBaseUrl();
+  const idToken = await getFirebaseIdTokenIfAvailable();
+  const anonymousClientId = idToken ? '' : await getOrCreateAnonymousClientId();
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  };
+  if (idToken) {
+    headers.Authorization = `Bearer ${idToken}`;
+  } else if (anonymousClientId) {
+    headers['X-AI-Compare-Client-Id'] = anonymousClientId;
+  }
+
+  const body = {
+    clientEventId: String(payload.clientEventId || createSiteUsageClientEventId()).trim(),
+    source: String(payload.source || 'iframe').trim(),
+    siteNames: normalizeSiteUsageList(payload.siteNames),
+    officialSiteNames: normalizeSiteUsageList(payload.officialSiteNames),
+    customSiteNames: normalizeSiteUsageList(payload.customSiteNames),
+    agentIds: normalizeSiteUsageList(payload.agentIds),
+    hasQuery: payload.hasQuery === true,
+    queryLength: Math.max(0, Math.min(20000, Number(payload.queryLength) || 0)),
+    locale: getBrowserUiLocale(),
+    extensionVersion: chrome.runtime.getManifest?.()?.version || ''
+  };
+
+  if (!body.siteNames.length && !body.agentIds.length) {
+    return { ok: false, skipped: true, reason: 'empty site usage event' };
+  }
+
+  const response = await fetch(`${baseUrl}/api/site-compare-events`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `Site usage event upload failed: HTTP ${response.status}`);
+  }
+  return result;
+}
+
 function createFailureLogSyncAlarm() {
   if (!chrome.alarms || typeof chrome.alarms.create !== 'function') {
     return;
@@ -2516,6 +2584,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: error.message });
     });
     return true; // 保持消息通道开放
+  }
+  else if (message.action === 'recordSiteCompareUsage') {
+    recordSiteCompareUsageEvent(message.payload || {}).then((result) => {
+      sendResponse({ success: true, result });
+    }).catch((error) => {
+      console.warn('记录站点对比使用埋点失败:', error?.message || error);
+      sendResponse({ success: false, error: error?.message || String(error) });
+    });
+    return true;
   }
   else if (message.action === 'openOptionsPage') {
     // 立即打开设置页面

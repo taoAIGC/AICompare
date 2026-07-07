@@ -93,17 +93,53 @@ async function logEvent(name, params = {}) {
 
   const clientId = await getOrCreateClientId();
 
-  // 这里的 fetch 请求是核心
-  fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`, {
-    method: "POST",
-    body: JSON.stringify({
-      client_id: clientId,
-      events: [{
-        name: name,     // 事件名称 (例如: 'click_translate')
-        params: params  // 额外参数 (例如: { language: 'en' })
-      }]
-    })
-  });
+  const payload = {
+    client_id: clientId,
+    events: [{
+      name,
+      params
+    }]
+  };
+
+  const directEndpoint = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`;
+
+  const relayBaseUrl = (() => {
+    try {
+      const base = globalThis.FirebaseConfig?.getCloudFunctionsBaseUrl?.();
+      if (base) return String(base).trim().replace(/\/+$/, '');
+    } catch (_) {}
+    return 'https://aicompare.club';
+  })();
+
+  const relayEndpoint = `${relayBaseUrl}/ga/mp/collect`;
+
+  try {
+    const response = await fetch(directEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      return;
+    }
+  } catch (_) {
+    // Network environments (e.g. CN) may block google-analytics.com; fall back to relay.
+  }
+
+  try {
+    await fetch(relayEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        measurementId,
+        apiSecret,
+        ...payload
+      })
+    });
+  } catch (_) {
+    // Swallow errors to avoid impacting user flows.
+  }
 }
 
 if (typeof window !== 'undefined') {

@@ -70,9 +70,9 @@
     "email": "AIShortcuts@outlook.com"
   },
   "analytics": {
-    "enabled": false,
-    "measurementId": "G-JP9L38KMWN",
-    "apiSecret": ""
+    "enabled": true,
+    "measurementId": "G-FSFPLG71YK",
+    "apiSecret": "lsH7XUAtSGGlk5-wBYhnhg"
   },
   "history": {
     "maxCount": 100

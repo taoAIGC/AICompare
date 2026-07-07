@@ -535,19 +535,87 @@ function renderEmptyRow(message, colSpan) {
   return '<tr><td colspan="' + colSpan + '" class="empty-cell">' + escapeHtml(message) + '</td></tr>';
 }
 
+function formatCompactText(value, fallback = '-') {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text || fallback;
+}
+
+function formatMetadataValue(value) {
+  if (value == null) return '';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+  return String(value);
+}
+
+function renderPill(label, value) {
+  const text = formatCompactText(value, '');
+  if (!text) return '';
+  return '<span class="pill"><strong>' + escapeHtml(label) + '</strong>' + escapeHtml(text) + '</span>';
+}
+
+function renderFailureContext(item) {
+  const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+  const metadataPills = Object.entries(metadata)
+    .filter((entry) => formatMetadataValue(entry[1]))
+    .slice(0, 8)
+    .map(([key, value]) => renderPill(key, formatMetadataValue(value)))
+    .join('');
+  const url = item.runtimeUrl || item.pageUrl || '';
+  const urlLink = url
+    ? '<a class="log-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(url) + '</a>'
+    : '-';
+  return (
+    '<div class="log-detail-grid">'
+      + '<div><span class="detail-label">Query</span><div class="query-preview">' + escapeHtml(formatCompactText(item.queryPreview, '无 query 摘要')) + '</div></div>'
+      + '<div><span class="detail-label">URL</span><div class="url-cell">' + urlLink + '</div></div>'
+      + '<div><span class="detail-label">模型 / 语言 / 版本</span><div class="pill-row">'
+        + renderPill('model', item.model || '-')
+        + renderPill('locale', item.locale || item.requestLocale || '-')
+        + renderPill('version', item.extensionVersion || '-')
+      + '</div></div>'
+      + '<div><span class="detail-label">诊断字段</span><div class="pill-row">'
+        + renderPill('code', item.errorCode || '-')
+        + renderPill('hash', item.queryHash || '-')
+        + renderPill('record', item.clientRecordId || '-')
+        + metadataPills
+      + '</div></div>'
+    + '</div>'
+  );
+}
+
+function renderFailureLogRows(logs) {
+  return logs.map((item) => {
+    const target = item.category === 'api' ? (item.apiKind || 'API') : (item.siteName || '未知站点');
+    const severityClass = item.category === 'api' ? 'tag-api' : 'tag-site';
+    return (
+      '<tr class="log-row">'
+        + '<td><div class="strong-cell">' + escapeHtml(formatDate(item.lastSeenAt || item.createdAt || item.uploadedAt)) + '</div><div class="muted-cell">上传 ' + escapeHtml(formatDate(item.uploadedAt)) + '</div></td>'
+        + '<td><span class="type-tag ' + severityClass + '">' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</span></td>'
+        + '<td><div class="strong-cell">' + escapeHtml(target) + '</div><div class="muted-cell">' + escapeHtml(item.source || '-') + '</div></td>'
+        + '<td><div class="strong-cell">' + escapeHtml(item.phase || '-') + '</div><div class="muted-cell">' + escapeHtml(item.status ? ('HTTP ' + item.status) : '无状态码') + '</div></td>'
+        + '<td><div class="error-cell">' + escapeHtml(formatCompactText(item.errorMessage)) + '</div></td>'
+        + '<td><div class="strong-cell">' + escapeHtml(formatNumber(item.repeatCount || 1)) + '</div><div class="muted-cell">' + escapeHtml(item.uploaderType === 'anonymous' ? '匿名' : '登录用户') + '</div></td>'
+      + '</tr>'
+      + '<tr class="log-detail-row"><td colspan="6">' + renderFailureContext(item) + '</td></tr>'
+    );
+  }).join('');
+}
+
 async function loadOverview() {
-  const [orderSummary, apiSummary] = await Promise.all([
+  const [orderSummary, usageSummary] = await Promise.all([
     fetchAdminJson('/api/admin/orders/summary'),
-    fetchAdminJson('/api/admin/api-usage/summary')
+    fetchAdminJson('/api/admin/usage/summary')
   ]);
   const cards = [
     { label: '当前有效 Pro', value: formatNumber(orderSummary.activeProUsers), note: '含 trialing / active' },
     { label: '近 30 天付费订单', value: formatNumber(orderSummary.thirtyDayPaidOrders), note: '按已支付发票统计' },
-    { label: '今日 API 请求', value: formatNumber(apiSummary.today.totalRequests), note: 'free + pro + anonymous' },
-    { label: '近 30 天 API Tokens', value: formatNumber(apiSummary.last30Days.totalTokens), note: formatCost(apiSummary.last30Days.estimatedCost, apiSummary.last30Days.currency) }
+    { label: '今日 API 请求', value: formatNumber(usageSummary.today.apiRequests), note: formatNumber(usageSummary.today.totalTokens) + ' tokens' },
+    { label: '今日站点对比', value: formatNumber(usageSummary.today.siteEvents), note: usageSummary.today.topSite || '暂无站点数据' },
+    { label: '近 7 天 API 请求', value: formatNumber(usageSummary.last7Days.apiRequests), note: formatCost(usageSummary.last7Days.estimatedCost, usageSummary.last7Days.currency) },
+    { label: '近 7 天站点对比', value: formatNumber(usageSummary.last7Days.siteEvents), note: '站点打开 ' + formatNumber(usageSummary.last7Days.siteLaunches) }
   ];
   document.getElementById('overviewCards').innerHTML = renderCards(cards);
-  document.getElementById('overviewJson').textContent = JSON.stringify({ orderSummary, apiSummary }, null, 2);
+  document.getElementById('overviewJson').textContent = JSON.stringify({ orderSummary, usageSummary }, null, 2);
 }
 
 async function loadOrdersPage() {
@@ -596,18 +664,19 @@ async function loadOrdersPage() {
 }
 
 async function loadApiUsagePage() {
-  const [summary, trendPayload, topDaysPayload] = await Promise.all([
-    fetchAdminJson('/api/admin/api-usage/summary'),
-    fetchAdminJson('/api/admin/api-usage/trend?days=30'),
-    fetchAdminJson('/api/admin/api-usage/top-days?limit=10')
+  const [summary, trendPayload, topTargetsPayload, recentPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/usage/summary'),
+    fetchAdminJson('/api/admin/usage/trend?days=7'),
+    fetchAdminJson('/api/admin/usage/top-targets?days=7&limit=30'),
+    fetchAdminJson('/api/admin/usage/recent?days=7&limit=100')
   ]);
   document.getElementById('apiCards').innerHTML = renderCards([
-    { label: '今日总请求', value: formatNumber(summary.today.totalRequests) },
-    { label: '今日 Tokens', value: formatNumber(summary.today.totalTokens), note: formatCost(summary.today.estimatedCost, summary.today.currency) },
+    { label: '今日 API 请求', value: formatNumber(summary.today.apiRequests), note: formatNumber(summary.today.totalTokens) + ' tokens' },
+    { label: '今日站点对比', value: formatNumber(summary.today.siteEvents), note: summary.today.topSite || '暂无站点数据' },
     { label: '今日活跃登录用户', value: formatNumber(summary.today.activeUsers) },
     { label: '今日活跃匿名设备', value: formatNumber(summary.today.activeAnonymousClients) },
-    { label: '近 30 天总请求', value: formatNumber(summary.last30Days.totalRequests) },
-    { label: '近 30 天 Tokens', value: formatNumber(summary.last30Days.totalTokens), note: formatCost(summary.last30Days.estimatedCost, summary.last30Days.currency) }
+    { label: '近 7 天 API 请求', value: formatNumber(summary.last7Days.apiRequests), note: formatCost(summary.last7Days.estimatedCost, summary.last7Days.currency) },
+    { label: '近 7 天站点对比', value: formatNumber(summary.last7Days.siteEvents), note: '站点打开 ' + formatNumber(summary.last7Days.siteLaunches) }
   ]);
 
   const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
@@ -615,32 +684,105 @@ async function loadApiUsagePage() {
     ? trend.map((item) => (
       '<tr>'
         + '<td>' + escapeHtml(item.date) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.free.requests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.pro.requests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.anonymous.requests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.apiRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.siteEvents)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.siteLaunches)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.totalTokens)) + '</td>'
-        + '<td>' + escapeHtml(formatCost(item.estimatedCost, item.currency)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.topSite || '-') + '</td>'
       + '</tr>'
     )).join('')
-    : renderEmptyRow('暂无 API 趋势数据', 9);
+    : renderEmptyRow('暂无使用趋势数据', 8);
 
-  const topDays = Array.isArray(topDaysPayload.days) ? topDaysPayload.days : [];
-  document.getElementById('apiTopDaysBody').innerHTML = topDays.length
-    ? topDays.map((item) => (
+  const topTargets = Array.isArray(topTargetsPayload.targets) ? topTargetsPayload.targets : [];
+  document.getElementById('usageTopTargetsBody').innerHTML = topTargets.length
+    ? topTargets.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.kind === 'api' ? 'API' : '站点') + '</td>'
+        + '<td>' + escapeHtml(item.target || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.kind === 'api' ? formatNumber(item.totalTokens) : formatNumber(item.withQueryEvents)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无高频使用数据', 6);
+
+  const recent = Array.isArray(recentPayload.events) ? recentPayload.events : [];
+  document.getElementById('usageRecentBody').innerHTML = recent.length
+    ? recent.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(formatDate(item.createdAt)) + '</td>'
+        + '<td>' + escapeHtml(item.kind === 'api' ? 'API' : '站点') + '</td>'
+        + '<td>' + escapeHtml(item.target || '-') + '</td>'
+        + '<td>' + escapeHtml(item.userType || '-') + '</td>'
+        + '<td>' + escapeHtml(item.detail || '-') + '</td>'
+        + '<td>' + escapeHtml(item.extensionVersion || '-') + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无最近使用记录', 6);
+}
+
+async function loadSiteUsagePage() {
+  const [summary, trendPayload, topSitesPayload, recentPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/site-usage/summary'),
+    fetchAdminJson('/api/admin/site-usage/trend?days=30'),
+    fetchAdminJson('/api/admin/site-usage/top-sites?days=30&limit=30'),
+    fetchAdminJson('/api/admin/site-usage/recent?days=7&limit=50')
+  ]);
+  document.getElementById('siteUsageCards').innerHTML = renderCards([
+    { label: '今日对比次数', value: formatNumber(summary.today.totalEvents) },
+    { label: '今日使用站点数', value: formatNumber(summary.today.uniqueSites) },
+    { label: '今日活跃登录用户', value: formatNumber(summary.today.activeUsers) },
+    { label: '今日活跃匿名设备', value: formatNumber(summary.today.activeAnonymousClients) },
+    { label: '近 30 天对比次数', value: formatNumber(summary.last30Days.totalEvents) },
+    { label: '最常使用站点', value: summary.last30Days.topSite || '暂无' }
+  ]);
+
+  const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('siteUsageTrendBody').innerHTML = trend.length
+    ? trend.map((item) => (
       '<tr>'
         + '<td>' + escapeHtml(item.date) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.free.requests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.pro.requests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.anonymous.requests)) + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.totalTokens)) + '</td>'
-        + '<td>' + escapeHtml(formatCost(item.estimatedCost, item.currency)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalEvents)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalSiteLaunches)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.uniqueSites)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.topSite || '-') + '</td>'
       + '</tr>'
     )).join('')
-    : renderEmptyRow('暂无峰值日数据', 7);
+    : renderEmptyRow('暂无站点使用趋势数据', 7);
+
+  const topSites = Array.isArray(topSitesPayload.sites) ? topSitesPayload.sites : [];
+  document.getElementById('siteUsageTopSitesBody').innerHTML = topSites.length
+    ? topSites.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.siteName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.launches)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.events)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.withQueryEvents)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无站点排行数据', 6);
+
+  const recent = Array.isArray(recentPayload.events) ? recentPayload.events : [];
+  document.getElementById('siteUsageRecentBody').innerHTML = recent.length
+    ? recent.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(formatDate(item.createdAt || item.uploadedAt)) + '</td>'
+        + '<td>' + escapeHtml(item.uploaderType === 'anonymous' ? '匿名' : '登录用户') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.siteCount)) + '</td>'
+        + '<td>' + escapeHtml((item.siteNames || []).join(', ') || '-') + '</td>'
+        + '<td>' + escapeHtml((item.agentIds || []).join(', ') || '-') + '</td>'
+        + '<td>' + escapeHtml(item.hasQuery ? '是' : '否') + '</td>'
+        + '<td>' + escapeHtml(item.extensionVersion || '-') + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无最近站点使用记录', 7);
 }
 
 function getFailureFilters() {
@@ -687,26 +829,16 @@ async function loadFailureLogsPage() {
         + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
         + '<td>' + escapeHtml(item.target || '-') + '</td>'
         + '<td>' + escapeHtml(formatNumber(item.failures)) + '</td>'
+        + '<td><div class="strong-cell">' + escapeHtml(formatCompactText(item.topPhase)) + '</div><div class="muted-cell">' + escapeHtml(formatCompactText(item.latestError)) + '</div></td>'
         + '<td>' + escapeHtml(formatNumber(item.records)) + '</td>'
       + '</tr>'
     )).join('')
-    : renderEmptyRow('暂无高频失败目标', 4);
+    : renderEmptyRow('暂无高频失败目标', 5);
 
   const logs = Array.isArray(listPayload.logs) ? listPayload.logs : [];
   document.getElementById('failureLogsBody').innerHTML = logs.length
-    ? logs.map((item) => (
-      '<tr>'
-        + '<td>' + escapeHtml(formatDate(item.lastSeenAt || item.createdAt || item.uploadedAt)) + '</td>'
-        + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
-        + '<td>' + escapeHtml(item.category === 'api' ? (item.apiKind || 'API') : (item.siteName || '未知站点')) + '</td>'
-        + '<td>' + escapeHtml(item.phase || '-') + '</td>'
-        + '<td>' + escapeHtml(item.status || '-') + '</td>'
-        + '<td>' + escapeHtml(item.errorMessage || '-') + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.repeatCount || 1)) + '</td>'
-        + '<td>' + escapeHtml(item.uploaderType === 'anonymous' ? '匿名' : '登录用户') + '</td>'
-      + '</tr>'
-    )).join('')
-    : renderEmptyRow('暂无失败日志', 8);
+    ? renderFailureLogRows(logs)
+    : renderEmptyRow('暂无失败日志', 6);
 }
 
 async function bootAdminPage(pageName) {
@@ -747,6 +879,7 @@ async function bootAdminPage(pageName) {
     if (pageName === 'overview') await loadOverview();
     if (pageName === 'orders') await loadOrdersPage();
     if (pageName === 'apiUsage') await loadApiUsagePage();
+    if (pageName === 'siteUsage') await loadSiteUsagePage();
     if (pageName === 'failureLogs') {
       document.getElementById('failureSearchButton')?.addEventListener('click', () => {
         loadFailureLogsPage().catch((error) => {
@@ -1039,6 +1172,97 @@ const ADMIN_STYLES = `
     font-weight: 600;
     font-size: 13px;
   }
+  .strong-cell {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .muted-cell {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .error-cell {
+    max-width: 420px;
+    color: #5f2519;
+    font-weight: 650;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+  .type-tag, .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 12px;
+    line-height: 1.2;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+  }
+  .type-tag {
+    font-weight: 800;
+  }
+  .tag-api {
+    background: rgba(54, 102, 166, 0.12);
+    color: #28507f;
+  }
+  .tag-site {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .log-row td {
+    border-bottom: 0;
+    padding-bottom: 8px;
+  }
+  .log-detail-row td {
+    padding-top: 0;
+    padding-bottom: 16px;
+  }
+  .log-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.2fr);
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.58);
+    border: 1px solid rgba(85, 58, 36, 0.09);
+  }
+  .detail-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .query-preview {
+    color: var(--text);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .url-cell {
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .log-link {
+    color: #28507f;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .pill strong {
+    color: var(--text);
+    font-weight: 800;
+  }
   .empty-cell {
     color: var(--muted);
     text-align: center;
@@ -1069,6 +1293,9 @@ const ADMIN_STYLES = `
     }
     h1 {
       font-size: 32px;
+    }
+    .log-detail-grid {
+      grid-template-columns: 1fr;
     }
   }
 `;
@@ -1456,7 +1683,14 @@ async function getUserPlan(uid) {
   return {
     plan: isActive ? 'pro' : 'free',
     planExpiresAt: data.planExpiresAt || null,
-    stripeCustomerId: data.stripeCustomerId || ''
+    stripeCustomerId: data[getStripeCustomerIdField()] || data.stripeCustomerId || '',
+    stripeCustomerIdLegacy: data.stripeCustomerId || '',
+    stripeCustomerIdLive: data.stripeCustomerIdLive || '',
+    stripeCustomerIdTest: data.stripeCustomerIdTest || '',
+    stripeSubscriptionId: data[getStripeSubscriptionIdField()] || data.stripeSubscriptionId || '',
+    stripeSubscriptionIdLegacy: data.stripeSubscriptionId || '',
+    stripeSubscriptionIdLive: data.stripeSubscriptionIdLive || '',
+    stripeSubscriptionIdTest: data.stripeSubscriptionIdTest || ''
   };
 }
 
@@ -1754,6 +1988,109 @@ async function recordFailureLogBatch(req) {
   };
 }
 
+function normalizeSiteUsageNames(items = [], limit = 30) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : [])
+    .map((item) => safeLogString(item, 120))
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
+}
+
+function createSiteCompareEventDocId({ uploaderType, uid, clientHash, clientEventId }) {
+  return crypto
+    .createHash('sha256')
+    .update([
+      String(uploaderType || ''),
+      String(uid || clientHash || ''),
+      String(clientEventId || '')
+    ].join('|'))
+    .digest('hex');
+}
+
+async function getUsageEventUploader(req) {
+  const user = await getOptionalUser(req);
+  if (user?.uid) {
+    return {
+      uploaderType: 'user',
+      uid: user.uid,
+      clientHash: ''
+    };
+  }
+  const anonymousClientId = getAnonymousClientId(req);
+  if (!anonymousClientId) {
+    const error = new Error('Authentication or anonymous client id is required');
+    error.status = 401;
+    throw error;
+  }
+  return {
+    uploaderType: 'anonymous',
+    uid: '',
+    clientHash: getAnonymousUsageDocId(anonymousClientId)
+  };
+}
+
+async function recordSiteCompareEvent(req) {
+  requireFirebaseAdmin();
+  const uploader = await getUsageEventUploader(req);
+  const clientEventId = safeLogString(req.body?.clientEventId || '', 120);
+  if (!clientEventId) {
+    const error = new Error('clientEventId is required');
+    error.status = 400;
+    throw error;
+  }
+
+  const officialSiteNames = normalizeSiteUsageNames(req.body?.officialSiteNames);
+  const customSiteNames = normalizeSiteUsageNames(req.body?.customSiteNames);
+  const siteNames = normalizeSiteUsageNames(req.body?.siteNames?.length
+    ? req.body.siteNames
+    : [...officialSiteNames, ...customSiteNames]);
+  const agentIds = normalizeSiteUsageNames(req.body?.agentIds, 20);
+  if (!siteNames.length && !agentIds.length) {
+    const error = new Error('siteNames or agentIds is required');
+    error.status = 400;
+    throw error;
+  }
+
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const docId = createSiteCompareEventDocId({
+    ...uploader,
+    clientEventId
+  });
+  await db.collection('siteCompareEvents').doc(docId).set({
+    clientEventId,
+    dateKey: getTodayKey(),
+    uploaderType: uploader.uploaderType,
+    uid: uploader.uid,
+    clientHash: uploader.clientHash,
+    source: safeLogString(req.body?.source || 'iframe', 40),
+    siteNames,
+    officialSiteNames,
+    customSiteNames,
+    agentIds,
+    siteCount: siteNames.length,
+    officialSiteCount: officialSiteNames.length,
+    customSiteCount: customSiteNames.length,
+    agentCount: agentIds.length,
+    hasQuery: req.body?.hasQuery === true,
+    queryLength: Math.max(0, Math.min(20000, Math.round(Number(req.body?.queryLength) || 0))),
+    locale: safeLogString(req.body?.locale || '', 40),
+    extensionVersion: safeLogString(req.body?.extensionVersion || '', 40),
+    createdAt: now,
+    updatedAt: now
+  }, { merge: true });
+
+  return {
+    ok: true,
+    id: docId
+  };
+}
+
 function getSuccessUrl() {
   return process.env.STRIPE_SUCCESS_URL || 'https://example.com/payment-success';
 }
@@ -1779,6 +2116,125 @@ function getStripePrices() {
     monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
     yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim()
   };
+}
+
+function getStripeModeSuffix() {
+  return billingMode === 'live' ? 'Live' : 'Test';
+}
+
+function getStripeCustomerIdField() {
+  return `stripeCustomerId${getStripeModeSuffix()}`;
+}
+
+function getStripeSubscriptionIdField() {
+  return `stripeSubscriptionId${getStripeModeSuffix()}`;
+}
+
+function getStripeAllowedPriceIds() {
+  return new Set(Object.values(getStripePrices()).filter(Boolean));
+}
+
+function getStripeSmokeTestConfig() {
+  return {
+    priceId: String(process.env.STRIPE_PRICE_SMOKE_TEST || '').trim(),
+    token: String(process.env.BILLING_SMOKE_TEST_TOKEN || '').trim()
+  };
+}
+
+function assertCheckoutPriceAllowed(priceId) {
+  if (!getStripeAllowedPriceIds().has(priceId)) {
+    const error = new Error('Unsupported checkout price');
+    error.status = 400;
+    throw error;
+  }
+}
+
+function assertBillingSmokeTestAccess(req) {
+  const config = getStripeSmokeTestConfig();
+  if (!config.priceId || !config.token) {
+    const error = new Error('Not found');
+    error.status = 404;
+    throw error;
+  }
+
+  const requestToken = String(
+    req.query?.token || req.headers['x-ai-compare-smoke-test-token'] || ''
+  ).trim();
+  if (!requestToken || !safeCompare(requestToken, config.token)) {
+    const error = new Error('Not found');
+    error.status = 404;
+    throw error;
+  }
+
+  return config;
+}
+
+async function resolveBillingSmokeTestUser(req) {
+  requireFirebaseAdmin();
+  const uid = String(req.query?.uid || req.body?.uid || '').trim();
+  const email = String(req.query?.email || req.body?.email || '').trim();
+
+  if (uid) {
+    return admin.auth().getUser(uid);
+  }
+  if (email) {
+    return admin.auth().getUserByEmail(email);
+  }
+
+  const error = new Error('uid or email is required');
+  error.status = 400;
+  throw error;
+}
+
+async function createCheckoutSessionForFirebaseUser({
+  firebaseUser,
+  priceId,
+  smokeTest = false
+}) {
+  const stripe = getStripe();
+  const userRef = db.collection('users').doc(firebaseUser.uid);
+  const plan = await getUserPlan(firebaseUser.uid);
+  let customerId = plan.stripeCustomerId;
+
+  if (customerId) {
+    try {
+      await stripe.customers.retrieve(customerId);
+    } catch (error) {
+      if (error?.code !== 'resource_missing' && error?.statusCode !== 404) {
+        throw error;
+      }
+      customerId = '';
+    }
+  }
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: firebaseUser.email,
+      metadata: { firebaseUid: firebaseUser.uid }
+    });
+    customerId = customer.id;
+    await userRef.set({
+      stripeCustomerId: customerId,
+      [getStripeCustomerIdField()]: customerId
+    }, { merge: true });
+  }
+
+  const metadata = {
+    firebaseUid: firebaseUser.uid,
+    ...(smokeTest ? { smokeTest: 'true' } : {})
+  };
+
+  return stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer: customerId,
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: getCheckoutSuccessUrl(),
+    cancel_url: getCancelUrl(),
+    metadata,
+    subscription_data: {
+      metadata
+    }
+  });
 }
 
 function getExtensionMembershipUrl() {
@@ -2397,7 +2853,7 @@ function createAdminPage({ pageName, title, description, content }) {
         <nav class="hero-links">
           <a class="nav-link ${active.overview}" href="/admin">总览</a>
           <a class="nav-link ${active.orders}" href="/admin/orders">会员订单</a>
-          <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">API 使用</a>
+          <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">使用统计</a>
           <a class="nav-link ${active.failureLogs}" href="/admin/failure-logs">失败日志</a>
         </nav>
       </article>
@@ -2482,7 +2938,7 @@ function getOverviewPageHtml() {
   return createAdminPage({
     pageName: 'overview',
     title: '运营总览',
-    description: '查看当前有效 Pro、近 30 天订单和官方代理 API 请求概览。',
+    description: '查看当前有效 Pro、订单收入，以及最近 7 天 API / 站点使用概览。',
     content: `
       <h2 class="section-title">概览卡片</h2>
       <section id="overviewCards" class="grid"></section>
@@ -2563,47 +3019,131 @@ function getOrdersPageHtml() {
 function getApiUsagePageHtml() {
   return createAdminPage({
     pageName: 'apiUsage',
-    title: 'API 使用后台',
-    description: '按天查看 free / pro / anonymous 三类官方代理 API 请求量与活跃数。',
+    title: '使用统计后台',
+    description: '合并查看官方 API 使用和站点对比使用，默认只展示最近 7 天数据。',
     content: `
       <h2 class="section-title">核心指标</h2>
       <section id="apiCards" class="grid"></section>
+      <section class="card panel">
+        <h3>近 7 天趋势</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>API 请求</th>
+              <th>站点对比</th>
+              <th>站点打开</th>
+              <th>API Tokens</th>
+              <th>活跃登录用户</th>
+              <th>活跃匿名设备</th>
+              <th>Top 站点</th>
+            </tr>
+          </thead>
+          <tbody id="apiTrendBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>近 7 天高频使用</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>目标</th>
+              <th>次数</th>
+              <th>活跃登录用户</th>
+              <th>活跃匿名设备</th>
+              <th>Tokens / 带 Query</th>
+            </tr>
+          </thead>
+          <tbody id="usageTopTargetsBody">
+            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>最近使用记录</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>类型</th>
+              <th>目标</th>
+              <th>用户类型</th>
+              <th>摘要</th>
+              <th>版本</th>
+            </tr>
+          </thead>
+          <tbody id="usageRecentBody">
+            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getSiteUsagePageHtml() {
+  return createAdminPage({
+    pageName: 'siteUsage',
+    title: '站点使用后台',
+    description: '统计用户打开站点对比的次数、活跃用户/匿名设备，以及最常使用的官方站点、自定义站点和 Agent。',
+    content: `
+      <h2 class="section-title">核心指标</h2>
+      <section id="siteUsageCards" class="grid"></section>
       <section class="card panel">
         <h3>近 30 天趋势</h3>
         <table>
           <thead>
             <tr>
               <th>日期</th>
-              <th>免费请求</th>
-              <th>Pro 请求</th>
-              <th>匿名请求</th>
-              <th>总请求</th>
-              <th>总 Tokens</th>
-              <th>估算成本</th>
+              <th>对比次数</th>
+              <th>站点打开次数</th>
+              <th>使用站点数</th>
               <th>活跃登录用户</th>
               <th>活跃匿名设备</th>
+              <th>Top 站点</th>
             </tr>
           </thead>
-          <tbody id="apiTrendBody">
-            <tr><td colspan="9" class="empty-cell">等待加载...</td></tr>
+          <tbody id="siteUsageTrendBody">
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
       <section class="card panel">
-        <h3>峰值日期</h3>
+        <h3>近 30 天站点排行</h3>
         <table>
           <thead>
             <tr>
-              <th>日期</th>
-              <th>总请求</th>
-              <th>免费</th>
-              <th>Pro</th>
-              <th>匿名</th>
-              <th>总 Tokens</th>
-              <th>估算成本</th>
+              <th>站点</th>
+              <th>打开次数</th>
+              <th>涉及对比次数</th>
+              <th>活跃登录用户</th>
+              <th>活跃匿名设备</th>
+              <th>带 query 次数</th>
             </tr>
           </thead>
-          <tbody id="apiTopDaysBody">
+          <tbody id="siteUsageTopSitesBody">
+            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>最近站点对比事件</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>用户类型</th>
+              <th>站点数</th>
+              <th>站点</th>
+              <th>Agent</th>
+              <th>带 query</th>
+              <th>版本</th>
+            </tr>
+          </thead>
+          <tbody id="siteUsageRecentBody">
             <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
@@ -2625,7 +3165,7 @@ function getFailureLogsPageHtml() {
         <div class="filter-row">
           <label>天数 <select id="failureDays"><option value="1">今天</option><option value="7" selected>近 7 天</option><option value="30">近 30 天</option></select></label>
           <label>类型 <select id="failureCategory"><option value="all">全部</option><option value="site">站点失败</option><option value="api">API 失败</option></select></label>
-          <label>搜索 <input id="failureQuery" type="search" placeholder="站点、API、阶段、错误信息" /></label>
+          <label>搜索 <input id="failureQuery" type="search" placeholder="站点、API、阶段、错误、URL、query、版本" /></label>
           <button id="failureSearchButton" type="button">刷新</button>
         </div>
       </section>
@@ -2654,11 +3194,12 @@ function getFailureLogsPageHtml() {
               <th>类型</th>
               <th>目标</th>
               <th>失败次数</th>
+              <th>主要问题</th>
               <th>记录数</th>
             </tr>
           </thead>
           <tbody id="failureTopTargetsBody">
-            <tr><td colspan="4" class="empty-cell">等待加载...</td></tr>
+            <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
@@ -2667,18 +3208,16 @@ function getFailureLogsPageHtml() {
         <table>
           <thead>
             <tr>
-              <th>时间</th>
+              <th>时间 / 上传</th>
               <th>类型</th>
-              <th>站点 / API</th>
-              <th>阶段</th>
-              <th>状态码</th>
+              <th>目标 / 来源</th>
+              <th>阶段 / 状态</th>
               <th>错误信息</th>
-              <th>次数</th>
-              <th>来源</th>
+              <th>次数 / 用户</th>
             </tr>
           </thead>
           <tbody id="failureLogsBody">
-            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
+            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
@@ -3130,6 +3669,38 @@ async function collectUsageEvents(dateKeys) {
   };
 }
 
+async function listOfficialApiEvents(dateKeys) {
+  requireFirebaseAdmin();
+  const snapshot = await db.collection('officialApiEvents')
+    .where('dateKey', '>=', dateKeys[0])
+    .where('dateKey', '<=', dateKeys[dateKeys.length - 1])
+    .get();
+  const allowed = new Set(dateKeys);
+  const rows = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data() || {};
+    const dateKey = String(data.dateKey || '').trim();
+    if (!allowed.has(dateKey)) return;
+    rows.push({
+      id: doc.id,
+      dateKey,
+      uid: String(data.uid || ''),
+      clientHash: String(data.clientHash || ''),
+      userType: String(data.userType || '').trim() || 'free',
+      locale: String(data.locale || ''),
+      model: String(data.upstreamModel || data.model || ''),
+      upstreamStatus: Math.max(0, Number(data.upstreamStatus) || 0),
+      promptTokens: Math.max(0, Number(data.promptTokens) || 0),
+      completionTokens: Math.max(0, Number(data.completionTokens) || 0),
+      totalTokens: Math.max(0, Number(data.totalTokens) || 0),
+      estimatedCost: Math.max(0, Number(data.estimatedCost) || 0),
+      currency: String(data.currency || officialAgentCostCurrency || 'usd'),
+      createdAt: timestampToIso(data.createdAt)
+    });
+  });
+  return rows;
+}
+
 function mergeSetValues(...sets) {
   const merged = new Set();
   for (const setValue of sets) {
@@ -3258,6 +3829,360 @@ async function getApiUsageSummaryData() {
   return { today, last7Days, last30Days };
 }
 
+function serializeSiteCompareEventDoc(doc) {
+  const data = doc.data() || {};
+  return {
+    id: doc.id,
+    clientEventId: String(data.clientEventId || ''),
+    dateKey: String(data.dateKey || ''),
+    uploaderType: data.uploaderType === 'anonymous' ? 'anonymous' : 'user',
+    uid: String(data.uid || ''),
+    clientHash: String(data.clientHash || ''),
+    source: String(data.source || ''),
+    siteNames: normalizeSiteUsageNames(data.siteNames),
+    officialSiteNames: normalizeSiteUsageNames(data.officialSiteNames),
+    customSiteNames: normalizeSiteUsageNames(data.customSiteNames),
+    agentIds: normalizeSiteUsageNames(data.agentIds, 20),
+    siteCount: Math.max(0, Number(data.siteCount) || 0),
+    officialSiteCount: Math.max(0, Number(data.officialSiteCount) || 0),
+    customSiteCount: Math.max(0, Number(data.customSiteCount) || 0),
+    agentCount: Math.max(0, Number(data.agentCount) || 0),
+    hasQuery: data.hasQuery === true,
+    queryLength: Math.max(0, Number(data.queryLength) || 0),
+    locale: String(data.locale || ''),
+    extensionVersion: String(data.extensionVersion || ''),
+    createdAt: timestampToIso(data.createdAt),
+    updatedAt: timestampToIso(data.updatedAt)
+  };
+}
+
+async function listSiteCompareEvents(dateKeys) {
+  requireFirebaseAdmin();
+  const snapshot = await db.collection('siteCompareEvents')
+    .where('dateKey', '>=', dateKeys[0])
+    .where('dateKey', '<=', dateKeys[dateKeys.length - 1])
+    .get();
+  const allowed = new Set(dateKeys);
+  const rows = [];
+  snapshot.forEach((doc) => {
+    const row = serializeSiteCompareEventDoc(doc);
+    if (allowed.has(row.dateKey)) rows.push(row);
+  });
+  return rows;
+}
+
+function summarizeSiteUsageRows(rows, dateKey = '') {
+  const filtered = dateKey ? rows.filter((row) => row.dateKey === dateKey) : rows;
+  const userIds = new Set();
+  const anonymousClientIds = new Set();
+  const siteCounts = new Map();
+  let totalSiteLaunches = 0;
+  let withQueryEvents = 0;
+  filtered.forEach((row) => {
+    if (row.uid) userIds.add(row.uid);
+    if (row.clientHash) anonymousClientIds.add(row.clientHash);
+    if (row.hasQuery) withQueryEvents += 1;
+    row.siteNames.forEach((siteName) => {
+      totalSiteLaunches += 1;
+      siteCounts.set(siteName, (siteCounts.get(siteName) || 0) + 1);
+    });
+    row.agentIds.forEach((agentId) => {
+      const agentName = `Agent: ${agentId}`;
+      totalSiteLaunches += 1;
+      siteCounts.set(agentName, (siteCounts.get(agentName) || 0) + 1);
+    });
+  });
+  const topSite = Array.from(siteCounts.entries()).sort((left, right) => right[1] - left[1])[0];
+  return {
+    totalEvents: filtered.length,
+    totalSiteLaunches,
+    uniqueSites: siteCounts.size,
+    activeUsers: userIds.size,
+    activeAnonymousClients: anonymousClientIds.size,
+    activeTotal: userIds.size + anonymousClientIds.size,
+    withQueryEvents,
+    topSite: topSite ? `${topSite[0]} (${topSite[1]})` : ''
+  };
+}
+
+async function getSiteUsageSummaryData() {
+  const dateKeys = getRecentDateKeys(30);
+  const rows = await listSiteCompareEvents(dateKeys);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  return {
+    today: summarizeSiteUsageRows(rows, todayKey),
+    last7Days: summarizeSiteUsageRows(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey))),
+    last30Days: summarizeSiteUsageRows(rows)
+  };
+}
+
+async function getSiteUsageTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const rows = await listSiteCompareEvents(dateKeys);
+  return {
+    days: sortDateRowsDescending(dateKeys.map((dateKey) => ({
+      date: dateKey,
+      ...summarizeSiteUsageRows(rows, dateKey)
+    })))
+  };
+}
+
+async function getSiteUsageTopSitesData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 30), 1, 100);
+  const rows = await listSiteCompareEvents(getRecentDateKeys(days));
+  const bySite = new Map();
+  rows.forEach((row) => {
+    const allNames = [...row.siteNames, ...row.agentIds.map((agentId) => `Agent: ${agentId}`)];
+    allNames.forEach((siteName) => {
+      const current = bySite.get(siteName) || {
+        siteName,
+        launches: 0,
+        eventIds: new Set(),
+        userIds: new Set(),
+        clientIds: new Set(),
+        withQueryEvents: 0
+      };
+      current.launches += 1;
+      current.eventIds.add(row.id);
+      if (row.uid) current.userIds.add(row.uid);
+      if (row.clientHash) current.clientIds.add(row.clientHash);
+      if (row.hasQuery) current.withQueryEvents += 1;
+      bySite.set(siteName, current);
+    });
+  });
+  return {
+    sites: Array.from(bySite.values())
+      .map((item) => ({
+        siteName: item.siteName,
+        launches: item.launches,
+        events: item.eventIds.size,
+        activeUsers: item.userIds.size,
+        activeAnonymousClients: item.clientIds.size,
+        withQueryEvents: item.withQueryEvents
+      }))
+      .sort((left, right) => right.launches - left.launches)
+      .slice(0, limit)
+  };
+}
+
+async function getSiteUsageRecentData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 50), 1, 200);
+  const rows = await listSiteCompareEvents(getRecentDateKeys(days));
+  rows.sort((left, right) => {
+    const rightTs = Date.parse(right.createdAt || right.updatedAt || 0) || 0;
+    const leftTs = Date.parse(left.createdAt || left.updatedAt || 0) || 0;
+    return rightTs - leftTs;
+  });
+  return {
+    events: rows.slice(0, limit)
+  };
+}
+
+function createEmptyCombinedUsageSummary() {
+  return {
+    apiRequests: 0,
+    siteEvents: 0,
+    siteLaunches: 0,
+    totalTokens: 0,
+    estimatedCost: 0,
+    currency: officialAgentCostCurrency,
+    activeUsers: 0,
+    activeAnonymousClients: 0,
+    topSite: ''
+  };
+}
+
+function getApiUsageIdentitySets(days = []) {
+  const userIds = new Set();
+  const clientIds = new Set();
+  days.forEach((day) => {
+    for (const uid of day.free?.userIds || []) userIds.add(uid);
+    for (const uid of day.pro?.userIds || []) userIds.add(uid);
+    for (const clientHash of day.anonymous?.clientIds || []) clientIds.add(clientHash);
+  });
+  return { userIds, clientIds };
+}
+
+function getSiteUsageIdentitySets(rows = [], dateKey = '') {
+  const userIds = new Set();
+  const clientIds = new Set();
+  rows.forEach((row) => {
+    if (dateKey && row.dateKey !== dateKey) return;
+    if (row.uid) userIds.add(row.uid);
+    if (row.clientHash) clientIds.add(row.clientHash);
+  });
+  return { userIds, clientIds };
+}
+
+async function getCombinedUsageSummaryData() {
+  const dateKeys = getRecentDateKeys(7);
+  const [apiTrend, siteRows] = await Promise.all([
+    buildUsageTrend(7),
+    listSiteCompareEvents(dateKeys)
+  ]);
+  const siteTrend = dateKeys.map((dateKey) => summarizeSiteUsageRows(siteRows, dateKey));
+  const todayApi = apiTrend[apiTrend.length - 1] || createEmptyUsageDay(getTodayKey());
+  const todaySite = siteTrend[siteTrend.length - 1] || summarizeSiteUsageRows([], getTodayKey());
+  const last7Api = summarizeUsageRange(apiTrend);
+  const last7Site = summarizeSiteUsageRows(siteRows);
+  const todayApiIdentities = getApiUsageIdentitySets([todayApi]);
+  const todaySiteIdentities = getSiteUsageIdentitySets(siteRows, dateKeys[dateKeys.length - 1]);
+  const last7ApiIdentities = getApiUsageIdentitySets(apiTrend);
+  const last7SiteIdentities = getSiteUsageIdentitySets(siteRows);
+  return {
+    today: {
+      ...createEmptyCombinedUsageSummary(),
+      apiRequests: todayApi.totalRequests,
+      siteEvents: todaySite.totalEvents,
+      siteLaunches: todaySite.totalSiteLaunches,
+      totalTokens: todayApi.totalTokens,
+      estimatedCost: todayApi.estimatedCost,
+      currency: todayApi.currency || officialAgentCostCurrency,
+      activeUsers: mergeSetValues(todayApiIdentities.userIds, todaySiteIdentities.userIds).size,
+      activeAnonymousClients: mergeSetValues(todayApiIdentities.clientIds, todaySiteIdentities.clientIds).size,
+      topSite: todaySite.topSite
+    },
+    last7Days: {
+      ...createEmptyCombinedUsageSummary(),
+      apiRequests: last7Api.totalRequests,
+      siteEvents: last7Site.totalEvents,
+      siteLaunches: last7Site.totalSiteLaunches,
+      totalTokens: last7Api.totalTokens,
+      estimatedCost: last7Api.estimatedCost,
+      currency: last7Api.currency || officialAgentCostCurrency,
+      activeUsers: mergeSetValues(last7ApiIdentities.userIds, last7SiteIdentities.userIds).size,
+      activeAnonymousClients: mergeSetValues(last7ApiIdentities.clientIds, last7SiteIdentities.clientIds).size,
+      topSite: last7Site.topSite
+    }
+  };
+}
+
+async function getCombinedUsageTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 7);
+  const dateKeys = getRecentDateKeys(days);
+  const [apiTrend, siteRows] = await Promise.all([
+    buildUsageTrend(days),
+    listSiteCompareEvents(dateKeys)
+  ]);
+  return {
+    days: sortDateRowsDescending(dateKeys.map((dateKey, index) => {
+      const apiDay = apiTrend[index] || createEmptyUsageDay(dateKey);
+      const siteDay = summarizeSiteUsageRows(siteRows, dateKey);
+      const apiIdentities = getApiUsageIdentitySets([apiDay]);
+      const siteIdentities = getSiteUsageIdentitySets(siteRows, dateKey);
+      return {
+        date: dateKey,
+        apiRequests: apiDay.totalRequests || 0,
+        siteEvents: siteDay.totalEvents || 0,
+        siteLaunches: siteDay.totalSiteLaunches || 0,
+        uniqueSites: siteDay.uniqueSites || 0,
+        totalTokens: apiDay.totalTokens || 0,
+        estimatedCost: apiDay.estimatedCost || 0,
+        currency: apiDay.currency || officialAgentCostCurrency,
+        activeUsers: mergeSetValues(apiIdentities.userIds, siteIdentities.userIds).size,
+        activeAnonymousClients: mergeSetValues(apiIdentities.clientIds, siteIdentities.clientIds).size,
+        topSite: siteDay.topSite || ''
+      };
+    }))
+  };
+}
+
+async function getCombinedUsageTopTargetsData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 7);
+  const limit = clamp(parseInteger(req.query?.limit, 30), 1, 100);
+  const dateKeys = getRecentDateKeys(days);
+  const [apiRows, sitePayload] = await Promise.all([
+    listOfficialApiEvents(dateKeys),
+    getSiteUsageTopSitesData({ query: { days, limit } })
+  ]);
+  const apiByModel = new Map();
+  apiRows.forEach((row) => {
+    const target = row.model || 'official API';
+    const current = apiByModel.get(target) || {
+      kind: 'api',
+      target,
+      count: 0,
+      totalTokens: 0,
+      userIds: new Set(),
+      clientIds: new Set()
+    };
+    current.count += 1;
+    current.totalTokens += row.totalTokens || 0;
+    if (row.uid) current.userIds.add(row.uid);
+    if (row.clientHash) current.clientIds.add(row.clientHash);
+    apiByModel.set(target, current);
+  });
+  const apiTargets = Array.from(apiByModel.values()).map((item) => ({
+    kind: 'api',
+    target: item.target,
+    count: item.count,
+    totalTokens: Math.round(item.totalTokens),
+    activeUsers: item.userIds.size,
+    activeAnonymousClients: item.clientIds.size,
+    withQueryEvents: 0
+  }));
+  const siteTargets = (sitePayload.sites || []).map((item) => ({
+    kind: 'site',
+    target: item.siteName,
+    count: item.launches,
+    totalTokens: 0,
+    activeUsers: item.activeUsers,
+    activeAnonymousClients: item.activeAnonymousClients,
+    withQueryEvents: item.withQueryEvents
+  }));
+  return {
+    targets: [...apiTargets, ...siteTargets]
+      .sort((left, right) => right.count - left.count)
+      .slice(0, limit)
+  };
+}
+
+async function getCombinedUsageRecentData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 7);
+  const limit = clamp(parseInteger(req.query?.limit, 100), 1, 200);
+  const dateKeys = getRecentDateKeys(days);
+  const [apiRows, siteRows] = await Promise.all([
+    listOfficialApiEvents(dateKeys),
+    listSiteCompareEvents(dateKeys)
+  ]);
+  const events = [
+    ...apiRows.map((row) => ({
+      kind: 'api',
+      createdAt: row.createdAt,
+      target: row.model || 'official API',
+      userType: row.userType === 'anonymous' ? '匿名' : (row.userType === 'pro' ? 'Pro' : '免费'),
+      detail: [
+        row.upstreamStatus ? `HTTP ${row.upstreamStatus}` : '',
+        row.totalTokens ? `${Math.round(row.totalTokens)} tokens` : '',
+        row.locale || ''
+      ].filter(Boolean).join(' · '),
+      extensionVersion: ''
+    })),
+    ...siteRows.map((row) => ({
+      kind: 'site',
+      createdAt: row.createdAt || row.updatedAt,
+      target: [...row.siteNames, ...row.agentIds.map((agentId) => `Agent: ${agentId}`)].join(', ') || '站点对比',
+      userType: row.uploaderType === 'anonymous' ? '匿名' : '登录用户',
+      detail: [
+        `${row.siteCount + row.agentCount} 个目标`,
+        row.hasQuery ? '带 query' : '仅打开',
+        row.locale || ''
+      ].filter(Boolean).join(' · '),
+      extensionVersion: row.extensionVersion || ''
+    }))
+  ].sort((left, right) => {
+    const rightTs = Date.parse(right.createdAt || 0) || 0;
+    const leftTs = Date.parse(left.createdAt || 0) || 0;
+    return rightTs - leftTs;
+  });
+  return {
+    events: events.slice(0, limit)
+  };
+}
+
 async function getApiUsageTrendData(req) {
   const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
   return { days: sortDateRowsDescending(await buildUsageTrend(days)) };
@@ -3294,9 +4219,11 @@ function serializeFailureLogDoc(doc) {
     locale: String(data.locale || ''),
     queryPreview: String(data.queryPreview || ''),
     queryHash: String(data.queryHash || ''),
+    metadata: data.metadata && typeof data.metadata === 'object' ? data.metadata : {},
     repeatCount: Math.max(1, Number(data.repeatCount) || 1),
     uploaderType: data.uploaderType === 'anonymous' ? 'anonymous' : 'user',
     extensionVersion: String(data.extensionVersion || ''),
+    requestLocale: String(data.requestLocale || ''),
     uploadedAt: timestampToIso(data.uploadedAt),
     updatedAt: timestampToIso(data.updatedAt)
   };
@@ -3389,7 +4316,13 @@ function filterFailureRows(rows, req) {
       row.errorMessage,
       row.source,
       row.model,
-      row.locale
+      row.locale,
+      row.extensionVersion,
+      row.queryPreview,
+      row.queryHash,
+      row.pageUrl,
+      row.runtimeUrl,
+      JSON.stringify(row.metadata || {})
     ].join(' ').toLowerCase().includes(query);
   });
 }
@@ -3426,14 +4359,35 @@ async function getFailureLogsTopTargetsData(req) {
       category: row.category,
       target,
       failures: 0,
-      records: 0
+      records: 0,
+      phases: new Map(),
+      latestAt: '',
+      latestError: ''
     };
-    current.failures += Math.max(1, Number(row.repeatCount) || 1);
+    const count = Math.max(1, Number(row.repeatCount) || 1);
+    const phase = row.phase || 'unknown';
+    const rowTime = row.lastSeenAt || row.createdAt || row.uploadedAt || '';
+    current.failures += count;
     current.records += 1;
+    current.phases.set(phase, (current.phases.get(phase) || 0) + count);
+    if ((Date.parse(rowTime) || 0) >= (Date.parse(current.latestAt) || 0)) {
+      current.latestAt = rowTime;
+      current.latestError = row.errorMessage || '';
+    }
     byTarget.set(key, current);
   });
   return {
-    targets: Array.from(byTarget.values())
+    targets: Array.from(byTarget.values()).map((item) => {
+      const topPhase = Array.from(item.phases.entries()).sort((left, right) => right[1] - left[1])[0];
+      return {
+        category: item.category,
+        target: item.target,
+        failures: item.failures,
+        records: item.records,
+        topPhase: topPhase ? `${topPhase[0]} (${topPhase[1]})` : '',
+        latestError: safeLogString(item.latestError, 160)
+      };
+    })
       .sort((left, right) => right.failures - left.failures)
       .slice(0, limit)
   };
@@ -3504,6 +4458,11 @@ app.get('/admin/api-usage', asyncRoute(async (req, res) => {
   res.send(getApiUsagePageHtml());
 }));
 
+app.get('/admin/site-usage', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.redirect('/admin/api-usage');
+}));
+
 app.get('/admin/failure-logs', asyncRoute(async (req, res) => {
   if (!await requireAdminPage(req, res)) return;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -3565,6 +4524,46 @@ app.get('/api/admin/api-usage/top-days', asyncRoute(async (req, res) => {
   res.json(await getApiUsageTopDaysData(req));
 }));
 
+app.get('/api/admin/usage/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getCombinedUsageSummaryData());
+}));
+
+app.get('/api/admin/usage/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getCombinedUsageTrendData(req));
+}));
+
+app.get('/api/admin/usage/top-targets', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getCombinedUsageTopTargetsData(req));
+}));
+
+app.get('/api/admin/usage/recent', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getCombinedUsageRecentData(req));
+}));
+
+app.get('/api/admin/site-usage/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getSiteUsageSummaryData());
+}));
+
+app.get('/api/admin/site-usage/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getSiteUsageTrendData(req));
+}));
+
+app.get('/api/admin/site-usage/top-sites', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getSiteUsageTopSitesData(req));
+}));
+
+app.get('/api/admin/site-usage/recent', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getSiteUsageRecentData(req));
+}));
+
 app.get('/api/admin/failure-logs/summary', asyncRoute(async (req, res) => {
   await requireAdmin(req);
   res.json(await getFailureLogsSummaryData());
@@ -3585,8 +4584,40 @@ app.get('/api/admin/failure-logs/top-targets', asyncRoute(async (req, res) => {
   res.json(await getFailureLogsTopTargetsData(req));
 }));
 
+app.post('/ga/mp/collect', asyncRoute(async (req, res) => {
+  const measurementId = String(req.body?.measurementId || '').trim();
+  const apiSecret = String(req.body?.apiSecret || '').trim();
+  const clientId = String(req.body?.client_id || req.body?.clientId || '').trim();
+  const events = Array.isArray(req.body?.events) ? req.body.events : [];
+
+  if (!measurementId || !apiSecret || !clientId || events.length === 0) {
+    res.status(400).json({
+      error: 'measurementId, apiSecret, client_id, and events[] are required'
+    });
+    return;
+  }
+
+  const endpoint = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      events
+    })
+  });
+
+  res.status(response.status).json({ ok: response.ok, status: response.status });
+}));
+
 app.post('/api/failure-logs/batch', asyncRoute(async (req, res) => {
   res.json(await recordFailureLogBatch(req));
+}));
+
+app.post('/api/site-compare-events', asyncRoute(async (req, res) => {
+  res.json(await recordSiteCompareEvent(req));
 }));
 
 app.get('/billingConfig', (_req, res) => {
@@ -3603,34 +4634,30 @@ app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
     res.status(400).json({ error: 'priceId is required' });
     return;
   }
+  assertCheckoutPriceAllowed(priceId);
 
-  const stripe = getStripe();
-  const userRef = db.collection('users').doc(user.uid);
-  const plan = await getUserPlan(user.uid);
-  let customerId = plan.stripeCustomerId;
-
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { firebaseUid: user.uid }
-    });
-    customerId = customer.id;
-    await userRef.set({ stripeCustomerId: customerId }, { merge: true });
-  }
-
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: getCheckoutSuccessUrl(),
-    cancel_url: getCancelUrl(),
-    metadata: { firebaseUid: user.uid },
-    subscription_data: {
-      metadata: { firebaseUid: user.uid }
-    }
+  const session = await createCheckoutSessionForFirebaseUser({
+    firebaseUser: user,
+    priceId
   });
 
   res.json({ url: session.url });
+}));
+
+app.get('/billing-smoke', asyncRoute(async (req, res) => {
+  const smokeConfig = assertBillingSmokeTestAccess(req);
+  const firebaseUser = await resolveBillingSmokeTestUser(req);
+  const session = await createCheckoutSessionForFirebaseUser({
+    firebaseUser,
+    priceId: smokeConfig.priceId,
+    smokeTest: true
+  });
+
+  if (String(req.query?.format || '').trim().toLowerCase() === 'json') {
+    res.json({ url: session.url });
+    return;
+  }
+  res.redirect(303, session.url);
 }));
 
 app.post('/createPortalSession', asyncRoute(async (req, res) => {
@@ -3690,8 +4717,11 @@ async function updateUserFromSubscription(subscription) {
     plan: isActive ? 'pro' : 'free',
     planExpiresAt: periodEnd ? admin.firestore.Timestamp.fromMillis(periodEnd * 1000) : null,
     stripeCustomerId: String(subscription.customer || ''),
+    [getStripeCustomerIdField()]: String(subscription.customer || ''),
     stripeSubscriptionId: subscription.id,
+    [getStripeSubscriptionIdField()]: subscription.id,
     subscriptionStatus: subscription.status,
+    billingMode,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 }

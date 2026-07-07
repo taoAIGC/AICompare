@@ -18,6 +18,8 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 BILLING_MODE=test
 STRIPE_PRICE_MONTHLY=price_xxx
 STRIPE_PRICE_YEARLY=price_xxx
+STRIPE_PRICE_SMOKE_TEST=price_hidden_smoke_test_xxx
+BILLING_SMOKE_TEST_TOKEN=replace_with_random_secret
 STRIPE_SUCCESS_URL=https://aicompare.club/payment-success
 STRIPE_CANCEL_URL=https://aicompare.club/payment-cancel
 OFFICIAL_AGENT_API_BASE_URL=https://your-official-api.example/v1
@@ -39,6 +41,8 @@ FAILURE_LOG_DAILY_UPLOAD_LIMIT=2000
 
 - `sk_test_...` 和 `sk_live_...` 不要混用
 - `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY` 必须和 `STRIPE_SECRET_KEY` 属于同一模式；测试 key 配测试 Price，正式 key 配正式 Price
+- `STRIPE_PRICE_SMOKE_TEST` 是可选的隐藏小金额验证 Price，只能配置在 VPS backend，不要返回给扩展前端
+- `BILLING_SMOKE_TEST_TOKEN` 必须是随机长 token，用于保护隐藏小金额验证入口
 - 扩展前端不再写死 Price ID，会从后端 `/billingConfig` 读取当前配置
 - Webhook 的 `whsec_...` 也必须和当前模式一致
 - `functions/.env` 只能本地保存
@@ -69,6 +73,29 @@ FAILURE_LOG_DAILY_UPLOAD_LIMIT=2000
 2. 打开 `/admin/login`
 3. 输入账号密码，换取 HttpOnly session cookie
 4. 再访问后台统计页面
+
+## 2.1.1 Live 小金额隐藏验证入口
+
+正式环境需要验证真实支付链路时，不要临时改公开的月付/年付价格。更安全的方式是在 Stripe Live mode 下创建一个隐藏小金额 recurring Price，例如 `$1/month`，然后只写入 VPS backend 的 `.env`：
+
+```bash
+STRIPE_PRICE_SMOKE_TEST=price_live_smoke_test_xxx
+BILLING_SMOKE_TEST_TOKEN=replace_with_random_long_token
+```
+
+隐藏入口：
+
+```text
+https://aicompare.club/billing-smoke?token=<BILLING_SMOKE_TEST_TOKEN>&email=<your-firebase-login-email>
+```
+
+也可以用 Firebase UID：
+
+```text
+https://aicompare.club/billing-smoke?token=<BILLING_SMOKE_TEST_TOKEN>&uid=<firebase-uid>
+```
+
+这个入口不会出现在扩展前端，也不会通过 `/billingConfig` 返回给普通用户。验证成功后，在 Stripe Live mode 中确认付款、订阅和 webhook delivery，再取消订阅并按需要退款。
 
 ## 2.2 单 VPS 双环境
 

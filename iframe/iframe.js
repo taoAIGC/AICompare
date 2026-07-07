@@ -39,6 +39,7 @@ const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY |
 const DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY = 'defaultAnalysisTemplateId';
 const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY = 'liveSummaryAutoAnalysisEnabled';
 const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY = 'aiCompare.liveSummaryAutoAnalysisEnabled';
+const SITE_COMPARE_USAGE_EVENT_PREFIX = 'site_usage';
 let suppressNextIframeQuerySuggestions = false;
 
 async function ensureIframeAgentCatalogReady() {
@@ -47,6 +48,55 @@ async function ensureIframeAgentCatalogReady() {
   }
   if (typeof window.AICompareAgentCatalog?.ensureCatalogHydrated === 'function') {
     await window.AICompareAgentCatalog.ensureCatalogHydrated().catch(() => null);
+  }
+}
+
+function createSiteCompareUsageEventId() {
+  try {
+    if (crypto?.randomUUID) {
+      return crypto.randomUUID();
+    }
+  } catch (_) {
+    // Fall through to timestamp/random fallback.
+  }
+  return `${SITE_COMPARE_USAGE_EVENT_PREFIX}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeUsageNames(items = []) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : [])
+    .map((item) => String(item || '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function recordSiteCompareUsage(payload = {}) {
+  try {
+    if (!chrome?.runtime?.sendMessage) return;
+    chrome.runtime.sendMessage({
+      action: 'recordSiteCompareUsage',
+      payload: {
+        clientEventId: createSiteCompareUsageEventId(),
+        source: payload.source || 'iframe',
+        siteNames: normalizeUsageNames(payload.siteNames),
+        officialSiteNames: normalizeUsageNames(payload.officialSiteNames),
+        customSiteNames: normalizeUsageNames(payload.customSiteNames),
+        agentIds: normalizeUsageNames(payload.agentIds),
+        hasQuery: payload.hasQuery === true,
+        queryLength: Math.max(0, Number(payload.queryLength) || 0)
+      }
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('站点对比使用埋点发送失败:', chrome.runtime.lastError.message);
+      }
+    });
+  } catch (error) {
+    console.warn('站点对比使用埋点发送失败:', error);
   }
 }
 
@@ -10072,6 +10122,12 @@ async function ensureAgentIframeById(agentId) {
   if (!container) return false;
 
   createAgentIframe(agent, container);
+  recordSiteCompareUsage({
+    source: 'iframe-add-agent',
+    agentIds: [agent.id || agent.name],
+    hasQuery: false,
+    queryLength: 0
+  });
   return true;
 }
 
@@ -10108,6 +10164,15 @@ async function ensureSiteIframeByName(siteName) {
 
   const iframeUrl = buildSiteUrlForQuery(site, '');
   createSingleIframe(site.name, iframeUrl, container, '', null);
+  const isCustomSite = site.customSite === true || site.isCustomSite === true;
+  recordSiteCompareUsage({
+    source: 'iframe-add-site',
+    siteNames: [site.name],
+    officialSiteNames: isCustomSite ? [] : [site.name],
+    customSiteNames: isCustomSite ? [site.name] : [],
+    hasQuery: false,
+    queryLength: 0
+  });
   return true;
 }
 
@@ -10465,6 +10530,7 @@ async function createIframes(query, sites, customSites = [], agents = []) {
     ? SiteLaunchUtils.normalizeCustomSites(customSites)
     : [];
   const normalizedAgents = Array.isArray(agents) ? agents : [];
+  const hasQuery = query && query.trim() !== '';
     
   console.log('过滤后的官方站点:', enabledSites);
   console.log('过滤后的 customSites:', normalizedCustomSites);
@@ -10476,7 +10542,19 @@ async function createIframes(query, sites, customSites = [], agents = []) {
     return;
   }
 
-  const hasQuery = query && query.trim() !== '';
+  recordSiteCompareUsage({
+    source: 'iframe',
+    officialSiteNames: enabledSites.map((site) => site?.name),
+    customSiteNames: normalizedCustomSites.map((site) => site?.name),
+    siteNames: [
+      ...enabledSites.map((site) => site?.name),
+      ...normalizedCustomSites.map((site) => site?.name)
+    ],
+    agentIds: normalizedAgents.map((agent) => agent?.id || agent?.name),
+    hasQuery,
+    queryLength: String(query || '').length
+  });
+
   const ratingBatchId = hasQuery ? await startRatingPromptBatch(enabledSites.length) : null;
 
   try {

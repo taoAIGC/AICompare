@@ -146,12 +146,12 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - It reuses Firebase Admin, Stripe, and the existing `officialAgentChat` proxy path to provide:
   - membership / order summary
   - Stripe invoice and subscription trend views
-  - official API usage summary for `free`, `pro`, and `anonymous`
+  - combined 7-day usage summary for official API calls and site comparison events
 - Admin pages:
   - `/admin/login`
   - `/admin`
   - `/admin/orders`
-  - `/admin/api-usage`
+  - `/admin/api-usage` (combined API + site usage statistics)
   - `/admin/failure-logs`
 - Admin API routes:
   - `/api/admin/orders/summary`
@@ -160,10 +160,19 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `/api/admin/api-usage/summary`
   - `/api/admin/api-usage/trend`
   - `/api/admin/api-usage/top-days`
+  - `/api/admin/usage/summary`
+  - `/api/admin/usage/trend`
+  - `/api/admin/usage/top-targets`
+  - `/api/admin/usage/recent`
+  - `/api/admin/site-usage/summary`
+  - `/api/admin/site-usage/trend`
+  - `/api/admin/site-usage/top-sites`
+  - `/api/admin/site-usage/recent`
   - `/api/admin/failure-logs/summary`
   - `/api/admin/failure-logs/trend`
   - `/api/admin/failure-logs/list`
   - `/api/admin/failure-logs/top-targets`
+  - `/api/site-compare-events`
   - `/api/failure-logs/batch`
 - Required backend env vars:
   - `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
@@ -172,6 +181,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `BILLING_MODE`
   - `STRIPE_PRICE_MONTHLY`
   - `STRIPE_PRICE_YEARLY`
+  - `STRIPE_PRICE_SMOKE_TEST` optional, hidden admin-only live payment smoke test price
+  - `BILLING_SMOKE_TEST_TOKEN` optional, random token required by the hidden smoke test checkout entry
   - `OFFICIAL_AGENT_API_BASE_URL`
   - `OFFICIAL_AGENT_API_KEY`
   - `OFFICIAL_AGENT_MODEL`
@@ -195,9 +206,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - API usage note:
   - `officialApiEvents` is now written on each `officialAgentChat` request so Pro usage can be counted going forward.
   - Historical free / anonymous totals can still be read from `users/{uid}/usage/{date}` and `anonymousUsage/{hash}/usage/{date}`.
+- Site usage note:
+  - `siteCompareEvents` is written when the compare iframe opens official sites, custom sites, or Agent panels, including signed-in users and anonymous devices.
+  - Site usage events store site/Agent names, counts, extension version, locale, whether a query was present, and query length; they do not store full prompts or AI responses.
 - Failure log note:
   - Local site/API failure logs are automatically uploaded in small batches to `/api/failure-logs/batch` for signed-in users and anonymous devices.
   - The backend stores only the safe failure-log fields in `failureLogEvents`, including `queryPreview` and `queryHash`, not API keys, full prompts, or AI responses.
+  - `/admin/failure-logs` shows recent failures with expandable diagnostic context, including sanitized URL, query preview/hash, extension version, source, phase, and safe metadata.
 
 ### Development / Live verification
 
@@ -509,101 +524,48 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-07 00:08:32 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-07 22:25:58 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `.gitignore`
 - `M` `AI Compare PrivacyPolicy.md`
 - `M` `STRIPE_SETUP.md`
-- `M` `_locales/am/messages.json`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/bg/messages.json`
-- `M` `_locales/bn/messages.json`
-- `M` `_locales/ca/messages.json`
-- `M` `_locales/cs/messages.json`
-- `M` `_locales/da/messages.json`
-- `M` `_locales/de/messages.json`
-- `M` `_locales/el/messages.json`
-- `M` `_locales/en/messages.json`
-- `M` `_locales/en_AU/messages.json`
-- `M` `_locales/en_GB/messages.json`
-- `M` `_locales/en_US/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/es_419/messages.json`
-- `M` `_locales/et/messages.json`
-- `M` `_locales/fa/messages.json`
-- `M` `_locales/fi/messages.json`
-- `M` `_locales/fil/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/gu/messages.json`
-- `M` `_locales/he/messages.json`
-- `M` `_locales/hi/messages.json`
-- `M` `_locales/hr/messages.json`
-- `M` `_locales/hu/messages.json`
-- `M` `_locales/id/messages.json`
-- `M` `_locales/it/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/kn/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/lt/messages.json`
-- `M` `_locales/lv/messages.json`
-- `M` `_locales/ml/messages.json`
-- `M` `_locales/mr/messages.json`
-- `M` `_locales/ms/messages.json`
-- `M` `_locales/nl/messages.json`
-- `M` `_locales/no/messages.json`
-- `M` `_locales/pl/messages.json`
-- `M` `_locales/pt_BR/messages.json`
-- `M` `_locales/pt_PT/messages.json`
-- `M` `_locales/ro/messages.json`
-- `M` `_locales/ru/messages.json`
-- `M` `_locales/sk/messages.json`
-- `M` `_locales/sl/messages.json`
-- `M` `_locales/sr/messages.json`
-- `M` `_locales/sv/messages.json`
-- `M` `_locales/sw/messages.json`
-- `M` `_locales/ta/messages.json`
-- `M` `_locales/te/messages.json`
-- `M` `_locales/th/messages.json`
-- `M` `_locales/tr/messages.json`
-- `M` `_locales/uk/messages.json`
-- `M` `_locales/vi/messages.json`
-- `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
+- `M` `backend/.env.example`
 - `M` `backend/server.js`
 - `M` `background.js`
-- `A` `debug/failure-logs.css`
-- `A` `debug/failure-logs.html`
-- `A` `debug/failure-logs.js`
+- `M` `config/analytics.js`
+- `M` `config/appConfig.json`
 - `M` `docs/release-notes/latest.md`
-- `M` `functions/index.js`
-- `M` `iframe/agent-panel.html`
-- `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
-- `M` `iframe/inject.js`
 - `M` `manifest.json`
-- `M` `options/options.css`
-- `M` `options/options.html`
-- `M` `options/options.js`
-- `A` `shared/failure-log-sync.js`
-- `A` `shared/failure-log.js`
-- `M` `shared/markdown-renderer.js`
-- `M` `shared/prompt-template-utils.js`
-- `A` `tests/failure-log-sync.test.js`
-- `A` `tests/failure-log.test.js`
-- `M` `tests/markdown-renderer.test.js`
-- `A` `tests/prompt-template-utils.test.js`
-- `A` `vendor/markdown-it/LICENSE`
-- `A` `vendor/markdown-it/index.cjs.js`
-- `A` `vendor/markdown-it/markdown-it.min.js`
+- `A` `website/README.md`
+- `A` `website/assets/ai-compare-features.png`
+- `A` `website/assets/ai-compare-hero.png`
+- `A` `website/assets/og-cover.png`
+- `A` `website/assets/site.css`
+- `A` `website/blog/ai-readability-checklist.html`
+- `A` `website/blog/brand-not-found-in-ai.html`
+- `A` `website/blog/check-geo-with-multi-ai.html`
+- `A` `website/blog/five-ai-content-test.html`
+- `A` `website/blog/index.html`
+- `A` `website/blog/what-is-geo.html`
+- `A` `website/blog/why-ai-answers-differ.html`
+- `A` `website/geo-checklist/index.html`
+- `A` `website/geo/index.html`
+- `A` `website/index.html`
+- `A` `website/llms.txt`
+- `A` `website/resources/chrome-store-copy.html`
+- `A` `website/resources/content-calendar.md`
+- `A` `website/robots.txt`
+- `A` `website/sitemap.xml`
+- `A` `website/use-cases/brand-monitoring/index.html`
+- `A` `website/use-cases/content-qa/index.html`
 
 ### Recent commits / 最近提交
+- `7d51181` 2026-07-07 V 4.3.2 markdown方案采用开源解析方案
 - `c25a3a1` 2026-07-05 V4.3.1 修复豆包站点，默认站点去掉grok
 - `8e007c4` 2026-06-30 V4.3.0 首次安装插件 具有默认的搜索词
 - `dd789ee` 2026-06-24 V4.2.9 自动总结增加开关，修复豆包站点
 - `b1831f6` 2026-06-24 V 4.2.8 补充多语言包
-- `a191a52` 2026-06-23 V4.2.7 修复API调用
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

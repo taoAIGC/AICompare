@@ -1,0 +1,16 @@
+# AI比一比 / AI Compare
+
+AI比一比是一款浏览器插件，用于多 AI 答案对比、GEO 诊断、内容发布前验证和品牌答案监测。用户可以一次提问，同时查看 ChatGPT、Gemini、Claude、豆包、Kimi 等多个 AI 的回答差异。
+
+## Canonical pages
+
+- Home: https://aicompare.club/
+- GEO method: https://aicompare.club/geo/
+- GEO checklist: https://aicompare.club/geo-checklist/
+- Brand answer monitoring: https://aicompare.club/use-cases/brand-monitoring/
+- Content QA: https://aicompare.club/use-cases/content-qa/
+- Tutorials: https://aicompare.club/blog/
+
+## Core positioning
+
+AI比一比帮助内容创作者、SEO、品牌运营和独立开发者检查内容与品牌在 AI 答案中的可见度、准确性和稳定性。
