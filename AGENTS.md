@@ -93,7 +93,6 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 - Whenever git is used to record repository changes for a commit, update `README.md` as part of the same workflow before the commit is finalized.
 - Treat the README update as required companion work for shipped code, config, behavior, or UX changes. Do not leave README stale after a git-recorded change.
 - If the repository already provides an automated README update hook or script, use it. Otherwise, make the README update manually and include it in the same commit.
-- `docs/release-notes/latest.md` is the manual user improvement request log. Do not update it automatically during ordinary working sessions or git workflows. Only edit it when the user explicitly asks to refresh or change that log, and keep only user-facing feature/UX improvement requests there instead of every command or file-change detail.
 - `docs/release-notes/history.md` is the packaged version summary history. Only append to it during GitHub packaging / release flow with `RELEASE_NOTES_MODE=release node scripts/generate-release-notes.js`.
 
 ## Localization Rules

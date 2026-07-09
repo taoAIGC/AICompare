@@ -90,7 +90,7 @@ function recordSiteCompareUsage(payload = {}) {
     chrome.runtime.sendMessage({
       action: 'recordSiteCompareUsage',
       payload: {
-        clientEventId: createSiteCompareUsageEventId(),
+        clientEventId: payload.clientEventId || createSiteCompareUsageEventId(),
         source: insightPayload.source || 'iframe',
         siteNames: normalizeUsageNames(insightPayload.siteNames),
         officialSiteNames: normalizeUsageNames(insightPayload.officialSiteNames),

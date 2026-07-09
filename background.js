@@ -38,9 +38,11 @@ const AGENT_ENGINE_SECRET_STORAGE_KEY = 'agentEngineSecret';
 const AGENT_ENGINE_SETTINGS_STORAGE_KEY = 'agentEngineSettings';
 const AGENT_ENGINE_USAGE_STORAGE_KEY = 'agentOfficialUsage';
 const AGENT_ENGINE_ANONYMOUS_CLIENT_ID_STORAGE_KEY = 'agentOfficialAnonymousClientId';
-const FAILURE_LOG_SYNC_ALARM = 'failure-log-sync';
+const FAILURE_LOG_SYNC_INITIAL_DELAY_MS = 3000;
+const FAILURE_LOG_SYNC_RETRY_DELAYS_MS = [10000, 30000, 120000];
 let failureLogSyncTimer = null;
 let failureLogSyncInFlight = null;
+let failureLogSyncRetryCount = 0;
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = AgentCatalog.AGENT_CUSTOM_SETTINGS_STORAGE_KEY || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = AgentCatalog.CUSTOM_AGENTS_STORAGE_KEY || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY || 'agentHiddenIds';
@@ -564,16 +566,73 @@ async function syncFailureLogsNow(options = {}) {
   return failureLogSyncInFlight;
 }
 
-function scheduleFailureLogSync(delayMs = 3000, options = {}) {
+function scheduleFailureLogSync(delayMs = FAILURE_LOG_SYNC_INITIAL_DELAY_MS, options = {}) {
   if (failureLogSyncTimer) {
     clearTimeout(failureLogSyncTimer);
   }
+  if (options.resetRetry === true) {
+    failureLogSyncRetryCount = 0;
+  }
   failureLogSyncTimer = setTimeout(() => {
     failureLogSyncTimer = null;
-    syncFailureLogsNow(options).catch((error) => {
-      console.warn('失败日志同步失败:', error?.message || error);
-    });
+    runFailureLogSyncWithRetry(options);
   }, Math.max(0, Number(delayMs) || 0));
+}
+
+async function runFailureLogSyncWithRetry(options = {}) {
+  const syncOptions = { ...options };
+  delete syncOptions.resetRetry;
+  try {
+    const result = await syncFailureLogsNow(syncOptions);
+    if (result?.ok !== false) {
+      failureLogSyncRetryCount = 0;
+      return result;
+    }
+    throw new Error(result?.error || 'Failure log sync failed');
+  } catch (error) {
+    const retryDelay = FAILURE_LOG_SYNC_RETRY_DELAYS_MS[failureLogSyncRetryCount];
+    failureLogSyncRetryCount += 1;
+    if (retryDelay != null) {
+      console.warn('失败日志同步失败，准备重试:', error?.message || error);
+      scheduleFailureLogSync(retryDelay, syncOptions);
+    } else {
+      failureLogSyncRetryCount = 0;
+      console.warn('失败日志同步失败，已达到重试上限:', error?.message || error);
+    }
+    return { ok: false, uploaded: 0, error: error?.message || String(error) };
+  }
+}
+
+function getFailureLogRecordSyncStatus(record = {}) {
+  return String(record?.syncStatus || FailureLog.SYNC_STATUS_PENDING || 'pending');
+}
+
+function hasNewPendingFailureLog(change = {}) {
+  const oldRecords = Array.isArray(change.oldValue) ? change.oldValue : [];
+  const newRecords = Array.isArray(change.newValue) ? change.newValue : [];
+  const pendingStatus = FailureLog.SYNC_STATUS_PENDING || 'pending';
+  const oldRecordsById = new Map(
+    oldRecords
+      .map((record) => [String(record?.id || ''), record])
+      .filter(([id]) => Boolean(id))
+  );
+
+  return newRecords.some((record) => {
+    if (getFailureLogRecordSyncStatus(record) !== pendingStatus) {
+      return false;
+    }
+    const id = String(record?.id || '');
+    if (!id) {
+      return false;
+    }
+    const previous = oldRecordsById.get(id);
+    if (!previous) {
+      return true;
+    }
+    return getFailureLogRecordSyncStatus(previous) !== pendingStatus
+      || String(previous.lastSeenAt || previous.createdAt || '') !== String(record.lastSeenAt || record.createdAt || '')
+      || Number(previous.repeatCount || 1) !== Number(record.repeatCount || 1);
+  });
 }
 
 function normalizeSiteUsageList(items = [], limit = 30) {
@@ -758,15 +817,6 @@ async function recordAnalyticsEvent(payload = {}) {
     throw new Error(result.error || `Analytics event upload failed: HTTP ${response.status}`);
   }
   return result;
-}
-
-function createFailureLogSyncAlarm() {
-  if (!chrome.alarms || typeof chrome.alarms.create !== 'function') {
-    return;
-  }
-  chrome.alarms.create(FAILURE_LOG_SYNC_ALARM, {
-    periodInMinutes: 15
-  });
 }
 
 async function fetchAgentChatCompletion(config = {}, payload = {}, options = {}) {
@@ -2367,7 +2417,6 @@ function parseTemplateIdFromMenuItemId(menuItemId) {
 // 扩展启动时检查配置更新
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    createFailureLogSyncAlarm();
     scheduleFailureLogSync(5000);
     await applyExtensionActionBranding();
     // 开发环境调试：显示当前扩展ID
@@ -2406,7 +2455,6 @@ chrome.runtime.onStartup.addListener(async () => {
 // 扩展安装和更新时的统一处理
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
-    createFailureLogSyncAlarm();
     scheduleFailureLogSync(5000);
     await applyExtensionActionBranding();
     console.log('扩展事件触发:', details.reason, '版本:', details.previousVersion, '->', chrome.runtime.getManifest().version);
@@ -3368,12 +3416,6 @@ function pauseRemoteReconnectAlarm() {
 }
 
 chrome.alarms?.onAlarm.addListener((alarm) => {
-  if (alarm?.name === FAILURE_LOG_SYNC_ALARM) {
-    syncFailureLogsNow().catch((error) => {
-      console.warn('失败日志定时同步失败:', error?.message || error);
-    });
-    return;
-  }
   if (alarm?.name === REMOTE_RECONNECT_ALARM) {
     pauseRemoteReconnectAlarm();
   }
@@ -3538,8 +3580,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && Object.prototype.hasOwnProperty.call(changes || {}, UI_LANGUAGE_STORAGE_KEY)) {
     runtimeI18nMessagesCache.clear();
   }
-  if (namespace === 'local' && Object.prototype.hasOwnProperty.call(changes || {}, FailureLog.STORAGE_KEY || 'aiCompareFailureLogs')) {
-    scheduleFailureLogSync(3000);
+  const failureLogStorageKey = FailureLog.STORAGE_KEY || 'aiCompareFailureLogs';
+  if (
+    namespace === 'local'
+    && Object.prototype.hasOwnProperty.call(changes || {}, failureLogStorageKey)
+    && hasNewPendingFailureLog(changes[failureLogStorageKey])
+  ) {
+    scheduleFailureLogSync(FAILURE_LOG_SYNC_INITIAL_DELAY_MS, { resetRetry: true });
   }
   if (namespace === 'sync' && (changes.buttonConfig || changes.promptTemplates || changes.analysisPromptTemplates)) {
     createContextMenu();

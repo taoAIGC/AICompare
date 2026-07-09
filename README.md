@@ -558,93 +558,20 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-09 18:42:45 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-10 00:19:08 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
 - `M` `AGENTS.md`
-- `M` `AI Compare PrivacyPolicy.md`
-- `M` `_locales/am/messages.json`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/bg/messages.json`
-- `M` `_locales/bn/messages.json`
-- `M` `_locales/ca/messages.json`
-- `M` `_locales/cs/messages.json`
-- `M` `_locales/da/messages.json`
-- `M` `_locales/de/messages.json`
-- `M` `_locales/el/messages.json`
-- `M` `_locales/en/messages.json`
-- `M` `_locales/en_AU/messages.json`
-- `M` `_locales/en_GB/messages.json`
-- `M` `_locales/en_US/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/es_419/messages.json`
-- `M` `_locales/et/messages.json`
-- `M` `_locales/fa/messages.json`
-- `M` `_locales/fi/messages.json`
-- `M` `_locales/fil/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/gu/messages.json`
-- `M` `_locales/he/messages.json`
-- `M` `_locales/hi/messages.json`
-- `M` `_locales/hr/messages.json`
-- `M` `_locales/hu/messages.json`
-- `M` `_locales/id/messages.json`
-- `M` `_locales/it/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/kn/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/lt/messages.json`
-- `M` `_locales/lv/messages.json`
-- `M` `_locales/ml/messages.json`
-- `M` `_locales/mr/messages.json`
-- `M` `_locales/ms/messages.json`
-- `M` `_locales/nl/messages.json`
-- `M` `_locales/no/messages.json`
-- `M` `_locales/pl/messages.json`
-- `M` `_locales/pt_BR/messages.json`
-- `M` `_locales/pt_PT/messages.json`
-- `M` `_locales/ro/messages.json`
-- `M` `_locales/ru/messages.json`
-- `M` `_locales/sk/messages.json`
-- `M` `_locales/sl/messages.json`
-- `M` `_locales/sr/messages.json`
-- `M` `_locales/sv/messages.json`
-- `M` `_locales/sw/messages.json`
-- `M` `_locales/ta/messages.json`
-- `M` `_locales/te/messages.json`
-- `M` `_locales/th/messages.json`
-- `M` `_locales/tr/messages.json`
-- `M` `_locales/uk/messages.json`
-- `M` `_locales/vi/messages.json`
-- `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `M` `backend/.env.example`
-- `A` `backend/behavior-insights.js`
-- `A` `backend/package-lock.json`
-- `M` `backend/package.json`
-- `M` `backend/server.js`
-- `A` `backend/weekly-behavior-insight-report.cjs`
 - `M` `background.js`
-- `M` `config/agentEngineConfig.js`
-- `M` `contact/contact.html`
-- `M` `favorites/favorites.html`
-- `M` `history/history.html`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `A` `shared/behavior-insights.js`
-- `M` `shared/sidebar.js`
-- `M` `tests/agent-engine-config.test.js`
-- `A` `tests/behavior-insights.test.js`
 
 ### Recent commits / 最近提交
+- `61a8efb` 2026-07-09 V4.3.4 修复bug
 - `57b5d1e` 2026-07-07 V4.3.3 修复bug
 - `7d51181` 2026-07-07 V 4.3.2 markdown方案采用开源解析方案
 - `c25a3a1` 2026-07-05 V4.3.1 修复豆包站点，默认站点去掉grok
 - `8e007c4` 2026-06-30 V4.3.0 首次安装插件 具有默认的搜索词
-- `dd789ee` 2026-06-24 V4.2.9 自动总结增加开关，修复豆包站点
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->
