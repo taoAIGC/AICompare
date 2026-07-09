@@ -13,7 +13,7 @@
     OFFICIAL: 'official',
     CUSTOM: 'custom'
   });
-  const DEFAULT_DAILY_FREE_LIMIT = 100;
+  const DEFAULT_DAILY_FREE_LIMIT = 10;
   const DEFAULT_CHECKOUT_PLAN = 'yearly';
 
   function normalizeLocale(locale = '') {
@@ -33,7 +33,7 @@
   }
 
   function shouldEnableBillingForLocale(locale = '') {
-    return !isChineseLocale(locale);
+    return true;
   }
 
   const DEFAULTS = Object.freeze({

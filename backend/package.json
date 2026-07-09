@@ -5,12 +5,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js",
+    "weekly-insights": "node weekly-behavior-insight-report.cjs"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase-admin": "^12.7.0",
+    "geoip-lite": "^1.4.10",
     "stripe": "^17.5.0"
   }
 }

@@ -187,10 +187,7 @@
     "message": "Verwenden Sie die integrierte API, $1-mal pro Tag kostenlos."
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
-  },
-  "agentEngineCustomCardHint": {
-    "message": "Select the custom API card to use your saved API settings"
+    "message": "Das heutige Limit der kostenlosen offiziellen API von $1 Aufrufen ist erreicht. Bitte richten Sie Ihre persönliche API ein: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

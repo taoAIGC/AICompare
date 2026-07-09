@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
+    "message": "Hai raggiunto il limite giornaliero di $1 utilizzi gratuiti dell’API ufficiale. Configura la tua API personale: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

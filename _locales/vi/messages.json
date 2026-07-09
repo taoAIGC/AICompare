@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
+    "message": "Bạn đã đạt giới hạn $1 lần dùng API chính thức miễn phí hôm nay. Vui lòng thiết lập API cá nhân: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

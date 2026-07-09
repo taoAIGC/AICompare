@@ -4,6 +4,13 @@ const express = require('express');
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
 const crypto = require('crypto');
+const BehaviorInsights = require('./behavior-insights.js');
+let geoip = null;
+try {
+  geoip = require('geoip-lite');
+} catch (_) {
+  geoip = null;
+}
 
 const app = express();
 const port = Number(process.env.PORT || 8790);
@@ -26,6 +33,16 @@ const officialAgentOutputTokenPricePerMillion = Math.max(
   Number(process.env.OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION || 0) || 0
 );
 const officialAgentCostCurrency = String(process.env.OFFICIAL_AGENT_COST_CURRENCY || 'usd').trim().toLowerCase() || 'usd';
+const openRouterApiKey = String(process.env.OPENROUTER_API_KEY || '').trim();
+const openRouterClassifierModel = String(
+  process.env.OPENROUTER_CLASSIFIER_MODEL || 'openai/gpt-oss-20b:free'
+).trim();
+const queryInsightDefaultLimit = Math.max(1, Number(process.env.QUERY_INSIGHT_ANALYSIS_LIMIT || 80) || 80);
+const queryInsightAutoEnabled = String(process.env.QUERY_INSIGHT_AUTO_ENABLED || 'true').trim().toLowerCase() !== 'false';
+const queryInsightAutoIntervalMs = Math.max(60 * 1000, Number(process.env.QUERY_INSIGHT_AUTO_INTERVAL_MS || 5 * 60 * 1000) || (5 * 60 * 1000));
+const queryInsightAutoLimit = Math.max(1, Number(process.env.QUERY_INSIGHT_AUTO_LIMIT || queryInsightDefaultLimit) || queryInsightDefaultLimit);
+const queryInsightAutoDays = Math.max(1, Number(process.env.QUERY_INSIGHT_AUTO_DAYS || 7) || 7);
+let queryInsightAutoRunning = false;
 
 function normalizeTokenUsage(usage = {}) {
   const promptTokens = Math.max(0, Math.round(Number(
@@ -391,10 +408,12 @@ function escapeHtml(value) {
   });
 }
 
-async function fetchAdminJson(url) {
+async function fetchAdminJson(url, options = {}) {
   const response = await fetch(url, {
+    ...options,
     headers: {
-      Accept: 'application/json'
+      Accept: 'application/json',
+      ...(options.headers || {})
     }
   });
   if (response.status === 401) {
@@ -540,11 +559,217 @@ function formatCompactText(value, fallback = '-') {
   return text || fallback;
 }
 
+function truncateText(value, maxLength = 18, fallback = '-') {
+  const text = formatCompactText(value, '');
+  if (!text) return fallback;
+  return text.length > maxLength ? text.slice(0, maxLength) + '…' : text;
+}
+
 function formatMetadataValue(value) {
   if (value == null) return '';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') return String(value);
   return String(value);
+}
+
+function renderUsageDetailField(label, value) {
+  return '<div class="usage-detail-field"><span class="detail-label">' + escapeHtml(label) + '</span><div>' + escapeHtml(formatCompactText(value)) + '</div></div>';
+}
+
+function renderUsageDetailLongField(label, value) {
+  const text = String(value || '').trim();
+  return '<div class="usage-detail-field usage-detail-wide"><span class="detail-label">' + escapeHtml(label) + '</span><pre class="usage-query-full">' + escapeHtml(text || '-') + '</pre></div>';
+}
+
+function renderUsageDetailList(label, items) {
+  const values = Array.isArray(items) ? items.filter(Boolean) : [];
+  return '<div class="usage-detail-field"><span class="detail-label">' + escapeHtml(label) + '</span><div class="pill-row">'
+    + (values.length ? values.map((item) => '<span class="pill">' + escapeHtml(item) + '</span>').join('') : '<span class="muted-cell">-</span>')
+    + '</div></div>';
+}
+
+function renderUsageDetailJson(item) {
+  return escapeHtml(JSON.stringify(item || {}, null, 2));
+}
+
+function formatRepeatCountLabel(item) {
+  const repeatCount = Math.max(1, Math.round(Number(item?.repeatCount) || 1));
+  return repeatCount > 1 ? repeatCount + ' 次同类记录' : '1 次';
+}
+
+function openUsageDetailDrawer(index) {
+  const item = window.__usageRecentRecords?.[Number(index)];
+  if (!item) return;
+  const drawer = document.getElementById('usageDetailDrawer');
+  const backdrop = document.getElementById('usageDrawerBackdrop');
+  const body = document.getElementById('usageDetailBody');
+  if (!drawer || !backdrop || !body) return;
+  const userLabel = item.email || item.uid || item.userType || '-';
+  const target = (item.siteNames || []).join(', ') || (item.skillNames || []).join(', ') || item.target || '-';
+  body.innerHTML = ''
+    + renderUsageDetailField('时间', formatDate(item.createdAt))
+    + renderUsageDetailField('类型', item.usageType || (item.kind === 'api' ? '官方 API' : '站点'))
+    + renderUsageDetailField('同类次数', formatRepeatCountLabel(item))
+    + renderUsageDetailField('用户', userLabel)
+    + renderUsageDetailField('UID', item.uid || '-')
+    + renderUsageDetailField('地区', item.requestRegion || '-')
+    + renderUsageDetailField('设备 ID', item.deviceId || '-')
+    + renderUsageDetailField('IP', item.requestIp || '-')
+    + renderUsageDetailField('模型 / 站点', target)
+    + renderUsageDetailList('站点', item.siteNames || [])
+    + renderUsageDetailList('技能', item.skillNames || [])
+    + renderUsageDetailLongField('完整 Query', item.queryText || item.queryPreview || '-')
+    + renderUsageDetailField('Query 摘要', item.queryPreview || '-')
+    + renderUsageDetailField('Query Hash', item.queryHash || '-')
+    + renderUsageDetailField('首次出现', item.firstSeenAt ? formatDate(item.firstSeenAt) : '-')
+    + renderUsageDetailField('最近出现', item.lastSeenAt ? formatDate(item.lastSeenAt) : '-')
+    + renderUsageDetailField('详情', item.detail || '-')
+    + renderUsageDetailField('版本', item.extensionVersion || '-')
+    + '<div class="usage-detail-field usage-detail-raw"><span class="detail-label">原始记录</span><pre>' + renderUsageDetailJson(item) + '</pre></div>';
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+}
+
+function closeUsageDetailDrawer() {
+  document.getElementById('usageDetailDrawer')?.classList.remove('open');
+  document.getElementById('usageDrawerBackdrop')?.classList.remove('open');
+  document.getElementById('usageDetailDrawer')?.setAttribute('aria-hidden', 'true');
+}
+
+function getUsageRecentSearchText(item) {
+  return [
+    formatDate(item.createdAt),
+    item.kind,
+    item.usageType,
+    item.userType,
+    item.email,
+    item.uid,
+    item.deviceId,
+    item.requestRegion,
+    item.target,
+    (item.siteNames || []).join(' '),
+    (item.skillNames || []).join(' '),
+    item.queryPreview,
+    item.queryText,
+    item.queryHash,
+    item.detail,
+    item.extensionVersion
+  ].map((value) => String(value || '').toLowerCase()).join(' ');
+}
+
+function getUsageRecentFilterValues() {
+  return {
+    date: String(document.getElementById('usageRecentDateFilter')?.value || '').trim().toLowerCase(),
+    type: String(document.getElementById('usageRecentTypeFilter')?.value || '').trim(),
+    user: String(document.getElementById('usageRecentUserFilter')?.value || '').trim().toLowerCase(),
+    device: String(document.getElementById('usageRecentDeviceFilter')?.value || '').trim().toLowerCase(),
+    target: String(document.getElementById('usageRecentTargetFilter')?.value || '').trim().toLowerCase(),
+    version: String(document.getElementById('usageRecentVersionFilter')?.value || '').trim().toLowerCase(),
+    query: String(document.getElementById('usageRecentQueryFilter')?.value || '').trim().toLowerCase()
+  };
+}
+
+function usageRecentMatchesFilters(item, filters) {
+  const usageType = item.usageType || (item.kind === 'api' ? '官方 API' : '站点');
+  if (filters.type === 'api' && item.kind !== 'api') return false;
+  if (filters.type === 'site' && item.kind !== 'site') return false;
+  if (filters.type && !['api', 'site'].includes(filters.type) && usageType !== filters.type) return false;
+  if (filters.date && !formatDate(item.createdAt).toLowerCase().includes(filters.date)) return false;
+  const userText = [item.email, item.uid, item.userType].map((value) => String(value || '').toLowerCase()).join(' ');
+  if (filters.user && !userText.includes(filters.user)) return false;
+  const deviceText = [item.requestRegion, item.deviceId, item.requestIp].map((value) => String(value || '').toLowerCase()).join(' ');
+  if (filters.device && !deviceText.includes(filters.device)) return false;
+  const targetText = [item.target, (item.siteNames || []).join(' '), (item.skillNames || []).join(' ')].map((value) => String(value || '').toLowerCase()).join(' ');
+  if (filters.target && !targetText.includes(filters.target)) return false;
+  if (filters.version && !String(item.extensionVersion || '').toLowerCase().includes(filters.version)) return false;
+  const queryText = [item.queryPreview, item.queryText, item.queryHash, item.detail].map((value) => String(value || '').toLowerCase()).join(' ');
+  if (filters.query && !queryText.includes(filters.query)) return false;
+  return true;
+}
+
+function renderUsageRecentRows() {
+  const recent = Array.isArray(window.__usageRecentRecords) ? window.__usageRecentRecords : [];
+  const body = document.getElementById('usageRecentBody');
+  if (!body) return;
+  const filters = getUsageRecentFilterValues();
+  const hasFilters = Object.values(filters).some(Boolean);
+  const filtered = recent
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => usageRecentMatchesFilters(item, filters));
+  body.innerHTML = filtered.length
+    ? filtered.map(({ item, index }) => {
+      const usageType = item.usageType || (item.kind === 'api' ? '官方 API' : '站点');
+      const userLabel = item.email || item.uid || item.userType || '-';
+      const deviceLabel = item.deviceId || '-';
+      const regionLabel = item.requestRegion || '未知地区';
+      const target = (item.siteNames || []).join(', ') || (item.skillNames || []).join(', ') || item.target || '-';
+      const summary = item.queryPreview || item.detail || item.queryHash || '-';
+      const fullPrompt = item.queryText || item.queryPreview || item.detail || item.queryHash || '-';
+      const repeatLabel = Number(item.repeatCount || 1) > 1 ? '同类 ' + formatNumber(item.repeatCount) + ' 次' : '';
+      const versionLabel = item.extensionVersion || '-';
+      return (
+      '<tr class="usage-recent-row" data-index="' + index + '" tabindex="0" role="button" aria-label="查看使用详情">'
+        + '<td>' + escapeHtml(formatDate(item.createdAt)) + '</td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(usageType, 8)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(item.kind === 'api' ? 'API' : '站点') + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(userLabel, 14)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(truncateText(item.uid || item.userType || '-', 10)) + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(regionLabel, 14)) + '</div><div class="muted-cell clamp-cell mono-cell">' + escapeHtml(truncateText(deviceLabel, 10)) + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(target, 18)) + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell mono-cell">' + escapeHtml(truncateText(versionLabel, 12)) + '</div></td>'
+        + '<td title="' + escapeHtml(fullPrompt) + '"><div class="query-preview clamp-cell" title="' + escapeHtml(fullPrompt) + '">' + escapeHtml(truncateText(summary, 22)) + '</div>' + (repeatLabel ? '<div class="muted-cell clamp-cell">' + escapeHtml(repeatLabel) + '</div>' : '') + '</td>'
+      + '</tr>'
+      );
+    }).join('')
+    : renderEmptyRow(hasFilters ? '没有符合筛选条件的最近使用记录' : '暂无最近使用记录', 7);
+  document.querySelectorAll('.usage-recent-row').forEach((row) => {
+    row.addEventListener('click', () => openUsageDetailDrawer(row.dataset.index));
+    row.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openUsageDetailDrawer(row.dataset.index);
+      }
+    });
+  });
+}
+
+function setupUsageRecentFilters() {
+  if (window.__usageRecentFiltersBound) return;
+  window.__usageRecentFiltersBound = true;
+  ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentDeviceFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', renderUsageRecentRows);
+  });
+  document.getElementById('usageRecentTypeFilter')?.addEventListener('change', renderUsageRecentRows);
+  document.getElementById('usageRecentClearFilters')?.addEventListener('click', () => {
+    ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentDeviceFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const typeFilter = document.getElementById('usageRecentTypeFilter');
+    if (typeFilter) typeFilter.value = '';
+    renderUsageRecentRows();
+  });
+}
+
+function setupAdminTabs(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || container.dataset.bound === 'true') return;
+  container.dataset.bound = 'true';
+  const buttons = Array.from(container.querySelectorAll('[data-tab-target]'));
+  const panels = Array.from(document.querySelectorAll('[data-tab-panel]'));
+  const activate = (target) => {
+    buttons.forEach((button) => {
+      const active = button.dataset.tabTarget === target;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panels.forEach((panel) => {
+      panel.hidden = panel.dataset.tabPanel !== target;
+    });
+  };
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => activate(button.dataset.tabTarget));
+  });
+  activate(buttons[0]?.dataset.tabTarget || '');
 }
 
 function renderPill(label, value) {
@@ -664,11 +889,15 @@ async function loadOrdersPage() {
 }
 
 async function loadApiUsagePage() {
-  const [summary, trendPayload, topTargetsPayload, recentPayload] = await Promise.all([
+  setupAdminTabs('apiUsageTabs');
+  const [summary, trendPayload, topTargetsPayload, recentPayload, productPayload, topSitesPayload, queryInsightsPayload] = await Promise.all([
     fetchAdminJson('/api/admin/usage/summary'),
     fetchAdminJson('/api/admin/usage/trend?days=7'),
     fetchAdminJson('/api/admin/usage/top-targets?days=7&limit=30'),
-    fetchAdminJson('/api/admin/usage/recent?days=7&limit=100')
+    fetchAdminJson('/api/admin/usage/recent?days=7&limit=100'),
+    fetchAdminJson('/api/admin/product-health/summary'),
+    fetchAdminJson('/api/admin/site-usage/top-sites?days=7&limit=30&includeAgents=false'),
+    fetchAdminJson('/api/admin/query-insights/summary?days=7')
   ]);
   document.getElementById('apiCards').innerHTML = renderCards([
     { label: '今日 API 请求', value: formatNumber(summary.today.apiRequests), note: formatNumber(summary.today.totalTokens) + ' tokens' },
@@ -676,7 +905,9 @@ async function loadApiUsagePage() {
     { label: '今日活跃登录用户', value: formatNumber(summary.today.activeUsers) },
     { label: '今日活跃匿名设备', value: formatNumber(summary.today.activeAnonymousClients) },
     { label: '近 7 天 API 请求', value: formatNumber(summary.last7Days.apiRequests), note: formatCost(summary.last7Days.estimatedCost, summary.last7Days.currency) },
-    { label: '近 7 天站点对比', value: formatNumber(summary.last7Days.siteEvents), note: '站点打开 ' + formatNumber(summary.last7Days.siteLaunches) }
+    { label: '近 7 天站点对比', value: formatNumber(summary.last7Days.siteEvents), note: '站点打开 ' + formatNumber(summary.last7Days.siteLaunches) },
+    { label: '近 7 天功能事件', value: formatNumber(productPayload.last7Days.featureEvents), note: productPayload.last7Days.topFeature || '暂无' },
+    { label: '近 7 天激活事件', value: formatNumber(productPayload.last7Days.activationEvents) }
   ]);
 
   const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
@@ -709,19 +940,85 @@ async function loadApiUsagePage() {
     )).join('')
     : renderEmptyRow('暂无高频使用数据', 6);
 
-  const recent = Array.isArray(recentPayload.events) ? recentPayload.events : [];
-  document.getElementById('usageRecentBody').innerHTML = recent.length
-    ? recent.map((item) => (
+  const topSites = Array.isArray(topSitesPayload.sites) ? topSitesPayload.sites : [];
+  document.getElementById('usageFavoriteSitesBody').innerHTML = topSites.length
+    ? topSites.map((item, index) => (
       '<tr>'
-        + '<td>' + escapeHtml(formatDate(item.createdAt)) + '</td>'
-        + '<td>' + escapeHtml(item.kind === 'api' ? 'API' : '站点') + '</td>'
-        + '<td>' + escapeHtml(item.target || '-') + '</td>'
-        + '<td>' + escapeHtml(item.userType || '-') + '</td>'
-        + '<td>' + escapeHtml(item.detail || '-') + '</td>'
-        + '<td>' + escapeHtml(item.extensionVersion || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(index + 1)) + '</td>'
+        + '<td>' + escapeHtml(item.siteName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.launches)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.events)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.withQueryEvents)) + '</td>'
       + '</tr>'
     )).join('')
-    : renderEmptyRow('暂无最近使用记录', 6);
+    : renderEmptyRow('暂无近 7 天站点使用排行', 7);
+
+  const recent = Array.isArray(recentPayload.events) ? recentPayload.events : [];
+  window.__usageRecentRecords = recent;
+  setupUsageRecentFilters();
+  renderUsageRecentRows();
+
+  document.getElementById('usageFeatureEventsBody').innerHTML = renderRankRows(Array.isArray(productPayload.topFeatures) ? productPayload.topFeatures : [], '暂无功能事件');
+  renderQueryInsights(queryInsightsPayload);
+
+  const usageVersions = Array.isArray(summary.versionDistribution) ? summary.versionDistribution : [];
+  document.getElementById('usageSiteVersionsBody').innerHTML = renderVersionRows(usageVersions, '暂无站点版本数据', 'site');
+  const productVersions = Array.isArray(productPayload.versionDistribution) ? productPayload.versionDistribution : [];
+  document.getElementById('usageProductVersionsBody').innerHTML = renderVersionRows(productVersions, '暂无产品事件版本数据', 'product');
+}
+
+function renderQueryInsights(payload) {
+  const status = document.getElementById('queryInsightStatus');
+  const dailyBody = document.getElementById('queryInsightDailyBody');
+  const weeklyBody = document.getElementById('queryInsightWeeklyBody');
+  const typeBody = document.getElementById('queryInsightTypeBody');
+  const insightBody = document.getElementById('queryInsightBody');
+  if (!status || !dailyBody || !weeklyBody || !typeBody || !insightBody) return;
+  status.textContent = payload.configured
+    ? '已分析 ' + formatNumber(payload.analyzedEvents) + ' / ' + formatNumber(payload.totalEvents) + ' 条，未分析 ' + formatNumber(payload.unanalyzedEvents) + ' 条，模型：' + (payload.model || '-')
+    : '未配置 OpenRouter Key，无法自动分析 Query 类型。';
+  const topTypes = Array.isArray(payload.topTypes) ? payload.topTypes : [];
+  typeBody.innerHTML = topTypes.length
+    ? topTypes.map((item) => '<tr><td>' + escapeHtml(item.label) + '</td><td>' + escapeHtml(formatNumber(item.count)) + '</td></tr>').join('')
+    : renderEmptyRow('暂无已分析类型数据', 2);
+  const daily = Array.isArray(payload.daily) ? payload.daily : [];
+  dailyBody.innerHTML = daily.length
+    ? daily.map((item) => '<tr><td>' + escapeHtml(item.date) + '</td><td>' + escapeHtml(formatNumber(item.total)) + '</td><td>' + escapeHtml(Object.entries(item.types || {}).map(([key, value]) => key + ':' + value).join(' / ') || '-') + '</td></tr>').join('')
+    : renderEmptyRow('暂无每日类型数据', 3);
+  const weekly = Array.isArray(payload.weekly) ? payload.weekly : [];
+  weeklyBody.innerHTML = weekly.length
+    ? weekly.map((item) => '<tr><td>' + escapeHtml(item.weekStart) + '</td><td>' + escapeHtml(formatNumber(item.total)) + '</td><td>' + escapeHtml(Object.entries(item.types || {}).map(([key, value]) => key + ':' + value).join(' / ') || '-') + '</td></tr>').join('')
+    : renderEmptyRow('暂无每周类型数据', 3);
+  const insights = payload.insights || {};
+  const cases = Array.isArray(insights.marketingCases) ? insights.marketingCases : [];
+  insightBody.innerHTML = ''
+    + '<tr><td>需求普遍性</td><td>' + escapeHtml(insights.demandUniversality || '-') + '</td></tr>'
+	    + '<tr><td>画像摘要</td><td>' + escapeHtml(insights.summary || '-') + '</td></tr>'
+	    + '<tr><td>真实任务</td><td>' + escapeHtml((insights.topTasks || []).map((item) => item.label + '(' + item.count + ')').join(' / ') || '-') + '</td></tr>'
+	    + '<tr><td>目标人群</td><td>' + escapeHtml((insights.topAudiences || []).map((item) => item.label + '(' + item.count + ')').join(' / ') || '-') + '</td></tr>'
+	    + '<tr><td>使用场景</td><td>' + escapeHtml((insights.topUseCases || []).map((item) => item.label + '(' + item.count + ')').join(' / ') || '-') + '</td></tr>'
+	    + '<tr><td>高频领域</td><td>' + escapeHtml((insights.topDomains || []).map((item) => item.label + '(' + item.count + ')').join(' / ') || '-') + '</td></tr>'
+    + '<tr><td>用户角色</td><td>' + escapeHtml((insights.topRoles || []).map((item) => item.label + '(' + item.count + ')').join(' / ') || '-') + '</td></tr>'
+    + '<tr><td>案例候选</td><td>' + escapeHtml(cases.slice(0, 5).map((item) => item.type + '：' + (item.angle || item.queryPreview)).join(' / ') || '暂无') + '</td></tr>';
+}
+
+async function analyzeQueryInsightsNow() {
+  const button = document.getElementById('queryInsightAnalyzeButton');
+  const status = document.getElementById('queryInsightStatus');
+  if (button) button.disabled = true;
+  if (status) status.textContent = '正在调用 OpenRouter 分析最近 Query...';
+  try {
+    const result = await fetchAdminJson('/api/admin/query-insights/analyze?days=7&limit=80', { method: 'POST' });
+    const summary = await fetchAdminJson('/api/admin/query-insights/summary?days=7');
+    renderQueryInsights(summary);
+    if (status) status.textContent += ' 本次新增分析 ' + formatNumber(result.analyzed) + ' 条。';
+  } catch (error) {
+    if (status) status.textContent = 'Query 分析失败：' + (error.message || error);
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 async function loadSiteUsagePage() {
@@ -794,18 +1091,19 @@ function getFailureFilters() {
 
 async function loadFailureLogsPage() {
   const filters = getFailureFilters();
-  const [summary, trendPayload, topTargetsPayload, listPayload] = await Promise.all([
+  const [summary, trendPayload, topTargetsPayload, listPayload, experiencePayload] = await Promise.all([
     fetchAdminJson('/api/admin/failure-logs/summary'),
     fetchAdminJson('/api/admin/failure-logs/trend?days=30'),
     fetchAdminJson('/api/admin/failure-logs/top-targets?' + filters.toString() + '&limit=20'),
-    fetchAdminJson('/api/admin/failure-logs/list?' + filters.toString() + '&limit=100')
+    fetchAdminJson('/api/admin/failure-logs/list?' + filters.toString() + '&limit=100'),
+    fetchAdminJson('/api/admin/experience/summary')
   ]);
   document.getElementById('failureCards').innerHTML = renderCards([
     { label: '今日失败总数', value: formatNumber(summary.today.totalFailures) },
     { label: '今日失败站点数', value: formatNumber(summary.today.failedSites) },
     { label: '今日 API 失败', value: formatNumber(summary.today.apiFailures) },
     { label: '近 7 天失败', value: formatNumber(summary.last7Days.totalFailures) },
-    { label: '近 30 天失败', value: formatNumber(summary.last30Days.totalFailures) },
+    { label: '近 7 天失败率', value: (experiencePayload.summary.failureRate || 0) + '%', note: '使用总量 ' + formatNumber(experiencePayload.summary.totalUsage) },
     { label: '最常失败目标', value: summary.today.topTarget || '暂无' }
   ]);
 
@@ -835,10 +1133,179 @@ async function loadFailureLogsPage() {
     )).join('')
     : renderEmptyRow('暂无高频失败目标', 5);
 
+  const priorityTargets = Array.isArray(experiencePayload.priorityTargets) ? experiencePayload.priorityTargets : [];
+  document.getElementById('failurePriorityBody').innerHTML = priorityTargets.length
+    ? priorityTargets.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
+        + '<td>' + escapeHtml(item.target || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.failures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.priorityScore)) + '</td>'
+        + '<td>' + escapeHtml(item.topPhase || '-') + '</td>'
+        + '<td>' + escapeHtml(formatCompactText(item.latestError)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无修复优先级数据', 6);
+
+  const phases = Array.isArray(experiencePayload.topPhases) ? experiencePayload.topPhases : [];
+  document.getElementById('failurePhasesBody').innerHTML = phases.length
+    ? phases.map((item) => '<tr><td>' + escapeHtml(item.phase || '-') + '</td><td>' + escapeHtml(formatNumber(item.count)) + '</td></tr>').join('')
+    : renderEmptyRow('暂无失败阶段数据', 2);
+
   const logs = Array.isArray(listPayload.logs) ? listPayload.logs : [];
   document.getElementById('failureLogsBody').innerHTML = logs.length
     ? renderFailureLogRows(logs)
     : renderEmptyRow('暂无失败日志', 6);
+}
+
+function renderRankRows(items, emptyMessage) {
+  return items.length
+    ? items.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.eventName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.topSource || '-') + '</td>'
+        + '<td>' + escapeHtml(item.topVersion || '-') + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.latestAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow(emptyMessage, 7);
+}
+
+function renderVersionRows(items, emptyMessage, mode) {
+  return items.length
+    ? items.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.version || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(mode === 'site' ? formatNumber(item.siteLaunches) : (item.topEvent || '-')) + '</td>'
+        + '<td>' + escapeHtml(mode === 'site' ? formatNumber(item.withQueryEvents) : (item.topSource || '-')) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow(emptyMessage, 6);
+}
+
+async function loadGrowthPage() {
+  const payload = await fetchAdminJson('/api/admin/growth/summary');
+	  document.getElementById('growthCards').innerHTML = renderCards([
+	    { label: '激活事件', value: formatNumber(payload.summary.activationEvents), note: payload.summary.topActivation || '暂无' },
+	    { label: '功能事件', value: formatNumber(payload.summary.featureEvents) },
+	    { label: '订阅漏斗事件', value: formatNumber(payload.summary.subscriptionEvents) },
+	    { label: '激活登录用户', value: formatNumber(payload.summary.activatedUsers) },
+	    { label: '激活匿名设备', value: formatNumber(payload.summary.activatedAnonymousClients) },
+	    { label: '站点活跃登录用户', value: formatNumber(payload.summary.activeUsers) },
+	    { label: '站点活跃匿名设备', value: formatNumber(payload.summary.activeAnonymousClients) },
+	    { label: 'Top 工作流组合', value: payload.summary.topSiteCombination || '暂无' }
+	  ]);
+	  document.getElementById('growthActivationBody').innerHTML = renderRankRows(Array.isArray(payload.activationEvents) ? payload.activationEvents : [], '暂无激活事件');
+	  const growthVersions = Array.isArray(payload.versionDistribution) ? payload.versionDistribution : [];
+	  document.getElementById('growthVersionsBody').innerHTML = renderVersionRows(growthVersions, '暂无版本数据', 'site');
+	  const maturityStages = payload.userMaturity?.stages || {};
+	  const stageLabels = { new: '新用户', activated: '已激活', retained: '回访', workflow: '工作流', power: '高阶', pro: 'Pro' };
+	  document.getElementById('growthMaturityBody').innerHTML = Object.keys(stageLabels).length
+	    ? Object.keys(stageLabels).map((stage) => (
+	      '<tr><td>' + escapeHtml(stageLabels[stage]) + '</td><td>' + escapeHtml(formatNumber(maturityStages[stage] || 0)) + '</td></tr>'
+	    )).join('')
+	    : renderEmptyRow('暂无成熟度数据', 2);
+	  const combinations = Array.isArray(payload.topCombinations) ? payload.topCombinations : [];
+	  document.getElementById('growthCombinationsBody').innerHTML = combinations.length
+	    ? combinations.map((item) => (
+	      '<tr>'
+	        + '<td>' + escapeHtml((item.siteNames || []).concat((item.agentIds || []).map((agentId) => 'Agent: ' + agentId)).join(' + ') || item.siteCombinationKey || '-') + '</td>'
+	        + '<td>' + escapeHtml(item.workflowMode || '-') + '</td>'
+	        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+	        + '<td>' + escapeHtml(formatNumber(item.withQueryEvents)) + '</td>'
+	        + '<td>' + escapeHtml(formatNumber((item.activeUsers || 0) + (item.activeAnonymousClients || 0))) + '</td>'
+	        + '<td>' + escapeHtml(item.topVersion || '-') + '</td>'
+	      + '</tr>'
+	    )).join('')
+	    : renderEmptyRow('暂无工作流组合数据', 6);
+	  const cohorts = Array.isArray(payload.cohorts) ? payload.cohorts : [];
+	  document.getElementById('growthCohortsBody').innerHTML = cohorts.length
+	    ? cohorts.map((item) => (
+	      '<tr>'
+	        + '<td>' + escapeHtml(item.dateKey || '-') + '</td>'
+	        + '<td>' + escapeHtml(formatNumber(item.users)) + '</td>'
+	        + '<td>' + escapeHtml(formatNumber(item.d1Retained) + ' / ' + formatNumber(item.d1RetentionRate) + '%') + '</td>'
+	        + '<td>' + escapeHtml(formatNumber(item.d7Retained) + ' / ' + formatNumber(item.d7RetentionRate) + '%') + '</td>'
+	      + '</tr>'
+	    )).join('')
+	    : renderEmptyRow('暂无 cohort 数据', 4);
+	  const sources = Array.isArray(payload.sources) ? payload.sources : [];
+  document.getElementById('growthSourcesBody').innerHTML = sources.length
+    ? sources.map((item) => '<tr><td>' + escapeHtml(item.source || '-') + '</td><td>' + escapeHtml(formatNumber(item.count)) + '</td></tr>').join('')
+    : renderEmptyRow('暂无来源数据', 2);
+  document.getElementById('growthNote').textContent = payload.note || '';
+}
+
+async function loadBusinessPage() {
+  const payload = await fetchAdminJson('/api/admin/business/summary');
+  document.getElementById('businessCards').innerHTML = renderCards([
+    { label: '免费额度触达', value: formatNumber(payload.summary.limitReached) },
+    { label: 'Checkout 发起', value: formatNumber(payload.summary.checkoutStarted) },
+    { label: '支付成功', value: formatNumber(payload.summary.checkoutSuccess) },
+    { label: '有效 Pro', value: formatNumber(payload.summary.activeProUsers) },
+    { label: '近 7 天 API 成本', value: formatCost(payload.summary.estimatedCost, payload.summary.costCurrency), note: formatNumber(payload.summary.totalTokens) + ' tokens' },
+    { label: '单活跃身份成本', value: formatCost(payload.summary.costPerActiveIdentity, payload.summary.costCurrency) }
+  ]);
+  document.getElementById('businessFunnelBody').innerHTML = renderRankRows(Array.isArray(payload.funnelEvents) ? payload.funnelEvents : [], '暂无订阅漏斗事件');
+  document.getElementById('businessDistributionBody').innerHTML = [
+    '<tr><td>Tokens</td><td>' + escapeHtml(formatNumber(payload.tokenDistribution.p50)) + '</td><td>' + escapeHtml(formatNumber(payload.tokenDistribution.p90)) + '</td><td>' + escapeHtml(formatNumber(payload.tokenDistribution.p99)) + '</td></tr>',
+    '<tr><td>估算成本</td><td>' + escapeHtml(formatCost(payload.costDistribution.p50, payload.summary.costCurrency)) + '</td><td>' + escapeHtml(formatCost(payload.costDistribution.p90, payload.summary.costCurrency)) + '</td><td>' + escapeHtml(formatCost(payload.costDistribution.p99, payload.summary.costCurrency)) + '</td></tr>'
+  ].join('');
+}
+
+async function loadShareLinksPage() {
+  const [summary, trendPayload, listPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/share-links/summary?days=7'),
+    fetchAdminJson('/api/admin/share-links/trend?days=7'),
+    fetchAdminJson('/api/admin/share-links/list?days=7&limit=100')
+  ]);
+  document.getElementById('shareLinkCards').innerHTML = renderCards([
+    { label: '今日生成共享链接', value: formatNumber(summary.today.totalShares) },
+    { label: '今日包含总结', value: formatNumber(summary.today.withSummary) },
+    { label: '今日平均站点数', value: Number(summary.today.avgSites || 0).toFixed(1) },
+    { label: '近 7 天生成', value: formatNumber(summary.last7Days.totalShares) },
+    { label: '近 7 天包含总结', value: formatNumber(summary.last7Days.withSummary) },
+    { label: '最常共享站点', value: summary.last7Days.topSite || '暂无' }
+  ]);
+
+  const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('shareLinkTrendBody').innerHTML = trend.length
+    ? trend.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalShares)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeShares)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.expiredShares)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.withSummary)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalResponses)) + '</td>'
+        + '<td>' + escapeHtml(Number(item.avgSites || 0).toFixed(1)) + '</td>'
+        + '<td>' + escapeHtml(item.topSite || '-') + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无共享链接趋势数据', 8);
+
+  const shares = Array.isArray(listPayload.shares) ? listPayload.shares : [];
+  document.getElementById('shareLinkListBody').innerHTML = shares.length
+    ? shares.map((item) => {
+      const sharePath = '/share/' + encodeURIComponent(item.shareId || '');
+      return (
+        '<tr>'
+          + '<td><div class="strong-cell">' + escapeHtml(formatDate(item.createdAt)) + '</div><div class="muted-cell">过期 ' + escapeHtml(formatDate(item.expiresAt)) + '</div></td>'
+          + '<td><div class="strong-cell mono-cell clamp-cell">' + escapeHtml(truncateText(item.shareId, 18)) + '</div><div class="muted-cell">' + escapeHtml(item.status || '-') + '</div></td>'
+          + '<td><div class="query-preview">' + escapeHtml(truncateText(item.question, 42, '无问题文本')) + '</div><div class="muted-cell">' + escapeHtml(item.analysisTemplateName || '-') + '</div></td>'
+          + '<td><div class="strong-cell">' + escapeHtml(formatNumber(item.siteCount)) + ' 个站点</div><div class="muted-cell">' + escapeHtml(truncateText((item.compareSites || []).join(', '), 34)) + '</div></td>'
+          + '<td><div class="strong-cell">' + escapeHtml(formatNumber(item.responseCount)) + ' 个回答</div><div class="muted-cell">' + escapeHtml(item.hasSummary ? '包含总结' : '无总结') + '</div></td>'
+          + '<td><a class="log-link" href="' + escapeHtml(sharePath) + '" target="_blank" rel="noopener noreferrer">打开</a></td>'
+        + '</tr>'
+      );
+    }).join('')
+    : renderEmptyRow('暂无近 7 天共享链接记录', 6);
 }
 
 async function bootAdminPage(pageName) {
@@ -874,12 +1341,20 @@ async function bootAdminPage(pageName) {
     rememberInput.checked = false;
     clearRememberedAdminCredentials();
   });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeUsageDetailDrawer();
+    }
+  });
 
   try {
     if (pageName === 'overview') await loadOverview();
     if (pageName === 'orders') await loadOrdersPage();
     if (pageName === 'apiUsage') await loadApiUsagePage();
     if (pageName === 'siteUsage') await loadSiteUsagePage();
+    if (pageName === 'growth') await loadGrowthPage();
+    if (pageName === 'business') await loadBusinessPage();
+    if (pageName === 'shareLinks') await loadShareLinksPage();
     if (pageName === 'failureLogs') {
       document.getElementById('failureSearchButton')?.addEventListener('click', () => {
         loadFailureLogsPage().catch((error) => {
@@ -1160,6 +1635,7 @@ const ADMIN_STYLES = `
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
+    table-layout: fixed;
   }
   th, td {
     text-align: left;
@@ -1242,6 +1718,203 @@ const ADMIN_STYLES = `
     color: var(--text);
     line-height: 1.5;
     overflow-wrap: anywhere;
+  }
+  .clamp-cell {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mono-cell {
+    font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+    letter-spacing: -0.03em;
+  }
+  .usage-filter-row th {
+    padding-top: 0;
+    vertical-align: top;
+  }
+  .usage-filter-input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgba(85, 58, 36, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .usage-filter-input:focus {
+    border-color: rgba(182, 90, 45, 0.48);
+    box-shadow: 0 0 0 3px rgba(182, 90, 45, 0.12);
+  }
+  .usage-filter-combo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .usage-filter-clear {
+    border: 1px solid rgba(85, 58, 36, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--muted);
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+  .admin-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    gap: 10px;
+    margin: 16px 0 4px;
+    padding: 10px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 250, 242, 0.86);
+    box-shadow: 0 14px 34px rgba(77, 50, 31, 0.08);
+    backdrop-filter: blur(14px);
+  }
+  .tab-button {
+    flex: 0 0 auto;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    padding: 10px 14px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .tab-button.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(182, 90, 45, 0.2);
+  }
+  .tab-button:focus-visible {
+    outline: 3px solid rgba(182, 90, 45, 0.24);
+    outline-offset: 2px;
+  }
+  [data-tab-panel][hidden] {
+    display: none;
+  }
+  .panel-heading-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .panel-heading-row h3 {
+    margin-bottom: 8px;
+  }
+  .insight-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 16px;
+  }
+  .insight-grid h4 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  @media (max-width: 900px) {
+    .panel-heading-row,
+    .insight-grid {
+      grid-template-columns: 1fr;
+      display: grid;
+    }
+  }
+  .usage-recent-row {
+    cursor: pointer;
+  }
+  .usage-recent-row:hover {
+    background: rgba(182, 90, 45, 0.06);
+  }
+  .usage-recent-row:focus {
+    outline: 2px solid rgba(182, 90, 45, 0.34);
+    outline-offset: -2px;
+  }
+  .usage-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(36, 25, 15, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+  }
+  .usage-drawer-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .usage-detail-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 90;
+    width: min(760px, calc(100vw - 24px));
+    height: 100vh;
+    padding: 22px;
+    background: #fffaf2;
+    border-left: 1px solid var(--border);
+    box-shadow: -24px 0 60px rgba(77, 50, 31, 0.18);
+    transform: translateX(105%);
+    transition: transform 220ms ease;
+    overflow: auto;
+  }
+  .usage-detail-drawer.open {
+    transform: translateX(0);
+  }
+  .usage-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .usage-detail-header h3 {
+    margin: 10px 0 0;
+    font-size: 24px;
+  }
+  .drawer-close-button {
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+  }
+  .usage-detail-body {
+    display: grid;
+    gap: 12px;
+  }
+  .usage-detail-field {
+    padding: 13px;
+    border: 1px solid rgba(85, 58, 36, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.72);
+    overflow-wrap: anywhere;
+  }
+  .usage-detail-wide {
+    grid-column: 1 / -1;
+  }
+  .usage-query-full {
+    margin: 0;
+    max-height: 52vh;
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid rgba(85, 58, 36, 0.14);
+    border-radius: 14px;
+    background: #fff;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: "SFMono-Regular", "Menlo", "Consolas", "Noto Sans SC", monospace;
+    font-size: 14px;
+    line-height: 1.72;
+    color: #1f1710;
+  }
+  .usage-detail-raw pre {
+    max-height: 260px;
   }
   .url-cell {
     font-size: 12px;
@@ -1710,6 +2383,15 @@ async function consumeOfficialApiUsage(uid, locale) {
     const snap = await transaction.get(usageRef);
     const used = snap.exists ? Math.max(0, Number(snap.data().officialApiCount) || 0) : 0;
     if (used >= dailyFreeLimit) {
+      recordInternalAnalyticsEvent({
+        kind: 'subscription',
+        eventName: 'official_api_limit_reached',
+        uid,
+        uploaderType: 'user',
+        source: 'backend',
+        locale,
+        metadata: { plan: plan.plan || 'free', limit: dailyFreeLimit }
+      }).catch(() => null);
       const error = new Error(`You've used today's ${dailyFreeLimit} free official API requests. Upgrade to PRO or switch to your own API.`);
       error.status = 402;
       throw error;
@@ -1750,6 +2432,15 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
     const snap = await transaction.get(usageRef);
     const used = snap.exists ? Math.max(0, Number(snap.data().officialApiCount) || 0) : 0;
     if (used >= dailyFreeLimit) {
+      recordInternalAnalyticsEvent({
+        kind: 'subscription',
+        eventName: 'anonymous_official_api_limit_reached',
+        clientHash,
+        uploaderType: 'anonymous',
+        source: 'backend',
+        locale,
+        metadata: { plan: 'anonymous', limit: dailyFreeLimit }
+      }).catch(() => null);
       const error = new Error(`You've used today's ${dailyFreeLimit} free official API requests. Upgrade to PRO or switch to your own API.`);
       error.status = 402;
       throw error;
@@ -1779,7 +2470,14 @@ async function recordOfficialApiEvent({
   model = '',
   upstreamModel = '',
   tokenUsage = {},
-  upstreamStatus = 0
+  upstreamStatus = 0,
+  queryPreview = '',
+  queryText = '',
+  queryHash = '',
+  requestIp = '',
+  requestRegion = '',
+  userAgent = '',
+  extensionVersion = ''
 } = {}) {
   requireFirebaseAdmin();
   const normalizedUserType = ['free', 'pro', 'anonymous'].includes(userType) ? userType : 'free';
@@ -1793,6 +2491,13 @@ async function recordOfficialApiEvent({
     model: String(model || '').trim(),
     upstreamModel: String(upstreamModel || model || '').trim(),
     upstreamStatus: Math.max(0, Math.round(Number(upstreamStatus) || 0)),
+    queryPreview: safeLogString(queryPreview, 120),
+    queryText: safeLogString(queryText || queryPreview, 4000),
+    queryHash: safeLogString(queryHash, 100),
+    requestIp: safeLogString(requestIp, 80),
+    requestRegion: safeLogString(requestRegion || getIpRegionLabel(requestIp), 120),
+    userAgent: safeLogString(userAgent, 200),
+    extensionVersion: safeLogString(extensionVersion, 40),
     promptTokens: tokenCost.promptTokens,
     completionTokens: tokenCost.completionTokens,
     totalTokens: tokenCost.totalTokens,
@@ -1806,6 +2511,90 @@ async function recordOfficialApiEvent({
 function safeLogString(value, limit = 500) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   return limit > 0 && text.length > limit ? `${text.slice(0, limit)}...` : text;
+}
+
+function createSafeQueryPreview(value = '') {
+  return safeLogString(value, 120);
+}
+
+function createSha256Hash(value = '') {
+  const text = String(value || '');
+  if (!text) return '';
+  return crypto.createHash('sha256').update(text).digest('hex');
+}
+
+function extractMessageText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((part) => {
+      if (typeof part === 'string') return part;
+      if (typeof part?.text === 'string') return part.text;
+      if (typeof part?.content === 'string') return part.content;
+      return '';
+    }).filter(Boolean).join('\n');
+  }
+  if (content && typeof content === 'object' && typeof content.text === 'string') {
+    return content.text;
+  }
+  return '';
+}
+
+function extractOfficialRequestQuery(body = {}) {
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  const lastUserMessage = [...messages].reverse().find((message) => String(message?.role || '').trim() === 'user');
+  return extractMessageText(lastUserMessage?.content);
+}
+
+function getRequestIp(req) {
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return safeLogString(forwardedFor || req.headers['x-real-ip'] || req.ip || req.socket?.remoteAddress || '', 80);
+}
+
+function normalizeIpForGeo(ip = '') {
+  const value = String(ip || '').split(',')[0].trim().replace(/^::ffff:/, '');
+  if (!value || value === '::1' || value === '127.0.0.1') return '';
+  return value;
+}
+
+function getCountryDisplayName(countryCode = '') {
+  const code = String(countryCode || '').trim().toUpperCase();
+  if (!code) return '';
+  try {
+    const names = new Intl.DisplayNames(['zh-CN'], { type: 'region' });
+    return names.of(code) || code;
+  } catch (_) {
+    return code;
+  }
+}
+
+function getIpRegionLabel(ip = '') {
+  const normalizedIp = normalizeIpForGeo(ip);
+  if (!normalizedIp || !geoip) return '';
+  const info = geoip.lookup(normalizedIp);
+  if (!info) return '';
+  const parts = [
+    getCountryDisplayName(info.country) || info.country,
+    info.region,
+    info.city
+  ].filter(Boolean);
+  return Array.from(new Set(parts)).join(' / ');
+}
+
+function getRequestRegion(req) {
+  const country = req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'] || req.headers['x-country-code'];
+  const region = req.headers['cf-region'] || req.headers['x-vercel-ip-country-region'] || req.headers['x-region'];
+  const city = req.headers['cf-ipcity'] || req.headers['x-vercel-ip-city'] || req.headers['x-city'];
+  const headerParts = [
+    getCountryDisplayName(country) || country,
+    region,
+    city
+  ].map((item) => safeLogString(item || '', 60)).filter(Boolean);
+  if (headerParts.length) return Array.from(new Set(headerParts)).join(' / ');
+  return getIpRegionLabel(getRequestIp(req));
+}
+
+function getRequestUserAgent(req) {
+  return safeLogString(req.headers['user-agent'] || '', 200);
 }
 
 function sanitizeFailureLogUrl(url) {
@@ -2051,6 +2840,13 @@ async function recordSiteCompareEvent(req) {
     ? req.body.siteNames
     : [...officialSiteNames, ...customSiteNames]);
   const agentIds = normalizeSiteUsageNames(req.body?.agentIds, 20);
+  const insightPayload = BehaviorInsights.buildSiteUsagePayload({
+    ...req.body,
+    officialSiteNames,
+    customSiteNames,
+    siteNames,
+    agentIds
+  });
   if (!siteNames.length && !agentIds.length) {
     const error = new Error('siteNames or agentIds is required');
     error.status = 400;
@@ -2058,6 +2854,9 @@ async function recordSiteCompareEvent(req) {
   }
 
   const now = admin.firestore.FieldValue.serverTimestamp();
+  const rawQueryText = String(req.body?.queryText || req.body?.queryPreview || '');
+  const queryPreview = createSafeQueryPreview(req.body?.queryPreview || rawQueryText);
+  const queryText = safeLogString(rawQueryText, 4000);
   const docId = createSiteCompareEventDocId({
     ...uploader,
     clientEventId
@@ -2077,8 +2876,23 @@ async function recordSiteCompareEvent(req) {
     officialSiteCount: officialSiteNames.length,
     customSiteCount: customSiteNames.length,
     agentCount: agentIds.length,
+    siteCombinationKey: safeLogString(req.body?.siteCombinationKey || insightPayload.siteCombinationKey, 1000),
+    workflowMode: safeLogString(req.body?.workflowMode || insightPayload.workflowMode, 40),
+    resultState: safeLogString(req.body?.resultState || insightPayload.resultState, 40),
+    successCount: Math.max(0, Math.min(1000, Math.round(Number(req.body?.successCount ?? insightPayload.successCount) || 0))),
+    failureCount: Math.max(0, Math.min(1000, Math.round(Number(req.body?.failureCount ?? insightPayload.failureCount) || 0))),
+    extractableCount: Math.max(0, Math.min(1000, Math.round(Number(req.body?.extractableCount ?? insightPayload.extractableCount) || 0))),
+    latencyMs: Math.max(0, Math.min(24 * 60 * 60 * 1000, Math.round(Number(req.body?.latencyMs ?? insightPayload.latencyMs) || 0))),
+    failurePhase: safeLogString(req.body?.failurePhase || insightPayload.failurePhase, 80),
+    failureTarget: safeLogString(req.body?.failureTarget || insightPayload.failureTarget, 120),
     hasQuery: req.body?.hasQuery === true,
     queryLength: Math.max(0, Math.min(20000, Math.round(Number(req.body?.queryLength) || 0))),
+    queryPreview,
+    queryText,
+    queryHash: safeLogString(req.body?.queryHash || createSha256Hash(rawQueryText || queryPreview), 100),
+    requestIp: getRequestIp(req),
+    requestRegion: getRequestRegion(req),
+    userAgent: getRequestUserAgent(req),
     locale: safeLogString(req.body?.locale || '', 40),
     extensionVersion: safeLogString(req.body?.extensionVersion || '', 40),
     createdAt: now,
@@ -2089,6 +2903,122 @@ async function recordSiteCompareEvent(req) {
     ok: true,
     id: docId
   };
+}
+
+function safeAnalyticsMetadata(metadata) {
+  if (BehaviorInsights?.safeMetadata) {
+    return BehaviorInsights.safeMetadata(metadata);
+  }
+  if (!metadata || typeof metadata !== 'object') return {};
+  const result = {};
+  Object.entries(metadata).slice(0, 30).forEach(([key, value]) => {
+    const safeKey = safeLogString(key, 80);
+    if (!safeKey || /(token|key|auth|code|secret|password|session|credential|access|refresh|prompt|response|content|body)/i.test(safeKey)) {
+      return;
+    }
+    if (value == null || ['string', 'number', 'boolean'].includes(typeof value)) {
+      const stringValue = typeof value === 'string' ? safeLogString(value, 160) : value;
+      result[safeKey] = stringValue;
+    }
+  });
+  return result;
+}
+
+function getAnalyticsCollectionName(kind = 'feature') {
+  if (kind === 'activation') return 'activationEvents';
+  if (kind === 'subscription') return 'subscriptionFunnelEvents';
+  return 'productFeatureEvents';
+}
+
+async function recordAnalyticsEvent(req, kind = 'feature') {
+  requireFirebaseAdmin();
+  const uploader = await getUsageEventUploader(req);
+  const eventName = safeLogString(req.body?.eventName || '', 120);
+  if (!eventName) {
+    const error = new Error('eventName is required');
+    error.status = 400;
+    throw error;
+  }
+  const clientEventId = safeLogString(req.body?.clientEventId || crypto.randomUUID?.() || `${Date.now()}_${Math.random()}`, 120);
+  const metadata = safeAnalyticsMetadata(req.body?.metadata);
+  const collectionName = getAnalyticsCollectionName(kind);
+  const docId = crypto
+    .createHash('sha256')
+    .update([
+      collectionName,
+      uploader.uploaderType,
+      uploader.uid || uploader.clientHash,
+      clientEventId
+    ].join('|'))
+    .digest('hex');
+
+  await db.collection(collectionName).doc(docId).set({
+    clientEventId,
+    dateKey: getTodayKey(),
+    eventName,
+    kind: getAnalyticsCollectionName(kind) === 'activationEvents'
+      ? 'activation'
+      : (getAnalyticsCollectionName(kind) === 'subscriptionFunnelEvents' ? 'subscription' : 'feature'),
+    uploaderType: uploader.uploaderType,
+    uid: uploader.uid,
+    clientHash: uploader.clientHash,
+    source: safeLogString(req.body?.source || '', 60),
+    locale: safeLogString(req.body?.locale || '', 40),
+    extensionVersion: safeLogString(req.body?.extensionVersion || '', 40),
+    hasQuery: req.body?.hasQuery === true,
+    queryLength: Math.max(0, Math.min(20000, Math.round(Number(req.body?.queryLength) || 0))),
+    metadata,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  return {
+    ok: true,
+    id: docId
+  };
+}
+
+async function recordInternalAnalyticsEvent({
+  kind = 'feature',
+  eventName = '',
+  uid = '',
+  clientHash = '',
+  uploaderType = 'user',
+  source = 'backend',
+  locale = '',
+  extensionVersion = '',
+  metadata = {}
+} = {}) {
+  requireFirebaseAdmin();
+  const normalizedEventName = safeLogString(eventName, 120);
+  if (!normalizedEventName) return null;
+  const collectionName = getAnalyticsCollectionName(kind);
+  const clientEventId = crypto
+    .createHash('sha256')
+    .update([
+      normalizedEventName,
+      uid || clientHash || '',
+      Date.now(),
+      Math.random()
+    ].join('|'))
+    .digest('hex');
+  const docRef = await db.collection(collectionName).add({
+    clientEventId,
+    dateKey: getTodayKey(),
+    eventName: normalizedEventName,
+    uploaderType: uploaderType === 'anonymous' ? 'anonymous' : 'user',
+    uid: String(uid || ''),
+    clientHash: String(clientHash || ''),
+    source: safeLogString(source, 60),
+    locale: safeLogString(locale, 40),
+    extensionVersion: safeLogString(extensionVersion, 40),
+    hasQuery: false,
+    queryLength: 0,
+    metadata: safeAnalyticsMetadata(metadata),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  return docRef.id;
 }
 
 function getSuccessUrl() {
@@ -2833,7 +3763,10 @@ function createAdminPage({ pageName, title, description, content }) {
     overview: pageName === 'overview' ? 'active' : '',
     orders: pageName === 'orders' ? 'active' : '',
     apiUsage: pageName === 'apiUsage' ? 'active' : '',
-    failureLogs: pageName === 'failureLogs' ? 'active' : ''
+    failureLogs: pageName === 'failureLogs' ? 'active' : '',
+    growth: pageName === 'growth' ? 'active' : '',
+    business: pageName === 'business' ? 'active' : '',
+    shareLinks: pageName === 'shareLinks' ? 'active' : ''
   };
   return `<!doctype html>
 <html lang="zh-CN">
@@ -2855,6 +3788,9 @@ function createAdminPage({ pageName, title, description, content }) {
           <a class="nav-link ${active.orders}" href="/admin/orders">会员订单</a>
           <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">使用统计</a>
           <a class="nav-link ${active.failureLogs}" href="/admin/failure-logs">失败日志</a>
+          <a class="nav-link ${active.growth}" href="/admin/growth">增长漏斗</a>
+          <a class="nav-link ${active.business}" href="/admin/business">商业化成本</a>
+          <a class="nav-link ${active.shareLinks}" href="/admin/share-links">共享链接</a>
         </nav>
       </article>
       <aside class="token-panel">
@@ -2874,7 +3810,7 @@ function createAdminPage({ pageName, title, description, content }) {
       </aside>
     </section>
     ${content}
-    <p class="footer-note">说明：会员订单统计优先使用 Stripe 发票/订阅数据；API 统计只覆盖官方代理接口 <code>/officialAgentChat</code>。失败日志只保存脱敏后的错误摘要、queryPreview 和 queryHash。</p>
+    <p class="footer-note">说明：会员订单统计优先使用 Stripe 发票/订阅数据；API 统计只覆盖官方代理接口 <code>/officialAgentChat</code>。最近使用记录列表只展示 query 摘要；详情抽屉可查看已记录的完整 Query。失败日志仍只展示截断后的 queryPreview / queryHash，不保存完整 prompt 或 AI 回复。</p>
   </main>
   <script>${ADMIN_CLIENT_SCRIPT}</script>
   <script>bootAdminPage(${JSON.stringify(pageName)});</script>
@@ -3020,11 +3956,19 @@ function getApiUsagePageHtml() {
   return createAdminPage({
     pageName: 'apiUsage',
     title: '使用统计后台',
-    description: '合并查看官方 API 使用和站点对比使用，默认只展示最近 7 天数据。',
+    description: '合并查看官方 API、站点对比、功能事件和激活事件，默认只展示最近 7 天数据。',
     content: `
       <h2 class="section-title">核心指标</h2>
       <section id="apiCards" class="grid"></section>
-      <section class="card panel">
+      <nav id="apiUsageTabs" class="admin-tabs" role="tablist" aria-label="使用统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="trend">趋势</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="targets">高频使用</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="sites">站点排行</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="features">功能与版本</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="insights">Query 洞察</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="recent">最近记录</button>
+      </nav>
+      <section class="card panel" data-tab-panel="trend">
         <h3>近 7 天趋势</h3>
         <table>
           <thead>
@@ -3044,7 +3988,7 @@ function getApiUsagePageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="targets">
         <h3>近 7 天高频使用</h3>
         <table>
           <thead>
@@ -3062,24 +4006,161 @@ function getApiUsagePageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="sites">
+        <h3>近 7 天使用站点次数排行</h3>
+        <p class="footer-note">按站点被打开/参与对比的次数倒序，用来判断用户最喜欢或最常依赖的站点。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>站点</th>
+              <th>打开次数</th>
+              <th>涉及对比次数</th>
+              <th>活跃登录用户</th>
+              <th>活跃匿名设备</th>
+              <th>带 Query 次数</th>
+            </tr>
+          </thead>
+          <tbody id="usageFavoriteSitesBody">
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel" data-tab-panel="features">
+        <h3>近 7 天功能事件排行</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>事件</th>
+              <th>次数</th>
+              <th>活跃登录用户</th>
+              <th>活跃匿名设备</th>
+              <th>主要来源</th>
+              <th>主版本</th>
+              <th>最近时间</th>
+            </tr>
+          </thead>
+          <tbody id="usageFeatureEventsBody">
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel" data-tab-panel="features">
+        <h3>近 7 天插件版本分布</h3>
+        <p class="footer-note">按 extensionVersion 拆分站点对比和产品行为事件，避免新版埋点与旧版行为混在一起。</p>
+        <div class="insight-grid">
+          <div>
+            <h4>站点对比版本</h4>
+            <table>
+              <thead><tr><th>版本</th><th>事件数</th><th>登录用户</th><th>匿名设备</th><th>站点打开</th><th>带 Query</th></tr></thead>
+              <tbody id="usageSiteVersionsBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>产品事件版本</h4>
+            <table>
+              <thead><tr><th>版本</th><th>事件数</th><th>登录用户</th><th>匿名设备</th><th>Top 事件</th><th>Top 来源</th></tr></thead>
+              <tbody id="usageProductVersionsBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section class="card panel" data-tab-panel="insights">
+        <div class="panel-heading-row">
+          <div>
+            <h3>Query 类型与用户洞察</h3>
+            <p class="footer-note">使用 OpenRouter 免费模型分析已记录 Query，统计每日/每周问题类型，并判断是否适合做营销案例。点击按钮才会分析未缓存 Query。</p>
+          </div>
+          <button id="queryInsightAnalyzeButton" type="button" onclick="analyzeQueryInsightsNow()">分析最近 Query</button>
+        </div>
+        <div id="queryInsightStatus" class="status">等待加载...</div>
+        <div class="insight-grid">
+          <div>
+            <h4>类型排行</h4>
+            <table>
+              <thead><tr><th>类型</th><th>数量</th></tr></thead>
+              <tbody id="queryInsightTypeBody"><tr><td colspan="2" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>每日统计</h4>
+            <table>
+              <thead><tr><th>日期</th><th>总数</th><th>类型分布</th></tr></thead>
+              <tbody id="queryInsightDailyBody"><tr><td colspan="3" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>每周统计</h4>
+            <table>
+              <thead><tr><th>周起始</th><th>总数</th><th>类型分布</th></tr></thead>
+              <tbody id="queryInsightWeeklyBody"><tr><td colspan="3" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>用户画像与营销洞察</h4>
+            <table>
+              <thead><tr><th>维度</th><th>洞察</th></tr></thead>
+              <tbody id="queryInsightBody"><tr><td colspan="2" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section class="card panel" data-tab-panel="recent">
         <h3>最近使用记录</h3>
+        <p class="footer-note">列表仅展示截断摘要；点击记录后可在右侧抽屉查看已记录的完整 Query。历史记录若上线前未保存完整 Query，则只能显示摘要。</p>
         <table>
           <thead>
             <tr>
               <th>时间</th>
               <th>类型</th>
-              <th>目标</th>
-              <th>用户类型</th>
-              <th>摘要</th>
+              <th>用户</th>
+              <th>地区 / 设备</th>
+              <th>模型 / 站点</th>
               <th>版本</th>
+              <th>摘要</th>
+            </tr>
+            <tr class="usage-filter-row">
+              <th><input id="usageRecentDateFilter" class="usage-filter-input" type="search" placeholder="日期/时间"></th>
+              <th>
+                <select id="usageRecentTypeFilter" class="usage-filter-input">
+                  <option value="">全部</option>
+                  <option value="api">API</option>
+                  <option value="site">站点</option>
+                  <option value="对比">对比</option>
+                  <option value="总结">总结</option>
+                  <option value="问答">问答</option>
+                  <option value="打开">打开</option>
+                  <option value="技能">技能</option>
+                </select>
+              </th>
+              <th><input id="usageRecentUserFilter" class="usage-filter-input" type="search" placeholder="用户"></th>
+              <th><input id="usageRecentDeviceFilter" class="usage-filter-input" type="search" placeholder="地区/设备"></th>
+              <th><input id="usageRecentTargetFilter" class="usage-filter-input" type="search" placeholder="模型/站点"></th>
+              <th><input id="usageRecentVersionFilter" class="usage-filter-input" type="search" placeholder="版本"></th>
+              <th>
+                <div class="usage-filter-combo">
+                  <input id="usageRecentQueryFilter" class="usage-filter-input" type="search" placeholder="摘要/Query">
+                  <button id="usageRecentClearFilters" class="usage-filter-clear" type="button">清空</button>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody id="usageRecentBody">
-            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
+      <div id="usageDrawerBackdrop" class="usage-drawer-backdrop" onclick="closeUsageDetailDrawer()"></div>
+      <aside id="usageDetailDrawer" class="usage-detail-drawer" aria-hidden="true">
+        <div class="usage-detail-header">
+          <div>
+            <div class="eyebrow">Usage Detail</div>
+            <h3>使用记录详情</h3>
+          </div>
+          <button type="button" class="drawer-close-button" onclick="closeUsageDetailDrawer()">关闭</button>
+        </div>
+        <div id="usageDetailBody" class="usage-detail-body"></div>
+      </aside>
     `
   });
 }
@@ -3156,7 +4237,7 @@ function getFailureLogsPageHtml() {
   return createAdminPage({
     pageName: 'failureLogs',
     title: '失败日志后台',
-    description: '查看扩展同步到 VPS 的站点执行失败和 API 请求失败，默认按最新失败时间倒序。',
+    description: '查看站点/API 失败日志、失败率、修复优先级和失败阶段，默认按最新失败时间倒序。',
     content: `
       <h2 class="section-title">核心指标</h2>
       <section id="failureCards" class="grid"></section>
@@ -3204,6 +4285,38 @@ function getFailureLogsPageHtml() {
         </table>
       </section>
       <section class="card panel">
+        <h3>近 7 天修复优先级</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>目标</th>
+              <th>失败次数</th>
+              <th>优先级分</th>
+              <th>主要阶段</th>
+              <th>最近错误</th>
+            </tr>
+          </thead>
+          <tbody id="failurePriorityBody">
+            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>近 7 天失败阶段排行</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>阶段</th>
+              <th>失败次数</th>
+            </tr>
+          </thead>
+          <tbody id="failurePhasesBody">
+            <tr><td colspan="2" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
         <h3>最近失败日志</h3>
         <table>
           <thead>
@@ -3217,6 +4330,139 @@ function getFailureLogsPageHtml() {
             </tr>
           </thead>
           <tbody id="failureLogsBody">
+            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getGrowthPageHtml() {
+  return createAdminPage({
+    pageName: 'growth',
+    title: '增长漏斗看板',
+    description: '查看首次对比、API 成功、入口来源等激活事件，帮助判断新用户是否理解并形成使用习惯。',
+    content: `
+      <h2 class="section-title">最近 7 天增长指标</h2>
+      <section id="growthCards" class="grid"></section>
+	      <section class="card panel">
+	        <h3>激活事件排行</h3>
+	        <table>
+	          <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>主版本</th><th>最近时间</th></tr></thead>
+	          <tbody id="growthActivationBody"><tr><td colspan="7" class="empty-cell">等待加载...</td></tr></tbody>
+	        </table>
+	      </section>
+	      <section class="card panel">
+	        <h3>插件版本分布</h3>
+	        <p class="footer-note">用于判断新版激活、功能、订阅和站点事件是否已经覆盖真实用户。</p>
+	        <table>
+	          <thead><tr><th>版本</th><th>事件数</th><th>登录用户</th><th>匿名设备</th><th>站点打开</th><th>带 Query</th></tr></thead>
+	          <tbody id="growthVersionsBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+	        </table>
+	      </section>
+	      <section class="card panel">
+	        <h3>用户成熟度</h3>
+	        <table>
+	          <thead><tr><th>阶段</th><th>用户/设备数</th></tr></thead>
+	          <tbody id="growthMaturityBody"><tr><td colspan="2" class="empty-cell">等待加载...</td></tr></tbody>
+	        </table>
+	      </section>
+	      <section class="card panel">
+	        <h3>高频工作流组合</h3>
+	        <table>
+	          <thead><tr><th>组合</th><th>模式</th><th>次数</th><th>带 Query</th><th>活跃用户/设备</th><th>主版本</th></tr></thead>
+	          <tbody id="growthCombinationsBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+	        </table>
+	      </section>
+	      <section class="card panel">
+	        <h3>首次查询 Cohort</h3>
+	        <table>
+	          <thead><tr><th>首次查询日期</th><th>用户/设备数</th><th>D1 回访</th><th>D7 回访</th></tr></thead>
+	          <tbody id="growthCohortsBody"><tr><td colspan="4" class="empty-cell">等待加载...</td></tr></tbody>
+	        </table>
+	      </section>
+	      <section class="card panel">
+        <h3>入口来源</h3>
+        <table>
+          <thead><tr><th>来源</th><th>事件次数</th></tr></thead>
+          <tbody id="growthSourcesBody"><tr><td colspan="2" class="empty-cell">等待加载...</td></tr></tbody>
+        </table>
+        <p class="footer-note" id="growthNote"></p>
+      </section>
+    `
+  });
+}
+
+function getBusinessPageHtml() {
+  return createAdminPage({
+    pageName: 'business',
+    title: '商业化与成本看板',
+    description: '把免费额度触达、Stripe 漏斗、tokens、估算成本和高成本分布放在一起，用于定价和限额决策。',
+    content: `
+      <h2 class="section-title">最近 7 天商业化与成本</h2>
+      <section id="businessCards" class="grid"></section>
+      <section class="card panel">
+        <h3>订阅漏斗事件</h3>
+        <table>
+          <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>最近时间</th></tr></thead>
+          <tbody id="businessFunnelBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>单用户 Tokens / 成本分布</h3>
+        <table>
+          <thead><tr><th>指标</th><th>P50</th><th>P90</th><th>P99</th></tr></thead>
+          <tbody id="businessDistributionBody"><tr><td colspan="4" class="empty-cell">等待加载...</td></tr></tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getShareLinksPageHtml() {
+  return createAdminPage({
+    pageName: 'shareLinks',
+    title: '共享链接统计',
+    description: '按天查看生成共享链接的数量、包含总结的比例、涉及站点与最近共享详情，数据来自 remoteShares 真实记录。',
+    content: `
+      <h2 class="section-title">近 7 天共享链接</h2>
+      <section id="shareLinkCards" class="grid"></section>
+      <section class="card panel">
+        <h3>每日生成趋势</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>生成数</th>
+              <th>有效</th>
+              <th>过期</th>
+              <th>包含总结</th>
+              <th>回答数</th>
+              <th>平均站点数</th>
+              <th>Top 站点</th>
+            </tr>
+          </thead>
+          <tbody id="shareLinkTrendBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel">
+        <h3>最近共享链接详情</h3>
+        <p class="footer-note">按创建时间倒序展示。当前分享记录没有保存用户身份字段，因此这里只展示分享内容相关的真实字段。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>创建 / 过期</th>
+              <th>Share ID / 状态</th>
+              <th>问题 / 模板</th>
+              <th>站点</th>
+              <th>回答 / 总结</th>
+              <th>链接</th>
+            </tr>
+          </thead>
+          <tbody id="shareLinkListBody">
             <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
@@ -3690,11 +4936,18 @@ async function listOfficialApiEvents(dateKeys) {
       locale: String(data.locale || ''),
       model: String(data.upstreamModel || data.model || ''),
       upstreamStatus: Math.max(0, Number(data.upstreamStatus) || 0),
+      queryPreview: String(data.queryPreview || ''),
+      queryText: String(data.queryText || ''),
+      queryHash: String(data.queryHash || ''),
+      requestIp: String(data.requestIp || ''),
+      requestRegion: String(data.requestRegion || '') || getIpRegionLabel(data.requestIp),
+      userAgent: String(data.userAgent || ''),
       promptTokens: Math.max(0, Number(data.promptTokens) || 0),
       completionTokens: Math.max(0, Number(data.completionTokens) || 0),
       totalTokens: Math.max(0, Number(data.totalTokens) || 0),
       estimatedCost: Math.max(0, Number(data.estimatedCost) || 0),
       currency: String(data.currency || officialAgentCostCurrency || 'usd'),
+      extensionVersion: String(data.extensionVersion || ''),
       createdAt: timestampToIso(data.createdAt)
     });
   });
@@ -3847,8 +5100,28 @@ function serializeSiteCompareEventDoc(doc) {
     officialSiteCount: Math.max(0, Number(data.officialSiteCount) || 0),
     customSiteCount: Math.max(0, Number(data.customSiteCount) || 0),
     agentCount: Math.max(0, Number(data.agentCount) || 0),
+    siteCombinationKey: String(data.siteCombinationKey || BehaviorInsights.createSiteCombinationKey({
+      siteNames: data.siteNames,
+      officialSiteNames: data.officialSiteNames,
+      customSiteNames: data.customSiteNames,
+      agentIds: data.agentIds
+    }) || ''),
+    workflowMode: String(data.workflowMode || ''),
+    resultState: String(data.resultState || ''),
+    successCount: Math.max(0, Number(data.successCount) || 0),
+    failureCount: Math.max(0, Number(data.failureCount) || 0),
+    extractableCount: Math.max(0, Number(data.extractableCount) || 0),
+    latencyMs: Math.max(0, Number(data.latencyMs) || 0),
+    failurePhase: String(data.failurePhase || ''),
+    failureTarget: String(data.failureTarget || ''),
     hasQuery: data.hasQuery === true,
     queryLength: Math.max(0, Number(data.queryLength) || 0),
+    queryPreview: String(data.queryPreview || ''),
+    queryText: String(data.queryText || ''),
+    queryHash: String(data.queryHash || ''),
+    requestIp: String(data.requestIp || ''),
+    requestRegion: String(data.requestRegion || '') || getIpRegionLabel(data.requestIp),
+    userAgent: String(data.userAgent || ''),
     locale: String(data.locale || ''),
     extensionVersion: String(data.extensionVersion || ''),
     createdAt: timestampToIso(data.createdAt),
@@ -3912,7 +5185,9 @@ async function getSiteUsageSummaryData() {
   return {
     today: summarizeSiteUsageRows(rows, todayKey),
     last7Days: summarizeSiteUsageRows(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey))),
-    last30Days: summarizeSiteUsageRows(rows)
+    last30Days: summarizeSiteUsageRows(rows),
+    versionDistribution: summarizeVersionDistribution(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey)), 20),
+    topCombinations: rankSiteCombinations(rows, 20)
   };
 }
 
@@ -3931,10 +5206,13 @@ async function getSiteUsageTrendData(req) {
 async function getSiteUsageTopSitesData(req) {
   const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
   const limit = clamp(parseInteger(req.query?.limit, 30), 1, 100);
+  const includeAgents = String(req.query?.includeAgents || 'true').trim() !== 'false';
   const rows = await listSiteCompareEvents(getRecentDateKeys(days));
   const bySite = new Map();
   rows.forEach((row) => {
-    const allNames = [...row.siteNames, ...row.agentIds.map((agentId) => `Agent: ${agentId}`)];
+    const allNames = includeAgents
+      ? [...row.siteNames, ...row.agentIds.map((agentId) => `Agent: ${agentId}`)]
+      : [...row.siteNames];
     allNames.forEach((siteName) => {
       const current = bySite.get(siteName) || {
         siteName,
@@ -4019,9 +5297,10 @@ function getSiteUsageIdentitySets(rows = [], dateKey = '') {
 
 async function getCombinedUsageSummaryData() {
   const dateKeys = getRecentDateKeys(7);
-  const [apiTrend, siteRows] = await Promise.all([
+  const [apiTrend, siteRows, apiRows] = await Promise.all([
     buildUsageTrend(7),
-    listSiteCompareEvents(dateKeys)
+    listSiteCompareEvents(dateKeys),
+    listOfficialApiEvents(dateKeys)
   ]);
   const siteTrend = dateKeys.map((dateKey) => summarizeSiteUsageRows(siteRows, dateKey));
   const todayApi = apiTrend[apiTrend.length - 1] || createEmptyUsageDay(getTodayKey());
@@ -4056,7 +5335,8 @@ async function getCombinedUsageSummaryData() {
       activeUsers: mergeSetValues(last7ApiIdentities.userIds, last7SiteIdentities.userIds).size,
       activeAnonymousClients: mergeSetValues(last7ApiIdentities.clientIds, last7SiteIdentities.clientIds).size,
       topSite: last7Site.topSite
-    }
+    },
+    versionDistribution: summarizeVersionDistribution([...apiRows, ...siteRows], 20)
   };
 }
 
@@ -4140,46 +5420,1155 @@ async function getCombinedUsageTopTargetsData(req) {
   };
 }
 
+function getUsageRecentIdentityKey(event = {}) {
+  return String(event.uid || event.deviceId || event.userType || '').trim().toLowerCase();
+}
+
+function getUsageRecentQueryKey(event = {}) {
+  return String(event.queryHash || event.queryPreview || '').trim().toLowerCase();
+}
+
+function getUsageRecentDedupeKey(event = {}) {
+  return [
+    event.kind || '',
+    event.usageType || '',
+    event.target || '',
+    getUsageRecentIdentityKey(event),
+    getUsageRecentQueryKey(event)
+  ].join('|');
+}
+
+function dedupeRecentUsageEvents(events = []) {
+  const merged = [];
+  const byKey = new Map();
+  const duplicateWindowMs = 2 * 60 * 1000;
+  events.forEach((event) => {
+    const timestamp = Date.parse(event.createdAt || 0) || 0;
+    const queryKey = getUsageRecentQueryKey(event);
+    const key = getUsageRecentDedupeKey(event);
+    const existing = queryKey ? byKey.get(key) : null;
+    const existingTimestamp = Date.parse(existing?.createdAt || 0) || 0;
+    if (existing && Math.abs(existingTimestamp - timestamp) <= duplicateWindowMs) {
+      existing.repeatCount = Math.max(1, Number(existing.repeatCount) || 1) + 1;
+      existing.firstSeenAt = event.createdAt || existing.firstSeenAt || existing.createdAt;
+      existing.lastSeenAt = existing.createdAt || event.createdAt || existing.lastSeenAt;
+      const detailParts = new Set(String(existing.detail || '').split(' · ').filter(Boolean));
+      String(event.detail || '').split(' · ').filter(Boolean).forEach((part) => detailParts.add(part));
+      existing.detail = Array.from(detailParts).join(' · ');
+      return;
+    }
+    const nextEvent = {
+      ...event,
+      repeatCount: 1,
+      firstSeenAt: event.createdAt || '',
+      lastSeenAt: event.createdAt || ''
+    };
+    merged.push(nextEvent);
+    if (queryKey) byKey.set(key, nextEvent);
+  });
+  return merged;
+}
+
 async function getCombinedUsageRecentData(req) {
   const days = clamp(parseInteger(req.query?.days, 7), 1, 7);
   const limit = clamp(parseInteger(req.query?.limit, 100), 1, 200);
   const dateKeys = getRecentDateKeys(days);
-  const [apiRows, siteRows] = await Promise.all([
+  const [apiRows, siteRows, userDirectory] = await Promise.all([
     listOfficialApiEvents(dateKeys),
-    listSiteCompareEvents(dateKeys)
+    listSiteCompareEvents(dateKeys),
+    getUserDirectory()
   ]);
+  const getUserInfo = (uid = '') => {
+    const user = uid ? userDirectory.get(uid) : null;
+    return {
+      uid: String(uid || ''),
+      email: String(user?.email || '')
+    };
+  };
+  const getSiteUsageType = (row) => {
+    if (row.agentCount > 0 && row.siteCount === 0) return '技能';
+    if (row.siteCount + row.agentCount > 1) return '对比';
+    if (row.hasQuery) return '单站查询';
+    return '打开';
+  };
+  const inferApiUsageType = (row) => {
+    const text = String(row.queryPreview || '').toLowerCase();
+    if (/(总结|概括|归纳|提炼|汇总|summary|summari[sz]e|recap|brief)/i.test(text)) return '总结';
+    if (/(翻译|translate|translation|译成|英译|中译)/i.test(text)) return '翻译';
+    if (/(写|改写|润色|文案|邮件|标题|copywrite|rewrite|polish|email|title)/i.test(text)) return '写作';
+    if (/(代码|编程|函数|脚本|bug|报错|debug|code|program|function|script)/i.test(text)) return '代码';
+    if (/(分析|对比|比较|评估|analysis|compare|versus|evaluate)/i.test(text)) return '分析';
+    if (/(生成|制作|创建|generate|create|make)/i.test(text)) return '生成';
+    return '问答';
+  };
   const events = [
-    ...apiRows.map((row) => ({
-      kind: 'api',
-      createdAt: row.createdAt,
-      target: row.model || 'official API',
-      userType: row.userType === 'anonymous' ? '匿名' : (row.userType === 'pro' ? 'Pro' : '免费'),
-      detail: [
-        row.upstreamStatus ? `HTTP ${row.upstreamStatus}` : '',
-        row.totalTokens ? `${Math.round(row.totalTokens)} tokens` : '',
-        row.locale || ''
-      ].filter(Boolean).join(' · '),
-      extensionVersion: ''
-    })),
-    ...siteRows.map((row) => ({
-      kind: 'site',
-      createdAt: row.createdAt || row.updatedAt,
-      target: [...row.siteNames, ...row.agentIds.map((agentId) => `Agent: ${agentId}`)].join(', ') || '站点对比',
-      userType: row.uploaderType === 'anonymous' ? '匿名' : '登录用户',
-      detail: [
-        `${row.siteCount + row.agentCount} 个目标`,
-        row.hasQuery ? '带 query' : '仅打开',
-        row.locale || ''
-      ].filter(Boolean).join(' · '),
-      extensionVersion: row.extensionVersion || ''
-    }))
+    ...apiRows.map((row) => {
+      const user = getUserInfo(row.uid);
+      return {
+        kind: 'api',
+        usageType: inferApiUsageType(row),
+        createdAt: row.createdAt,
+        target: row.model || 'official API',
+        siteNames: [],
+        skillNames: [],
+        userType: row.userType === 'anonymous' ? '匿名' : (row.userType === 'pro' ? 'Pro' : '免费'),
+        uid: user.uid,
+        email: user.email,
+        deviceId: row.clientHash || '',
+        requestIp: row.requestIp || '',
+        requestRegion: row.requestRegion || '',
+        queryPreview: row.queryPreview || '',
+        queryText: row.queryText || '',
+        queryHash: row.queryHash || '',
+        detail: [
+          row.upstreamStatus ? `HTTP ${row.upstreamStatus}` : '',
+          row.totalTokens ? `${Math.round(row.totalTokens)} tokens` : '',
+          row.locale || ''
+        ].filter(Boolean).join(' · '),
+        extensionVersion: row.extensionVersion || ''
+      };
+    }),
+    ...siteRows.map((row) => {
+      const user = getUserInfo(row.uid);
+      return {
+        kind: 'site',
+        usageType: getSiteUsageType(row),
+        createdAt: row.createdAt || row.updatedAt,
+        target: [...row.siteNames, ...row.agentIds.map((agentId) => `Agent: ${agentId}`)].join(', ') || '站点对比',
+        siteNames: row.siteNames,
+        skillNames: row.agentIds,
+        userType: row.uploaderType === 'anonymous' ? '匿名' : '登录用户',
+        uid: user.uid,
+        email: user.email,
+        deviceId: row.clientHash || '',
+        requestIp: row.requestIp || '',
+        requestRegion: row.requestRegion || '',
+        queryPreview: row.queryPreview || '',
+        queryText: row.queryText || '',
+        queryHash: row.queryHash || '',
+        detail: [
+          `${row.siteCount + row.agentCount} 个目标`,
+          row.hasQuery ? '带 query' : '仅打开',
+          row.locale || ''
+        ].filter(Boolean).join(' · '),
+        extensionVersion: row.extensionVersion || ''
+      };
+    })
   ].sort((left, right) => {
     const rightTs = Date.parse(right.createdAt || 0) || 0;
     const leftTs = Date.parse(left.createdAt || 0) || 0;
     return rightTs - leftTs;
   });
+  const dedupedEvents = dedupeRecentUsageEvents(events);
   return {
-    events: events.slice(0, limit)
+    events: dedupedEvents.slice(0, limit)
+  };
+}
+
+const queryInsightTypeLabels = {
+  shopping_research: '选购/产品研究',
+  fact_check: '事实核查',
+  how_to: '操作教程',
+  api_tooling: 'API/工具接入',
+  writing_summary: '总结/写作',
+  coding_debug: '代码/调试',
+  policy_legal: '政策/合规',
+  business_marketing: '商业/营销',
+  learning: '学习/解释',
+  life_travel: '生活/出行',
+  other: '其他'
+};
+
+function normalizeQueryInsightType(value = '') {
+  const key = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+  return queryInsightTypeLabels[key] ? key : 'other';
+}
+
+function extractUserQueryForInsight(text = '') {
+  const source = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!source) return '';
+  const questionMatch = source.match(/问题[:：]\s*([\s\S]*?)(?:\s+汇总结果[:：]|\s+各站原始答案[:：]|$)/);
+  if (questionMatch?.[1]) {
+    return safeLogString(questionMatch[1], 1200);
+  }
+  return safeLogString(source, 1200);
+}
+
+function getInsightSourceQuery(row = {}) {
+  return extractUserQueryForInsight(row.queryText || row.queryPreview || '');
+}
+
+function getInsightDocId(queryText = '') {
+  return createSha256Hash(String(queryText || '').trim().toLowerCase());
+}
+
+function getWeekKey(dateKey = '') {
+  const date = new Date(`${dateKey || getTodayKey()}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return String(dateKey || '');
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() - day + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function createEmptyQueryInsightAnalysis(queryHash = '', queryText = '') {
+  return {
+    queryHash,
+    queryText: safeLogString(queryText, 1200),
+    queryType: 'other',
+	    queryTypeLabel: queryInsightTypeLabels.other,
+	    taskCategory: 'other',
+	    audience: 'unknown',
+	    useCase: 'unknown',
+	    domain: '未知',
+    intent: '未知',
+    userRole: '未知',
+    needSummary: '未知',
+    universality: 'medium',
+    marketingCaseFit: 'maybe',
+    marketingAngle: '',
+    confidence: 0,
+    reason: '未分析',
+    tags: [],
+    analyzed: false
+  };
+}
+
+function normalizeQueryInsightAnalysis(queryHash, queryText, payload = {}) {
+  const queryType = normalizeQueryInsightType(payload.queryType || payload.type);
+  const tags = Array.isArray(payload.tags) ? payload.tags : [];
+	  return {
+	    queryHash,
+	    queryText: safeLogString(queryText, 1200),
+	    queryType,
+	    queryTypeLabel: queryInsightTypeLabels[queryType],
+	    taskCategory: safeLogString(payload.taskCategory || payload.task || payload.queryType || queryType, 80) || 'other',
+	    audience: safeLogString(payload.audience || payload.userSegment || payload.userRole || payload.persona || '', 120) || 'unknown',
+	    useCase: safeLogString(payload.useCase || payload.scenario || payload.intent || '', 160) || 'unknown',
+	    domain: safeLogString(payload.domain || '', 80) || '未知',
+    intent: safeLogString(payload.intent || '', 120) || '未知',
+    userRole: safeLogString(payload.userRole || payload.persona || '', 120) || '未知',
+    needSummary: safeLogString(payload.needSummary || payload.need || '', 180) || '未知',
+    universality: ['high', 'medium', 'low'].includes(String(payload.universality || '').toLowerCase())
+      ? String(payload.universality).toLowerCase()
+      : 'medium',
+    marketingCaseFit: ['yes', 'maybe', 'no'].includes(String(payload.marketingCaseFit || '').toLowerCase())
+      ? String(payload.marketingCaseFit).toLowerCase()
+      : 'maybe',
+    marketingAngle: safeLogString(payload.marketingAngle || '', 220),
+    confidence: Math.max(0, Math.min(1, Number(payload.confidence) || 0)),
+    reason: safeLogString(payload.reason || '', 260),
+    tags: tags.map((tag) => safeLogString(tag, 40)).filter(Boolean).slice(0, 8),
+    analyzed: true
+  };
+}
+
+function extractJsonObject(text = '') {
+  const source = String(text || '').trim();
+  try {
+    return JSON.parse(source);
+  } catch (_) {
+    const match = source.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON object found in OpenRouter response');
+    return JSON.parse(match[0]);
+  }
+}
+
+async function classifyQueryWithOpenRouter(queryText) {
+  if (!openRouterApiKey) {
+    const error = new Error('OPENROUTER_API_KEY is not configured');
+    error.status = 400;
+    throw error;
+  }
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${openRouterApiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://aicompare.club',
+      'X-Title': 'AI Compare Admin Query Insights'
+    },
+    body: JSON.stringify({
+      model: openRouterClassifierModel,
+      messages: [
+        {
+          role: 'system',
+	          content: [
+	            '你是一个 SaaS 产品运营分析助手。请只输出 JSON，不要输出 Markdown。',
+	            '从用户 Query 判断真实任务、用户画像、使用场景、需求普遍性，以及是否适合做 AI Compare 插件营销案例。',
+	            'queryType 只能从这些枚举中选择：shopping_research, fact_check, how_to, api_tooling, writing_summary, coding_debug, policy_legal, business_marketing, learning, life_travel, other。',
+	            'taskCategory 尽量从这些枚举中选择：quick_answer, translation, writing, research, coding, brand_geo, image_video, content_review, purchase_decision, other。',
+	            'universality 只能是 high/medium/low；marketingCaseFit 只能是 yes/maybe/no；confidence 为 0 到 1。'
+	          ].join('\n')
+	        },
+        {
+          role: 'user',
+	          content: `请分析这个 Query：\n${safeLogString(queryText, 1200)}\n\n输出 JSON 字段：queryType, taskCategory, audience, useCase, domain, intent, userRole, needSummary, universality, marketingCaseFit, marketingAngle, confidence, reason, tags。`
+	        }
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || `OpenRouter request failed: HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  const content = data?.choices?.[0]?.message?.content || '';
+  return extractJsonObject(content);
+}
+
+async function collectQueryInsightSourceEvents(dateKeys) {
+  const [apiRows, siteRows] = await Promise.all([
+    listOfficialApiEvents(dateKeys),
+    listSiteCompareEvents(dateKeys)
+  ]);
+  const rows = [
+    ...apiRows.map((row) => ({ ...row, sourceKind: 'api', sourceId: row.id })),
+    ...siteRows.map((row) => ({ ...row, sourceKind: 'site', sourceId: row.id }))
+  ];
+  return rows
+    .map((row) => {
+      const queryText = getInsightSourceQuery(row);
+      if (!queryText || queryText.length < 4) return null;
+      const queryHash = row.queryHash || getInsightDocId(queryText);
+      return {
+        sourceKind: row.sourceKind,
+        sourceId: row.sourceId,
+        dateKey: row.dateKey,
+        createdAt: row.createdAt || row.updatedAt || '',
+        queryHash,
+        insightId: getInsightDocId(queryText),
+        queryText,
+        uid: row.uid || '',
+        clientHash: row.clientHash || '',
+        target: row.model || (row.siteNames || []).join(', ') || ''
+      };
+    })
+    .filter(Boolean);
+}
+
+async function getQueryInsightAnalysisMap(insightIds = []) {
+  const result = new Map();
+  const uniqueIds = Array.from(new Set(insightIds.filter(Boolean)));
+  for (let index = 0; index < uniqueIds.length; index += 300) {
+    const chunk = uniqueIds.slice(index, index + 300);
+    const refs = chunk.map((id) => db.collection('queryInsightAnalyses').doc(id));
+    const snaps = await db.getAll(...refs);
+    snaps.forEach((snap) => {
+      if (snap.exists) result.set(snap.id, snap.data() || {});
+    });
+  }
+  return result;
+}
+
+async function analyzeQueryInsights(req) {
+  requireFirebaseAdmin();
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 30);
+  const limit = clamp(parseInteger(req.query?.limit, queryInsightDefaultLimit), 1, 200);
+  const sources = await collectQueryInsightSourceEvents(getRecentDateKeys(days));
+  const uniqueByInsight = new Map();
+  sources.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0));
+  sources.forEach((source) => {
+    if (!uniqueByInsight.has(source.insightId)) uniqueByInsight.set(source.insightId, source);
+  });
+  const uniqueSources = Array.from(uniqueByInsight.values());
+  const existing = await getQueryInsightAnalysisMap(uniqueSources.map((item) => item.insightId));
+  const candidates = uniqueSources.filter((item) => !existing.has(item.insightId)).slice(0, limit);
+  let analyzed = 0;
+  const skipped = Math.max(0, uniqueSources.length - candidates.length);
+  const errors = [];
+  for (const item of candidates) {
+    try {
+      const raw = await classifyQueryWithOpenRouter(item.queryText);
+      const analysis = normalizeQueryInsightAnalysis(item.insightId, item.queryText, raw);
+      await db.collection('queryInsightAnalyses').doc(item.insightId).set({
+        ...analysis,
+        model: openRouterClassifierModel,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      analyzed += 1;
+    } catch (error) {
+      errors.push(safeLogString(error.message || error, 220));
+      if (errors.length >= 5) break;
+    }
+  }
+  return {
+    ok: errors.length === 0,
+    analyzed,
+    skipped,
+    candidates: candidates.length,
+    totalUniqueQueries: uniqueSources.length,
+    model: openRouterClassifierModel,
+    errors
+  };
+}
+
+async function runQueryInsightAutoAnalysis(reason = 'timer') {
+  if (!queryInsightAutoEnabled || !openRouterApiKey) return;
+  if (queryInsightAutoRunning) {
+    console.log('[ai-compare-backend] query insight auto analysis skipped: previous run still active');
+    return;
+  }
+  queryInsightAutoRunning = true;
+  try {
+    const result = await analyzeQueryInsights({
+      query: {
+        days: queryInsightAutoDays,
+        limit: queryInsightAutoLimit
+      }
+    });
+    console.log('[ai-compare-backend] query insight auto analysis', JSON.stringify({
+      reason,
+      analyzed: result.analyzed,
+      skipped: result.skipped,
+      candidates: result.candidates,
+      totalUniqueQueries: result.totalUniqueQueries,
+      errors: result.errors?.length || 0
+    }));
+  } catch (error) {
+    console.warn('[ai-compare-backend] query insight auto analysis failed:', error.message || error);
+  } finally {
+    queryInsightAutoRunning = false;
+  }
+}
+
+function startQueryInsightAutoAnalysis() {
+  if (!queryInsightAutoEnabled) {
+    console.log('[ai-compare-backend] query insight auto analysis disabled');
+    return;
+  }
+  if (!openRouterApiKey) {
+    console.log('[ai-compare-backend] query insight auto analysis disabled: OPENROUTER_API_KEY is not configured');
+    return;
+  }
+  setInterval(() => {
+    runQueryInsightAutoAnalysis('interval').catch((error) => {
+      console.warn('[ai-compare-backend] query insight auto interval failed:', error.message || error);
+    });
+  }, queryInsightAutoIntervalMs);
+  console.log('[ai-compare-backend] query insight auto analysis scheduled', JSON.stringify({
+    intervalMs: queryInsightAutoIntervalMs,
+    days: queryInsightAutoDays,
+    limit: queryInsightAutoLimit,
+    model: openRouterClassifierModel
+  }));
+}
+
+function incrementCount(map, key, amount = 1) {
+  const normalizedKey = String(key || '').trim() || '未知';
+  map.set(normalizedKey, (map.get(normalizedKey) || 0) + amount);
+}
+
+function topCountRows(map, limit = 10) {
+  return Array.from(map.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((left, right) => right.count - left.count)
+    .slice(0, limit);
+}
+
+async function getQueryInsightsSummaryData(req) {
+  requireFirebaseAdmin();
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 30);
+  const dateKeys = getRecentDateKeys(days);
+  const sources = await collectQueryInsightSourceEvents(dateKeys);
+  const analysisMap = await getQueryInsightAnalysisMap(sources.map((source) => source.insightId));
+  const dailyMap = new Map();
+  const weeklyMap = new Map();
+  const typeCounts = new Map();
+  const domainCounts = new Map();
+  const roleCounts = new Map();
+  const needCounts = new Map();
+  const taskCounts = new Map();
+  const audienceCounts = new Map();
+  const useCaseCounts = new Map();
+  const tagCounts = new Map();
+  const marketingCases = [];
+  let analyzedEvents = 0;
+
+  sources.forEach((source) => {
+    const analysis = analysisMap.get(source.insightId) || createEmptyQueryInsightAnalysis(source.insightId, source.queryText);
+    const queryType = normalizeQueryInsightType(analysis.queryType);
+    const label = queryInsightTypeLabels[queryType];
+    if (!dailyMap.has(source.dateKey)) dailyMap.set(source.dateKey, new Map());
+    incrementCount(dailyMap.get(source.dateKey), label);
+    const weekKey = getWeekKey(source.dateKey);
+    if (!weeklyMap.has(weekKey)) weeklyMap.set(weekKey, new Map());
+    incrementCount(weeklyMap.get(weekKey), label);
+    incrementCount(typeCounts, label);
+    incrementCount(domainCounts, analysis.domain || '未知');
+    incrementCount(roleCounts, analysis.userRole || '未知');
+    incrementCount(needCounts, analysis.needSummary || '未知');
+    incrementCount(taskCounts, analysis.taskCategory || label);
+    incrementCount(audienceCounts, analysis.audience || analysis.userRole || 'unknown');
+    incrementCount(useCaseCounts, analysis.useCase || analysis.intent || 'unknown');
+    (analysis.tags || []).forEach((tag) => incrementCount(tagCounts, tag));
+    if (analysis.analyzed) analyzedEvents += 1;
+    if (['yes', 'maybe'].includes(analysis.marketingCaseFit) && marketingCases.length < 12) {
+      marketingCases.push({
+        fit: analysis.marketingCaseFit,
+        universality: analysis.universality,
+        type: label,
+        domain: analysis.domain,
+        angle: analysis.marketingAngle || analysis.reason || '',
+        queryPreview: safeLogString(source.queryText, 180),
+        dateKey: source.dateKey
+      });
+    }
+  });
+
+  const daily = dateKeys.map((dateKey) => {
+    const counts = dailyMap.get(dateKey) || new Map();
+    return {
+      date: dateKey,
+      total: Array.from(counts.values()).reduce((sum, value) => sum + value, 0),
+      types: Object.fromEntries(counts)
+    };
+  }).reverse();
+  const weekly = Array.from(weeklyMap.entries()).map(([weekStart, counts]) => ({
+    weekStart,
+    total: Array.from(counts.values()).reduce((sum, value) => sum + value, 0),
+    types: Object.fromEntries(counts)
+  })).sort((left, right) => right.weekStart.localeCompare(left.weekStart));
+
+  const topTypes = topCountRows(typeCounts, 10);
+  const topNeeds = topCountRows(needCounts, 8);
+  const topDomains = topCountRows(domainCounts, 8);
+  const topRoles = topCountRows(roleCounts, 8);
+  const topTasks = topCountRows(taskCounts, 10);
+  const topAudiences = topCountRows(audienceCounts, 10);
+  const topUseCases = topCountRows(useCaseCounts, 10);
+  const topTags = topCountRows(tagCounts, 12);
+  const generalNeedCount = marketingCases.filter((item) => item.universality === 'high' || item.fit === 'yes').length;
+
+  return {
+    days,
+    model: openRouterClassifierModel,
+    configured: Boolean(openRouterApiKey),
+    totalEvents: sources.length,
+    analyzedEvents,
+    unanalyzedEvents: Math.max(0, sources.length - analyzedEvents),
+    topTypes,
+    daily,
+    weekly,
+    insights: {
+      topDomains,
+      topRoles,
+      topTasks,
+      topAudiences,
+      topUseCases,
+      topNeeds,
+      topTags,
+      generalNeedCount,
+      demandUniversality: generalNeedCount >= 5 ? '高' : (generalNeedCount >= 2 ? '中' : '低'),
+      summary: topNeeds.length
+        ? `主要需求集中在「${topNeeds.slice(0, 3).map((item) => item.label).join('」「')}」。`
+        : '暂无足够已分析 Query 形成画像。',
+      marketingCases
+    }
+  };
+}
+
+function serializeAnalyticsEventDoc(doc, fallbackKind = 'feature') {
+  const data = doc.data() || {};
+  return {
+    id: doc.id,
+    clientEventId: String(data.clientEventId || ''),
+    dateKey: String(data.dateKey || ''),
+    eventName: String(data.eventName || ''),
+    kind: String(data.kind || fallbackKind || 'feature'),
+    uploaderType: data.uploaderType === 'anonymous' ? 'anonymous' : 'user',
+    uid: String(data.uid || ''),
+    clientHash: String(data.clientHash || ''),
+    source: String(data.source || ''),
+    locale: String(data.locale || ''),
+    extensionVersion: String(data.extensionVersion || ''),
+    hasQuery: data.hasQuery === true,
+    queryLength: Math.max(0, Number(data.queryLength) || 0),
+    metadata: data.metadata && typeof data.metadata === 'object' ? data.metadata : {},
+    createdAt: timestampToIso(data.createdAt),
+    updatedAt: timestampToIso(data.updatedAt)
+  };
+}
+
+async function listAnalyticsEvents(kind, dateKeys) {
+  requireFirebaseAdmin();
+  const collectionName = getAnalyticsCollectionName(kind);
+  const snapshot = await db.collection(collectionName)
+    .where('dateKey', '>=', dateKeys[0])
+    .where('dateKey', '<=', dateKeys[dateKeys.length - 1])
+    .get();
+  const allowed = new Set(dateKeys);
+  const rows = [];
+  snapshot.forEach((doc) => {
+    const row = serializeAnalyticsEventDoc(doc, kind);
+    if (allowed.has(row.dateKey)) rows.push(row);
+  });
+  return rows;
+}
+
+function summarizeAnalyticsEvents(rows = [], dateKey = '') {
+  const filtered = dateKey ? rows.filter((row) => row.dateKey === dateKey) : rows;
+  const userIds = new Set();
+  const clientIds = new Set();
+  const byEvent = new Map();
+  const bySource = new Map();
+  filtered.forEach((row) => {
+    if (row.uid) userIds.add(row.uid);
+    if (row.clientHash) clientIds.add(row.clientHash);
+    byEvent.set(row.eventName || 'unknown', (byEvent.get(row.eventName || 'unknown') || 0) + 1);
+    bySource.set(row.source || 'unknown', (bySource.get(row.source || 'unknown') || 0) + 1);
+  });
+  const topEvent = Array.from(byEvent.entries()).sort((left, right) => right[1] - left[1])[0];
+  const topSource = Array.from(bySource.entries()).sort((left, right) => right[1] - left[1])[0];
+  return {
+    events: filtered.length,
+    activeUsers: userIds.size,
+    activeAnonymousClients: clientIds.size,
+    topEvent: topEvent ? `${topEvent[0]} (${topEvent[1]})` : '',
+    topSource: topSource ? `${topSource[0]} (${topSource[1]})` : ''
+  };
+}
+
+function normalizeInsightVersion(version = '') {
+  return String(version || '').trim() || 'unknown';
+}
+
+function summarizeVersionDistribution(rows = [], limit = 20) {
+  const byVersion = new Map();
+  rows.forEach((row) => {
+    const version = normalizeInsightVersion(row.extensionVersion);
+    const current = byVersion.get(version) || {
+      version,
+      count: 0,
+      userIds: new Set(),
+      clientIds: new Set(),
+      events: new Map(),
+      sources: new Map(),
+      siteLaunches: 0,
+      withQueryEvents: 0
+    };
+    current.count += 1;
+    if (row.uid) current.userIds.add(row.uid);
+    if (row.clientHash) current.clientIds.add(row.clientHash);
+    if (row.eventName) current.events.set(row.eventName, (current.events.get(row.eventName) || 0) + 1);
+    if (row.source) current.sources.set(row.source, (current.sources.get(row.source) || 0) + 1);
+    if (Array.isArray(row.siteNames)) current.siteLaunches += row.siteNames.length;
+    if (Array.isArray(row.agentIds)) current.siteLaunches += row.agentIds.length;
+    if (row.hasQuery) current.withQueryEvents += 1;
+    byVersion.set(version, current);
+  });
+  return Array.from(byVersion.values()).map((item) => {
+    const topEvent = Array.from(item.events.entries()).sort((left, right) => right[1] - left[1])[0];
+    const topSource = Array.from(item.sources.entries()).sort((left, right) => right[1] - left[1])[0];
+    return {
+      version: item.version,
+      count: item.count,
+      activeUsers: item.userIds.size,
+      activeAnonymousClients: item.clientIds.size,
+      siteLaunches: item.siteLaunches,
+      withQueryEvents: item.withQueryEvents,
+      topEvent: topEvent ? `${topEvent[0]} (${topEvent[1]})` : '',
+      topSource: topSource ? `${topSource[0]} (${topSource[1]})` : ''
+    };
+  }).sort((left, right) => {
+    if (right.count !== left.count) return right.count - left.count;
+    return String(right.version).localeCompare(String(left.version));
+  }).slice(0, limit);
+}
+
+function rankAnalyticsEvents(rows = [], limit = 20) {
+  const byEvent = new Map();
+  rows.forEach((row) => {
+    const key = row.eventName || 'unknown';
+    const current = byEvent.get(key) || {
+      eventName: key,
+      count: 0,
+      userIds: new Set(),
+      clientIds: new Set(),
+      sources: new Map(),
+      versions: new Map(),
+      latestAt: ''
+    };
+    current.count += 1;
+    if (row.uid) current.userIds.add(row.uid);
+    if (row.clientHash) current.clientIds.add(row.clientHash);
+    current.sources.set(row.source || 'unknown', (current.sources.get(row.source || 'unknown') || 0) + 1);
+    current.versions.set(normalizeInsightVersion(row.extensionVersion), (current.versions.get(normalizeInsightVersion(row.extensionVersion)) || 0) + 1);
+    if ((Date.parse(row.createdAt || 0) || 0) >= (Date.parse(current.latestAt || 0) || 0)) {
+      current.latestAt = row.createdAt || row.updatedAt || '';
+    }
+    byEvent.set(key, current);
+  });
+  return Array.from(byEvent.values()).map((item) => {
+    const topSource = Array.from(item.sources.entries()).sort((left, right) => right[1] - left[1])[0];
+    const topVersion = Array.from(item.versions.entries()).sort((left, right) => right[1] - left[1])[0];
+    return {
+      eventName: item.eventName,
+      count: item.count,
+      activeUsers: item.userIds.size,
+      activeAnonymousClients: item.clientIds.size,
+      topSource: topSource ? `${topSource[0]} (${topSource[1]})` : '',
+      topVersion: topVersion ? `${topVersion[0]} (${topVersion[1]})` : '',
+      latestAt: item.latestAt
+    };
+  }).sort((left, right) => right.count - left.count).slice(0, limit);
+}
+
+function rankSiteCombinations(rows = [], limit = 20) {
+  const byCombination = new Map();
+  rows.forEach((row) => {
+    const key = row.siteCombinationKey || BehaviorInsights.createSiteCombinationKey(row);
+    if (!key) return;
+    const current = byCombination.get(key) || {
+      siteCombinationKey: key,
+      siteNames: row.siteNames || [],
+      agentIds: row.agentIds || [],
+      workflowMode: row.workflowMode || '',
+      count: 0,
+      userIds: new Set(),
+      clientIds: new Set(),
+      versions: new Map(),
+      withQueryEvents: 0
+    };
+    current.count += 1;
+    if (row.uid) current.userIds.add(row.uid);
+    if (row.clientHash) current.clientIds.add(row.clientHash);
+    current.versions.set(normalizeInsightVersion(row.extensionVersion), (current.versions.get(normalizeInsightVersion(row.extensionVersion)) || 0) + 1);
+    if (row.hasQuery) current.withQueryEvents += 1;
+    byCombination.set(key, current);
+  });
+  return Array.from(byCombination.values()).map((item) => {
+    const topVersion = Array.from(item.versions.entries()).sort((left, right) => right[1] - left[1])[0];
+    return {
+      siteCombinationKey: item.siteCombinationKey,
+      siteNames: item.siteNames,
+      agentIds: item.agentIds,
+      workflowMode: item.workflowMode,
+      count: item.count,
+      activeUsers: item.userIds.size,
+      activeAnonymousClients: item.clientIds.size,
+      withQueryEvents: item.withQueryEvents,
+      topVersion: topVersion ? `${topVersion[0]} (${topVersion[1]})` : ''
+    };
+  }).sort((left, right) => right.count - left.count).slice(0, limit);
+}
+
+function summarizeUserMaturity({ activationRows = [], featureRows = [], siteRows = [], subscriptionRows = [] } = {}) {
+  const byIdentity = new Map();
+  const ensure = (identity) => {
+    if (!identity) return null;
+    if (!byIdentity.has(identity)) {
+      byIdentity.set(identity, {
+        featureEvents: 0,
+        activationEvents: 0,
+        siteEvents: 0,
+        subscriptionEvents: 0,
+        hasWorkflowFeature: false
+      });
+    }
+    return byIdentity.get(identity);
+  };
+  activationRows.forEach((row) => {
+    const item = ensure(BehaviorInsights.getIdentityKey(row));
+    if (item) item.activationEvents += 1;
+  });
+  featureRows.forEach((row) => {
+    const item = ensure(BehaviorInsights.getIdentityKey(row));
+    if (!item) return;
+    item.featureEvents += 1;
+    const eventName = String(row.eventName || '');
+    if (/(favorite|history|template|batch|agent|remote|share)/i.test(eventName)) {
+      item.hasWorkflowFeature = true;
+    }
+  });
+  siteRows.forEach((row) => {
+    const item = ensure(BehaviorInsights.getIdentityKey(row));
+    if (item) item.siteEvents += 1;
+  });
+  subscriptionRows.forEach((row) => {
+    const item = ensure(BehaviorInsights.getIdentityKey(row));
+    if (item) item.subscriptionEvents += 1;
+  });
+
+  const stages = {
+    new: 0,
+    activated: 0,
+    retained: 0,
+    workflow: 0,
+    power: 0,
+    pro: 0
+  };
+  byIdentity.forEach((item) => {
+    stages[BehaviorInsights.inferUserMaturity(item)] += 1;
+  });
+  return {
+    totalIdentities: byIdentity.size,
+    stages
+  };
+}
+
+function summarizeActivationCohorts(activationRows = [], activityRows = []) {
+  const firstQueryByIdentity = new Map();
+  activationRows.forEach((row) => {
+    if (row.eventName !== 'activation_first_query_submitted') return;
+    const identity = BehaviorInsights.getIdentityKey(row);
+    if (!identity || !row.dateKey) return;
+    const current = firstQueryByIdentity.get(identity);
+    if (!current || row.dateKey < current) firstQueryByIdentity.set(identity, row.dateKey);
+  });
+  const activityByIdentity = new Map();
+  activityRows.forEach((row) => {
+    const identity = BehaviorInsights.getIdentityKey(row);
+    if (!identity || !row.dateKey) return;
+    if (!activityByIdentity.has(identity)) activityByIdentity.set(identity, new Set());
+    activityByIdentity.get(identity).add(row.dateKey);
+  });
+  const cohorts = new Map();
+  firstQueryByIdentity.forEach((firstDate, identity) => {
+    const dates = activityByIdentity.get(identity) || new Set();
+    const firstTs = Date.parse(`${firstDate}T00:00:00.000Z`);
+    const d1 = new Date(firstTs + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const d7 = new Date(firstTs + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const current = cohorts.get(firstDate) || { dateKey: firstDate, users: 0, d1Retained: 0, d7Retained: 0 };
+    current.users += 1;
+    if (dates.has(d1)) current.d1Retained += 1;
+    if (dates.has(d7)) current.d7Retained += 1;
+    cohorts.set(firstDate, current);
+  });
+  return Array.from(cohorts.values()).map((item) => ({
+    ...item,
+    d1RetentionRate: computePercent(item.d1Retained, item.users),
+    d7RetentionRate: computePercent(item.d7Retained, item.users)
+  })).sort((left, right) => right.dateKey.localeCompare(left.dateKey));
+}
+
+function computePercent(numerator, denominator) {
+  const top = Number(numerator) || 0;
+  const bottom = Number(denominator) || 0;
+  if (!bottom) return 0;
+  return Number(((top / bottom) * 100).toFixed(2));
+}
+
+function percentile(values = [], p = 0.9) {
+  const sorted = values.map((value) => Number(value) || 0).filter((value) => value >= 0).sort((left, right) => left - right);
+  if (!sorted.length) return 0;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1));
+  return sorted[index];
+}
+
+async function getProductHealthSummaryData() {
+  const dateKeys = getRecentDateKeys(7);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  const [usageSummary, siteTop, featureRows, activationRows] = await Promise.all([
+    getCombinedUsageSummaryData(),
+    getCombinedUsageTopTargetsData({ query: { days: 7, limit: 20 } }),
+    listAnalyticsEvents('feature', dateKeys),
+    listAnalyticsEvents('activation', dateKeys)
+  ]);
+  const todayFeatures = summarizeAnalyticsEvents(featureRows, todayKey);
+  const last7Features = summarizeAnalyticsEvents(featureRows);
+  const last7Activations = summarizeAnalyticsEvents(activationRows);
+  return {
+    today: {
+      ...usageSummary.today,
+      featureEvents: todayFeatures.events,
+      topFeature: todayFeatures.topEvent
+    },
+    last7Days: {
+      ...usageSummary.last7Days,
+      featureEvents: last7Features.events,
+      activationEvents: last7Activations.events,
+      topFeature: last7Features.topEvent
+    },
+    versionDistribution: summarizeVersionDistribution([...featureRows, ...activationRows], 20),
+    topTargets: siteTop.targets || [],
+    topFeatures: rankAnalyticsEvents(featureRows, 20),
+    recentFeatureEvents: featureRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50)
+  };
+}
+
+async function getExperienceQualitySummaryData() {
+  const dateKeys = getRecentDateKeys(7);
+  const [usageSummary, failures, failureTopTargets] = await Promise.all([
+    getCombinedUsageSummaryData(),
+    listFailureLogEvents(dateKeys),
+    getFailureLogsTopTargetsData({ query: { days: 7, limit: 30, category: 'all' } })
+  ]);
+  const failureSummary = summarizeFailureLogs(failures);
+  const totalUsage = Number(usageSummary.last7Days.apiRequests || 0) + Number(usageSummary.last7Days.siteLaunches || 0);
+  const byPhase = new Map();
+  failures.forEach((row) => {
+    const count = Math.max(1, Number(row.repeatCount) || 1);
+    byPhase.set(row.phase || 'unknown', (byPhase.get(row.phase || 'unknown') || 0) + count);
+  });
+  return {
+    summary: {
+      ...failureSummary,
+      totalUsage,
+      failureRate: computePercent(failureSummary.totalFailures, totalUsage)
+    },
+    priorityTargets: (failureTopTargets.targets || []).map((item) => ({
+      ...item,
+      priorityScore: Number(item.failures || 0) * Math.max(1, Number(item.records || 0))
+    })).sort((left, right) => right.priorityScore - left.priorityScore),
+    topPhases: Array.from(byPhase.entries()).map(([phase, count]) => ({ phase, count })).sort((left, right) => right.count - left.count).slice(0, 20),
+    recentFailures: failures.sort((left, right) => {
+      const rightTs = Date.parse(right.lastSeenAt || right.createdAt || right.uploadedAt || 0) || 0;
+      const leftTs = Date.parse(left.lastSeenAt || left.createdAt || left.uploadedAt || 0) || 0;
+      return rightTs - leftTs;
+    }).slice(0, 50)
+  };
+}
+
+async function getGrowthSummaryData() {
+  const dateKeys = getRecentDateKeys(7);
+  const [activationRows, featureRows, subscriptionRows, siteRows] = await Promise.all([
+    listAnalyticsEvents('activation', dateKeys),
+    listAnalyticsEvents('feature', dateKeys),
+    listAnalyticsEvents('subscription', dateKeys),
+    listSiteCompareEvents(dateKeys)
+  ]);
+  const activationSummary = summarizeAnalyticsEvents(activationRows);
+  const featureSummary = summarizeAnalyticsEvents(featureRows);
+  const siteIdentities = getSiteUsageIdentitySets(siteRows);
+  const activationIdentities = summarizeAnalyticsEvents(activationRows);
+  const sourceCounts = new Map();
+  [...activationRows, ...featureRows, ...siteRows].forEach((row) => {
+    const source = row.source || 'unknown';
+    sourceCounts.set(source, (sourceCounts.get(source) || 0) + 1);
+  });
+  return {
+    summary: {
+      activationEvents: activationSummary.events,
+      featureEvents: featureSummary.events,
+      subscriptionEvents: subscriptionRows.length,
+      activatedUsers: activationSummary.activeUsers,
+      activatedAnonymousClients: activationSummary.activeAnonymousClients,
+      activeUsers: siteIdentities.userIds.size,
+      activeAnonymousClients: siteIdentities.clientIds.size,
+      topActivation: activationSummary.topEvent,
+      topSiteCombination: rankSiteCombinations(siteRows, 1)[0]?.siteCombinationKey || ''
+    },
+    activationEvents: rankAnalyticsEvents(activationRows, 20),
+    featureEvents: rankAnalyticsEvents(featureRows, 20),
+    versionDistribution: summarizeVersionDistribution([...activationRows, ...featureRows, ...subscriptionRows, ...siteRows], 20),
+    userMaturity: summarizeUserMaturity({
+      activationRows,
+      featureRows,
+      subscriptionRows,
+      siteRows
+    }),
+    cohorts: summarizeActivationCohorts(activationRows, [...featureRows, ...siteRows]),
+    topCombinations: rankSiteCombinations(siteRows, 20),
+    sources: Array.from(sourceCounts.entries()).map(([source, count]) => ({ source, count })).sort((left, right) => right.count - left.count).slice(0, 20),
+    recentActivationEvents: activationRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50),
+    note: 'D1/D7 cohort 以 activation_first_query_submitted 为起点，并用后续 feature/site 活动判断回访；样本会随着新版事件沉淀逐步完整。'
+  };
+}
+
+async function getBusinessCostSummaryData() {
+  const dateKeys = getRecentDateKeys(7);
+  const [subscriptionRows, apiRows, orderSummary, usageSummary] = await Promise.all([
+    listAnalyticsEvents('subscription', dateKeys),
+    listOfficialApiEvents(dateKeys),
+    getOrderSummaryData(),
+    getCombinedUsageSummaryData()
+  ]);
+  const tokenByIdentity = new Map();
+  const costByIdentity = new Map();
+  apiRows.forEach((row) => {
+    const identity = row.uid ? `user:${row.uid}` : (row.clientHash ? `anonymous:${row.clientHash}` : '');
+    if (!identity) return;
+    tokenByIdentity.set(identity, (tokenByIdentity.get(identity) || 0) + Number(row.totalTokens || 0));
+    costByIdentity.set(identity, (costByIdentity.get(identity) || 0) + Number(row.estimatedCost || 0));
+  });
+  const tokenValues = Array.from(tokenByIdentity.values());
+  const costValues = Array.from(costByIdentity.values());
+  return {
+    summary: {
+      limitReached: subscriptionRows.filter((row) => row.eventName.includes('limit_reached')).length,
+      checkoutStarted: subscriptionRows.filter((row) => row.eventName === 'checkout_started').length,
+      checkoutSuccess: subscriptionRows.filter((row) => row.eventName === 'checkout_success').length,
+      activeProUsers: orderSummary.activeProUsers,
+      revenue7d: orderSummary.revenue7d,
+      revenue30d: orderSummary.revenue30d,
+      currency: orderSummary.currency,
+      apiRequests: usageSummary.last7Days.apiRequests,
+      totalTokens: usageSummary.last7Days.totalTokens,
+      estimatedCost: usageSummary.last7Days.estimatedCost,
+      costCurrency: usageSummary.last7Days.currency,
+      costPerActiveIdentity: roundCost(usageSummary.last7Days.estimatedCost / Math.max(1, usageSummary.last7Days.activeUsers + usageSummary.last7Days.activeAnonymousClients))
+    },
+    tokenDistribution: {
+      p50: Math.round(percentile(tokenValues, 0.5)),
+      p90: Math.round(percentile(tokenValues, 0.9)),
+      p99: Math.round(percentile(tokenValues, 0.99))
+    },
+    costDistribution: {
+      p50: roundCost(percentile(costValues, 0.5)),
+      p90: roundCost(percentile(costValues, 0.9)),
+      p99: roundCost(percentile(costValues, 0.99))
+    },
+    funnelEvents: rankAnalyticsEvents(subscriptionRows, 20),
+    recentFunnelEvents: subscriptionRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50)
+  };
+}
+
+function normalizeShareSiteNames(payload = {}) {
+  const compareSites = Array.isArray(payload.compareSites) ? payload.compareSites : [];
+  const responseSites = Array.isArray(payload.responses)
+    ? payload.responses.map((item) => item?.siteName || item?.name || '').filter(Boolean)
+    : [];
+  return Array.from(new Set([...compareSites, ...responseSites]
+    .map((item) => safeLogString(item, 120))
+    .filter(Boolean)));
+}
+
+function serializeShareLinkDoc(doc) {
+  const data = doc.data() || {};
+  const payload = data.payload && typeof data.payload === 'object' ? data.payload : {};
+  const responses = Array.isArray(payload.responses) ? payload.responses : [];
+  const compareSites = normalizeShareSiteNames(payload);
+  const createdAt = timestampToIso(data.createdAt) || String(data.createdAt || '');
+  const expiresAt = timestampToIso(data.expiresAt) || String(data.expiresAt || '');
+  const createdDateKey = createdAt ? getDateKey(createdAt) : '';
+  const expiredByTime = expiresAt ? (Date.parse(expiresAt) <= Date.now()) : false;
+  const rawStatus = String(data.status || '').trim() || 'active';
+  const status = rawStatus === 'active' && expiredByTime ? 'expired' : rawStatus;
+  return {
+    id: doc.id,
+    shareId: String(data.shareId || doc.id || ''),
+    dateKey: createdDateKey,
+    status,
+    createdAt,
+    updatedAt: timestampToIso(data.updatedAt) || String(data.updatedAt || ''),
+    expiresAt,
+    question: safeLogString(payload.question || '', 500),
+    questionPreview: safeLogString(payload.question || '', 120),
+    hasSummary: Boolean(String(payload.summaryText || '').trim()),
+    summaryLength: String(payload.summaryText || '').length,
+    responseCount: responses.length,
+    successCount: Math.max(0, Number(payload.successCount) || 0),
+    totalCount: Math.max(0, Number(payload.totalCount) || responses.length || compareSites.length),
+    compareSites,
+    siteCount: compareSites.length,
+    analysisTemplateId: safeLogString(payload.analysisTemplateId || '', 120),
+    analysisTemplateName: safeLogString(payload.analysisTemplateName || '', 160),
+    payloadVersion: Math.max(1, Number(payload.version) || 1)
+  };
+}
+
+async function listShareLinkEvents(dateKeys) {
+  requireFirebaseAdmin();
+  const startIso = `${dateKeys[0]}T00:00:00.000Z`;
+  const endIso = `${dateKeys[dateKeys.length - 1]}T23:59:59.999Z`;
+  let snapshot;
+  try {
+    snapshot = await db.collection('remoteShares')
+      .where('createdAt', '>=', startIso)
+      .where('createdAt', '<=', endIso)
+      .limit(5000)
+      .get();
+  } catch (error) {
+    console.warn('[ai-compare-backend] remoteShares range query failed, falling back to limited scan:', error.message || error);
+    snapshot = await db.collection('remoteShares').limit(5000).get();
+  }
+  const allowed = new Set(dateKeys);
+  const rows = [];
+  snapshot.forEach((doc) => {
+    const row = serializeShareLinkDoc(doc);
+    if (allowed.has(row.dateKey)) rows.push(row);
+  });
+  return rows;
+}
+
+function summarizeShareLinks(rows = [], dateKey = '') {
+  const filtered = dateKey ? rows.filter((row) => row.dateKey === dateKey) : rows;
+  const siteCounts = new Map();
+  let activeShares = 0;
+  let expiredShares = 0;
+  let withSummary = 0;
+  let totalResponses = 0;
+  let totalSites = 0;
+  filtered.forEach((row) => {
+    if (row.status === 'expired') expiredShares += 1;
+    if (row.status === 'active') activeShares += 1;
+    if (row.hasSummary) withSummary += 1;
+    totalResponses += Number(row.responseCount || 0);
+    totalSites += Number(row.siteCount || 0);
+    row.compareSites.forEach((siteName) => {
+      siteCounts.set(siteName, (siteCounts.get(siteName) || 0) + 1);
+    });
+  });
+  const topSite = Array.from(siteCounts.entries()).sort((left, right) => right[1] - left[1])[0];
+  return {
+    totalShares: filtered.length,
+    activeShares,
+    expiredShares,
+    withSummary,
+    totalResponses,
+    totalSites,
+    uniqueSites: siteCounts.size,
+    avgSites: filtered.length ? Number((totalSites / filtered.length).toFixed(2)) : 0,
+    topSite: topSite ? `${topSite[0]} (${topSite[1]})` : ''
+  };
+}
+
+async function getShareLinksSummaryData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const dateKeys = getRecentDateKeys(Math.max(days, 7));
+  const rows = await listShareLinkEvents(dateKeys);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  return {
+    today: summarizeShareLinks(rows, todayKey),
+    last7Days: summarizeShareLinks(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey))),
+    range: summarizeShareLinks(rows)
+  };
+}
+
+async function getShareLinksTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const rows = await listShareLinkEvents(dateKeys);
+  return {
+    days: sortDateRowsDescending(dateKeys.map((dateKey) => ({
+      date: dateKey,
+      ...summarizeShareLinks(rows, dateKey)
+    })))
+  };
+}
+
+async function getShareLinksListData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 100), 1, 200);
+  const cursor = String(req.query?.cursor || '').trim();
+  const query = String(req.query?.query || '').trim().toLowerCase();
+  let rows = await listShareLinkEvents(getRecentDateKeys(days));
+  if (query) {
+    rows = rows.filter((row) => [
+      row.shareId,
+      row.status,
+      row.question,
+      row.analysisTemplateName,
+      row.analysisTemplateId,
+      row.compareSites.join(' ')
+    ].join(' ').toLowerCase().includes(query));
+  }
+  rows.sort((left, right) => {
+    const rightTs = Date.parse(right.createdAt || right.updatedAt || 0) || 0;
+    const leftTs = Date.parse(left.createdAt || left.updatedAt || 0) || 0;
+    return rightTs - leftTs;
+  });
+  const startIndex = cursor ? rows.findIndex((item) => item.id === cursor || item.shareId === cursor) + 1 : 0;
+  const pageItems = rows.slice(Math.max(0, startIndex), Math.max(0, startIndex) + limit);
+  const nextCursor = rows.length > startIndex + limit ? pageItems[pageItems.length - 1]?.id || '' : '';
+  return {
+    shares: pageItems,
+    nextCursor,
+    total: rows.length
   };
 }
 
@@ -4469,6 +6858,34 @@ app.get('/admin/failure-logs', asyncRoute(async (req, res) => {
   res.send(getFailureLogsPageHtml());
 }));
 
+app.get('/admin/product-health', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.redirect('/admin/api-usage');
+}));
+
+app.get('/admin/experience', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.redirect('/admin/failure-logs');
+}));
+
+app.get('/admin/growth', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getGrowthPageHtml());
+}));
+
+app.get('/admin/business', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getBusinessPageHtml());
+}));
+
+app.get('/admin/share-links', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getShareLinksPageHtml());
+}));
+
 app.get('/api/admin/orders/summary', asyncRoute(async (req, res) => {
   await requireAdmin(req);
   res.json(await getOrderSummaryData());
@@ -4584,6 +7001,51 @@ app.get('/api/admin/failure-logs/top-targets', asyncRoute(async (req, res) => {
   res.json(await getFailureLogsTopTargetsData(req));
 }));
 
+app.get('/api/admin/product-health/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getProductHealthSummaryData());
+}));
+
+app.get('/api/admin/query-insights/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getQueryInsightsSummaryData(req));
+}));
+
+app.post('/api/admin/query-insights/analyze', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await analyzeQueryInsights(req));
+}));
+
+app.get('/api/admin/experience/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getExperienceQualitySummaryData());
+}));
+
+app.get('/api/admin/growth/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getGrowthSummaryData());
+}));
+
+app.get('/api/admin/business/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getBusinessCostSummaryData());
+}));
+
+app.get('/api/admin/share-links/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getShareLinksSummaryData(req));
+}));
+
+app.get('/api/admin/share-links/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getShareLinksTrendData(req));
+}));
+
+app.get('/api/admin/share-links/list', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getShareLinksListData(req));
+}));
+
 app.post('/ga/mp/collect', asyncRoute(async (req, res) => {
   const measurementId = String(req.body?.measurementId || '').trim();
   const apiSecret = String(req.body?.apiSecret || '').trim();
@@ -4620,6 +7082,18 @@ app.post('/api/site-compare-events', asyncRoute(async (req, res) => {
   res.json(await recordSiteCompareEvent(req));
 }));
 
+app.post('/api/product-feature-events', asyncRoute(async (req, res) => {
+  res.json(await recordAnalyticsEvent(req, 'feature'));
+}));
+
+app.post('/api/activation-events', asyncRoute(async (req, res) => {
+  res.json(await recordAnalyticsEvent(req, 'activation'));
+}));
+
+app.post('/api/subscription-funnel-events', asyncRoute(async (req, res) => {
+  res.json(await recordAnalyticsEvent(req, 'subscription'));
+}));
+
 app.get('/billingConfig', (_req, res) => {
   res.json({
     mode: billingMode,
@@ -4640,6 +7114,14 @@ app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
     firebaseUser: user,
     priceId
   });
+  recordInternalAnalyticsEvent({
+    kind: 'subscription',
+    eventName: 'checkout_started',
+    uid: user.uid,
+    uploaderType: 'user',
+    source: 'backend',
+    metadata: { priceId, billingMode }
+  }).catch(() => null);
 
   res.json({ url: session.url });
 }));
@@ -4745,6 +7227,23 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+    const uid = String(session.metadata?.firebaseUid || session.client_reference_id || '').trim();
+    if (uid) {
+      recordInternalAnalyticsEvent({
+        kind: 'subscription',
+        eventName: 'checkout_success',
+        uid,
+        uploaderType: 'user',
+        source: 'stripe_webhook',
+        metadata: {
+          customer: session.customer || '',
+          subscription: session.subscription || '',
+          amountTotal: session.amount_total || 0,
+          currency: session.currency || '',
+          billingMode
+        }
+      }).catch(() => null);
+    }
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription);
       await updateUserFromSubscription(subscription);
@@ -4761,6 +7260,22 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
     if (subscriptionId) {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       await updateUserFromSubscription(subscription);
+      const uid = String(subscription.metadata?.firebaseUid || '').trim();
+      if (uid) {
+        recordInternalAnalyticsEvent({
+          kind: 'subscription',
+          eventName: event.type === 'customer.subscription.deleted' ? 'subscription_canceled' : event.type.replace(/\./g, '_'),
+          uid,
+          uploaderType: 'user',
+          source: 'stripe_webhook',
+          metadata: {
+            subscription: subscription.id,
+            status: subscription.status,
+            customer: subscription.customer || '',
+            billingMode
+          }
+        }).catch(() => null);
+      }
     }
   }
 
@@ -4770,7 +7285,12 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
 app.post('/officialAgentChat', asyncRoute(async (req, res) => {
   const user = await getOptionalUser(req);
   const locale = String(req.headers['x-ai-compare-locale'] || req.body?.locale || '').trim();
+  const extensionVersion = safeLogString(req.body?.extensionVersion || req.headers['x-ai-compare-extension-version'] || '', 40);
   const requestedModel = String(req.body?.model || '').trim();
+  const requestQuery = extractOfficialRequestQuery(req.body || {});
+  const queryPreview = createSafeQueryPreview(requestQuery);
+  const queryText = safeLogString(requestQuery, 4000);
+  const queryHash = createSha256Hash(requestQuery);
   const apiKey = String(process.env.OFFICIAL_AGENT_API_KEY || '').trim();
   const baseUrl = String(process.env.OFFICIAL_AGENT_API_BASE_URL || '').trim().replace(/\/+$/, '');
   const defaultModel = String(process.env.OFFICIAL_AGENT_MODEL || '').trim();
@@ -4785,7 +7305,14 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
       clientHash: '',
       userType: usageResult?.plan === 'pro' ? 'pro' : 'free',
       locale,
-      model: effectiveModel
+      model: effectiveModel,
+      queryPreview,
+      queryText,
+      queryHash,
+      requestIp: getRequestIp(req),
+      requestRegion: getRequestRegion(req),
+      userAgent: getRequestUserAgent(req),
+      extensionVersion
     };
   } else {
     const anonymousClientId = getAnonymousClientId(req);
@@ -4795,7 +7322,14 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
       clientHash: getAnonymousUsageDocId(anonymousClientId),
       userType: 'anonymous',
       locale,
-      model: effectiveModel
+      model: effectiveModel,
+      queryPreview,
+      queryText,
+      queryHash,
+      requestIp: getRequestIp(req),
+      requestRegion: getRequestRegion(req),
+      userAgent: getRequestUserAgent(req),
+      extensionVersion
     };
   }
 
@@ -4896,4 +7430,5 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`[ai-compare-backend] listening on ${port}`);
+  startQueryInsightAutoAnalysis();
 });

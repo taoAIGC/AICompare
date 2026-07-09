@@ -2,6 +2,7 @@ importScripts(
   './shared/failure-log.js',
   './shared/failure-log-sync.js',
   './shared/site-launch-utils.js',
+  './shared/behavior-insights.js',
   './config/agentCatalogData.js',
   './config/agentCatalog.js',
   './config/agentEngineConfig.js',
@@ -16,6 +17,7 @@ importScripts(
 );     // 加载共享启动解析器和基础配置
 
 const SiteLaunchUtils = self.SiteLaunchUtils || {};
+const BehaviorInsights = self.AICompareBehaviorInsights || {};
 const AgentCatalog = self.AICompareAgentCatalog || {};
 const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
@@ -409,6 +411,14 @@ function getCloudFunctionsBaseUrl() {
   return configuredUrl || 'https://aicompare.club';
 }
 
+function getCustomApiSettingsUrl() {
+  try {
+    return chrome.runtime.getURL('options/options.html#agent-engine');
+  } catch (_) {
+    return 'options/options.html#agent-engine';
+  }
+}
+
 function getFirebaseApiKey() {
   return String(FirebaseConfig?.apiKey || '').trim();
 }
@@ -567,6 +577,9 @@ function scheduleFailureLogSync(delayMs = 3000, options = {}) {
 }
 
 function normalizeSiteUsageList(items = [], limit = 30) {
+  if (typeof BehaviorInsights.normalizeNameList === 'function') {
+    return BehaviorInsights.normalizeNameList(items, limit);
+  }
   const seen = new Set();
   return (Array.isArray(items) ? items : [])
     .map((item) => String(item || '').replace(/\s+/g, ' ').trim())
@@ -591,6 +604,11 @@ function createSiteUsageClientEventId() {
   return `site_usage_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function createUsageQueryPreview(query = '') {
+  const text = String(query || '').replace(/\s+/g, ' ').trim();
+  return text.length > 120 ? `${text.slice(0, 120)}...` : text;
+}
+
 async function recordSiteCompareUsageEvent(payload = {}) {
   const baseUrl = getCloudFunctionsBaseUrl();
   const idToken = await getFirebaseIdTokenIfAvailable();
@@ -605,15 +623,30 @@ async function recordSiteCompareUsageEvent(payload = {}) {
     headers['X-AI-Compare-Client-Id'] = anonymousClientId;
   }
 
+  const insightPayload = typeof BehaviorInsights.buildSiteUsagePayload === 'function'
+    ? BehaviorInsights.buildSiteUsagePayload(payload)
+    : payload;
+
   const body = {
     clientEventId: String(payload.clientEventId || createSiteUsageClientEventId()).trim(),
-    source: String(payload.source || 'iframe').trim(),
-    siteNames: normalizeSiteUsageList(payload.siteNames),
-    officialSiteNames: normalizeSiteUsageList(payload.officialSiteNames),
-    customSiteNames: normalizeSiteUsageList(payload.customSiteNames),
-    agentIds: normalizeSiteUsageList(payload.agentIds),
+    source: String(insightPayload.source || 'iframe').trim(),
+    siteNames: normalizeSiteUsageList(insightPayload.siteNames, 60),
+    officialSiteNames: normalizeSiteUsageList(insightPayload.officialSiteNames, 40),
+    customSiteNames: normalizeSiteUsageList(insightPayload.customSiteNames, 40),
+    agentIds: normalizeSiteUsageList(insightPayload.agentIds, 40),
+    siteCombinationKey: String(insightPayload.siteCombinationKey || '').trim().slice(0, 1000),
+    workflowMode: String(insightPayload.workflowMode || '').trim().slice(0, 40),
+    resultState: String(insightPayload.resultState || '').trim().slice(0, 40),
+    successCount: Math.max(0, Math.min(1000, Number(insightPayload.successCount) || 0)),
+    failureCount: Math.max(0, Math.min(1000, Number(insightPayload.failureCount) || 0)),
+    extractableCount: Math.max(0, Math.min(1000, Number(insightPayload.extractableCount) || 0)),
+    latencyMs: Math.max(0, Math.min(24 * 60 * 60 * 1000, Number(insightPayload.latencyMs) || 0)),
+    failurePhase: String(insightPayload.failurePhase || '').trim().slice(0, 80),
+    failureTarget: String(insightPayload.failureTarget || '').trim().slice(0, 120),
     hasQuery: payload.hasQuery === true,
     queryLength: Math.max(0, Math.min(20000, Number(payload.queryLength) || 0)),
+    queryPreview: createUsageQueryPreview(payload.queryPreview || ''),
+    queryText: String(payload.queryText || payload.queryPreview || '').slice(0, 4000),
     locale: getBrowserUiLocale(),
     extensionVersion: chrome.runtime.getManifest?.()?.version || ''
   };
@@ -630,6 +663,99 @@ async function recordSiteCompareUsageEvent(payload = {}) {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(result.error || `Site usage event upload failed: HTTP ${response.status}`);
+  }
+  return result;
+}
+
+function createAnalyticsClientEventId(prefix = 'analytics') {
+  try {
+    if (self.crypto?.randomUUID) {
+      return self.crypto.randomUUID();
+    }
+  } catch (_) {
+    // Fall through to timestamp/random fallback.
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function safeAnalyticsMetadata(metadata = {}) {
+  if (typeof BehaviorInsights.safeMetadata === 'function') {
+    return BehaviorInsights.safeMetadata(metadata);
+  }
+  if (!metadata || typeof metadata !== 'object') return {};
+  const result = {};
+  Object.entries(metadata).slice(0, 30).forEach(([key, value]) => {
+    const safeKey = String(key || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!safeKey || /(token|key|auth|code|secret|password|session|credential|access|refresh|prompt|response|content|body)/i.test(safeKey)) {
+      return;
+    }
+    if (value == null || ['string', 'number', 'boolean'].includes(typeof value)) {
+      result[safeKey] = typeof value === 'string'
+        ? value.replace(/\s+/g, ' ').trim().slice(0, 160)
+        : value;
+    }
+  });
+  return result;
+}
+
+function getAnalyticsEndpoint(kind = 'feature') {
+  if (kind === 'activation') return '/api/activation-events';
+  if (kind === 'subscription') return '/api/subscription-funnel-events';
+  return '/api/product-feature-events';
+}
+
+function classifyAnalyticsEventKind(eventName = '') {
+  if (typeof BehaviorInsights.inferEventKind === 'function') {
+    return BehaviorInsights.inferEventKind(eventName);
+  }
+  const name = String(eventName || '').toLowerCase();
+  if (/membership|pricing|checkout|subscribe|subscription|payment|limit/.test(name)) return 'subscription';
+  if (/search_submit|batch_submit|compare|first_|api_success|site_compare/.test(name)) return 'activation';
+  return 'feature';
+}
+
+async function recordAnalyticsEvent(payload = {}) {
+  const eventName = String(payload.eventName || '').trim();
+  if (!eventName) return { ok: false, skipped: true, reason: 'missing eventName' };
+  const normalizedPayload = typeof BehaviorInsights.buildAnalyticsPayload === 'function'
+    ? BehaviorInsights.buildAnalyticsPayload({
+        ...payload,
+        eventName,
+        source: payload.source || 'extension',
+        metadata: payload.metadata || {}
+      })
+    : payload;
+  const kind = normalizedPayload.kind || payload.kind || classifyAnalyticsEventKind(eventName);
+  const baseUrl = getCloudFunctionsBaseUrl();
+  const idToken = await getFirebaseIdTokenIfAvailable();
+  const anonymousClientId = idToken ? '' : await getOrCreateAnonymousClientId();
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  };
+  if (idToken) {
+    headers.Authorization = `Bearer ${idToken}`;
+  } else if (anonymousClientId) {
+    headers['X-AI-Compare-Client-Id'] = anonymousClientId;
+  }
+  const response = await fetch(`${baseUrl}${getAnalyticsEndpoint(kind)}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      clientEventId: String(payload.clientEventId || createAnalyticsClientEventId(kind)).trim(),
+      eventName,
+      kind,
+      source: String(normalizedPayload.source || payload.source || 'extension').trim().slice(0, 60),
+      locale: getBrowserUiLocale(),
+      extensionVersion: chrome.runtime.getManifest?.()?.version || '',
+      hasQuery: normalizedPayload.hasQuery === true,
+      queryLength: Math.max(0, Math.min(20000, Number(normalizedPayload.queryLength) || 0)),
+      metadata: safeAnalyticsMetadata(normalizedPayload.metadata || payload.metadata)
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `Analytics event upload failed: HTTP ${response.status}`);
   }
   return result;
 }
@@ -698,6 +824,8 @@ async function fetchAgentChatCompletion(config = {}, payload = {}, options = {})
     }
   }
 
+  await consumeOfficialUsageQuota();
+
   const [idToken, clientId] = await Promise.all([
     getFirebaseIdTokenIfAvailable(),
     getOrCreateAnonymousClientId()
@@ -720,7 +848,8 @@ async function fetchAgentChatCompletion(config = {}, payload = {}, options = {})
       body: JSON.stringify({
         ...payload,
         model: undefined,
-        locale
+        locale,
+        extensionVersion: chrome.runtime.getManifest?.()?.version || ''
       }),
       signal: options.signal
     });
@@ -845,28 +974,6 @@ async function getBackgroundUserPlan() {
 }
 
 async function getOfficialUsageStatus() {
-  const billingEnabled = await isOfficialAgentBillingEnabled();
-  if (!billingEnabled) {
-    return {
-      billingEnabled: false,
-      plan: 'free',
-      limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
-      used: 0,
-      remaining: Infinity
-    };
-  }
-
-  const planInfo = await getBackgroundUserPlan();
-  if (planInfo?.plan === 'pro') {
-    return {
-      billingEnabled: true,
-      plan: 'pro',
-      limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
-      used: 0,
-      remaining: Infinity
-    };
-  }
-
   const stored = await chrome.storage.local.get(AGENT_ENGINE_USAGE_STORAGE_KEY);
   const usage = stored?.[AGENT_ENGINE_USAGE_STORAGE_KEY] || {};
   const today = getOfficialUsageDateKey();
@@ -883,15 +990,13 @@ async function getOfficialUsageStatus() {
 
 async function consumeOfficialUsageQuota() {
   const status = await getOfficialUsageStatus();
-  if (status.plan === 'pro' || status.billingEnabled === false) {
-    return status;
-  }
 
   if (status.used >= status.limit) {
-    throw new Error(t(
+    const rt = await getRuntimeI18nTranslator();
+    throw new Error(rt(
       'agentEngineOfficialQuotaExceeded',
-      `You've used today's ${status.limit} free official API requests. Upgrade to PRO or switch to your own API.`,
-      [String(status.limit)]
+      `You've reached today's free official API limit of ${status.limit}. Please set up your personal API: $2`,
+      [String(status.limit), getCustomApiSettingsUrl()]
     ));
   }
 
@@ -1273,13 +1378,7 @@ async function streamStandaloneAnalysis(port, payload = {}, requestId = '') {
 async function parseAgentErrorMessage(response) {
   const fallback = `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
   const rt = await getRuntimeI18nTranslator();
-  const customApiSettingsUrl = (() => {
-    try {
-      return chrome.runtime.getURL('options/options.html#agent-engine');
-    } catch (_) {
-      return 'options/options.html#agent-engine';
-    }
-  })();
+  const customApiSettingsUrl = getCustomApiSettingsUrl();
 
   const buildFriendlyAgentErrorMessage = (status, rawMessage = '', options = {}) => {
     const normalizedMessage = String(rawMessage || '').trim();
@@ -2594,6 +2693,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  else if (message.action === 'recordAnalyticsEvent') {
+    recordAnalyticsEvent(message.payload || {}).then((result) => {
+      sendResponse({ success: true, result });
+    }).catch((error) => {
+      console.warn('记录产品统计事件失败:', error?.message || error);
+      sendResponse({ success: false, error: error?.message || String(error) });
+    });
+    return true;
+  }
   else if (message.action === 'openOptionsPage') {
     // 立即打开设置页面
     chrome.tabs.create({
@@ -3247,14 +3355,16 @@ async function ensureRemoteSearchRuntime() {
   return remoteSearchRuntimePromise;
 }
 
-function createRemoteReconnectAlarm() {
-  if (!chrome.alarms || typeof chrome.alarms.create !== 'function') {
+function pauseRemoteReconnectAlarm() {
+  if (!chrome.alarms || typeof chrome.alarms.clear !== 'function') {
     return;
   }
 
-  chrome.alarms.create(REMOTE_RECONNECT_ALARM, {
-    periodInMinutes: 1
-  });
+  try {
+    chrome.alarms.clear(REMOTE_RECONNECT_ALARM)?.catch?.(() => {});
+  } catch (_) {
+    // Ignore cleanup failures; the remote reconnect alarm is intentionally paused.
+  }
 }
 
 chrome.alarms?.onAlarm.addListener((alarm) => {
@@ -3265,11 +3375,7 @@ chrome.alarms?.onAlarm.addListener((alarm) => {
     return;
   }
   if (alarm?.name === REMOTE_RECONNECT_ALARM) {
-    ensureRemoteSearchRuntime()
-      .then((runtime) => runtime.ensureConnection())
-      .catch((error) => {
-        console.error('远程搜索重连检查失败:', error);
-      });
+    pauseRemoteReconnectAlarm();
   }
 });
 
@@ -3335,10 +3441,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-createRemoteReconnectAlarm();
-void ensureRemoteSearchRuntime().catch((error) => {
-  console.warn('远程搜索运行时启动失败:', error);
-});
+pauseRemoteReconnectAlarm();
 
 // 捕获未处理的 Promise rejection
 self.addEventListener('unhandledrejection', (event) => {

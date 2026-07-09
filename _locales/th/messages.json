@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
+    "message": "คุณใช้ API อย่างเป็นทางการฟรีครบขีดจำกัดวันนี้แล้ว ($1 ครั้ง) โปรดตั้งค่า API ส่วนตัว: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

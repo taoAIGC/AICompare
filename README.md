@@ -111,6 +111,12 @@
 - **Privacy model**: The relay stores only pairing / device metadata. Query text and result payloads are transported through end-to-end encrypted WebSocket frames.
 - **Current scope**: Chrome must already be running with the extension loaded, and non-iframe / standalone sites are intentionally excluded from remote v1.
 
+#### 12. Raycast launcher
+
+- **Desktop quick search**: The optional Raycast extension lives as a standalone sibling project at `../raycast/`, letting Mac users type a query in Raycast and open AI Compare directly in the browser.
+- **Existing URL contract**: The launcher builds `chrome-extension://dkhpgbbhlnmjbkihoeniojpkggkabbbl/iframe/iframe.html?sites=<sites>&type=<type>&query=<query>`, opens it explicitly with Google Chrome, and relies on the same compare-page automation as the browser extension.
+- **Configurable defaults**: Raycast preferences store the optional default site list, optional site type, and optional `openclaw=1` launch mode.
+
 ### 🤖 Supported AI sites (examples)
 
 Configured in `siteHandlers.json` (enable/disable per site):  
@@ -147,12 +153,15 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - membership / order summary
   - Stripe invoice and subscription trend views
   - combined 7-day usage summary for official API calls and site comparison events
+  - product health metrics merged into usage statistics, experience quality metrics merged into failure logs, plus growth funnel and monetization / cost dashboards
 - Admin pages:
   - `/admin/login`
   - `/admin`
   - `/admin/orders`
   - `/admin/api-usage` (combined API + site usage statistics)
   - `/admin/failure-logs`
+  - `/admin/growth`
+  - `/admin/business`
 - Admin API routes:
   - `/api/admin/orders/summary`
   - `/api/admin/orders/list`
@@ -172,8 +181,15 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `/api/admin/failure-logs/trend`
   - `/api/admin/failure-logs/list`
   - `/api/admin/failure-logs/top-targets`
+  - `/api/admin/product-health/summary`
+  - `/api/admin/experience/summary`
+  - `/api/admin/growth/summary`
+  - `/api/admin/business/summary`
   - `/api/site-compare-events`
   - `/api/failure-logs/batch`
+  - `/api/product-feature-events`
+  - `/api/activation-events`
+  - `/api/subscription-funnel-events`
 - Required backend env vars:
   - `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
   - `STRIPE_SECRET_KEY`
@@ -206,9 +222,21 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - API usage note:
   - `officialApiEvents` is now written on each `officialAgentChat` request so Pro usage can be counted going forward.
   - Historical free / anonymous totals can still be read from `users/{uid}/usage/{date}` and `anonymousUsage/{hash}/usage/{date}`.
+  - Recent usage records include admin-only diagnostics such as user email/UID when signed in, hashed anonymous device ID, country/region derived from request IP, length-limited full Query text, Query preview/hash, model, status, token count, and locale. Full IP and full recorded Query are kept in the details drawer for troubleshooting.
+  - Admin behavior insights are split by extension version where available, so new instrumentation and product changes can be evaluated without mixing current-version events with older extension behavior.
+  - Query insight analysis can use OpenRouter to classify recorded Query text into daily/weekly question types, user needs, and marketing-case candidates. Configure `OPENROUTER_API_KEY`, optionally `OPENROUTER_CLASSIFIER_MODEL`, and trigger analysis manually from `/admin/api-usage`; cached results are stored in `queryInsightAnalyses`.
+  - Weekly behavior insight reports can be generated with `cd backend && npm run weekly-insights`; production cron writes Markdown and JSON snapshots under the configured `WEEKLY_INSIGHT_REPORT_DIR`.
 - Site usage note:
   - `siteCompareEvents` is written when the compare iframe opens official sites, custom sites, or Agent panels, including signed-in users and anonymous devices.
-  - Site usage events store site/Agent names, counts, extension version, locale, whether a query was present, and query length; they do not store full prompts or AI responses.
+  - Site usage events store site/Agent names, counts, workflow mode, site combination key, result state, extension version, locale, whether a query was present, query length, length-limited full Query text, Query preview/hash, derived country/region, request IP, and user agent; they do not store AI responses.
+  - `/admin/api-usage` includes a 7-day site ranking by launch count to identify users' favorite or most frequently used AI sites, and `/admin/growth` summarizes high-frequency site/Agent combinations as workflow signals.
+  - `/admin/api-usage` and `/admin/growth` expose extension-version distribution tables, including event counts, active identities, site launches, and query-bearing events for each version.
+  - The weekly insight report combines activation, feature, site workflow, API, failure, subscription, Query insight, and extension-version data into a product-action report for Monday product review.
+- Product analytics note:
+  - `productFeatureEvents`, `activationEvents`, and `subscriptionFunnelEvents` store minimized operational events such as feature name, source, locale, version, query presence, query length, and safe metadata.
+  - These events power the product health, growth, and monetization dashboards and intentionally do not store full prompts, AI responses, API keys, page bodies, clipboard content, or sensitive URL parameters.
+  - The behavior insight layer records first-open / first-query / first-compare / first-result activation events once per device, infers feature vs activation vs subscription event kinds, and classifies user maturity stages for the growth dashboard.
+  - Query insight analysis now supports task, audience, and use-case dimensions in addition to type, domain, role, need, tags, and marketing-case candidates.
 - Failure log note:
   - Local site/API failure logs are automatically uploaded in small batches to `/api/failure-logs/batch` for signed-in users and anonymous devices.
   - The backend stores only the safe failure-log fields in `failureLogEvents`, including `queryPreview` and `queryHash`, not API keys, full prompts, or AI responses.
@@ -412,6 +440,12 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **桌面端控制面板**：远程搜索的完整设置位于 `options/options.html#remote-search`，主页只显示一个精简状态卡和入口。
 - **当前范围**：Chrome 必须已经打开并加载扩展；非 iframe / 独立页站点有意不纳入远程 v1。
 
+#### 12. Raycast 启动器
+
+- **桌面快捷检索**：可选 Raycast 扩展现在作为同级独立项目放在 `../raycast/`，Mac 用户可在 Raycast 中输入关键词，并直接在浏览器打开 AI Compare 检索页。
+- **复用现有 URL 合约**：启动器生成 `chrome-extension://dkhpgbbhlnmjbkihoeniojpkggkabbbl/iframe/iframe.html?sites=<sites>&type=<type>&query=<query>`，并显式交给 Google Chrome 打开，后续检索仍由浏览器扩展现有对比页执行。
+- **默认项可配置**：Raycast 偏好设置保存默认站点列表、站点类型，以及可选的 `openclaw=1` 启动模式。
+
 ### 🤖 支持的 AI 站点（示例）
 
 在 `siteHandlers.json` 中配置，可按站点启用/关闭：  
@@ -524,48 +558,93 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-07 22:25:58 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-09 18:42:45 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `AGENTS.md`
 - `M` `AI Compare PrivacyPolicy.md`
-- `M` `STRIPE_SETUP.md`
+- `M` `_locales/am/messages.json`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/bg/messages.json`
+- `M` `_locales/bn/messages.json`
+- `M` `_locales/ca/messages.json`
+- `M` `_locales/cs/messages.json`
+- `M` `_locales/da/messages.json`
+- `M` `_locales/de/messages.json`
+- `M` `_locales/el/messages.json`
+- `M` `_locales/en/messages.json`
+- `M` `_locales/en_AU/messages.json`
+- `M` `_locales/en_GB/messages.json`
+- `M` `_locales/en_US/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/es_419/messages.json`
+- `M` `_locales/et/messages.json`
+- `M` `_locales/fa/messages.json`
+- `M` `_locales/fi/messages.json`
+- `M` `_locales/fil/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/gu/messages.json`
+- `M` `_locales/he/messages.json`
+- `M` `_locales/hi/messages.json`
+- `M` `_locales/hr/messages.json`
+- `M` `_locales/hu/messages.json`
+- `M` `_locales/id/messages.json`
+- `M` `_locales/it/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/kn/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/lt/messages.json`
+- `M` `_locales/lv/messages.json`
+- `M` `_locales/ml/messages.json`
+- `M` `_locales/mr/messages.json`
+- `M` `_locales/ms/messages.json`
+- `M` `_locales/nl/messages.json`
+- `M` `_locales/no/messages.json`
+- `M` `_locales/pl/messages.json`
+- `M` `_locales/pt_BR/messages.json`
+- `M` `_locales/pt_PT/messages.json`
+- `M` `_locales/ro/messages.json`
+- `M` `_locales/ru/messages.json`
+- `M` `_locales/sk/messages.json`
+- `M` `_locales/sl/messages.json`
+- `M` `_locales/sr/messages.json`
+- `M` `_locales/sv/messages.json`
+- `M` `_locales/sw/messages.json`
+- `M` `_locales/ta/messages.json`
+- `M` `_locales/te/messages.json`
+- `M` `_locales/th/messages.json`
+- `M` `_locales/tr/messages.json`
+- `M` `_locales/uk/messages.json`
+- `M` `_locales/vi/messages.json`
+- `M` `_locales/zh_CN/messages.json`
+- `M` `_locales/zh_TW/messages.json`
 - `M` `backend/.env.example`
+- `A` `backend/behavior-insights.js`
+- `A` `backend/package-lock.json`
+- `M` `backend/package.json`
 - `M` `backend/server.js`
+- `A` `backend/weekly-behavior-insight-report.cjs`
 - `M` `background.js`
-- `M` `config/analytics.js`
-- `M` `config/appConfig.json`
-- `M` `docs/release-notes/latest.md`
+- `M` `config/agentEngineConfig.js`
+- `M` `contact/contact.html`
+- `M` `favorites/favorites.html`
+- `M` `history/history.html`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `A` `website/README.md`
-- `A` `website/assets/ai-compare-features.png`
-- `A` `website/assets/ai-compare-hero.png`
-- `A` `website/assets/og-cover.png`
-- `A` `website/assets/site.css`
-- `A` `website/blog/ai-readability-checklist.html`
-- `A` `website/blog/brand-not-found-in-ai.html`
-- `A` `website/blog/check-geo-with-multi-ai.html`
-- `A` `website/blog/five-ai-content-test.html`
-- `A` `website/blog/index.html`
-- `A` `website/blog/what-is-geo.html`
-- `A` `website/blog/why-ai-answers-differ.html`
-- `A` `website/geo-checklist/index.html`
-- `A` `website/geo/index.html`
-- `A` `website/index.html`
-- `A` `website/llms.txt`
-- `A` `website/resources/chrome-store-copy.html`
-- `A` `website/resources/content-calendar.md`
-- `A` `website/robots.txt`
-- `A` `website/sitemap.xml`
-- `A` `website/use-cases/brand-monitoring/index.html`
-- `A` `website/use-cases/content-qa/index.html`
+- `A` `shared/behavior-insights.js`
+- `M` `shared/sidebar.js`
+- `M` `tests/agent-engine-config.test.js`
+- `A` `tests/behavior-insights.test.js`
 
 ### Recent commits / 最近提交
+- `57b5d1e` 2026-07-07 V4.3.3 修复bug
 - `7d51181` 2026-07-07 V 4.3.2 markdown方案采用开源解析方案
 - `c25a3a1` 2026-07-05 V4.3.1 修复豆包站点，默认站点去掉grok
 - `8e007c4` 2026-06-30 V4.3.0 首次安装插件 具有默认的搜索词
 - `dd789ee` 2026-06-24 V4.2.9 自动总结增加开关，修复豆包站点
-- `b1831f6` 2026-06-24 V 4.2.8 补充多语言包
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

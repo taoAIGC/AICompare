@@ -83,6 +83,32 @@ function renderSidebarMarkup() {
 }
 
 function safeTrackEvent(name, params = {}) {
+    const insightPayload = window.AICompareBehaviorInsights?.buildAnalyticsPayload?.({
+        eventName: name,
+        source: 'sidebar',
+        surface: params?.surface || 'sidebar',
+        trigger: params?.trigger || '',
+        kind: params?.kind || '',
+        hasQuery: Boolean(params?.has_query || params?.query_length),
+        queryLength: Math.max(0, Number(params?.query_length) || 0),
+        metadata: params
+    }) || {
+        eventName: name,
+        source: 'sidebar',
+        metadata: params
+    };
+    try {
+        chrome.runtime.sendMessage({
+            action: 'recordAnalyticsEvent',
+            payload: insightPayload
+        }, () => {
+            if (chrome.runtime.lastError) {
+                // Analytics must never block navigation.
+            }
+        });
+    } catch (_) {
+        // Ignore analytics upload failures.
+    }
     const analytics = window.AIShortcutsAnalytics;
     if (analytics && typeof analytics.logEvent === 'function') {
         analytics.logEvent(name, params);

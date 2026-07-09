@@ -187,10 +187,7 @@
     "message": "内蔵 API を使用できます。1 日あたり $1 回まで無料です。"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
-  },
-  "agentEngineCustomCardHint": {
-    "message": "Select the custom API card to use your saved API settings"
+    "message": "本日の無料公式API利用上限（$1回）に達しました。個人APIを設定してください：$2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

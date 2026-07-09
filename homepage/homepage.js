@@ -194,9 +194,61 @@ window.getHomepagePerfMeasures = function() {
 perfMark('script_eval_start');
 
 function trackEvent(name, params = {}) {
+    const insightPayload = window.AICompareBehaviorInsights?.buildAnalyticsPayload?.({
+        eventName: name,
+        source: 'homepage',
+        surface: params?.surface || 'homepage',
+        trigger: params?.trigger || '',
+        kind: params?.kind || '',
+        hasQuery: Boolean(params?.has_query || params?.query_length),
+        queryLength: Math.max(0, Number(params?.query_length) || 0),
+        metadata: params
+    }) || {
+        eventName: name,
+        source: 'homepage',
+        hasQuery: Boolean(params?.has_query || params?.query_length),
+        queryLength: Math.max(0, Number(params?.query_length) || 0),
+        metadata: params
+    };
+    try {
+        chrome.runtime.sendMessage({
+            action: 'recordAnalyticsEvent',
+            payload: insightPayload
+        }, () => {
+            if (chrome.runtime.lastError) {
+                // Analytics must never block the product flow.
+            }
+        });
+    } catch (_) {
+        // Ignore analytics upload failures.
+    }
     const analytics = window.AIShortcutsAnalytics;
     if (analytics && typeof analytics.logEvent === 'function') {
         analytics.logEvent(name, params);
+    }
+}
+
+async function trackEventOnce(onceKey, name, params = {}) {
+    const key = String(onceKey || name || '').trim();
+    if (!key) return;
+    try {
+        const { behaviorInsightOnceEvents = {} } = await chrome.storage.local.get('behaviorInsightOnceEvents');
+        if (behaviorInsightOnceEvents[key]) return;
+        trackEvent(name, {
+            ...params,
+            kind: params.kind || 'activation'
+        });
+        await chrome.storage.local.set({
+            behaviorInsightOnceEvents: {
+                ...behaviorInsightOnceEvents,
+                [key]: Date.now()
+            }
+        });
+    } catch (_) {
+        trackEvent(name, {
+            ...params,
+            kind: params.kind || 'activation'
+        });
     }
 }
 
@@ -1105,6 +1157,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isSidePanel) {
         document.body.classList.add('is-side-panel');
     }
+    void trackEventOnce('app_first_open', 'app_first_open', {
+        surface: 'homepage',
+        side_panel: isSidePanel
+    });
     const hasQueryParam = urlParams.has('query');
 
     // 输入框固定在底部
@@ -2039,6 +2095,23 @@ async function handleQuery(query) {
         showToast(t('homepageNoPanelsSelected', 'Select at least one site or agent'));
         return;
     }
+
+    void trackEventOnce('activation_site_selected', 'activation_site_selected', {
+        surface: 'homepage',
+        selected_sites_count: selectionContext.selectedSites.length,
+        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
+        agents_count: selectionContext.selectedAgentIds.length,
+        side_panel: selectionContext.isSidePanel
+    });
+    void trackEventOnce('activation_first_query_submitted', 'activation_first_query_submitted', {
+        surface: 'homepage',
+        query_length: processedQuery.length,
+        selected_sites_count: selectionContext.selectedSites.length,
+        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
+        agents_count: selectionContext.selectedAgentIds.length,
+        side_panel: selectionContext.isSidePanel,
+        has_query: Boolean(processedQuery)
+    });
 
     trackEvent('homepage_search_submit', {
         query_length: processedQuery.length,

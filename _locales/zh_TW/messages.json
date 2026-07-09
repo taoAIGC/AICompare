@@ -235,10 +235,7 @@
     "message": "使用內建 API，每天免費 $1 次。"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "你今天的 $1 次官方 API 免費額度已用完。請升級 PRO，或切換為自己的 API。"
-  },
-  "agentEngineCustomCardHint": {
-    "message": "選擇自訂 API 卡片後，將使用你儲存的 API 設定"
+    "message": "免費的官方 API 使用次數已達上限（每天 $1 次）。請設定個人 API：$2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "請先設定自訂 API"

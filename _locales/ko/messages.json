@@ -187,10 +187,7 @@
     "message": "내장 API를 사용하며, 하루에 $1회까지 무료입니다."
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
-  },
-  "agentEngineCustomCardHint": {
-    "message": "Select the custom API card to use your saved API settings"
+    "message": "오늘 무료 공식 API 사용 한도($1회)에 도달했습니다. 개인 API를 설정해 주세요: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

@@ -63,6 +63,9 @@ function createSiteCompareUsageEventId() {
 }
 
 function normalizeUsageNames(items = []) {
+  if (typeof window.AICompareBehaviorInsights?.normalizeNameList === 'function') {
+    return window.AICompareBehaviorInsights.normalizeNameList(items);
+  }
   const seen = new Set();
   return (Array.isArray(items) ? items : [])
     .map((item) => String(item || '').replace(/\s+/g, ' ').trim())
@@ -75,20 +78,37 @@ function normalizeUsageNames(items = []) {
     });
 }
 
+function createUsageQueryPreview(query = '') {
+  const text = String(query || '').replace(/\s+/g, ' ').trim();
+  return text.length > 120 ? `${text.slice(0, 120)}...` : text;
+}
+
 function recordSiteCompareUsage(payload = {}) {
   try {
     if (!chrome?.runtime?.sendMessage) return;
+    const insightPayload = window.AICompareBehaviorInsights?.buildSiteUsagePayload?.(payload) || payload;
     chrome.runtime.sendMessage({
       action: 'recordSiteCompareUsage',
       payload: {
         clientEventId: createSiteCompareUsageEventId(),
-        source: payload.source || 'iframe',
-        siteNames: normalizeUsageNames(payload.siteNames),
-        officialSiteNames: normalizeUsageNames(payload.officialSiteNames),
-        customSiteNames: normalizeUsageNames(payload.customSiteNames),
-        agentIds: normalizeUsageNames(payload.agentIds),
+        source: insightPayload.source || 'iframe',
+        siteNames: normalizeUsageNames(insightPayload.siteNames),
+        officialSiteNames: normalizeUsageNames(insightPayload.officialSiteNames),
+        customSiteNames: normalizeUsageNames(insightPayload.customSiteNames),
+        agentIds: normalizeUsageNames(insightPayload.agentIds),
+        siteCombinationKey: insightPayload.siteCombinationKey || '',
+        workflowMode: insightPayload.workflowMode || '',
+        resultState: insightPayload.resultState || '',
+        successCount: insightPayload.successCount || 0,
+        failureCount: insightPayload.failureCount || 0,
+        extractableCount: insightPayload.extractableCount || 0,
+        latencyMs: insightPayload.latencyMs || 0,
+        failurePhase: insightPayload.failurePhase || '',
+        failureTarget: insightPayload.failureTarget || '',
         hasQuery: payload.hasQuery === true,
-        queryLength: Math.max(0, Number(payload.queryLength) || 0)
+        queryLength: Math.max(0, Number(payload.queryLength) || 0),
+        queryPreview: createUsageQueryPreview(payload.queryPreview || payload.queryText || ''),
+        queryText: String(payload.queryText || payload.queryPreview || '').slice(0, 4000)
       }
     }, () => {
       if (chrome.runtime.lastError) {
@@ -266,9 +286,61 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 void loadIframeSubmitShortcutMode();
 
 function trackEvent(name, params = {}) {
+  const insightPayload = window.AICompareBehaviorInsights?.buildAnalyticsPayload?.({
+    eventName: name,
+    source: 'iframe',
+    surface: params?.surface || 'iframe',
+    trigger: params?.trigger || '',
+    kind: params?.kind || '',
+    hasQuery: Boolean(params?.has_query || params?.query_length),
+    queryLength: Math.max(0, Number(params?.query_length) || 0),
+    metadata: params
+  }) || {
+    eventName: name,
+    source: 'iframe',
+    hasQuery: Boolean(params?.has_query || params?.query_length),
+    queryLength: Math.max(0, Number(params?.query_length) || 0),
+    metadata: params
+  };
+  try {
+    chrome.runtime.sendMessage({
+      action: 'recordAnalyticsEvent',
+      payload: insightPayload
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Analytics must never block the product flow.
+      }
+    });
+  } catch (_) {
+    // Ignore analytics upload failures.
+  }
   const analytics = window.AIShortcutsAnalytics;
   if (analytics && typeof analytics.logEvent === 'function') {
     analytics.logEvent(name, params);
+  }
+}
+
+async function trackEventOnce(onceKey, name, params = {}) {
+  const key = String(onceKey || name || '').trim();
+  if (!key) return;
+  try {
+    const { behaviorInsightOnceEvents = {} } = await chrome.storage.local.get('behaviorInsightOnceEvents');
+    if (behaviorInsightOnceEvents[key]) return;
+    trackEvent(name, {
+      ...params,
+      kind: params.kind || 'activation'
+    });
+    await chrome.storage.local.set({
+      behaviorInsightOnceEvents: {
+        ...behaviorInsightOnceEvents,
+        [key]: Date.now()
+      }
+    });
+  } catch (_) {
+    trackEvent(name, {
+      ...params,
+      kind: params.kind || 'activation'
+    });
   }
 }
 
@@ -10552,7 +10624,17 @@ async function createIframes(query, sites, customSites = [], agents = []) {
     ],
     agentIds: normalizedAgents.map((agent) => agent?.id || agent?.name),
     hasQuery,
-    queryLength: String(query || '').length
+    queryLength: String(query || '').length,
+    queryPreview: query,
+    queryText: query
+  });
+  void trackEventOnce('activation_first_compare_opened', 'activation_first_compare_opened', {
+    surface: 'iframe',
+    query_length: String(query || '').length,
+    selected_sites_count: enabledSites.length + normalizedCustomSites.length,
+    custom_sites_count: normalizedCustomSites.length,
+    agents_count: normalizedAgents.length,
+    has_query: hasQuery
   });
 
   const ratingBatchId = hasQuery ? await startRatingPromptBatch(enabledSites.length) : null;
@@ -11964,10 +12046,14 @@ async function runIframeSearchQuery(query, options = {}) {
   }
 
   const openedSites = getOpenedSites();
+  const openedAgentIds = typeof getOpenedAgentIds === 'function' ? getOpenedAgentIds() : [];
+  const searchStartedAt = Date.now();
   trackEvent('iframe_search_submit', {
     query_length: normalizedQuery.length,
     selected_sites_count: openedSites.length,
     selected_sites: openedSites,
+    agents_count: openedAgentIds.length,
+    agents: openedAgentIds,
     trigger
   });
 
@@ -11978,6 +12064,28 @@ async function runIframeSearchQuery(query, options = {}) {
     preferCurrentPage: options.preferCurrentPage
   });
   if (sent) {
+    const latencyMs = Date.now() - searchStartedAt;
+    trackEvent('query_result_loaded', {
+      kind: 'feature',
+      surface: 'iframe',
+      trigger,
+      query_length: normalizedQuery.length,
+      selected_sites_count: openedSites.length,
+      selected_sites: openedSites,
+      agents_count: openedAgentIds.length,
+      agents: openedAgentIds,
+      result_state: 'submitted',
+      latency_ms: latencyMs
+    });
+    void trackEventOnce('activation_first_result_seen', 'activation_first_result_seen', {
+      surface: 'iframe',
+      query_length: normalizedQuery.length,
+      selected_sites_count: openedSites.length,
+      agents_count: openedAgentIds.length,
+      result_state: 'submitted',
+      latency_ms: latencyMs,
+      has_query: true
+    });
     const timelineEntry = upsertTimelineEntry({
       query: normalizedQuery,
       timestamp: Date.now(),
@@ -11997,6 +12105,19 @@ async function runIframeSearchQuery(query, options = {}) {
       armSearchBarAutoCollapse();
     }
   } else if (getLiveSummaryCurrentQuery() === normalizedQuery && getActiveLiveSummaryRecord().status !== 'ready') {
+    trackEvent('query_result_failed', {
+      kind: 'feature',
+      surface: 'iframe',
+      trigger,
+      query_length: normalizedQuery.length,
+      selected_sites_count: openedSites.length,
+      selected_sites: openedSites,
+      agents_count: openedAgentIds.length,
+      agents: openedAgentIds,
+      result_state: 'failed',
+      failure_phase: 'dispatch',
+      latency_ms: Date.now() - searchStartedAt
+    });
     hideLiveSummaryCard();
   }
   return sent;
@@ -12044,9 +12165,38 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
         }
       }
         
-      const iframes = getSiteIframes();
-      const agentIframes = getAgentPanelFrames();
-      let sites = [];
+	      const iframes = getSiteIframes();
+	      const agentIframes = getAgentPanelFrames();
+	      const activeSiteFrames = targetSiteNameSet
+	        ? iframes.filter((iframe) => targetSiteNameSet.has(String(iframe.getAttribute('data-site') || '').trim()))
+	        : iframes;
+	      const activeAgentFrames = targetSiteNameSet
+	        ? agentIframes.filter((iframe) => {
+	            const agentId = String(iframe.dataset.agentId || '').trim();
+	            const siteName = String(iframe.dataset.site || '').trim();
+	            return targetSiteNameSet.has(siteName) || targetSiteNameSet.has(agentId);
+	          })
+	        : agentIframes;
+	      const activeOfficialSiteNames = activeSiteFrames
+	        .filter((iframe) => iframe.dataset.customSite !== 'true')
+	        .map((iframe) => iframe.getAttribute('data-site'));
+	      const activeCustomSiteNames = activeSiteFrames
+	        .filter((iframe) => iframe.dataset.customSite === 'true')
+	        .map((iframe) => iframe.getAttribute('data-site'));
+	      const activeAgentIds = activeAgentFrames.map((iframe) => iframe.dataset.agentId || iframe.dataset.site);
+	      recordSiteCompareUsage({
+	        source: 'iframe-query',
+	        officialSiteNames: activeOfficialSiteNames,
+	        customSiteNames: activeCustomSiteNames,
+	        siteNames: [...activeOfficialSiteNames, ...activeCustomSiteNames],
+	        agentIds: activeAgentIds,
+	        hasQuery: Boolean(String(query || '').trim()),
+	        queryLength: String(query || '').length,
+	        queryPreview: query,
+	        queryText: query,
+	        resultState: 'submitted'
+	      });
+	      let sites = [];
       try {
         sites = await getDefaultSites();
       } catch (error) {

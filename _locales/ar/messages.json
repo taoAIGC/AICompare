@@ -187,10 +187,7 @@
     "message": "استخدم واجهة API المدمجة، مجانًا $1 مرة يوميًا."
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've used today's $1 free official API requests. Upgrade to PRO or switch to your own API."
-  },
-  "agentEngineCustomCardHint": {
-    "message": "Select the custom API card to use your saved API settings"
+    "message": "لقد وصلت إلى حد الاستخدام المجاني اليومي لواجهة API الرسمية وهو $1 مرة. يُرجى إعداد واجهة API الشخصية: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"

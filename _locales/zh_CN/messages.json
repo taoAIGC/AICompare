@@ -257,7 +257,7 @@
     "message": "当前套餐：PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "你今天的 $1 次官方 API 免费额度已用完。请升级 PRO，或切换为自己的 API。"
+    "message": "免费的官方API使用次数达到上限（每天 $1 次）。请设置个人的API：$2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "请先配置自定义 API"
