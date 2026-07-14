@@ -8,19 +8,27 @@
 </head>
 <body>
   <main class="pricing-page">
-    <a class="pricing-back-link" id="pricingBackLink" href="options.html#membership" data-i18n="membershipPricingBack"></a>
+    <div class="pricing-topbar">
+      <a class="pricing-back-link" id="pricingBackLink" href="options.html#membership" data-i18n="membershipPricingBack"></a>
+    </div>
+
+    <header class="pricing-hero">
+      <p class="pricing-eyebrow" data-i18n="membershipPricingEyebrow"></p>
+      <h1 id="pricingTitle" data-i18n="membershipPricingTitle"></h1>
+      <p id="pricingDescription" data-i18n="membershipPricingDescription"></p>
+    </header>
 
     <section class="pricing-options" role="group" data-i18n-aria-label="membershipPricingOptionsAriaLabel" aria-label="Choose a Pro plan">
       <article class="pricing-card">
         <div>
-          <div class="pricing-card-name" data-i18n="planMonthlyName"></div>
-          <div class="pricing-card-price" data-i18n="planMonthlyPrice"></div>
-          <p class="pricing-card-description" data-i18n="membershipPricingMonthlyDescription"></p>
+          <div class="pricing-card-name" id="pricingMonthlyName" data-i18n="planMonthlyName"></div>
+          <div class="pricing-card-price" id="pricingMonthlyPrice" data-i18n="planMonthlyPrice"></div>
+          <p class="pricing-card-description" id="pricingMonthlyDescription" data-i18n="membershipPricingMonthlyDescription"></p>
         </div>
         <ul class="pricing-feature-list">
-          <li data-i18n="planFeature1"></li>
-          <li data-i18n="planFeature2"></li>
-          <li data-i18n="planFeature3"></li>
+          <li id="pricingMonthlyFeature1" data-i18n="planFeature1"></li>
+          <li id="pricingMonthlyFeature2" data-i18n="planFeature2"></li>
+          <li id="pricingMonthlyFeature3" data-i18n="planFeature3"></li>
         </ul>
         <button class="pricing-action" id="btnPricingMonthly" type="button" data-plan="monthly" data-i18n="btnUpgradeMonthly"></button>
       </article>
@@ -28,14 +36,14 @@
       <article class="pricing-card pricing-card-featured">
         <span class="pricing-badge" data-i18n="planPopular"></span>
         <div>
-          <div class="pricing-card-name" data-i18n="planYearlyName"></div>
-          <div class="pricing-card-price" data-i18n="planYearlyPrice"></div>
-          <p class="pricing-card-description" data-i18n="membershipPricingYearlyDescription"></p>
+          <div class="pricing-card-name" id="pricingYearlyName" data-i18n="planYearlyName"></div>
+          <div class="pricing-card-price" id="pricingYearlyPrice" data-i18n="planYearlyPrice"></div>
+          <p class="pricing-card-description" id="pricingYearlyDescription" data-i18n="membershipPricingYearlyDescription"></p>
         </div>
         <ul class="pricing-feature-list">
-          <li data-i18n="planFeature1"></li>
-          <li data-i18n="planFeature2"></li>
-          <li data-i18n="planFeature4"></li>
+          <li id="pricingYearlyFeature1" data-i18n="planFeature1"></li>
+          <li id="pricingYearlyFeature2" data-i18n="planFeature2"></li>
+          <li id="pricingYearlyFeature3" data-i18n="planFeature4"></li>
         </ul>
         <button class="pricing-action pricing-action-featured" id="btnPricingYearly" type="button" data-plan="yearly" data-i18n="btnUpgradeYearly"></button>
       </article>

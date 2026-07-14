@@ -23,6 +23,10 @@ const SIDEBAR_MARKUP = `
                 <img class="action-link-icon action-link-icon-grayscale" src="../icons/thumbs-up.svg" alt="" aria-hidden="true">
                 <span data-i18n="reviewLink"></span>
             </a>
+            <a id="proLink" class="action-link" href="#">
+                <img class="action-link-icon" src="../icons/user.svg" alt="" aria-hidden="true">
+                <span data-i18n="settingsNavProTitle"></span>
+            </a>
             <a id="coffeeLink" class="action-link" href="#">
                 <img class="action-link-icon" src="../icons/coffee.svg" alt="" aria-hidden="true">
                 <span data-i18n="coffeeLink"></span>
@@ -119,6 +123,45 @@ function sidebarMessage(key, fallback = '', substitutions = undefined) {
     return window.RuntimeI18n?.getMessage?.(key, substitutions) || chrome?.i18n?.getMessage?.(key, substitutions) || fallback;
 }
 
+function getSidebarLoginLabel() {
+    return sidebarMessage('logIn', 'login');
+}
+
+const sidebarScriptLoadPromises = new Map();
+
+function loadSidebarScriptOnce(relativePath) {
+    const path = String(relativePath || '').trim();
+    if (!path) {
+        return Promise.resolve();
+    }
+    if (sidebarScriptLoadPromises.has(path)) {
+        return sidebarScriptLoadPromises.get(path);
+    }
+
+    const promise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL(path);
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${path}`));
+        document.head.appendChild(script);
+    });
+
+    sidebarScriptLoadPromises.set(path, promise);
+    return promise;
+}
+
+async function ensureSidebarAuthReady() {
+    if (typeof window.firebaseSignInWithGoogle === 'function') {
+        return;
+    }
+    if (typeof window.FirebaseConfig === 'undefined' && typeof FirebaseConfig === 'undefined') {
+        await loadSidebarScriptOnce('config/firebaseConfig.js');
+    }
+    if (typeof window.firebaseSignInWithGoogle !== 'function') {
+        await loadSidebarScriptOnce('firebase/firebase-auth.js');
+    }
+}
+
 function applySidebarI18n(root) {
     if (!root) return;
     root.querySelectorAll('[data-i18n]').forEach((element) => {
@@ -208,6 +251,15 @@ async function initializeSidebarActionLinks() {
             });
         }
 
+        const proLink = document.getElementById('proLink');
+        if (proLink) {
+            proLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                safeTrackEvent('sidebar_pro_click');
+                window.location.href = chrome.runtime.getURL('options/options.html#membership');
+            });
+        }
+
         const contactLink = document.getElementById('contactLink');
         if (contactLink) {
             contactLink.addEventListener('click', (e) => {
@@ -261,6 +313,14 @@ async function initializeSidebarActionLinks() {
             settingsLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 window.location.href = chrome.runtime.getURL('options/options.html');
+            });
+        }
+
+        const proLink = document.getElementById('proLink');
+        if (proLink) {
+            proLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = chrome.runtime.getURL('options/options.html#membership');
             });
         }
 
@@ -344,22 +404,61 @@ async function updateSyncBar() {
     const syncBar = document.getElementById('syncBar');
     const syncBarText = document.getElementById('syncBarText');
     if (!syncBar || !syncBarText) return;
-    syncBar.classList.remove('sync-bar--logged-in');
-    syncBarText.textContent = sidebarMessage('logIn', 'Log In');
+    try {
+        const stored = await chrome.storage.local.get(['firebase_uid', 'firebase_email']);
+        const email = String(stored?.firebase_email || '').trim();
+        const isLoggedIn = Boolean(stored?.firebase_uid);
+        syncBar.classList.toggle('sync-bar--logged-in', isLoggedIn);
+        syncBarText.textContent = isLoggedIn
+            ? (email || sidebarMessage('membershipPlanPro', 'Account'))
+            : getSidebarLoginLabel();
+        syncBar.title = isLoggedIn ? (email || '') : sidebarMessage('membershipGoogleLoginButton', 'Sign in with Google');
+    } catch (_) {
+        syncBar.classList.remove('sync-bar--logged-in');
+        syncBarText.textContent = getSidebarLoginLabel();
+        syncBar.title = sidebarMessage('membershipGoogleLoginButton', 'Sign in with Google');
+    }
 }
 
 function bindSyncBar() {
     const syncBar = document.getElementById('syncBar');
     if (!syncBar) return;
 
-    syncBar.addEventListener('click', async (e) => {
+    async function handleSyncBarActivate(e) {
         e.stopPropagation();
-        safeTrackEvent('sidebar_membership_click');
-        try {
-            window.location.href = chrome.runtime.getURL('options/options.html#membership');
-        } catch (error) {
-            console.warn('Open membership page failed', error);
+        if (syncBar.dataset.loading === 'true') {
+            return;
         }
+        syncBar.dataset.loading = 'true';
+        try {
+            const stored = await chrome.storage.local.get(['firebase_uid']);
+            if (stored?.firebase_uid) {
+                safeTrackEvent('sidebar_account_click');
+                window.location.href = chrome.runtime.getURL('options/options.html#membership');
+                return;
+            }
+            safeTrackEvent('sidebar_login_click');
+            await ensureSidebarAuthReady();
+            if (typeof window.firebaseSignInWithGoogle !== 'function') {
+                throw new Error(sidebarMessage('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
+            }
+            await window.firebaseSignInWithGoogle();
+            await updateSyncBar();
+        } catch (error) {
+            console.warn('Sidebar Google sign-in failed', error);
+            window.location.href = chrome.runtime.getURL('options/options.html#membership');
+        } finally {
+            syncBar.dataset.loading = 'false';
+        }
+    }
+
+    syncBar.addEventListener('click', handleSyncBarActivate);
+    syncBar.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') {
+            return;
+        }
+        e.preventDefault();
+        handleSyncBarActivate(e);
     });
 }
 
@@ -533,6 +632,7 @@ async function openSidebarFavoriteItem(item) {
 function bindSidebarStorageListeners() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'local' && (changes.pkHistory || changes.favoriteFolders)) loadSidebarFavorites();
+        if (areaName === 'local' && (changes.firebase_uid || changes.firebase_email)) updateSyncBar();
     });
     window.addEventListener('focus', () => {
         loadSidebarFavorites();

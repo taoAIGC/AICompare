@@ -13,6 +13,8 @@ const FirebaseConfig = {
   measurementId: 'G-TGD1MD9XK4',
   // 谷歌登录用：Firebase 控制台 → Authentication → 登录方式 → Google → Web 客户端 ID
   googleClientId: '741697777320-9op5n3for8vl4jl8lgcd16cficu8927o.apps.googleusercontent.com',
+  // 邮箱验证码登录走自有后端发送验证码，再兑换 Firebase custom token。
+  emailLinkAuthEnabled: true,
   // Cloud Functions 部署后的 URL 前缀（firebase deploy --only functions 后可在控制台查看）
   // 格式：https://<region>-<projectId>.cloudfunctions.net
   cloudFunctionsBaseUrl: 'https://aicompare.club'

@@ -1,0 +1,131 @@
+{
+  "baseUrl": "https://aicompare.club",
+  "pages": [
+    {
+      "id": "home",
+      "intent": "brand-category",
+      "priority": "1.0",
+      "changefreq": "weekly",
+      "availableLocales": {
+        "zh-CN": "/"
+      }
+    },
+    {
+      "id": "geo",
+      "intent": "problem-education",
+      "priority": "0.9",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/geo/"
+      }
+    },
+    {
+      "id": "geo-checklist",
+      "intent": "problem-template",
+      "priority": "0.9",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/geo-checklist/"
+      }
+    },
+    {
+      "id": "brand-monitoring",
+      "intent": "use-case",
+      "priority": "0.8",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/use-cases/brand-monitoring/"
+      }
+    },
+    {
+      "id": "content-qa",
+      "intent": "use-case",
+      "priority": "0.8",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/use-cases/content-qa/"
+      }
+    },
+    {
+      "id": "blog-index",
+      "intent": "content-hub",
+      "priority": "0.8",
+      "changefreq": "weekly",
+      "availableLocales": {
+        "zh-CN": "/blog/"
+      }
+    },
+    {
+      "id": "what-is-geo",
+      "intent": "problem-education",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/blog/what-is-geo.html"
+      }
+    },
+    {
+      "id": "check-geo-with-multi-ai",
+      "intent": "tutorial",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/blog/check-geo-with-multi-ai.html"
+      }
+    },
+    {
+      "id": "ai-readability-checklist",
+      "intent": "checklist",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/blog/ai-readability-checklist.html"
+      }
+    },
+    {
+      "id": "brand-not-found-in-ai",
+      "intent": "problem-solution",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/blog/brand-not-found-in-ai.html"
+      }
+    },
+    {
+      "id": "five-ai-content-test",
+      "intent": "case-study",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/blog/five-ai-content-test.html"
+      }
+    },
+    {
+      "id": "why-ai-answers-differ",
+      "intent": "problem-education",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/blog/why-ai-answers-differ.html"
+      }
+    },
+    {
+      "id": "chrome-store-copy",
+      "intent": "resource",
+      "priority": "0.5",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/resources/chrome-store-copy.html"
+      }
+    },
+    {
+      "id": "multilingual-seo-plan",
+      "intent": "resource-education",
+      "priority": "0.7",
+      "changefreq": "monthly",
+      "availableLocales": {
+        "zh-CN": "/resources/multilingual-seo-plan.html"
+      }
+    }
+  ]
+}

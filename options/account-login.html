@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <link rel="stylesheet" href="../shared/ui-tokens.css">
+  <link rel="stylesheet" href="account-login.css">
+</head>
+<body>
+  <main class="account-login-page">
+    <div class="account-login-topbar">
+      <a id="accountLoginBackLink" class="account-login-back" href="options.html#membership" data-i18n="membershipAuthBackButton"></a>
+    </div>
+
+    <section class="account-login-shell">
+      <div class="account-login-hero">
+        <div class="account-login-brand" data-i18n="shortName"></div>
+        <h1 class="account-login-title" data-i18n="membershipAuthTitle"></h1>
+      </div>
+
+      <section id="accountLoginEntryStep" class="account-login-step">
+        <button class="btn-google account-login-google-btn" id="accountLoginGoogleBtn" type="button">
+          <span class="btn-google-icon" aria-hidden="true"></span>
+          <span data-i18n="membershipGoogleLoginButton"></span>
+        </button>
+
+        <div id="accountLoginAuthDivider" class="account-login-divider" data-i18n="membershipAuthOr" hidden></div>
+
+        <div id="accountLoginEmailEntry" class="account-login-email-entry" hidden>
+          <label class="account-login-field">
+            <span data-i18n="membershipEmailLabel"></span>
+            <input id="accountLoginEmailInput" type="email" autocomplete="email" spellcheck="false" data-i18n-placeholder="membershipEmailPlaceholder" placeholder="you@example.com">
+          </label>
+
+          <button id="accountLoginSendCodeBtn" class="account-login-submit" type="button" data-i18n="membershipEmailLoginButton"></button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="account-login-toast"></div>
+
+  <script src="../config/firebaseConfig.js"></script>
+  <script src="../shared/runtime-i18n.js"></script>
+  <script src="../firebase/firebase-auth.js"></script>
+  <script src="account-login.js"></script>
+</body>
+</html>

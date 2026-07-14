@@ -1,0 +1,13 @@
+page_id,intent,locale,primary_keyword,secondary_keywords,conversion_goal,priority,status
+home,brand-category,zh-CN,AI比一比,"多 AI 对比; GEO 诊断; 品牌答案监测",install_extension,P0,published
+home,brand-category,en,AI Compare,"AI comparison tool; compare AI responses; AI Chrome extension",install_extension,P0,planned
+home,brand-category,ja,AI 比較ツール,"複数の AI に同時質問; Chrome AI 拡張機能",install_extension,P1,planned
+home,brand-category,de,KI Vergleichstool,"KI Antworten vergleichen; Chrome KI Erweiterung",install_extension,P1,planned
+geo,problem-education,zh-CN,GEO 是什么,"生成式引擎优化; AI 搜索优化; AI 引用内容",read_geo_method,P0,published
+geo,problem-education,en,what is GEO,"generative engine optimization; AI search optimization",read_geo_method,P0,planned
+check-geo-with-multi-ai,tutorial,zh-CN,多 AI 检查 GEO,"ChatGPT 豆包 Kimi Gemini 对比; AI 内容测试",install_extension,P0,published
+check-geo-with-multi-ai,tutorial,en,check GEO with multiple AI tools,"ChatGPT Claude Gemini comparison; AI content test",install_extension,P0,planned
+brand-monitoring,use-case,zh-CN,品牌答案监测,"AI 搜索品牌曝光; 品牌在 AI 答案里",install_extension,P0,published
+brand-monitoring,use-case,en,AI brand monitoring,"brand visibility in AI answers; AI answer monitoring",install_extension,P0,planned
+multilingual-seo-plan,resource-education,zh-CN,多语言 SEO 方案,"50+ 语言官网 SEO; Chrome 插件官网 SEO; hreflang sitemap",install_extension,P0,published
+multilingual-seo-plan,resource-education,en,multilingual SEO strategy,"Chrome extension SEO; hreflang sitemap; international SEO for SaaS",install_extension,P0,planned

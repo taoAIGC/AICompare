@@ -4,6 +4,7 @@ const express = require('express');
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const BehaviorInsights = require('./behavior-insights.js');
 let geoip = null;
 try {
@@ -14,7 +15,8 @@ try {
 
 const app = express();
 const port = Number(process.env.PORT || 8790);
-const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 100) || 100);
+const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 10) || 10);
+const chatPlanDailyFreeLimit = Math.max(0, Number(process.env.CHAT_PLAN_DAILY_FREE_LIMIT || 3) || 3);
 const billingMode = String(process.env.BILLING_MODE || 'test').trim() || 'test';
 const adminSessionOrigin = String(process.env.ADMIN_SESSION_ORIGIN || '').trim();
 const adminSessionSecret = String(process.env.ADMIN_SESSION_SECRET || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
@@ -22,6 +24,13 @@ const adminSessionCookieName = 'ai_compare_admin_session';
 const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 12 * 60 * 60) || (12 * 60 * 60));
 const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
 const adminPasswordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
+const redeemCodeCollection = 'redeemCodes';
+const emailLoginCodeCollection = 'emailLoginCodes';
+const emailAuthCodeTtlSeconds = Math.max(60, Number(process.env.EMAIL_AUTH_CODE_TTL_SECONDS || 10 * 60) || (10 * 60));
+const emailAuthResendCooldownSeconds = Math.max(0, Number(process.env.EMAIL_AUTH_RESEND_COOLDOWN_SECONDS || 60) || 60);
+const emailAuthMaxAttempts = Math.max(1, Number(process.env.EMAIL_AUTH_MAX_ATTEMPTS || 5) || 5);
+const emailAuthFrom = String(process.env.EMAIL_AUTH_FROM || 'AI Compare <norely@aimcompare.club>').trim();
+const emailAuthReplyTo = String(process.env.EMAIL_AUTH_REPLY_TO || '').trim();
 const failureLogDailyUploadLimit = Math.max(1, Number(process.env.FAILURE_LOG_DAILY_UPLOAD_LIMIT || 2000) || 2000);
 const failureLogBatchLimit = 50;
 const officialAgentInputTokenPricePerMillion = Math.max(
@@ -31,6 +40,10 @@ const officialAgentInputTokenPricePerMillion = Math.max(
 const officialAgentOutputTokenPricePerMillion = Math.max(
   0,
   Number(process.env.OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION || 0) || 0
+);
+const officialAgentCostMultiplier = Math.max(
+  0,
+  Number(process.env.OFFICIAL_AGENT_COST_MULTIPLIER || 0.15) || 0.15
 );
 const officialAgentCostCurrency = String(process.env.OFFICIAL_AGENT_COST_CURRENCY || 'usd').trim().toLowerCase() || 'usd';
 const openRouterApiKey = String(process.env.OPENROUTER_API_KEY || '').trim();
@@ -74,14 +87,39 @@ function extractTokenUsageFromPayload(payload = {}) {
 
 function estimateOfficialApiCost(usage = {}) {
   const tokenUsage = normalizeTokenUsage(usage);
-  const estimatedCost = (
+  const officialEstimatedCost = (
     (tokenUsage.promptTokens / 1000000) * officialAgentInputTokenPricePerMillion
     + (tokenUsage.completionTokens / 1000000) * officialAgentOutputTokenPricePerMillion
   );
+  const estimatedCost = officialEstimatedCost * officialAgentCostMultiplier;
   return {
     ...tokenUsage,
+    officialEstimatedCost: Number(officialEstimatedCost.toFixed(8)),
     estimatedCost: Number(estimatedCost.toFixed(8)),
+    costMultiplier: officialAgentCostMultiplier,
     currency: officialAgentCostCurrency
+  };
+}
+
+function getOfficialApiEventCost(data = {}) {
+  const computed = estimateOfficialApiCost(data);
+  if (computed.officialEstimatedCost > 0) {
+    return computed;
+  }
+  const storedActualCost = Math.max(0, Number(data.estimatedCost) || 0);
+  const storedOfficialCost = Math.max(0, Number(data.officialEstimatedCost) || 0);
+  const storedMultiplier = Math.max(0, Number(data.costMultiplier) || 0);
+  const officialEstimatedCost = storedOfficialCost
+    || (storedMultiplier > 0 ? storedActualCost / storedMultiplier : storedActualCost / Math.max(officialAgentCostMultiplier, 0.000001));
+  const estimatedCost = storedOfficialCost > 0
+    ? storedOfficialCost * officialAgentCostMultiplier
+    : (storedMultiplier > 0 ? storedActualCost : storedActualCost * officialAgentCostMultiplier);
+  return {
+    ...computed,
+    officialEstimatedCost: Number(officialEstimatedCost.toFixed(8)),
+    estimatedCost: Number(estimatedCost.toFixed(8)),
+    costMultiplier: officialAgentCostMultiplier,
+    currency: String(data.currency || officialAgentCostCurrency || 'usd')
   };
 }
 
@@ -512,6 +550,22 @@ function persistRememberedAdminCredentials(usernameInput, passwordInput, remembe
   clearRememberedAdminCredentials();
 }
 
+function setAdminSessionPanelState(isAuthenticated) {
+  const panel = document.getElementById('adminSessionPanel');
+  const hero = panel ? panel.closest('.hero') : null;
+  const loginForm = document.getElementById('adminLoginForm');
+  const sessionSummary = document.getElementById('adminSessionSummary');
+  const loginButton = document.getElementById('saveTokenButton');
+  const clearButton = document.getElementById('clearTokenButton');
+  if (!panel) return;
+  panel.classList.toggle('is-authenticated', isAuthenticated);
+  if (hero) hero.classList.toggle('is-authenticated', isAuthenticated);
+  if (loginForm) loginForm.hidden = isAuthenticated;
+  if (sessionSummary) sessionSummary.hidden = !isAuthenticated;
+  if (loginButton) loginButton.hidden = isAuthenticated;
+  if (clearButton) clearButton.textContent = isAuthenticated ? '退出登录' : '退出/清空';
+}
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('zh-CN');
 }
@@ -647,6 +701,7 @@ function getUsageRecentSearchText(item) {
     item.uid,
     item.deviceId,
     item.requestRegion,
+    item.locale,
     item.target,
     (item.siteNames || []).join(' '),
     (item.skillNames || []).join(' '),
@@ -663,7 +718,7 @@ function getUsageRecentFilterValues() {
     date: String(document.getElementById('usageRecentDateFilter')?.value || '').trim().toLowerCase(),
     type: String(document.getElementById('usageRecentTypeFilter')?.value || '').trim(),
     user: String(document.getElementById('usageRecentUserFilter')?.value || '').trim().toLowerCase(),
-    device: String(document.getElementById('usageRecentDeviceFilter')?.value || '').trim().toLowerCase(),
+    device: String(document.getElementById('usageRecentLocaleFilter')?.value || '').trim().toLowerCase(),
     target: String(document.getElementById('usageRecentTargetFilter')?.value || '').trim().toLowerCase(),
     version: String(document.getElementById('usageRecentVersionFilter')?.value || '').trim().toLowerCase(),
     query: String(document.getElementById('usageRecentQueryFilter')?.value || '').trim().toLowerCase()
@@ -678,7 +733,7 @@ function usageRecentMatchesFilters(item, filters) {
   if (filters.date && !formatDate(item.createdAt).toLowerCase().includes(filters.date)) return false;
   const userText = [item.email, item.uid, item.userType].map((value) => String(value || '').toLowerCase()).join(' ');
   if (filters.user && !userText.includes(filters.user)) return false;
-  const deviceText = [item.requestRegion, item.deviceId, item.requestIp].map((value) => String(value || '').toLowerCase()).join(' ');
+  const deviceText = [item.requestRegion, item.locale, item.deviceId].map((value) => String(value || '').toLowerCase()).join(' ');
   if (filters.device && !deviceText.includes(filters.device)) return false;
   const targetText = [item.target, (item.siteNames || []).join(' '), (item.skillNames || []).join(' ')].map((value) => String(value || '').toLowerCase()).join(' ');
   if (filters.target && !targetText.includes(filters.target)) return false;
@@ -701,7 +756,7 @@ function renderUsageRecentRows() {
     ? filtered.map(({ item, index }) => {
       const usageType = item.usageType || (item.kind === 'api' ? '官方 API' : '站点');
       const userLabel = item.email || item.uid || item.userType || '-';
-      const deviceLabel = item.deviceId || '-';
+      const localeLabel = item.locale || '-';
       const regionLabel = item.requestRegion || '未知地区';
       const target = (item.siteNames || []).join(', ') || (item.skillNames || []).join(', ') || item.target || '-';
       const summary = item.queryPreview || item.detail || item.queryHash || '-';
@@ -713,7 +768,7 @@ function renderUsageRecentRows() {
         + '<td>' + escapeHtml(formatDate(item.createdAt)) + '</td>'
         + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(usageType, 8)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(item.kind === 'api' ? 'API' : '站点') + '</div></td>'
         + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(userLabel, 14)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(truncateText(item.uid || item.userType || '-', 10)) + '</div></td>'
-        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(regionLabel, 14)) + '</div><div class="muted-cell clamp-cell mono-cell">' + escapeHtml(truncateText(deviceLabel, 10)) + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(regionLabel, 14)) + '</div><div class="muted-cell clamp-cell mono-cell">' + escapeHtml(truncateText(localeLabel, 12)) + '</div></td>'
         + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(target, 18)) + '</div></td>'
         + '<td><div class="strong-cell clamp-cell mono-cell">' + escapeHtml(truncateText(versionLabel, 12)) + '</div></td>'
         + '<td title="' + escapeHtml(fullPrompt) + '"><div class="query-preview clamp-cell" title="' + escapeHtml(fullPrompt) + '">' + escapeHtml(truncateText(summary, 22)) + '</div>' + (repeatLabel ? '<div class="muted-cell clamp-cell">' + escapeHtml(repeatLabel) + '</div>' : '') + '</td>'
@@ -735,12 +790,12 @@ function renderUsageRecentRows() {
 function setupUsageRecentFilters() {
   if (window.__usageRecentFiltersBound) return;
   window.__usageRecentFiltersBound = true;
-  ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentDeviceFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
+  ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentLocaleFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', renderUsageRecentRows);
   });
   document.getElementById('usageRecentTypeFilter')?.addEventListener('change', renderUsageRecentRows);
   document.getElementById('usageRecentClearFilters')?.addEventListener('click', () => {
-    ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentDeviceFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
+    ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentLocaleFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -782,23 +837,31 @@ function renderFailureContext(item) {
   const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
   const metadataPills = Object.entries(metadata)
     .filter((entry) => formatMetadataValue(entry[1]))
-    .slice(0, 8)
+    .slice(0, 16)
     .map(([key, value]) => renderPill(key, formatMetadataValue(value)))
     .join('');
-  const url = item.runtimeUrl || item.pageUrl || '';
-  const urlLink = url
-    ? '<a class="log-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(url) + '</a>'
+  const runtimeUrl = item.runtimeUrl || '';
+  const pageUrl = item.pageUrl || '';
+  const runtimeUrlLink = runtimeUrl
+    ? '<a class="log-link" href="' + escapeHtml(runtimeUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(runtimeUrl) + '</a>'
+    : '-';
+  const pageUrlLink = pageUrl
+    ? '<a class="log-link" href="' + escapeHtml(pageUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(pageUrl) + '</a>'
     : '-';
   return (
     '<div class="log-detail-grid">'
       + '<div><span class="detail-label">Query</span><div class="query-preview">' + escapeHtml(formatCompactText(item.queryPreview, '无 query 摘要')) + '</div></div>'
-      + '<div><span class="detail-label">URL</span><div class="url-cell">' + urlLink + '</div></div>'
+      + '<div><span class="detail-label">Runtime URL</span><div class="url-cell">' + runtimeUrlLink + '</div></div>'
+      + '<div><span class="detail-label">Page URL</span><div class="url-cell">' + pageUrlLink + '</div></div>'
       + '<div><span class="detail-label">模型 / 语言 / 版本</span><div class="pill-row">'
         + renderPill('model', item.model || '-')
         + renderPill('locale', item.locale || item.requestLocale || '-')
         + renderPill('version', item.extensionVersion || '-')
       + '</div></div>'
       + '<div><span class="detail-label">诊断字段</span><div class="pill-row">'
+        + renderPill('status', item.status ? ('HTTP ' + item.status) : '-')
+        + renderPill('phase', item.phase || '-')
+        + renderPill('source', item.source || '-')
         + renderPill('code', item.errorCode || '-')
         + renderPill('hash', item.queryHash || '-')
         + renderPill('record', item.clientRecordId || '-')
@@ -812,16 +875,32 @@ function renderFailureLogRows(logs) {
   return logs.map((item) => {
     const target = item.category === 'api' ? (item.apiKind || 'API') : (item.siteName || '未知站点');
     const severityClass = item.category === 'api' ? 'tag-api' : 'tag-site';
+    const failureTime = item.lastSeenAt || item.createdAt || item.uploadedAt;
+    const url = item.runtimeUrl || item.pageUrl || '';
+    const urlCell = url
+      ? '<a class="log-link clamp-cell" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(url) + '">' + escapeHtml(truncateText(url, 28)) + '</a>'
+      : '-';
+    const queryText = item.queryPreview || item.queryHash || '-';
+    const userLabel = item.uploaderType === 'anonymous' ? '匿名' : '登录用户';
     return (
       '<tr class="log-row">'
-        + '<td><div class="strong-cell">' + escapeHtml(formatDate(item.lastSeenAt || item.createdAt || item.uploadedAt)) + '</div><div class="muted-cell">上传 ' + escapeHtml(formatDate(item.uploadedAt)) + '</div></td>'
+        + '<td><div class="strong-cell">' + escapeHtml(formatDate(failureTime)) + '</div><div class="muted-cell">创建 ' + escapeHtml(formatDate(item.createdAt)) + '</div></td>'
+        + '<td>' + escapeHtml(formatDate(item.uploadedAt)) + '</td>'
         + '<td><span class="type-tag ' + severityClass + '">' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</span></td>'
-        + '<td><div class="strong-cell">' + escapeHtml(target) + '</div><div class="muted-cell">' + escapeHtml(item.source || '-') + '</div></td>'
-        + '<td><div class="strong-cell">' + escapeHtml(item.phase || '-') + '</div><div class="muted-cell">' + escapeHtml(item.status ? ('HTTP ' + item.status) : '无状态码') + '</div></td>'
-        + '<td><div class="error-cell">' + escapeHtml(formatCompactText(item.errorMessage)) + '</div></td>'
-        + '<td><div class="strong-cell">' + escapeHtml(formatNumber(item.repeatCount || 1)) + '</div><div class="muted-cell">' + escapeHtml(item.uploaderType === 'anonymous' ? '匿名' : '登录用户') + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell" title="' + escapeHtml(target) + '">' + escapeHtml(truncateText(target, 18)) + '</div></td>'
+        + '<td>' + escapeHtml(item.source || '-') + '</td>'
+        + '<td>' + escapeHtml(item.phase || '-') + '</td>'
+        + '<td>' + escapeHtml(item.status ? ('HTTP ' + item.status) : '-') + '</td>'
+        + '<td><div class="clamp-cell" title="' + escapeHtml(item.errorCode || '-') + '">' + escapeHtml(truncateText(item.errorCode || '-', 18)) + '</div></td>'
+        + '<td><div class="clamp-cell" title="' + escapeHtml(item.model || '-') + '">' + escapeHtml(truncateText(item.model || '-', 16)) + '</div></td>'
+        + '<td><div class="clamp-cell" title="' + escapeHtml(item.extensionVersion || '-') + '">' + escapeHtml(truncateText(item.extensionVersion || '-', 12)) + '</div></td>'
+        + '<td><div class="strong-cell">' + escapeHtml(userLabel) + '</div><div class="muted-cell">' + escapeHtml(item.locale || item.requestLocale || '-') + '</div></td>'
+        + '<td>' + escapeHtml(formatNumber(item.repeatCount || 1)) + '</td>'
+        + '<td>' + urlCell + '</td>'
+        + '<td><div class="query-preview clamp-cell" title="' + escapeHtml(queryText) + '">' + escapeHtml(truncateText(queryText, 28)) + '</div></td>'
+        + '<td><div class="error-cell" title="' + escapeHtml(formatCompactText(item.errorMessage)) + '">' + escapeHtml(formatCompactText(item.errorMessage)) + '</div></td>'
       + '</tr>'
-      + '<tr class="log-detail-row"><td colspan="6">' + renderFailureContext(item) + '</td></tr>'
+      + '<tr class="log-detail-row"><td colspan="15">' + renderFailureContext(item) + '</td></tr>'
     );
   }).join('');
 }
@@ -844,6 +923,7 @@ async function loadOverview() {
 }
 
 async function loadOrdersPage() {
+  setupAdminTabs('ordersTabs');
   const [summary, listPayload, trendPayload] = await Promise.all([
     fetchAdminJson('/api/admin/orders/summary'),
     fetchAdminJson('/api/admin/orders/list?limit=20'),
@@ -886,6 +966,114 @@ async function loadOrdersPage() {
       + '</tr>'
     )).join('')
     : renderEmptyRow('近 30 天没有 Stripe 趋势数据', 5);
+}
+
+async function loadUsersPage() {
+  const payload = await fetchAdminJson('/api/admin/users/list?limit=500');
+  const summary = payload.summary || {};
+  document.getElementById('usersCards').innerHTML = renderCards([
+    { label: '注册用户数', value: formatNumber(payload.total) },
+    { label: 'Chat Pro', value: formatNumber(summary.chatProUsers) },
+    { label: 'API Pro', value: formatNumber(summary.apiProUsers) },
+    { label: '有邮箱用户', value: formatNumber(summary.usersWithEmail) },
+    { label: '有提问语言数据', value: formatNumber(summary.usersWithLocale) },
+    { label: '最常用提问语言', value: summary.topLocale || '暂无' }
+  ]);
+
+  const users = Array.isArray(payload.users) ? payload.users : [];
+  document.getElementById('usersTableBody').innerHTML = users.length
+    ? users.map((item) => (
+      '<tr>'
+        + '<td><div class="strong-cell clamp-cell" title="' + escapeHtml(item.email || '-') + '">' + escapeHtml(item.email || '-') + '</div><div class="muted-cell mono-cell">' + escapeHtml(truncateText(item.uid, 16)) + '</div></td>'
+        + '<td><div class="strong-cell">' + escapeHtml(item.chatPlanStatus || '-') + '</div><div class="muted-cell">' + escapeHtml(item.chatSubscriptionStatus || '-') + '</div></td>'
+        + '<td>' + escapeHtml(formatDate(item.chatPlanExpiresAt)) + '</td>'
+        + '<td><div class="strong-cell">' + escapeHtml(item.apiPlanStatus || '-') + '</div><div class="muted-cell">' + escapeHtml(item.apiSubscriptionStatus || '-') + '</div></td>'
+        + '<td>' + escapeHtml(formatDate(item.apiPlanExpiresAt)) + '</td>'
+        + '<td><div class="strong-cell">' + escapeHtml(item.commonLocale || '-') + '</div><div class="muted-cell">' + escapeHtml(item.localeSource || '-') + '</div></td>'
+        + '<td>' + escapeHtml(formatDate(item.createdAt || item.authCreatedAt)) + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.lastSeenAt || item.updatedAt || item.authLastSignInAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无注册用户数据', 8);
+}
+
+function renderRedeemCodeRows(codes) {
+  return codes.length
+    ? codes.map((item) => (
+      '<tr>'
+        + '<td><div class="strong-cell mono-cell">' + escapeHtml(item.prefix || '-') + '</div></td>'
+        + '<td>' + escapeHtml(item.planType === 'api' ? 'API Plan' : 'Chat Plan') + '</td>'
+        + '<td>' + escapeHtml(item.interval === 'yearly' ? '年度' : '月度') + '</td>'
+        + '<td>' + escapeHtml(item.status || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.redemptionCount || 0)) + ' / ' + escapeHtml(formatNumber(item.maxRedemptions || 1)) + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.expiresAt)) + '</td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(formatDate(item.lastRedeemedAt)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(item.lastRedeemedByEmail || item.lastRedeemedByUid || '-') + '</div></td>'
+        + '<td><div class="clamp-cell" title="' + escapeHtml(item.note || '') + '">' + escapeHtml(truncateText(item.note || '-', 20)) + '</div></td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无兑换码', 8);
+}
+
+async function refreshRedeemCodes() {
+  const tableBody = document.getElementById('redeemCodesTableBody');
+  if (!tableBody) return;
+  tableBody.innerHTML = renderEmptyRow('正在加载...', 8);
+  const payload = await fetchAdminJson('/api/admin/redeem-codes?limit=100');
+  tableBody.innerHTML = renderRedeemCodeRows(Array.isArray(payload.codes) ? payload.codes : []);
+}
+
+async function generateRedeemCodes() {
+  const statusEl = document.getElementById('redeemCodeStatus');
+  const outputEl = document.getElementById('generatedRedeemCodes');
+  const button = document.getElementById('generateRedeemCodesButton');
+  if (button) button.disabled = true;
+  if (statusEl) statusEl.textContent = '正在生成兑换码...';
+  if (outputEl) {
+    outputEl.hidden = true;
+    outputEl.textContent = '';
+  }
+
+  try {
+    const payload = await fetchAdminJson('/api/admin/redeem-codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        planType: document.getElementById('redeemPlanType')?.value || 'chat',
+        interval: document.getElementById('redeemInterval')?.value || 'monthly',
+        quantity: Number(document.getElementById('redeemQuantity')?.value || 1),
+        maxRedemptions: Number(document.getElementById('redeemMaxRedemptions')?.value || 1),
+        expiresInDays: Number(document.getElementById('redeemExpiresInDays')?.value || 365),
+        note: document.getElementById('redeemNote')?.value || ''
+      })
+    });
+    const codes = Array.isArray(payload.codes) ? payload.codes : [];
+    if (outputEl) {
+      outputEl.textContent = codes.join('\\n');
+      outputEl.hidden = codes.length === 0;
+    }
+    if (statusEl) statusEl.textContent = '已生成 ' + formatNumber(codes.length) + ' 个兑换码。明文码只在这里显示一次，请及时复制。';
+    await refreshRedeemCodes();
+  } catch (error) {
+    if (statusEl) statusEl.textContent = error.message || String(error);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function loadRedeemCodesPage() {
+  document.getElementById('generateRedeemCodesButton')?.addEventListener('click', () => {
+    generateRedeemCodes().catch((error) => {
+      const statusEl = document.getElementById('redeemCodeStatus');
+      if (statusEl) statusEl.textContent = error.message || String(error);
+    });
+  });
+  document.getElementById('refreshRedeemCodesButton')?.addEventListener('click', () => {
+    refreshRedeemCodes().catch((error) => {
+      const statusEl = document.getElementById('redeemCodeStatus');
+      if (statusEl) statusEl.textContent = error.message || String(error);
+    });
+  });
+  await refreshRedeemCodes();
 }
 
 async function loadApiUsagePage() {
@@ -1089,12 +1277,19 @@ function getFailureFilters() {
   return new URLSearchParams({ days, category, query });
 }
 
+function getFinalFailureFilters() {
+  const days = document.getElementById('finalFailureDays')?.value || '7';
+  const category = document.getElementById('finalFailureCategory')?.value || 'all';
+  const query = document.getElementById('finalFailureQuery')?.value || '';
+  return new URLSearchParams({ days, category, query });
+}
+
 async function loadFailureLogsPage() {
+  setupAdminTabs('failureLogsTabs');
   const filters = getFailureFilters();
-  const [summary, trendPayload, topTargetsPayload, listPayload, experiencePayload] = await Promise.all([
+  const [summary, trendPayload, listPayload, experiencePayload] = await Promise.all([
     fetchAdminJson('/api/admin/failure-logs/summary'),
-    fetchAdminJson('/api/admin/failure-logs/trend?days=30'),
-    fetchAdminJson('/api/admin/failure-logs/top-targets?' + filters.toString() + '&limit=20'),
+    fetchAdminJson('/api/admin/failure-logs/trend?days=7'),
     fetchAdminJson('/api/admin/failure-logs/list?' + filters.toString() + '&limit=100'),
     fetchAdminJson('/api/admin/experience/summary')
   ]);
@@ -1120,19 +1315,6 @@ async function loadFailureLogsPage() {
     )).join('')
     : renderEmptyRow('暂无失败趋势数据', 5);
 
-  const topTargets = Array.isArray(topTargetsPayload.targets) ? topTargetsPayload.targets : [];
-  document.getElementById('failureTopTargetsBody').innerHTML = topTargets.length
-    ? topTargets.map((item) => (
-      '<tr>'
-        + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
-        + '<td>' + escapeHtml(item.target || '-') + '</td>'
-        + '<td>' + escapeHtml(formatNumber(item.failures)) + '</td>'
-        + '<td><div class="strong-cell">' + escapeHtml(formatCompactText(item.topPhase)) + '</div><div class="muted-cell">' + escapeHtml(formatCompactText(item.latestError)) + '</div></td>'
-        + '<td>' + escapeHtml(formatNumber(item.records)) + '</td>'
-      + '</tr>'
-    )).join('')
-    : renderEmptyRow('暂无高频失败目标', 5);
-
   const priorityTargets = Array.isArray(experiencePayload.priorityTargets) ? experiencePayload.priorityTargets : [];
   document.getElementById('failurePriorityBody').innerHTML = priorityTargets.length
     ? priorityTargets.map((item) => (
@@ -1155,7 +1337,43 @@ async function loadFailureLogsPage() {
   const logs = Array.isArray(listPayload.logs) ? listPayload.logs : [];
   document.getElementById('failureLogsBody').innerHTML = logs.length
     ? renderFailureLogRows(logs)
-    : renderEmptyRow('暂无失败日志', 6);
+    : renderEmptyRow('暂无失败日志', 15);
+}
+
+async function loadFinalFailuresPage() {
+  setupAdminTabs('finalFailuresTabs');
+  const filters = getFinalFailureFilters();
+  const [summary, trendPayload, listPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/final-failures/summary'),
+    fetchAdminJson('/api/admin/final-failures/trend?days=7'),
+    fetchAdminJson('/api/admin/final-failures/list?' + filters.toString() + '&limit=100')
+  ]);
+  document.getElementById('finalFailureCards').innerHTML = renderCards([
+    { label: '今日最终失败', value: formatNumber(summary.today.totalFailures) },
+    { label: '今日失败站点数', value: formatNumber(summary.today.failedSites) },
+    { label: '近 7 天最终失败', value: formatNumber(summary.last7Days.totalFailures) },
+    { label: '近 7 天失败站点数', value: formatNumber(summary.last7Days.failedSites) },
+    { label: '今日最常失败目标', value: summary.today.topTarget || '暂无' },
+    { label: '统计口径', value: '弹窗出现', note: '中间重试不计入' }
+  ]);
+
+  const trend = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('finalFailureTrendBody').innerHTML = trend.length
+    ? trend.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.siteFailures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.apiFailures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalFailures)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.failedSites)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无最终失败趋势数据', 5);
+
+  const logs = Array.isArray(listPayload.logs) ? listPayload.logs : [];
+  document.getElementById('finalFailureLogsBody').innerHTML = logs.length
+    ? renderFailureLogRows(logs)
+    : renderEmptyRow('暂无最终失败记录', 15);
 }
 
 function renderRankRows(items, emptyMessage) {
@@ -1190,6 +1408,7 @@ function renderVersionRows(items, emptyMessage, mode) {
 }
 
 async function loadGrowthPage() {
+  setupAdminTabs('growthTabs');
   const payload = await fetchAdminJson('/api/admin/growth/summary');
 	  document.getElementById('growthCards').innerHTML = renderCards([
 	    { label: '激活事件', value: formatNumber(payload.summary.activationEvents), note: payload.summary.topActivation || '暂无' },
@@ -1243,6 +1462,7 @@ async function loadGrowthPage() {
 }
 
 async function loadBusinessPage() {
+  setupAdminTabs('businessTabs');
   const payload = await fetchAdminJson('/api/admin/business/summary');
   document.getElementById('businessCards').innerHTML = renderCards([
     { label: '免费额度触达', value: formatNumber(payload.summary.limitReached) },
@@ -1259,7 +1479,56 @@ async function loadBusinessPage() {
   ].join('');
 }
 
+async function loadApiCostPage() {
+  setupAdminTabs('apiCostTabs');
+  const [summary, trendPayload, modelsPayload] = await Promise.all([
+    fetchAdminJson('/api/admin/api-cost/summary?days=30'),
+    fetchAdminJson('/api/admin/api-cost/trend?days=30'),
+    fetchAdminJson('/api/admin/api-cost/by-model?days=30&limit=30')
+  ]);
+  document.getElementById('apiCostCards').innerHTML = renderCards([
+    { label: '今日实际成本', value: formatCost(summary.today.estimatedCost, summary.currency), note: formatNumber(summary.today.totalTokens) + ' tokens' },
+    { label: '今日官方价估算', value: formatCost(summary.today.officialEstimatedCost, summary.currency), note: '倍率 ' + summary.costMultiplier },
+    { label: '近 7 天实际成本', value: formatCost(summary.last7Days.estimatedCost, summary.currency), note: formatNumber(summary.last7Days.totalRequests) + ' 请求' },
+    { label: '近 30 天实际成本', value: formatCost(summary.last30Days.estimatedCost, summary.currency), note: formatNumber(summary.last30Days.totalTokens) + ' tokens' },
+    { label: '近 30 天单请求成本', value: formatCost(summary.last30Days.costPerRequest, summary.currency) },
+    { label: '近 30 天每 1M tokens 成本', value: formatCost(summary.last30Days.costPerMillionTokens, summary.currency) }
+  ]);
+
+  const days = Array.isArray(trendPayload.days) ? trendPayload.days : [];
+  document.getElementById('apiCostTrendBody').innerHTML = days.length
+    ? days.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.date) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.promptTokens)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.completionTokens)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalTokens)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.officialEstimatedCost, trendPayload.currency)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.estimatedCost, trendPayload.currency)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.costPerRequest, trendPayload.currency)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无 API 成本趋势数据', 8);
+
+  const models = Array.isArray(modelsPayload.models) ? modelsPayload.models : [];
+  document.getElementById('apiCostModelsBody').innerHTML = models.length
+    ? models.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.model || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalRequests)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalTokens)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.officialEstimatedCost, modelsPayload.currency)) + '</td>'
+        + '<td>' + escapeHtml(formatCost(item.estimatedCost, modelsPayload.currency)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无模型成本数据', 7);
+}
+
 async function loadShareLinksPage() {
+  setupAdminTabs('shareLinksTabs');
   const [summary, trendPayload, listPayload] = await Promise.all([
     fetchAdminJson('/api/admin/share-links/summary?days=7'),
     fetchAdminJson('/api/admin/share-links/trend?days=7'),
@@ -1308,7 +1577,143 @@ async function loadShareLinksPage() {
     : renderEmptyRow('暂无近 7 天共享链接记录', 6);
 }
 
+function normalizeCoursePromoText(value, fallback = '') {
+  const text = String(value || '').trim();
+  return text || fallback;
+}
+
+function normalizeCoursePromoLocalesValue(value) {
+  const locales = String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return locales.length ? locales.join(', ') : 'zh_CN, zh_TW, zh';
+}
+
+function readCoursePromoForm() {
+  return {
+    enabled: document.getElementById('coursePromoEnabled')?.value === 'true',
+    imageUrl: document.getElementById('coursePromoImageUrl')?.value.trim() || '',
+    targetUrl: document.getElementById('coursePromoTargetUrl')?.value.trim() || '',
+    title: document.getElementById('coursePromoTitle')?.value.trim() || '',
+    subtitle: document.getElementById('coursePromoSubtitle')?.value.trim() || '',
+    ctaText: document.getElementById('coursePromoCtaText')?.value.trim() || '',
+    targetLocales: normalizeCoursePromoLocalesValue(document.getElementById('coursePromoTargetLocales')?.value || ''),
+    dismissDays: document.getElementById('coursePromoDismissDays')?.value || '',
+    maxImpressionsPerDay: document.getElementById('coursePromoMaxImpressionsPerDay')?.value || ''
+  };
+}
+
+function applyCoursePromoPreview(config = {}) {
+  const image = document.getElementById('coursePromoImagePreview');
+  const title = document.getElementById('coursePromoPreviewTitle');
+  const subtitle = document.getElementById('coursePromoPreviewSubtitle');
+  const link = document.getElementById('coursePromoPreviewLink');
+  const meta = document.getElementById('coursePromoMeta');
+
+  if (image) {
+    image.hidden = !config.imageUrl;
+    image.src = config.imageUrl || '';
+    image.onerror = () => {
+      image.hidden = true;
+      image.removeAttribute('src');
+    };
+  }
+  if (title) title.textContent = normalizeCoursePromoText(config.title, 'Codex 编程课');
+  if (subtitle) subtitle.textContent = normalizeCoursePromoText(config.subtitle, '');
+  if (link) {
+    link.href = config.targetUrl || '#';
+    link.textContent = config.ctaText || '打开链接';
+  }
+  if (meta) {
+    meta.textContent = [
+      config.enabled ? '已开启' : '已关闭',
+      '目标语言: ' + normalizeCoursePromoLocalesValue(config.targetLocales),
+      '关闭频控: ' + String(config.dismissDays || 7) + ' 天',
+      '日展示上限: ' + String(config.maxImpressionsPerDay || 3)
+    ].join(' · ');
+  }
+}
+
+function fillCoursePromoForm(config = {}) {
+  const enabled = document.getElementById('coursePromoEnabled');
+  const imageUrl = document.getElementById('coursePromoImageUrl');
+  const targetUrl = document.getElementById('coursePromoTargetUrl');
+  const title = document.getElementById('coursePromoTitle');
+  const subtitle = document.getElementById('coursePromoSubtitle');
+  const ctaText = document.getElementById('coursePromoCtaText');
+  const targetLocales = document.getElementById('coursePromoTargetLocales');
+  const dismissDays = document.getElementById('coursePromoDismissDays');
+  const maxImpressionsPerDay = document.getElementById('coursePromoMaxImpressionsPerDay');
+
+  if (enabled) enabled.value = config.enabled ? 'true' : 'false';
+  if (imageUrl) imageUrl.value = config.imageUrl || '';
+  if (targetUrl) targetUrl.value = config.targetUrl || '';
+  if (title) title.value = config.title || '';
+  if (subtitle) subtitle.value = config.subtitle || '';
+  if (ctaText) ctaText.value = config.ctaText || '';
+  if (targetLocales) targetLocales.value = Array.isArray(config.targetLocales) ? config.targetLocales.join(', ') : normalizeCoursePromoLocalesValue(config.targetLocales);
+  if (dismissDays) dismissDays.value = String(config.dismissDays || 7);
+  if (maxImpressionsPerDay) maxImpressionsPerDay.value = String(config.maxImpressionsPerDay || 3);
+  applyCoursePromoPreview(config);
+}
+
+async function loadCoursePromoPage() {
+  const payload = await fetchAdminJson('/api/admin/course-promo');
+  fillCoursePromoForm(payload.config || {});
+  const saveButton = document.getElementById('coursePromoSaveButton');
+  const refreshButton = document.getElementById('coursePromoRefreshButton');
+  if (saveButton && saveButton.dataset.bound !== 'true') {
+    saveButton.dataset.bound = 'true';
+    saveButton.addEventListener('click', async () => {
+      try {
+        saveButton.disabled = true;
+        saveButton.textContent = '保存中...';
+        const response = await fetch('/api/admin/course-promo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(readCoursePromoForm())
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || ('保存失败: HTTP ' + response.status));
+        }
+        fillCoursePromoForm(result.config || {});
+        const status = document.getElementById('tokenStatus');
+        if (status) status.textContent = '课程广告配置已保存。';
+      } catch (error) {
+        const status = document.getElementById('tokenStatus');
+        if (status) status.textContent = error.message || String(error);
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = '保存配置';
+      }
+    });
+  }
+  if (refreshButton && refreshButton.dataset.bound !== 'true') {
+    refreshButton.dataset.bound = 'true';
+    refreshButton.addEventListener('click', () => {
+      loadCoursePromoPage().catch((error) => {
+        const status = document.getElementById('tokenStatus');
+        if (status) status.textContent = error.message || String(error);
+      });
+    });
+  }
+  ['coursePromoEnabled', 'coursePromoImageUrl', 'coursePromoTargetUrl', 'coursePromoTitle', 'coursePromoSubtitle', 'coursePromoCtaText', 'coursePromoTargetLocales', 'coursePromoDismissDays', 'coursePromoMaxImpressionsPerDay']
+    .forEach((id) => {
+      const element = document.getElementById(id);
+      if (!element || element.dataset.bound === 'true') return;
+      element.dataset.bound = 'true';
+      element.addEventListener('input', () => applyCoursePromoPreview(readCoursePromoForm()));
+      element.addEventListener('change', () => applyCoursePromoPreview(readCoursePromoForm()));
+    });
+}
+
 async function bootAdminPage(pageName) {
+  setAdminSessionPanelState(true);
   const usernameInput = document.getElementById('usernameInput');
   const passwordInput = document.getElementById('passwordInput');
   const rememberInput = document.getElementById('rememberPasswordInput');
@@ -1332,7 +1737,7 @@ async function bootAdminPage(pageName) {
     try {
       statusEl.textContent = '正在退出...';
       await destroyAdminSession();
-      statusEl.textContent = '管理员会话已清空。';
+      statusEl.textContent = '管理员会话已清空，正在返回登录页。';
     } catch (error) {
       statusEl.textContent = error.message || String(error);
     }
@@ -1340,6 +1745,7 @@ async function bootAdminPage(pageName) {
     passwordInput.value = '';
     rememberInput.checked = false;
     clearRememberedAdminCredentials();
+    window.location.href = '/admin/login';
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -1350,11 +1756,15 @@ async function bootAdminPage(pageName) {
   try {
     if (pageName === 'overview') await loadOverview();
     if (pageName === 'orders') await loadOrdersPage();
+    if (pageName === 'users') await loadUsersPage();
+    if (pageName === 'redeemCodes') await loadRedeemCodesPage();
     if (pageName === 'apiUsage') await loadApiUsagePage();
     if (pageName === 'siteUsage') await loadSiteUsagePage();
     if (pageName === 'growth') await loadGrowthPage();
     if (pageName === 'business') await loadBusinessPage();
+    if (pageName === 'apiCost') await loadApiCostPage();
     if (pageName === 'shareLinks') await loadShareLinksPage();
+    if (pageName === 'coursePromo') await loadCoursePromoPage();
     if (pageName === 'failureLogs') {
       document.getElementById('failureSearchButton')?.addEventListener('click', () => {
         loadFailureLogsPage().catch((error) => {
@@ -1363,6 +1773,14 @@ async function bootAdminPage(pageName) {
       });
       await loadFailureLogsPage();
     }
+    if (pageName === 'finalFailures') {
+      document.getElementById('finalFailureSearchButton')?.addEventListener('click', () => {
+        loadFinalFailuresPage().catch((error) => {
+          statusEl.textContent = error.message || String(error);
+        });
+      });
+      await loadFinalFailuresPage();
+    }
     statusEl.textContent = '数据已刷新，管理员会话有效。';
   } catch (error) {
     statusEl.textContent = error.message || String(error);
@@ -1370,6 +1788,7 @@ async function bootAdminPage(pageName) {
 }
 
 async function bootAdminLoginPage() {
+  setAdminSessionPanelState(false);
   const usernameInput = document.getElementById('usernameInput');
   const passwordInput = document.getElementById('passwordInput');
   const rememberInput = document.getElementById('rememberPasswordInput');
@@ -1440,6 +1859,9 @@ const ADMIN_STYLES = `
     gap: 20px;
     align-items: stretch;
     margin-bottom: 22px;
+  }
+  .hero.is-authenticated {
+    grid-template-columns: 1fr;
   }
   .hero-panel, .token-panel, .card {
     background: var(--panel);
@@ -1518,6 +1940,9 @@ const ADMIN_STYLES = `
     flex-direction: column;
     gap: 14px;
   }
+  .token-panel.is-authenticated {
+    display: none;
+  }
   .token-panel h2 {
     margin: 0;
     font-size: 18px;
@@ -1533,7 +1958,32 @@ const ADMIN_STYLES = `
     padding: 2px 6px;
     border-radius: 6px;
   }
-  textarea, input[type="text"], input[type="password"], input[type="search"], select {
+  .admin-session-summary {
+    padding: 16px;
+    border: 1px solid rgba(182, 90, 45, 0.18);
+    border-radius: 20px;
+    background: rgba(182, 90, 45, 0.08);
+    color: var(--text);
+    font-weight: 800;
+    line-height: 1.55;
+  }
+  .admin-session-summary small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-weight: 650;
+  }
+  .admin-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .admin-login-form[hidden],
+  .admin-session-summary[hidden],
+  .token-actions button[hidden] {
+    display: none;
+  }
+  textarea, input[type="text"], input[type="password"], input[type="search"], input[type="url"], input[type="number"], select {
     width: 100%;
     border-radius: 20px;
     border: 1px solid var(--border);
@@ -1614,6 +2064,89 @@ const ADMIN_STYLES = `
     margin: 0 0 14px;
     font-size: 17px;
   }
+  .course-promo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .field {
+    display: grid;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .course-promo-field-wide {
+    grid-column: 1 / -1;
+  }
+  .course-promo-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .course-promo-actions button:first-child {
+    background: var(--accent);
+    color: #fff;
+  }
+  .course-promo-actions button:last-child {
+    background: #fff;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .redeem-code-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .redeem-note-field {
+    grid-column: span 2;
+  }
+  .redeem-code-output {
+    margin: 14px 0 0;
+    white-space: pre-wrap;
+    user-select: all;
+  }
+  .course-promo-meta {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .course-promo-preview {
+    display: grid;
+    grid-template-columns: minmax(220px, 420px) 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .course-promo-preview img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: var(--panel-strong);
+  }
+  .course-promo-preview-title {
+    font-size: 24px;
+    font-weight: 760;
+    color: var(--text);
+  }
+  .course-promo-preview-subtitle {
+    margin-top: 8px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .course-promo-preview-link {
+    display: inline-flex;
+    margin-top: 14px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  @media (max-width: 900px) {
+    .course-promo-grid,
+    .course-promo-preview {
+      grid-template-columns: 1fr;
+    }
+  }
   .filter-row {
     display: grid;
     grid-template-columns: 150px 170px 1fr auto;
@@ -1637,6 +2170,27 @@ const ADMIN_STYLES = `
     font-size: 14px;
     table-layout: fixed;
   }
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 18px;
+  }
+  .failure-detail-table {
+    min-width: 1680px;
+    table-layout: auto;
+  }
+  .failure-detail-table th,
+  .failure-detail-table td {
+    white-space: normal;
+  }
+  .failure-detail-table th:nth-child(1),
+  .failure-detail-table th:nth-child(2) {
+    width: 150px;
+  }
+  .failure-detail-table th:nth-child(14),
+  .failure-detail-table th:nth-child(15) {
+    width: 260px;
+  }
   th, td {
     text-align: left;
     padding: 12px 10px;
@@ -1659,7 +2213,7 @@ const ADMIN_STYLES = `
     line-height: 1.4;
   }
   .error-cell {
-    max-width: 420px;
+    max-width: 520px;
     color: #5f2519;
     font-weight: 650;
     line-height: 1.45;
@@ -2029,6 +2583,273 @@ function getStripe() {
   return new Stripe(secretKey, { apiVersion: '2024-06-20' });
 }
 
+let emailAuthTransporter = null;
+
+function getEmailAuthTransporter() {
+  if (emailAuthTransporter) {
+    return emailAuthTransporter;
+  }
+
+  const host = String(process.env.EMAIL_AUTH_SMTP_HOST || process.env.SMTP_HOST || '').trim();
+  const port = Number(process.env.EMAIL_AUTH_SMTP_PORT || process.env.SMTP_PORT || 587) || 587;
+  const user = String(process.env.EMAIL_AUTH_SMTP_USER || process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.EMAIL_AUTH_SMTP_PASS || process.env.SMTP_PASS || '').trim();
+  const secureRaw = String(process.env.EMAIL_AUTH_SMTP_SECURE || process.env.SMTP_SECURE || '').trim().toLowerCase();
+  const secure = secureRaw
+    ? ['1', 'true', 'yes'].includes(secureRaw)
+    : port === 465;
+
+  if (!host || !user || !pass) {
+    const error = new Error('Email verification sender is not configured');
+    error.status = 500;
+    error.code = 'EMAIL_SENDER_NOT_CONFIGURED';
+    throw error;
+  }
+
+  emailAuthTransporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass }
+  });
+  return emailAuthTransporter;
+}
+
+function assertEmailAuthSecret() {
+  const secret = String(
+    process.env.EMAIL_AUTH_CODE_SECRET
+    || adminSessionSecret
+    || process.env.STRIPE_WEBHOOK_SECRET
+    || ''
+  ).trim();
+  if (!secret) {
+    const error = new Error('EMAIL_AUTH_CODE_SECRET is not configured');
+    error.status = 500;
+    error.code = 'EMAIL_AUTH_SECRET_NOT_CONFIGURED';
+    throw error;
+  }
+  return secret;
+}
+
+function normalizeEmailLoginAddress(email = '') {
+  const normalized = normalizeBillingEmail(email);
+  if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    const error = new Error('Please enter a valid email address');
+    error.status = 400;
+    error.code = 'INVALID_EMAIL';
+    throw error;
+  }
+  return normalized;
+}
+
+function getEmailLoginCodeDocId(email = '') {
+  return crypto.createHash('sha256').update(normalizeEmailLoginAddress(email)).digest('hex');
+}
+
+function hashEmailLoginCode(email = '', code = '', salt = '') {
+  return crypto
+    .createHash('sha256')
+    .update([
+      assertEmailAuthSecret(),
+      normalizeEmailLoginAddress(email),
+      String(code || '').trim(),
+      String(salt || '').trim()
+    ].join(':'))
+    .digest('hex');
+}
+
+function createEmailLoginCode() {
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+function getFirestoreMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function buildEmailLoginMessage({ code, ttlMinutes }) {
+  const safeCode = String(code || '').trim();
+  const safeTtl = Math.max(1, Math.round(Number(ttlMinutes) || 10));
+  return {
+    subject: 'Your temporary AI Compare verification code',
+    text: [
+      'Enter this temporary verification code to continue:',
+      '',
+      safeCode,
+      '',
+      `This code expires in ${safeTtl} minutes.`,
+      '',
+      'Please ignore this email if this was not you trying to sign in to an AI Compare account.',
+      '',
+      'Best,',
+      'The AI Compare team'
+    ].join('\n'),
+    html: [
+      '<div style="margin:0;padding:0;background:#ffffff;color:#2d313b;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.45">',
+      '<div style="max-width:640px;margin:0 auto;padding:28px 32px 40px">',
+      '<div style="margin:0 0 52px;color:#000000;font-size:40px;font-weight:800;letter-spacing:-1.8px;line-height:1">AI Compare</div>',
+      '<p style="margin:0 0 28px;font-size:20px;line-height:1.45;color:#2d313b">Enter this temporary verification code to continue:</p>',
+      `<div style="box-sizing:border-box;width:100%;margin:0 0 34px;padding:31px 30px;border-radius:18px;background:#f1f1f1;color:#5c5f63;font-size:32px;font-weight:700;letter-spacing:3px;line-height:1.25">${safeCode}</div>`,
+      '<p style="margin:0 0 56px;font-size:20px;line-height:1.45;color:#2d313b">Please ignore this email if this was not you trying to sign in to an AI Compare account.</p>',
+      '<p style="margin:0;color:#858585;font-size:20px;line-height:1.45">Best,<br>The AI Compare team</p>',
+      `<p style="margin:28px 0 0;color:#a3a3a3;font-size:13px;line-height:1.45">This code expires in ${safeTtl} minutes.</p>`,
+      '</div>',
+      '</div>'
+    ].join('')
+  };
+}
+
+async function sendEmailLoginCode(req) {
+  requireFirebaseAdmin();
+  const email = normalizeEmailLoginAddress(req.body?.email);
+  const docRef = db.collection(emailLoginCodeCollection).doc(getEmailLoginCodeDocId(email));
+  const now = Date.now();
+  const existing = await docRef.get();
+  const existingData = existing.exists ? existing.data() || {} : {};
+  const lastSentAtMs = getFirestoreMillis(existingData.lastSentAt);
+  const cooldownMs = emailAuthResendCooldownSeconds * 1000;
+
+  if (cooldownMs > 0 && lastSentAtMs && now - lastSentAtMs < cooldownMs) {
+    const error = new Error('Please wait before requesting another code');
+    error.status = 429;
+    error.code = 'EMAIL_CODE_COOLDOWN';
+    error.retryAfterSeconds = Math.ceil((cooldownMs - (now - lastSentAtMs)) / 1000);
+    throw error;
+  }
+
+  const code = createEmailLoginCode();
+  const salt = crypto.randomBytes(16).toString('hex');
+  const expiresAtMs = now + emailAuthCodeTtlSeconds * 1000;
+  const ttlMinutes = Math.ceil(emailAuthCodeTtlSeconds / 60);
+  const mail = buildEmailLoginMessage({ code, ttlMinutes });
+
+  await docRef.set({
+    email,
+    codeHash: hashEmailLoginCode(email, code, salt),
+    salt,
+    attempts: 0,
+    createdAt: admin.firestore.Timestamp.fromMillis(now),
+    lastSentAt: admin.firestore.Timestamp.fromMillis(now),
+    expiresAt: admin.firestore.Timestamp.fromMillis(expiresAtMs),
+    consumedAt: null
+  }, { merge: true });
+
+  try {
+    await getEmailAuthTransporter().sendMail({
+      from: emailAuthFrom,
+      ...(emailAuthReplyTo ? { replyTo: emailAuthReplyTo } : {}),
+      to: email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html
+    });
+  } catch (error) {
+    await docRef.delete().catch(() => null);
+    error.status = 502;
+    throw error;
+  }
+
+  return {
+    ok: true,
+    email,
+    expiresInSeconds: emailAuthCodeTtlSeconds
+  };
+}
+
+async function getOrCreateEmailLoginUser(email = '') {
+  requireFirebaseAdmin();
+  const normalizedEmail = normalizeEmailLoginAddress(email);
+  try {
+    const user = await admin.auth().getUserByEmail(normalizedEmail);
+    if (!user.emailVerified) {
+      await admin.auth().updateUser(user.uid, { emailVerified: true });
+      return { ...user, emailVerified: true };
+    }
+    return user;
+  } catch (error) {
+    if (error?.code !== 'auth/user-not-found') {
+      throw error;
+    }
+  }
+
+  return admin.auth().createUser({
+    email: normalizedEmail,
+    emailVerified: true
+  });
+}
+
+async function verifyEmailLoginCode(req) {
+  requireFirebaseAdmin();
+  const email = normalizeEmailLoginAddress(req.body?.email);
+  const code = String(req.body?.code || '').trim().replace(/\s+/g, '');
+  if (!/^\d{6}$/.test(code)) {
+    const error = new Error('Please enter the 6-digit verification code');
+    error.status = 400;
+    error.code = 'EMAIL_CODE_INVALID_FORMAT';
+    throw error;
+  }
+
+  const docRef = db.collection(emailLoginCodeCollection).doc(getEmailLoginCodeDocId(email));
+  const snapshot = await docRef.get();
+  if (!snapshot.exists) {
+    const error = new Error('Verification code not found or expired');
+    error.status = 400;
+    error.code = 'EMAIL_CODE_EXPIRED';
+    throw error;
+  }
+
+  const data = snapshot.data() || {};
+  const now = Date.now();
+  if (data.consumedAt || getFirestoreMillis(data.expiresAt) <= now) {
+    await docRef.delete().catch(() => null);
+    const error = new Error('Verification code not found or expired');
+    error.status = 400;
+    error.code = 'EMAIL_CODE_EXPIRED';
+    throw error;
+  }
+
+  const attempts = Math.max(0, Number(data.attempts || 0) || 0);
+  if (attempts >= emailAuthMaxAttempts) {
+    await docRef.delete().catch(() => null);
+    const error = new Error('Too many verification attempts. Please request a new code');
+    error.status = 429;
+    error.code = 'EMAIL_CODE_TOO_MANY_ATTEMPTS';
+    throw error;
+  }
+
+  const expectedHash = String(data.codeHash || '');
+  const actualHash = hashEmailLoginCode(email, code, data.salt || '');
+  if (!safeCompare(expectedHash, actualHash)) {
+    await docRef.set({
+      attempts: attempts + 1,
+      lastAttemptAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    const error = new Error('Incorrect verification code');
+    error.status = 400;
+    error.code = 'EMAIL_CODE_INVALID';
+    throw error;
+  }
+
+  const user = await getOrCreateEmailLoginUser(email);
+  await docRef.set({
+    consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+    attempts: attempts + 1
+  }, { merge: true });
+
+  const customToken = await admin.auth().createCustomToken(user.uid, {
+    signInProvider: 'email_code'
+  });
+
+  return {
+    ok: true,
+    customToken,
+    email,
+    uid: user.uid
+  };
+}
+
 function getCorsOrigin(req) {
   const origin = String(req.headers.origin || '').trim();
   if (!origin) return '*';
@@ -2062,7 +2883,12 @@ function asyncRoute(handler) {
       if (status >= 500) {
         console.error(error);
       }
-      res.status(status).json({ error: error.message || String(error) });
+      res.status(status).json({
+        error: error.message || String(error),
+        ...(error.code ? { code: String(error.code) } : {}),
+        ...(Number.isFinite(error.retryAfterSeconds) ? { retryAfterSeconds: Number(error.retryAfterSeconds) } : {}),
+        ...(Number.isFinite(error.limit) ? { limit: Number(error.limit) } : {})
+      });
     }
   };
 }
@@ -2257,6 +3083,15 @@ function getAnonymousUsageDocId(clientId) {
     .digest('hex');
 }
 
+function getAnonymousClientHash(value = '') {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (/^[a-f0-9]{64}$/i.test(normalized)) {
+    return normalized.toLowerCase();
+  }
+  return getAnonymousUsageDocId(normalized);
+}
+
 function normalizeLocale(locale = '') {
   return String(locale || '').trim().replace('-', '_').toLowerCase();
 }
@@ -2353,9 +3188,13 @@ async function getUserPlan(uid) {
   const data = snap.exists ? snap.data() || {} : {};
   const expiresAtSeconds = getTimestampSeconds(data.planExpiresAt);
   const isActive = data.plan === 'pro' && (!expiresAtSeconds || expiresAtSeconds > Math.floor(Date.now() / 1000));
+  const apiPlanExpiresAtSeconds = getTimestampSeconds(data.apiPlanExpiresAt);
+  const isApiActive = data.apiPlan === 'pro' && (!apiPlanExpiresAtSeconds || apiPlanExpiresAtSeconds > Math.floor(Date.now() / 1000));
   return {
     plan: isActive ? 'pro' : 'free',
     planExpiresAt: data.planExpiresAt || null,
+    apiPlan: isApiActive ? 'pro' : 'free',
+    apiPlanExpiresAt: data.apiPlanExpiresAt || null,
     stripeCustomerId: data[getStripeCustomerIdField()] || data.stripeCustomerId || '',
     stripeCustomerIdLegacy: data.stripeCustomerId || '',
     stripeCustomerIdLive: data.stripeCustomerIdLive || '',
@@ -2373,8 +3212,8 @@ async function consumeOfficialApiUsage(uid, locale) {
   }
 
   const plan = await getUserPlan(uid);
-  if (plan.plan === 'pro') {
-    return { billingEnabled: true, plan: 'pro', limit: dailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
+  if (plan.apiPlan === 'pro') {
+    return { billingEnabled: true, plan: 'api_pro', limit: dailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
   }
 
   const dateKey = getTodayKey();
@@ -2390,9 +3229,9 @@ async function consumeOfficialApiUsage(uid, locale) {
         uploaderType: 'user',
         source: 'backend',
         locale,
-        metadata: { plan: plan.plan || 'free', limit: dailyFreeLimit }
+        metadata: { plan: plan.apiPlan || 'free', limit: dailyFreeLimit }
       }).catch(() => null);
-      const error = new Error(`You've used today's ${dailyFreeLimit} free official API requests. Upgrade to PRO or switch to your own API.`);
+      const error = new Error(`You've used today's ${dailyFreeLimit} free API-powered questions. Upgrade to API Plan for unlimited summary and skill questions, or switch to your own API.`);
       error.status = 402;
       throw error;
     }
@@ -2441,7 +3280,7 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
         locale,
         metadata: { plan: 'anonymous', limit: dailyFreeLimit }
       }).catch(() => null);
-      const error = new Error(`You've used today's ${dailyFreeLimit} free official API requests. Upgrade to PRO or switch to your own API.`);
+      const error = new Error(`You've used today's ${dailyFreeLimit} free API-powered questions. Upgrade to API Plan for unlimited summary and skill questions, or switch to your own API.`);
       error.status = 402;
       throw error;
     }
@@ -2460,6 +3299,117 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
       remaining: Math.max(0, dailyFreeLimit - nextUsed)
     };
   });
+}
+
+function createChatPlanLimitError(limit) {
+  const error = new Error(`You've used today's ${limit} free AI comparison questions. Upgrade to Chat Plan for unlimited questions.`);
+  error.status = 402;
+  error.code = 'CHAT_PLAN_LIMIT_REACHED';
+  error.limit = Math.max(0, Number(limit) || 0);
+  return error;
+}
+
+async function consumeChatPlanUsage(uid, locale) {
+  if (!shouldMeterLocale(locale)) {
+    return { billingEnabled: false, plan: 'free', limit: chatPlanDailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
+  }
+
+  const plan = await getUserPlan(uid);
+  if (plan.plan === 'pro') {
+    return { billingEnabled: true, plan: 'pro', limit: chatPlanDailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
+  }
+
+  const dateKey = getTodayKey();
+  const usageRef = db.collection('users').doc(uid).collection('usage').doc(dateKey);
+  return db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(usageRef);
+    const used = snap.exists ? Math.max(0, Number(snap.data().chatQuestionCount) || 0) : 0;
+    if (used >= chatPlanDailyFreeLimit) {
+      recordInternalAnalyticsEvent({
+        kind: 'subscription',
+        eventName: 'chat_plan_limit_reached',
+        uid,
+        uploaderType: 'user',
+        source: 'backend',
+        locale,
+        metadata: { plan: plan.plan || 'free', limit: chatPlanDailyFreeLimit }
+      }).catch(() => null);
+      throw createChatPlanLimitError(chatPlanDailyFreeLimit);
+    }
+    const nextUsed = used + 1;
+    transaction.set(usageRef, {
+      chatQuestionCount: nextUsed,
+      date: dateKey,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return {
+      billingEnabled: true,
+      plan: 'free',
+      limit: chatPlanDailyFreeLimit,
+      used: nextUsed,
+      remaining: Math.max(0, chatPlanDailyFreeLimit - nextUsed)
+    };
+  });
+}
+
+async function consumeAnonymousChatPlanUsage(clientId, locale) {
+  if (!shouldMeterLocale(locale)) {
+    return { billingEnabled: false, plan: 'anonymous', limit: chatPlanDailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
+  }
+
+  const normalizedClientId = String(clientId || '').trim();
+  if (!normalizedClientId) {
+    const error = new Error('Anonymous client id is required');
+    error.status = 400;
+    throw error;
+  }
+
+  requireFirebaseAdmin();
+  const dateKey = getTodayKey();
+  const clientHash = getAnonymousUsageDocId(normalizedClientId);
+  const usageRef = db.collection('anonymousUsage').doc(clientHash).collection('usage').doc(dateKey);
+  return db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(usageRef);
+    const used = snap.exists ? Math.max(0, Number(snap.data().chatQuestionCount) || 0) : 0;
+    if (used >= chatPlanDailyFreeLimit) {
+      recordInternalAnalyticsEvent({
+        kind: 'subscription',
+        eventName: 'anonymous_chat_plan_limit_reached',
+        clientHash,
+        uploaderType: 'anonymous',
+        source: 'backend',
+        locale,
+        metadata: { plan: 'anonymous', limit: chatPlanDailyFreeLimit }
+      }).catch(() => null);
+      throw createChatPlanLimitError(chatPlanDailyFreeLimit);
+    }
+    const nextUsed = used + 1;
+    transaction.set(usageRef, {
+      chatQuestionCount: nextUsed,
+      date: dateKey,
+      clientHash,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return {
+      billingEnabled: true,
+      plan: 'anonymous',
+      limit: chatPlanDailyFreeLimit,
+      used: nextUsed,
+      remaining: Math.max(0, chatPlanDailyFreeLimit - nextUsed)
+    };
+  });
+}
+
+async function consumeChatPlanUsageForRequest(req) {
+  const user = await getOptionalUser(req);
+  const locale = String(req.headers['x-ai-compare-locale'] || req.body?.locale || '').trim();
+  const usageResult = user?.uid
+    ? await consumeChatPlanUsage(user.uid, locale)
+    : await consumeAnonymousChatPlanUsage(getAnonymousClientId(req), locale);
+  return {
+    ok: true,
+    ...usageResult
+  };
 }
 
 async function recordOfficialApiEvent({
@@ -2501,7 +3451,9 @@ async function recordOfficialApiEvent({
     promptTokens: tokenCost.promptTokens,
     completionTokens: tokenCost.completionTokens,
     totalTokens: tokenCost.totalTokens,
+    officialEstimatedCost: tokenCost.officialEstimatedCost,
     estimatedCost: tokenCost.estimatedCost,
+    costMultiplier: tokenCost.costMultiplier,
     currency: tokenCost.currency,
     hasTokenUsage: tokenCost.totalTokens > 0,
     createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -2924,6 +3876,162 @@ function safeAnalyticsMetadata(metadata) {
   return result;
 }
 
+function getDefaultCoursePromoConfig() {
+  return {
+    enabled: false,
+    imageUrl: '',
+    targetUrl: '',
+    title: 'Codex 编程课',
+    subtitle: '面向中文用户的 Codex 编程课，学习如何把 AI 变成稳定可落地的开发效率工具。',
+    ctaText: '查看课程',
+    targetLocales: ['zh_CN', 'zh_TW', 'zh'],
+    dismissDays: 7,
+    maxImpressionsPerDay: 3,
+    updatedAt: null,
+    updatedBy: ''
+  };
+}
+
+function normalizeCoursePromoText(value, limit, fallback = '') {
+  const text = safeLogString(value, limit);
+  return text || fallback;
+}
+
+function normalizeCoursePromoUrl(value) {
+  const url = safeLogString(value, 1000);
+  return /^https:\/\/\S+/i.test(url) ? url : '';
+}
+
+function normalizeCoursePromoLocales(value) {
+  const defaults = ['zh_CN', 'zh_TW', 'zh'];
+  const raw = Array.isArray(value)
+    ? value
+    : String(value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  const seen = new Set();
+  const locales = raw
+    .map((item) => safeLogString(item, 20))
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  return locales.length ? locales.slice(0, 10) : defaults;
+}
+
+function normalizePositiveInteger(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
+function normalizeCoursePromoUpdatedAt(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value?.toDate === 'function') {
+    try {
+      return value.toDate().toISOString();
+    } catch (_) {
+      return null;
+    }
+  }
+  if (typeof value?.seconds === 'number') {
+    return new Date(value.seconds * 1000).toISOString();
+  }
+  return safeLogString(value, 80);
+}
+
+function normalizeCoursePromoConfig(raw = {}) {
+  const defaults = getDefaultCoursePromoConfig();
+  return {
+    enabled: raw.enabled === true,
+    imageUrl: normalizeCoursePromoUrl(raw.imageUrl),
+    targetUrl: normalizeCoursePromoUrl(raw.targetUrl),
+    title: normalizeCoursePromoText(raw.title, 80, defaults.title),
+    subtitle: normalizeCoursePromoText(raw.subtitle, 160, defaults.subtitle),
+    ctaText: normalizeCoursePromoText(raw.ctaText, 24, defaults.ctaText),
+    targetLocales: normalizeCoursePromoLocales(raw.targetLocales),
+    dismissDays: normalizePositiveInteger(raw.dismissDays, defaults.dismissDays, 1, 365),
+    maxImpressionsPerDay: normalizePositiveInteger(raw.maxImpressionsPerDay, defaults.maxImpressionsPerDay, 1, 20),
+    updatedAt: normalizeCoursePromoUpdatedAt(raw.updatedAt),
+    updatedBy: safeLogString(raw.updatedBy || '', 80)
+  };
+}
+
+async function getCoursePromoConfigFromStore() {
+  requireFirebaseAdmin();
+  const snap = await db.collection('runtimeConfigs').doc('coursePromo').get();
+  if (!snap.exists) {
+    return getDefaultCoursePromoConfig();
+  }
+  return normalizeCoursePromoConfig(snap.data() || {});
+}
+
+async function saveCoursePromoConfigToStore(config, updatedBy = '') {
+  requireFirebaseAdmin();
+  const payload = {
+    ...normalizeCoursePromoConfig(config),
+    updatedBy: safeLogString(updatedBy || '', 80),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+  await db.collection('runtimeConfigs').doc('coursePromo').set(payload, { merge: true });
+  return payload;
+}
+
+function validateCoursePromoConfigInput(input = {}) {
+  const errors = [];
+  if (input.enabled === true) {
+    if (!input.imageUrl) errors.push('图片 URL 必须以 https:// 开头');
+    if (!input.targetUrl) errors.push('点击链接必须以 https:// 开头');
+    if (!input.title) errors.push('标题不能为空');
+    if (!input.ctaText) errors.push('按钮文案不能为空');
+  }
+  if (input.imageUrl && !input.imageUrl.startsWith('https://')) {
+    errors.push('图片 URL 必须以 https:// 开头');
+  }
+  if (input.targetUrl && !input.targetUrl.startsWith('https://')) {
+    errors.push('点击链接必须以 https:// 开头');
+  }
+  return errors;
+}
+
+function sanitizeCoursePromoOutput(config = {}) {
+  const normalized = normalizeCoursePromoConfig(config);
+  return {
+    enabled: normalized.enabled === true,
+    imageUrl: normalized.imageUrl,
+    targetUrl: normalized.targetUrl,
+    title: normalized.title,
+    subtitle: normalized.subtitle,
+    ctaText: normalized.ctaText,
+    targetLocales: normalized.targetLocales,
+    dismissDays: normalized.dismissDays,
+    maxImpressionsPerDay: normalized.maxImpressionsPerDay,
+    updatedAt: normalized.updatedAt,
+    updatedBy: normalized.updatedBy
+  };
+}
+
+function sanitizeCoursePromoPublicOutput(config = {}) {
+  const normalized = sanitizeCoursePromoOutput(config);
+  return {
+    enabled: normalized.enabled,
+    imageUrl: normalized.imageUrl,
+    targetUrl: normalized.targetUrl,
+    title: normalized.title,
+    subtitle: normalized.subtitle,
+    ctaText: normalized.ctaText,
+    targetLocales: normalized.targetLocales,
+    dismissDays: normalized.dismissDays,
+    maxImpressionsPerDay: normalized.maxImpressionsPerDay,
+    updatedAt: normalized.updatedAt
+  };
+}
+
 function getAnalyticsCollectionName(kind = 'feature') {
   if (kind === 'activation') return 'activationEvents';
   if (kind === 'subscription') return 'subscriptionFunnelEvents';
@@ -3044,8 +4152,296 @@ function getCancelUrl() {
 function getStripePrices() {
   return {
     monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
-    yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim()
+    yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim(),
+    chat: {
+      monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
+      yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim()
+    },
+    api: {
+      monthly: String(process.env.STRIPE_API_PRICE_MONTHLY || '').trim(),
+      yearly: String(process.env.STRIPE_API_PRICE_YEARLY || '').trim()
+    }
   };
+}
+
+function buildStripePriceDetail(priceId, price) {
+  if (!priceId || !price) {
+    return null;
+  }
+  const product = price.product && typeof price.product === 'object' ? price.product : null;
+  const recurring = price.recurring && typeof price.recurring === 'object' ? price.recurring : {};
+  const unitAmount = Number.isFinite(price.unit_amount)
+    ? price.unit_amount
+    : (Number.isFinite(price.unit_amount_decimal) ? Number(price.unit_amount_decimal) : null);
+  return {
+    priceId,
+    productId: product?.id || (typeof price.product === 'string' ? price.product : ''),
+    productName: String(product?.name || '').trim(),
+    nickname: String(price.nickname || '').trim(),
+    currency: String(price.currency || '').trim().toLowerCase(),
+    unitAmount,
+    interval: String(recurring.interval || '').trim(),
+    intervalCount: Number(recurring.interval_count || 1) || 1
+  };
+}
+
+async function getStripePriceDetails() {
+  const prices = getStripePrices();
+  const priceGroups = {
+    chat: prices.chat,
+    api: prices.api
+  };
+  const details = { chat: {}, api: {} };
+  const stripe = getStripe();
+
+  await Promise.all(Object.entries(priceGroups).flatMap(([planType, planPrices]) => (
+    Object.entries(planPrices || {}).map(async ([billingCycle, priceId]) => {
+      const normalizedPriceId = String(priceId || '').trim();
+      if (!normalizedPriceId) {
+        return;
+      }
+      try {
+        const price = await stripe.prices.retrieve(normalizedPriceId, { expand: ['product'] });
+        details[planType][billingCycle] = buildStripePriceDetail(normalizedPriceId, price);
+      } catch (error) {
+        console.warn(`[ai-compare-backend] Failed to load Stripe price detail for ${planType}.${billingCycle}:`, error.message);
+      }
+    })
+  )));
+
+  return details;
+}
+
+function normalizeRedeemCode(value = '') {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function formatRedeemCode(normalizedCode = '') {
+  const text = normalizeRedeemCode(normalizedCode);
+  return text.match(/.{1,4}/g)?.join('-') || text;
+}
+
+function hashRedeemCode(value = '') {
+  return crypto.createHash('sha256').update(normalizeRedeemCode(value), 'utf8').digest('hex');
+}
+
+function generateRedeemCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'AIC';
+  while (code.length < 15) {
+    const byte = crypto.randomBytes(1)[0];
+    code += alphabet[byte % alphabet.length];
+  }
+  return formatRedeemCode(code);
+}
+
+function normalizeRedeemPlanType(value = '') {
+  return String(value || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
+}
+
+function normalizeRedeemInterval(value = '') {
+  return String(value || '').trim().toLowerCase() === 'yearly' ? 'yearly' : 'monthly';
+}
+
+function getRedeemDurationDays(interval = 'monthly') {
+  return normalizeRedeemInterval(interval) === 'yearly' ? 366 : 31;
+}
+
+function addDays(date, days) {
+  return new Date(date.getTime() + Math.max(1, Number(days) || 1) * 24 * 60 * 60 * 1000);
+}
+
+function getTimestampMillis(value) {
+  const seconds = getTimestampSeconds(value);
+  return seconds ? seconds * 1000 : 0;
+}
+
+function getRedeemCodePublicFields(doc) {
+  const data = doc.data() || {};
+  return {
+    id: doc.id,
+    prefix: String(data.prefix || ''),
+    planType: normalizeRedeemPlanType(data.planType),
+    interval: normalizeRedeemInterval(data.interval),
+    durationDays: Number(data.durationDays || getRedeemDurationDays(data.interval)),
+    maxRedemptions: Math.max(1, Number(data.maxRedemptions || 1) || 1),
+    redemptionCount: Math.max(0, Number(data.redemptionCount || 0) || 0),
+    status: String(data.status || 'active'),
+    note: String(data.note || ''),
+    expiresAt: timestampToIso(data.expiresAt),
+    createdAt: timestampToIso(data.createdAt),
+    createdBy: String(data.createdBy || ''),
+    lastRedeemedAt: timestampToIso(data.lastRedeemedAt),
+    lastRedeemedByEmail: String(data.lastRedeemedByEmail || ''),
+    lastRedeemedByUid: String(data.lastRedeemedByUid || '')
+  };
+}
+
+async function createRedeemCodes(req, adminUser) {
+  requireFirebaseAdmin();
+  const planType = normalizeRedeemPlanType(req.body?.planType);
+  const interval = normalizeRedeemInterval(req.body?.interval);
+  const quantity = Math.min(100, Math.max(1, Number(req.body?.quantity || 1) || 1));
+  const maxRedemptions = Math.min(1000, Math.max(1, Number(req.body?.maxRedemptions || 1) || 1));
+  const expiresInDays = Math.max(1, Number(req.body?.expiresInDays || 365) || 365);
+  const note = String(req.body?.note || '').trim().slice(0, 240);
+  const durationDays = getRedeemDurationDays(interval);
+  const expiresAt = admin.firestore.Timestamp.fromDate(addDays(new Date(), expiresInDays));
+  const batch = db.batch();
+  const codes = [];
+  let attempts = 0;
+
+  while (codes.length < quantity) {
+    attempts += 1;
+    if (attempts > quantity * 5) {
+      const error = new Error('Failed to generate enough unique redeem codes');
+      error.status = 500;
+      throw error;
+    }
+    const code = generateRedeemCode();
+    const normalizedCode = normalizeRedeemCode(code);
+    const codeHash = hashRedeemCode(normalizedCode);
+    const ref = db.collection(redeemCodeCollection).doc(codeHash);
+    const existing = await ref.get();
+    if (existing.exists) continue;
+    batch.set(ref, {
+      codeHash,
+      prefix: `${formatRedeemCode(normalizedCode).slice(0, 8)}...`,
+      planType,
+      interval,
+      durationDays,
+      maxRedemptions,
+      redemptionCount: 0,
+      status: 'active',
+      note,
+      expiresAt,
+      createdBy: String(adminUser?.username || ''),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    codes.push(code);
+  }
+
+  await batch.commit();
+  return { codes, planType, interval, durationDays, expiresAt: expiresAt.toDate().toISOString() };
+}
+
+async function listRedeemCodes(req) {
+  requireFirebaseAdmin();
+  const limit = Math.min(200, Math.max(1, Number(req.query?.limit || 50) || 50));
+  const snapshot = await db.collection(redeemCodeCollection)
+    .orderBy('createdAt', 'desc')
+    .limit(limit)
+    .get();
+  return { codes: snapshot.docs.map(getRedeemCodePublicFields) };
+}
+
+async function redeemMembershipCode(req) {
+  requireFirebaseAdmin();
+  const user = await requireUser(req);
+  const normalizedCode = normalizeRedeemCode(req.body?.code);
+  if (normalizedCode.length < 8) {
+    const error = new Error('Invalid redeem code');
+    error.status = 400;
+    throw error;
+  }
+
+  const codeHash = hashRedeemCode(normalizedCode);
+  const codeRef = db.collection(redeemCodeCollection).doc(codeHash);
+  const redemptionRef = codeRef.collection('redemptions').doc(user.uid);
+  const userRef = db.collection('users').doc(user.uid);
+  const nowDate = new Date();
+  const nowTimestamp = admin.firestore.Timestamp.fromDate(nowDate);
+
+  return db.runTransaction(async (transaction) => {
+    const [codeSnap, userSnap, redemptionSnap] = await Promise.all([
+      transaction.get(codeRef),
+      transaction.get(userRef),
+      transaction.get(redemptionRef)
+    ]);
+    if (!codeSnap.exists) {
+      const error = new Error('Redeem code not found');
+      error.status = 404;
+      throw error;
+    }
+
+    const codeData = codeSnap.data() || {};
+    const status = String(codeData.status || 'active');
+    const expiresAtMs = getTimestampMillis(codeData.expiresAt);
+    if (status !== 'active' || (expiresAtMs && expiresAtMs <= nowDate.getTime())) {
+      const error = new Error('Redeem code expired');
+      error.status = 410;
+      throw error;
+    }
+
+    const maxRedemptions = Math.max(1, Number(codeData.maxRedemptions || 1) || 1);
+    const redemptionCount = Math.max(0, Number(codeData.redemptionCount || 0) || 0);
+    if (redemptionCount >= maxRedemptions) {
+      const error = new Error('Redeem code has already been used');
+      error.status = 409;
+      throw error;
+    }
+    if (redemptionSnap.exists) {
+      const error = new Error('You have already redeemed this code');
+      error.status = 409;
+      throw error;
+    }
+
+    const planType = normalizeRedeemPlanType(codeData.planType);
+    const interval = normalizeRedeemInterval(codeData.interval);
+    const durationDays = Math.max(1, Number(codeData.durationDays || getRedeemDurationDays(interval)) || getRedeemDurationDays(interval));
+    const userData = userSnap.exists ? userSnap.data() || {} : {};
+    const currentExpiresAt = planType === 'api' ? userData.apiPlanExpiresAt : userData.planExpiresAt;
+    const currentExpiresAtMs = getTimestampMillis(currentExpiresAt);
+    const startMs = Math.max(nowDate.getTime(), currentExpiresAtMs || 0);
+    const nextExpiresAt = admin.firestore.Timestamp.fromDate(addDays(new Date(startMs), durationDays));
+    const userPatch = planType === 'api'
+      ? {
+        apiPlan: 'pro',
+        apiPlanExpiresAt: nextExpiresAt,
+        apiMembershipSource: 'redeem_code'
+      }
+      : {
+        plan: 'pro',
+        planExpiresAt: nextExpiresAt,
+        membershipSource: 'redeem_code'
+      };
+
+    transaction.set(userRef, {
+      ...userPatch,
+      lastRedeemCodeHash: codeHash,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    transaction.update(codeRef, {
+      redemptionCount: admin.firestore.FieldValue.increment(1),
+      status: redemptionCount + 1 >= maxRedemptions ? 'redeemed' : 'active',
+      lastRedeemedAt: nowTimestamp,
+      lastRedeemedByUid: user.uid,
+      lastRedeemedByEmail: String(user.email || ''),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    transaction.set(redemptionRef, {
+      uid: user.uid,
+      email: String(user.email || ''),
+      redeemedAt: nowTimestamp
+    }, { merge: true });
+
+    return {
+      ok: true,
+      planType,
+      interval,
+      planExpiresAt: nextExpiresAt.toDate().toISOString()
+    };
+  });
+}
+
+function getStripePlanTypeForPrice(priceId = '') {
+  const normalizedPriceId = String(priceId || '').trim();
+  const prices = getStripePrices();
+  if (normalizedPriceId && [prices.api.monthly, prices.api.yearly].includes(normalizedPriceId)) {
+    return 'api';
+  }
+  return 'chat';
 }
 
 function getStripeModeSuffix() {
@@ -3061,7 +4457,15 @@ function getStripeSubscriptionIdField() {
 }
 
 function getStripeAllowedPriceIds() {
-  return new Set(Object.values(getStripePrices()).filter(Boolean));
+  const prices = getStripePrices();
+  return new Set([
+    prices.monthly,
+    prices.yearly,
+    prices.chat.monthly,
+    prices.chat.yearly,
+    prices.api.monthly,
+    prices.api.yearly
+  ].filter(Boolean));
 }
 
 function getStripeSmokeTestConfig() {
@@ -3077,6 +4481,75 @@ function assertCheckoutPriceAllowed(priceId) {
     error.status = 400;
     throw error;
   }
+}
+
+function normalizeBillingEmail(email = '') {
+  return String(email || '').trim().toLowerCase();
+}
+
+function extractStripeCustomerId(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return String(value.id || '').trim();
+  return '';
+}
+
+function extractStripeCustomerEmailFromObject(value) {
+  if (!value || typeof value !== 'object') return '';
+  return normalizeBillingEmail(value.email || value.customer_email || value.customerEmail || '');
+}
+
+async function getStripeCustomerEmail(stripe, customer) {
+  const inlineEmail = extractStripeCustomerEmailFromObject(customer);
+  if (inlineEmail) return inlineEmail;
+  const customerId = extractStripeCustomerId(customer);
+  if (!customerId) return '';
+  try {
+    const customerObject = await stripe.customers.retrieve(customerId);
+    return extractStripeCustomerEmailFromObject(customerObject);
+  } catch (error) {
+    console.warn('[ai-compare-backend] failed to retrieve Stripe customer email:', error.message || error);
+    return '';
+  }
+}
+
+function getCheckoutSessionEmail(session = {}) {
+  return normalizeBillingEmail(
+    session.customer_details?.email
+    || session.customer_email
+    || session.metadata?.stripeCustomerEmail
+    || ''
+  );
+}
+
+async function getOrCreateFirebaseUserForStripeEmail(email, metadata = {}) {
+  requireFirebaseAdmin();
+  const normalizedEmail = normalizeBillingEmail(email);
+  if (!normalizedEmail) return null;
+  try {
+    return await admin.auth().getUserByEmail(normalizedEmail);
+  } catch (error) {
+    if (error?.code !== 'auth/user-not-found') {
+      throw error;
+    }
+  }
+
+  const user = await admin.auth().createUser({
+    email: normalizedEmail,
+    emailVerified: false,
+    disabled: false
+  });
+  await db.collection('users').doc(user.uid).set({
+    email: normalizedEmail,
+    emailVerified: false,
+    createdFromStripeCheckout: true,
+    stripeCustomerEmail: normalizedEmail,
+    ...(metadata.stripeCustomerId ? { stripeCustomerId: metadata.stripeCustomerId, [getStripeCustomerIdField()]: metadata.stripeCustomerId } : {}),
+    billingMode,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  return user;
 }
 
 function assertBillingSmokeTestAccess(req) {
@@ -3119,6 +4592,7 @@ async function resolveBillingSmokeTestUser(req) {
 async function createCheckoutSessionForFirebaseUser({
   firebaseUser,
   priceId,
+  planType = getStripePlanTypeForPrice(priceId),
   smokeTest = false
 }) {
   const stripe = getStripe();
@@ -3151,6 +4625,7 @@ async function createCheckoutSessionForFirebaseUser({
 
   const metadata = {
     firebaseUid: firebaseUser.uid,
+    planType,
     ...(smokeTest ? { smokeTest: 'true' } : {})
   };
 
@@ -3167,9 +4642,47 @@ async function createCheckoutSessionForFirebaseUser({
   });
 }
 
+async function createCheckoutSessionForAnonymousClient({
+  priceId,
+  planType = getStripePlanTypeForPrice(priceId),
+  prefillEmail = ''
+}) {
+  const stripe = getStripe();
+  const customerEmail = normalizeBillingEmail(prefillEmail);
+  const metadata = {
+    planType,
+    ...(customerEmail ? { stripeCustomerEmail: customerEmail } : {})
+  };
+
+  const sessionPayload = {
+    mode: 'subscription',
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: getCheckoutSuccessUrl(),
+    cancel_url: getCancelUrl(),
+    metadata,
+    subscription_data: {
+      metadata
+    }
+  };
+
+  if (customerEmail) {
+    sessionPayload.customer_email = customerEmail;
+  }
+
+  return stripe.checkout.sessions.create(sessionPayload);
+}
+
 function getExtensionMembershipUrl() {
-  const extensionId = String(process.env.AI_COMPARE_EXTENSION_ID || 'hhkhgpadepocnmjfpohcmjdcgkmfnadi').trim();
+  const productionExtensionId = 'dkhpgbbhlnmjbkihoeniojpkggkabbbl';
+  const configuredExtensionId = String(process.env.AI_COMPARE_EXTENSION_ID || '').trim();
+  const extensionId = /^[a-p]{32}$/.test(configuredExtensionId)
+    ? configuredExtensionId
+    : productionExtensionId;
   return `chrome-extension://${extensionId}/options/options.html#membership`;
+}
+
+function getChromeWebStoreInstallUrl() {
+  return 'https://chromewebstore.google.com/detail/dkhpgbbhlnmjbkihoeniojpkggkabbbl?utm_source=payment_success&utm_medium=success_page&utm_campaign=subscription_activation';
 }
 
 function escapeHtml(value) {
@@ -3185,8 +4698,480 @@ function escapeHtml(value) {
   });
 }
 
+function getPublicFirebaseWebConfig() {
+  return {
+    apiKey: 'AIzaSyALR-U2AHvbSlxZ5gosp5zcobRb4KdYazo',
+    authDomain: 'aicompare-12989.firebaseapp.com',
+    projectId: 'aicompare-12989',
+    storageBucket: 'aicompare-12989.firebasestorage.app',
+    messagingSenderId: '741697777320',
+    appId: '1:741697777320:web:88e1944c3d267c9f471c9d',
+    measurementId: 'G-TGD1MD9XK4'
+  };
+}
+
+function getMembershipPricingPageHtml(planType = 'chat') {
+  const resolvedPlanType = String(planType || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
+  const isApiPlan = resolvedPlanType === 'api';
+  const firebaseConfig = JSON.stringify(getPublicFirebaseWebConfig());
+  const pageCopy = JSON.stringify(isApiPlan ? {
+    eyebrow: 'AI Compare Pro',
+    title: 'Choose your API Plan',
+    description: 'Unlock unlimited summary and skill questions powered by the built-in API.',
+    back: 'Back to AICompare',
+    signIn: 'Continue to Stripe',
+    signedIn: 'Stripe will collect your email securely.',
+    monthlyName: 'API Plan · Monthly',
+    yearlyName: 'API Plan · Yearly',
+    monthlyPrice: 'Loading price…',
+    yearlyPrice: 'Loading price…',
+    monthlyCta: 'Subscribe Monthly',
+    yearlyCta: 'Subscribe Yearly',
+    monthlyDesc: 'Unlimited summary and skill questions, billed monthly.',
+    yearlyDesc: 'Unlimited summary and skill questions, billed yearly.',
+    feature1: 'Unlimited summary questions',
+    feature2: 'Unlimited built-in skill questions',
+    feature3: 'Built-in API keys stay securely on the cloud backend',
+    loginHint: 'No account is required before checkout. Stripe will collect your email securely.',
+    loading: 'Loading pricing…',
+    error: 'Failed to load pricing.',
+    logout: 'Switch account'
+  } : {
+    eyebrow: 'AI Compare Pro',
+    title: 'Choose your Pro plan',
+    description: 'Pick monthly or yearly, then continue to Stripe. No account is required before checkout.',
+    back: 'Back to AICompare',
+    signIn: 'Continue to Stripe',
+    signedIn: 'Stripe will collect your email securely.',
+    monthlyName: 'Pro Plan · Monthly',
+    yearlyName: 'Pro Plan · Yearly',
+    monthlyPrice: 'Loading price…',
+    yearlyPrice: 'Loading price…',
+    monthlyCta: 'Subscribe Monthly',
+    yearlyCta: 'Subscribe Yearly',
+    monthlyDesc: 'Flexible monthly billing for trying Pro at your own pace.',
+    yearlyDesc: 'Best value for long-term use, with one yearly payment.',
+    feature1: 'Unlimited AI comparison questions',
+    feature2: 'Switch between supported AI sites',
+    feature3: 'Built for non-Chinese interfaces',
+    loginHint: 'No account is required before checkout. Stripe will collect your email securely.',
+    loading: 'Loading pricing…',
+    error: 'Failed to load pricing.',
+    logout: 'Switch account'
+  });
+
+  return `<!DOCTYPE html>
+<html lang="${isApiPlan ? 'en' : 'en'}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${isApiPlan ? 'Choose your API Plan' : 'Choose your Pro plan'} | AICompare</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f0;
+      --bg-glow: radial-gradient(circle at top left, rgba(17,17,17,0.05), transparent 34%), radial-gradient(circle at 12% 8%, rgba(255,214,102,0.16), transparent 30%), radial-gradient(circle at 88% 18%, rgba(95,155,255,0.10), transparent 28%);
+      --surface: rgba(255,255,255,0.82);
+      --text: #181818;
+      --muted: rgba(24,24,24,0.66);
+      --border: rgba(17,17,17,0.08);
+      --accent: #181818;
+      --accent-contrast: #fff;
+      --shadow: 0 26px 70px rgba(45,45,45,0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background: var(--bg-glow);
+    }
+    .page {
+      width: min(1080px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 34px 0 54px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+    }
+    .back-link, .sign-in-btn, .sign-out-btn, .plan-btn {
+      border: 0;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 14px;
+      background: rgba(255,255,255,0.72);
+      color: #242424;
+      border: 1px solid rgba(17,17,17,0.1);
+    }
+    .hero { max-width: 760px; margin-top: 42px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: rgba(24,24,24,0.58);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 58px);
+      font-weight: 950;
+      letter-spacing: -0.06em;
+      line-height: 0.98;
+    }
+    .lead {
+      max-width: 680px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      font-weight: 650;
+      line-height: 1.65;
+    }
+    .auth-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 26px;
+    }
+    .sign-in-btn, .sign-out-btn {
+      min-height: 42px;
+      padding: 0 16px;
+      background: #1f1f1f;
+      color: #fff;
+    }
+    .sign-out-btn {
+      background: rgba(17,17,17,0.08);
+      color: #181818;
+    }
+    .auth-status {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .pricing-options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 28px;
+    }
+    .pricing-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      min-height: 430px;
+      padding: 30px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .pricing-card.featured {
+      overflow: hidden;
+      background: linear-gradient(145deg, #181818 0%, #2b2b2b 100%);
+      color: #fff;
+    }
+    .pricing-badge {
+      align-self: flex-start;
+      min-height: 28px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .pricing-name {
+      font-size: 20px;
+      font-weight: 900;
+    }
+    .pricing-price {
+      margin-top: 10px;
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 950;
+      letter-spacing: -0.05em;
+    }
+    .pricing-desc {
+      min-height: 48px;
+      margin: 12px 0 0;
+      color: inherit;
+      font-size: 15px;
+      line-height: 1.6;
+      opacity: 0.68;
+    }
+    .feature-list {
+      flex: 1;
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .feature-list li {
+      color: inherit;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .feature-list li::before {
+      content: "✓ ";
+      font-weight: 900;
+    }
+    .plan-btn {
+      min-height: 48px;
+      background: #1f1f1f;
+      color: #fff;
+      transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+    .pricing-card.featured .plan-btn {
+      background: #fff;
+      color: #1f1f1f;
+    }
+    .plan-btn:hover { transform: translateY(-1px); }
+    .plan-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+    .note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 26px;
+      transform: translate(-50%, 12px);
+      opacity: 0;
+      pointer-events: none;
+      max-width: min(520px, calc(100vw - 32px));
+      padding: 12px 16px;
+      border-radius: 999px;
+      background: #1f1f1f;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 760px) {
+      .page { width: min(100% - 28px, 1080px); padding-top: 20px; }
+      .pricing-options { grid-template-columns: 1fr; }
+      .topbar { align-items: stretch; flex-direction: column; }
+      .pricing-card { min-height: auto; padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <a class="back-link" href="https://aicompare.club" rel="noopener noreferrer">${isApiPlan ? 'Back to AICompare' : 'Back to AICompare'}</a>
+    </div>
+    <header class="hero">
+      <p class="eyebrow">${isApiPlan ? 'AI Compare Pro' : 'AI Compare Pro'}</p>
+      <h1 id="pricingTitle">${isApiPlan ? 'Choose your API Plan' : 'Choose your Pro plan'}</h1>
+      <p class="lead" id="pricingDescription">${isApiPlan ? 'Unlock unlimited summary and skill questions powered by the built-in API.' : 'Pick monthly or yearly, then continue to Stripe. No account is required before checkout.'}</p>
+      <div class="auth-bar">
+        <span class="auth-status" id="authStatus">No account is required before checkout. Stripe will collect your email securely.</span>
+      </div>
+      <p class="note">If you opened this page from the extension, payment will unlock this browser automatically after Stripe confirms the subscription.</p>
+    </header>
+
+    <section class="pricing-options" id="pricingOptions" aria-label="${isApiPlan ? 'Choose an API Plan' : 'Choose a Pro plan'}">
+      <article class="pricing-card">
+        <div>
+          <div class="pricing-name" id="monthlyName"></div>
+          <div class="pricing-price" id="monthlyPrice"></div>
+          <p class="pricing-desc" id="monthlyDescription"></p>
+        </div>
+        <ul class="feature-list">
+          <li id="monthlyFeature1"></li>
+          <li id="monthlyFeature2"></li>
+          <li id="monthlyFeature3"></li>
+        </ul>
+        <button class="plan-btn" id="monthlyButton" type="button" data-cycle="monthly"></button>
+      </article>
+
+      <article class="pricing-card featured">
+        <span class="pricing-badge">${isApiPlan ? 'Most Popular' : 'Most Popular'}</span>
+        <div>
+          <div class="pricing-name" id="yearlyName"></div>
+          <div class="pricing-price" id="yearlyPrice"></div>
+          <p class="pricing-desc" id="yearlyDescription"></p>
+        </div>
+        <ul class="feature-list">
+          <li id="yearlyFeature1"></li>
+          <li id="yearlyFeature2"></li>
+          <li id="yearlyFeature3"></li>
+        </ul>
+        <button class="plan-btn" id="yearlyButton" type="button" data-cycle="yearly"></button>
+      </article>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    window.__AI_COMPARE_FIREBASE_CONFIG__ = ${firebaseConfig};
+    window.__AI_COMPARE_PAGE_COPY__ = ${pageCopy};
+    window.__AI_COMPARE_PLAN_TYPE__ = ${JSON.stringify(resolvedPlanType)};
+  </script>
+  <script>
+    (function () {
+      const copy = window.__AI_COMPARE_PAGE_COPY__;
+      const planType = window.__AI_COMPARE_PLAN_TYPE__ || 'chat';
+      const toast = document.getElementById('toast');
+      const authStatus = document.getElementById('authStatus');
+      const monthlyButton = document.getElementById('monthlyButton');
+      const yearlyButton = document.getElementById('yearlyButton');
+      const monthlyName = document.getElementById('monthlyName');
+      const yearlyName = document.getElementById('yearlyName');
+      const monthlyPrice = document.getElementById('monthlyPrice');
+      const yearlyPrice = document.getElementById('yearlyPrice');
+      const monthlyDescription = document.getElementById('monthlyDescription');
+      const yearlyDescription = document.getElementById('yearlyDescription');
+      const monthlyFeature1 = document.getElementById('monthlyFeature1');
+      const monthlyFeature2 = document.getElementById('monthlyFeature2');
+      const monthlyFeature3 = document.getElementById('monthlyFeature3');
+      const yearlyFeature1 = document.getElementById('yearlyFeature1');
+      const yearlyFeature2 = document.getElementById('yearlyFeature2');
+      const yearlyFeature3 = document.getElementById('yearlyFeature3');
+      const pricingTitle = document.getElementById('pricingTitle');
+      const pricingDescription = document.getElementById('pricingDescription');
+      const pricingOptions = document.getElementById('pricingOptions');
+      const apiBasePath = window.location.pathname.startsWith('/test-api/')
+        ? '/test-api'
+        : '';
+      const pageParams = new URLSearchParams(window.location.search);
+      const prefillEmail = String(pageParams.get('prefillEmail') || pageParams.get('email') || '').trim();
+      let billingConfig = null;
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.classList.remove('show'), 3200);
+      }
+
+      function formatPrice(detail, fallback) {
+        if (!detail || !detail.unitAmount || !detail.currency) return fallback;
+        try {
+          const amount = detail.unitAmount / 100;
+          return new Intl.NumberFormat(undefined, {
+            style: 'currency',
+            currency: String(detail.currency || 'USD').toUpperCase(),
+            maximumFractionDigits: amount % 1 === 0 ? 0 : 2
+          }).format(amount) + (detail.interval === 'year' ? ' / year' : ' / month');
+        } catch (_) {
+          return fallback;
+        }
+      }
+
+      function updateCheckoutUi() {
+        authStatus.textContent = copy.loginHint;
+        monthlyButton.disabled = false;
+        yearlyButton.disabled = false;
+      }
+
+      function applyBillingData() {
+        const details = billingConfig?.priceDetails?.[planType] || {};
+        const monthly = details.monthly || {};
+        const yearly = details.yearly || {};
+        const planLabel = planType === 'api' ? 'API Plan' : 'Pro Plan';
+
+        pricingTitle.textContent = copy.title;
+        pricingDescription.textContent = copy.description;
+        monthlyName.textContent = copy.monthlyName;
+        yearlyName.textContent = copy.yearlyName;
+        monthlyPrice.textContent = formatPrice(monthly, planType === 'api' ? 'HK$10 / month' : '$4.99 / month');
+        yearlyPrice.textContent = formatPrice(yearly, planType === 'api' ? 'HK$100 / year' : '$39.99 / year');
+        monthlyDescription.textContent = copy.monthlyDesc;
+        yearlyDescription.textContent = copy.yearlyDesc;
+        monthlyFeature1.textContent = copy.feature1;
+        monthlyFeature2.textContent = copy.feature2;
+        monthlyFeature3.textContent = copy.feature3;
+        yearlyFeature1.textContent = copy.feature1;
+        yearlyFeature2.textContent = copy.feature2;
+        yearlyFeature3.textContent = copy.feature3;
+        monthlyButton.textContent = copy.monthlyCta;
+        yearlyButton.textContent = copy.yearlyCta;
+        pricingOptions.setAttribute('aria-label', planLabel);
+      }
+
+      async function loadBillingConfig() {
+        try {
+          const response = await fetch(apiBasePath + '/billingConfig', { cache: 'no-store' });
+          billingConfig = await response.json();
+          applyBillingData();
+        } catch (error) {
+          console.warn('Failed to load billing config:', error);
+          showToast(copy.error);
+        }
+      }
+
+      async function startCheckout(cycle) {
+        try {
+          const detail = billingConfig?.priceDetails?.[planType]?.[cycle];
+          const priceId = detail?.priceId || billingConfig?.prices?.[planType]?.[cycle];
+          if (!priceId) throw new Error('Price is not configured yet.');
+          const button = cycle === 'yearly' ? yearlyButton : monthlyButton;
+          button.disabled = true;
+          button.textContent = 'Opening Stripe…';
+          const response = await fetch(apiBasePath + '/createCheckoutSession', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              priceId,
+              planType,
+              ...(prefillEmail ? { prefillEmail } : {})
+            })
+          });
+          const data = await response.json();
+          if (!response.ok || !data.url) {
+            throw new Error(data?.error || 'Failed to open checkout.');
+          }
+          window.location.href = data.url;
+        } catch (error) {
+          showToast(error?.message || 'Failed to open checkout.');
+          applyBillingData();
+        }
+      }
+
+      monthlyButton.addEventListener('click', () => startCheckout('monthly'));
+      yearlyButton.addEventListener('click', () => startCheckout('yearly'));
+
+      updateCheckoutUi();
+      loadBillingConfig();
+    })();
+  </script>
+</body>
+</html>`;
+}
+
 function getPaymentSuccessPageHtml() {
   const membershipUrl = escapeHtml(getExtensionMembershipUrl());
+  const chromeWebStoreInstallUrl = escapeHtml(getChromeWebStoreInstallUrl());
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3295,30 +5280,8 @@ function getPaymentSuccessPageHtml() {
       border: 1px solid var(--border);
     }
     .panel[hidden],
-    .actions[hidden],
-    .fine-print[hidden] {
+    .actions[hidden] {
       display: none;
-    }
-    .result {
-      display: grid;
-      gap: 8px;
-      margin-top: 22px;
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(24, 24, 24, 0.04);
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    .result-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-    }
-    .result-row strong {
-      color: var(--text);
-      font-weight: 800;
-      text-align: right;
     }
     .panel-title {
       margin: 0 0 10px;
@@ -3331,6 +5294,13 @@ function getPaymentSuccessPageHtml() {
       color: var(--muted);
       font-size: 15px;
       line-height: 1.8;
+    }
+    .inline-link {
+      color: var(--text);
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
     }
     .actions {
       display: flex;
@@ -3363,12 +5333,6 @@ function getPaymentSuccessPageHtml() {
       background: var(--surface-strong);
       color: var(--text);
     }
-    .fine-print {
-      margin: 18px 2px 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.7;
-    }
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 0.92em;
@@ -3396,13 +5360,6 @@ function getPaymentSuccessPageHtml() {
       .button {
         width: 100%;
       }
-      .result-row {
-        display: grid;
-        gap: 2px;
-      }
-      .result-row strong {
-        text-align: left;
-      }
     }
   </style>
 </head>
@@ -3413,48 +5370,35 @@ function getPaymentSuccessPageHtml() {
       <h1 id="pageTitle">Waiting for your payment result.</h1>
       <p class="lead" id="pageLead">We are confirming the final Stripe payment status. This usually takes a few seconds, so please keep this page open.</p>
 
-      <div class="result" id="paymentResult" aria-live="polite">
-        <div class="result-row"><span>Checkout status</span><strong id="checkoutStatus">Checking</strong></div>
-        <div class="result-row"><span>Payment status</span><strong id="paymentStatus">Waiting</strong></div>
-        <div class="result-row"><span>Membership sync</span><strong id="membershipStatus">Waiting</strong></div>
-      </div>
-
       <div class="panel" id="nextPanel" hidden>
         <h2 class="panel-title">What to do next</h2>
         <ol class="steps">
-          <li>Return to the extension Pro page.</li>
-          <li>Check whether your <code>Chat Plan</code> status has changed to active.</li>
+          <li>Install the <a class="inline-link" href="${chromeWebStoreInstallUrl}" target="_blank" rel="noopener noreferrer">AI比一比</a> extension.</li>
+          <li>Enter the extension <a class="inline-link" href="${membershipUrl}">account page</a>.</li>
+          <li>Check whether your <code id="planName">membership</code> status has changed to active.</li>
           <li>If it still looks unchanged, wait a few seconds and reopen the page once.</li>
         </ol>
       </div>
-
-      <div class="actions" id="successActions" hidden>
-        <a class="button button-primary" href="${membershipUrl}" id="membershipLink">Open Pro Membership</a>
-        <a class="button button-secondary" href="/">Back to AICompare site</a>
-      </div>
-
-      <p class="fine-print" id="successNote" hidden>If you closed the extension earlier, reopening it and visiting the Pro page again is enough. Membership status is confirmed by the backend after Stripe finishes the subscription event sync.</p>
     </section>
   </main>
   <script>
     const sessionId = new URLSearchParams(window.location.search).get('session_id') || '';
+    const apiBasePath = window.location.pathname.startsWith('/test-api/')
+      ? '/test-api'
+      : '';
     const statusBadge = document.getElementById('statusBadge');
     const statusIcon = document.getElementById('statusIcon');
     const statusLabel = document.getElementById('statusLabel');
     const pageTitle = document.getElementById('pageTitle');
     const pageLead = document.getElementById('pageLead');
-    const checkoutStatus = document.getElementById('checkoutStatus');
-    const paymentStatus = document.getElementById('paymentStatus');
-    const membershipStatus = document.getElementById('membershipStatus');
     const nextPanel = document.getElementById('nextPanel');
-    const successActions = document.getElementById('successActions');
-    const successNote = document.getElementById('successNote');
-    const membershipLink = document.getElementById('membershipLink');
+    const planName = document.getElementById('planName');
 
     function updateResult(data) {
-      checkoutStatus.textContent = data.checkoutStatus || 'Checking';
-      paymentStatus.textContent = data.paymentStatus || 'Waiting';
-      membershipStatus.textContent = data.subscriptionStatus || data.membershipStatus || 'Waiting';
+      const result = data || {};
+      const label = result.planType === 'api' ? 'API Plan' : 'Chat Plan';
+      if (planName) planName.textContent = label;
+      return { ...result, planLabel: label };
     }
 
     function setPending(data) {
@@ -3465,20 +5409,16 @@ function getPaymentSuccessPageHtml() {
       pageTitle.textContent = 'Waiting for your payment result.';
       pageLead.textContent = 'We are confirming the final Stripe payment status. This usually takes a few seconds, so please keep this page open.';
       nextPanel.hidden = true;
-      successActions.hidden = true;
-      successNote.hidden = true;
     }
 
     function setSuccess(data) {
-      updateResult(data || {});
+      const result = updateResult(data || {});
       statusBadge.className = 'badge';
       statusIcon.className = 'badge-dot';
       statusLabel.textContent = 'Payment successful';
-      pageTitle.textContent = 'Your Pro payment is complete.';
-      pageLead.textContent = 'Stripe confirmed the payment successfully. You can now open AICompare and check your Pro membership status.';
+      pageTitle.textContent = 'Your ' + result.planLabel + ' payment is complete.';
+      pageLead.textContent = 'Stripe confirmed the payment successfully. You can now open AICompare and check your membership status.';
       nextPanel.hidden = false;
-      successActions.hidden = false;
-      successNote.hidden = false;
     }
 
     function setFailed(data) {
@@ -3489,8 +5429,6 @@ function getPaymentSuccessPageHtml() {
       pageTitle.textContent = 'We could not confirm this payment.';
       pageLead.textContent = 'The checkout session did not finish with a successful payment. You can return to AICompare and start a new checkout if needed.';
       nextPanel.hidden = true;
-      successActions.hidden = true;
-      successNote.hidden = true;
     }
 
     async function pollPaymentStatus() {
@@ -3501,7 +5439,7 @@ function getPaymentSuccessPageHtml() {
       }
 
       try {
-        const response = await fetch('/payment-status?session_id=' + encodeURIComponent(sessionId), {
+        const response = await fetch(apiBasePath + '/payment-status?session_id=' + encodeURIComponent(sessionId), {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
           cache: 'no-store'
@@ -3521,11 +5459,6 @@ function getPaymentSuccessPageHtml() {
       }
       window.setTimeout(pollPaymentStatus, 3000);
     }
-
-    membershipLink.addEventListener('click', (event) => {
-      event.preventDefault();
-      window.location.href = membershipLink.href;
-    });
 
     pollPaymentStatus();
   </script>
@@ -3762,10 +5695,15 @@ function createAdminPage({ pageName, title, description, content }) {
   const active = {
     overview: pageName === 'overview' ? 'active' : '',
     orders: pageName === 'orders' ? 'active' : '',
+    users: pageName === 'users' ? 'active' : '',
+    redeemCodes: pageName === 'redeemCodes' ? 'active' : '',
     apiUsage: pageName === 'apiUsage' ? 'active' : '',
     failureLogs: pageName === 'failureLogs' ? 'active' : '',
+    finalFailures: pageName === 'finalFailures' ? 'active' : '',
+    coursePromo: pageName === 'coursePromo' ? 'active' : '',
     growth: pageName === 'growth' ? 'active' : '',
     business: pageName === 'business' ? 'active' : '',
+    apiCost: pageName === 'apiCost' ? 'active' : '',
     shareLinks: pageName === 'shareLinks' ? 'active' : ''
   };
   return `<!doctype html>
@@ -3786,22 +5724,33 @@ function createAdminPage({ pageName, title, description, content }) {
         <nav class="hero-links">
           <a class="nav-link ${active.overview}" href="/admin">总览</a>
           <a class="nav-link ${active.orders}" href="/admin/orders">会员订单</a>
+          <a class="nav-link ${active.users}" href="/admin/users">用户列表</a>
+          <a class="nav-link ${active.redeemCodes}" href="/admin/redeem-codes">兑换码</a>
           <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">使用统计</a>
           <a class="nav-link ${active.failureLogs}" href="/admin/failure-logs">失败日志</a>
+          <a class="nav-link ${active.finalFailures}" href="/admin/final-failures">最终失败</a>
+          <a class="nav-link ${active.coursePromo}" href="/admin/course-promo">课程广告</a>
           <a class="nav-link ${active.growth}" href="/admin/growth">增长漏斗</a>
           <a class="nav-link ${active.business}" href="/admin/business">商业化成本</a>
+          <a class="nav-link ${active.apiCost}" href="/admin/api-cost">API 成本</a>
           <a class="nav-link ${active.shareLinks}" href="/admin/share-links">共享链接</a>
         </nav>
       </article>
-      <aside class="token-panel">
+      <aside id="adminSessionPanel" class="token-panel">
         <h2>管理员登录</h2>
-        <p>使用独立后台账号密码登录。登录成功后，服务端会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
-        <input id="usernameInput" type="text" autocomplete="username" placeholder="管理员账号" />
-        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="管理员密码" />
-        <label class="remember-password-row">
-          <input id="rememberPasswordInput" type="checkbox" />
-          <span>保存账号密码（仅在可信设备使用）</span>
-        </label>
+        <div id="adminSessionSummary" class="admin-session-summary" hidden>
+          管理员已登录
+          <small>当前会话有效，可直接查看后台数据。</small>
+        </div>
+        <div id="adminLoginForm" class="admin-login-form">
+          <p>使用独立后台账号密码登录。登录成功后，服务端会在当前浏览器写入一个 HttpOnly 管理员会话 Cookie。</p>
+          <input id="usernameInput" type="text" autocomplete="username" placeholder="管理员账号" />
+          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="管理员密码" />
+          <label class="remember-password-row">
+            <input id="rememberPasswordInput" type="checkbox" />
+            <span>保存账号密码（仅在可信设备使用）</span>
+          </label>
+        </div>
         <div class="token-actions">
           <button id="saveTokenButton" type="button">登录</button>
           <button id="clearTokenButton" type="button">退出/清空</button>
@@ -3853,6 +5802,17 @@ async function getPaymentStatusSnapshot(sessionId) {
     ? session.subscription
     : null;
   const subscriptionStatus = String(subscription?.status || '').trim();
+  const priceId = String(
+    subscription?.items?.data?.[0]?.price?.id
+    || session.line_items?.data?.[0]?.price?.id
+    || session.metadata?.priceId
+    || ''
+  ).trim();
+  const planType = String(
+    session.metadata?.planType
+    || subscription?.metadata?.planType
+    || getStripePlanTypeForPrice(priceId)
+  ).trim() === 'api' ? 'api' : 'chat';
   const paymentSucceeded = checkoutStatus === 'complete' && paymentStatus === 'paid';
   const paymentFailed = checkoutStatus === 'expired'
     || ['canceled', 'failed'].includes(paymentStatus)
@@ -3864,6 +5824,7 @@ async function getPaymentStatusSnapshot(sessionId) {
 
   return {
     state: paymentSucceeded ? 'success' : (paymentFailed ? 'failed' : 'pending'),
+    planType,
     checkoutStatus,
     paymentStatus,
     subscriptionStatus: subscriptionStatus || (paymentSucceeded ? 'syncing' : 'Waiting')
@@ -3911,7 +5872,11 @@ function getOrdersPageHtml() {
     content: `
       <h2 class="section-title">核心指标</h2>
       <section id="ordersCards" class="grid"></section>
-      <section class="card panel">
+      <nav id="ordersTabs" class="admin-tabs" role="tablist" aria-label="会员订单统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="recent">最近订单</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="trend">收入趋势</button>
+      </nav>
+      <section class="card panel" data-tab-panel="recent">
         <h3>最近订单 / 订阅</h3>
         <table>
           <thead>
@@ -3931,7 +5896,7 @@ function getOrdersPageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="trend">
         <h3>近 30 天订单趋势</h3>
         <table>
           <thead>
@@ -3945,6 +5910,109 @@ function getOrdersPageHtml() {
           </thead>
           <tbody id="ordersTrendBody">
             <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getUsersPageHtml() {
+  return createAdminPage({
+    pageName: 'users',
+    title: '用户列表',
+    description: '查看所有注册用户的邮箱、Chat Plan、API Plan、到期时间和近 90 天常用提问语言。',
+    content: `
+      <h2 class="section-title">注册用户概览</h2>
+      <section id="usersCards" class="grid"></section>
+      <section class="card panel">
+        <h3>所有注册用户</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>邮箱 / UID</th>
+              <th>Chat Plan</th>
+              <th>Chat 到期时间</th>
+              <th>API Plan</th>
+              <th>API 到期时间</th>
+              <th>常用提问语言</th>
+              <th>注册时间</th>
+              <th>最近活跃</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getRedeemCodesPageHtml() {
+  return createAdminPage({
+    pageName: 'redeemCodes',
+    title: '兑换码管理',
+    description: '生成 Chat Plan 或 API Plan 的月度/年度兑换码，并查看最近生成和核销状态。',
+    content: `
+      <section class="card panel">
+        <h3>生成兑换码</h3>
+        <div class="redeem-code-form">
+          <label class="field">
+            <span>会员类型</span>
+            <select id="redeemPlanType">
+              <option value="chat">Chat Plan</option>
+              <option value="api">API Plan</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>周期</span>
+            <select id="redeemInterval">
+              <option value="monthly">月度</option>
+              <option value="yearly">年度</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>数量</span>
+            <input id="redeemQuantity" type="number" min="1" max="100" value="1" />
+          </label>
+          <label class="field">
+            <span>每个码可兑换次数</span>
+            <input id="redeemMaxRedemptions" type="number" min="1" max="1000" value="1" />
+          </label>
+          <label class="field">
+            <span>兑换码有效天数</span>
+            <input id="redeemExpiresInDays" type="number" min="1" value="365" />
+          </label>
+          <label class="field redeem-note-field">
+            <span>备注</span>
+            <input id="redeemNote" type="text" maxlength="240" placeholder="例如：7 月活动 / 客服补偿" />
+          </label>
+        </div>
+        <div class="course-promo-actions">
+          <button id="generateRedeemCodesButton" type="button">生成兑换码</button>
+          <button id="refreshRedeemCodesButton" type="button">刷新列表</button>
+        </div>
+        <div id="redeemCodeStatus" class="course-promo-meta"></div>
+        <pre id="generatedRedeemCodes" class="redeem-code-output" hidden></pre>
+      </section>
+      <section class="card panel">
+        <h3>最近兑换码</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>码段</th>
+              <th>会员</th>
+              <th>周期</th>
+              <th>状态</th>
+              <th>用量</th>
+              <th>过期</th>
+              <th>最近兑换</th>
+              <th>备注</th>
+            </tr>
+          </thead>
+          <tbody id="redeemCodesTableBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
@@ -4114,7 +6182,7 @@ function getApiUsagePageHtml() {
               <th>时间</th>
               <th>类型</th>
               <th>用户</th>
-              <th>地区 / 设备</th>
+              <th>地区/设备语言</th>
               <th>模型 / 站点</th>
               <th>版本</th>
               <th>摘要</th>
@@ -4134,7 +6202,7 @@ function getApiUsagePageHtml() {
                 </select>
               </th>
               <th><input id="usageRecentUserFilter" class="usage-filter-input" type="search" placeholder="用户"></th>
-              <th><input id="usageRecentDeviceFilter" class="usage-filter-input" type="search" placeholder="地区/设备"></th>
+              <th><input id="usageRecentLocaleFilter" class="usage-filter-input" type="search" placeholder="地区/语言"></th>
               <th><input id="usageRecentTargetFilter" class="usage-filter-input" type="search" placeholder="模型/站点"></th>
               <th><input id="usageRecentVersionFilter" class="usage-filter-input" type="search" placeholder="版本"></th>
               <th>
@@ -4237,11 +6305,18 @@ function getFailureLogsPageHtml() {
   return createAdminPage({
     pageName: 'failureLogs',
     title: '失败日志后台',
-    description: '查看站点/API 失败日志、失败率、修复优先级和失败阶段，默认按最新失败时间倒序。',
+    description: '查看站点/API 失败详情、失败率、修复优先级和失败阶段，默认按最新失败时间倒序。',
     content: `
       <h2 class="section-title">核心指标</h2>
       <section id="failureCards" class="grid"></section>
-      <section class="card panel">
+      <nav id="failureLogsTabs" class="admin-tabs" role="tablist" aria-label="失败日志统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="filters">筛选</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="trend">趋势</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="priority">修复优先级</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="phases">失败阶段</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="details">详情记录</button>
+      </nav>
+      <section class="card panel" data-tab-panel="filters">
         <h3>筛选</h3>
         <div class="filter-row">
           <label>天数 <select id="failureDays"><option value="1">今天</option><option value="7" selected>近 7 天</option><option value="30">近 30 天</option></select></label>
@@ -4250,8 +6325,8 @@ function getFailureLogsPageHtml() {
           <button id="failureSearchButton" type="button">刷新</button>
         </div>
       </section>
-      <section class="card panel">
-        <h3>近 30 天趋势</h3>
+      <section class="card panel" data-tab-panel="trend">
+        <h3>近 7 天趋势</h3>
         <table>
           <thead>
             <tr>
@@ -4267,24 +6342,7 @@ function getFailureLogsPageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
-        <h3>高频失败站点 / API</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>类型</th>
-              <th>目标</th>
-              <th>失败次数</th>
-              <th>主要问题</th>
-              <th>记录数</th>
-            </tr>
-          </thead>
-          <tbody id="failureTopTargetsBody">
-            <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
-          </tbody>
-        </table>
-      </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="priority">
         <h3>近 7 天修复优先级</h3>
         <table>
           <thead>
@@ -4302,7 +6360,7 @@ function getFailureLogsPageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="phases">
         <h3>近 7 天失败阶段排行</h3>
         <table>
           <thead>
@@ -4316,23 +6374,108 @@ function getFailureLogsPageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
-        <h3>最近失败日志</h3>
+      <section class="card panel" data-tab-panel="details">
+        <h3>失败详情记录</h3>
+        <p class="footer-note">尽量展开诊断字段；URL、Query、错误信息过长时会截断显示，鼠标悬停可看完整内容，下方详情行展示 metadata、record id、hash 等辅助定位信息。</p>
+        <div class="table-scroll">
+          <table class="failure-detail-table">
+            <thead>
+              <tr>
+                <th>失败时间 / 创建</th>
+                <th>上传时间</th>
+                <th>类型</th>
+                <th>目标</th>
+                <th>来源</th>
+                <th>阶段</th>
+                <th>状态码</th>
+                <th>错误码</th>
+                <th>模型</th>
+                <th>版本</th>
+                <th>用户 / 语言</th>
+                <th>次数</th>
+                <th>URL</th>
+                <th>Query</th>
+                <th>错误信息</th>
+              </tr>
+            </thead>
+            <tbody id="failureLogsBody">
+              <tr><td colspan="15" class="empty-cell">等待加载...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `
+  });
+}
+
+function getFinalFailuresPageHtml() {
+  return createAdminPage({
+    pageName: 'finalFailures',
+    title: '最终失败统计',
+    description: '只统计用户看到最终失败弹窗的情况；站点内部中间重试、步骤重试和普通诊断日志不计入。',
+    content: `
+      <h2 class="section-title">核心指标</h2>
+      <section id="finalFailureCards" class="grid"></section>
+      <nav id="finalFailuresTabs" class="admin-tabs" role="tablist" aria-label="最终失败统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="filters">筛选</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="trend">趋势</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="details">详情记录</button>
+      </nav>
+      <section class="card panel" data-tab-panel="filters">
+        <h3>筛选</h3>
+        <div class="filter-row">
+          <label>天数 <select id="finalFailureDays"><option value="1">今天</option><option value="7" selected>近 7 天</option><option value="30">近 30 天</option></select></label>
+          <label>类型 <select id="finalFailureCategory"><option value="all">全部</option><option value="site">站点失败</option><option value="api">API 失败</option></select></label>
+          <label>搜索 <input id="finalFailureQuery" type="search" placeholder="站点、阶段、错误、URL、query、版本" /></label>
+          <button id="finalFailureSearchButton" type="button">刷新</button>
+        </div>
+      </section>
+      <section class="card panel" data-tab-panel="trend">
+        <h3>近 7 天最终失败趋势</h3>
         <table>
           <thead>
             <tr>
-              <th>时间 / 上传</th>
-              <th>类型</th>
-              <th>目标 / 来源</th>
-              <th>阶段 / 状态</th>
-              <th>错误信息</th>
-              <th>次数 / 用户</th>
+              <th>日期</th>
+              <th>站点失败</th>
+              <th>API 失败</th>
+              <th>总失败</th>
+              <th>失败站点数</th>
             </tr>
           </thead>
-          <tbody id="failureLogsBody">
-            <tr><td colspan="6" class="empty-cell">等待加载...</td></tr>
+          <tbody id="finalFailureTrendBody">
+            <tr><td colspan="5" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
+      </section>
+      <section class="card panel" data-tab-panel="details">
+        <h3>最终失败详情记录</h3>
+        <p class="footer-note">仅展示 <code>metadata.finalFailurePopup=true</code> 的真实记录。用于判断用户真正被失败弹窗打断的站点和原因。</p>
+        <div class="table-scroll">
+          <table class="failure-detail-table">
+            <thead>
+              <tr>
+                <th>失败时间 / 创建</th>
+                <th>上传时间</th>
+                <th>类型</th>
+                <th>目标</th>
+                <th>来源</th>
+                <th>阶段</th>
+                <th>状态码</th>
+                <th>错误码</th>
+                <th>模型</th>
+                <th>版本</th>
+                <th>用户 / 语言</th>
+                <th>次数</th>
+                <th>URL</th>
+                <th>Query</th>
+                <th>错误信息</th>
+              </tr>
+            </thead>
+            <tbody id="finalFailureLogsBody">
+              <tr><td colspan="15" class="empty-cell">等待加载...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     `
   });
@@ -4346,14 +6489,22 @@ function getGrowthPageHtml() {
     content: `
       <h2 class="section-title">最近 7 天增长指标</h2>
       <section id="growthCards" class="grid"></section>
-	      <section class="card panel">
+      <nav id="growthTabs" class="admin-tabs" role="tablist" aria-label="增长漏斗统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="activation">激活事件</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="versions">版本分布</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="maturity">用户成熟度</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="workflows">工作流组合</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="cohorts">Cohort</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="sources">入口来源</button>
+      </nav>
+	      <section class="card panel" data-tab-panel="activation">
 	        <h3>激活事件排行</h3>
 	        <table>
 	          <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>主版本</th><th>最近时间</th></tr></thead>
 	          <tbody id="growthActivationBody"><tr><td colspan="7" class="empty-cell">等待加载...</td></tr></tbody>
 	        </table>
 	      </section>
-	      <section class="card panel">
+	      <section class="card panel" data-tab-panel="versions">
 	        <h3>插件版本分布</h3>
 	        <p class="footer-note">用于判断新版激活、功能、订阅和站点事件是否已经覆盖真实用户。</p>
 	        <table>
@@ -4361,28 +6512,28 @@ function getGrowthPageHtml() {
 	          <tbody id="growthVersionsBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
 	        </table>
 	      </section>
-	      <section class="card panel">
+	      <section class="card panel" data-tab-panel="maturity">
 	        <h3>用户成熟度</h3>
 	        <table>
 	          <thead><tr><th>阶段</th><th>用户/设备数</th></tr></thead>
 	          <tbody id="growthMaturityBody"><tr><td colspan="2" class="empty-cell">等待加载...</td></tr></tbody>
 	        </table>
 	      </section>
-	      <section class="card panel">
+	      <section class="card panel" data-tab-panel="workflows">
 	        <h3>高频工作流组合</h3>
 	        <table>
 	          <thead><tr><th>组合</th><th>模式</th><th>次数</th><th>带 Query</th><th>活跃用户/设备</th><th>主版本</th></tr></thead>
 	          <tbody id="growthCombinationsBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
 	        </table>
 	      </section>
-	      <section class="card panel">
+	      <section class="card panel" data-tab-panel="cohorts">
 	        <h3>首次查询 Cohort</h3>
 	        <table>
 	          <thead><tr><th>首次查询日期</th><th>用户/设备数</th><th>D1 回访</th><th>D7 回访</th></tr></thead>
 	          <tbody id="growthCohortsBody"><tr><td colspan="4" class="empty-cell">等待加载...</td></tr></tbody>
 	        </table>
 	      </section>
-	      <section class="card panel">
+	      <section class="card panel" data-tab-panel="sources">
         <h3>入口来源</h3>
         <table>
           <thead><tr><th>来源</th><th>事件次数</th></tr></thead>
@@ -4402,18 +6553,78 @@ function getBusinessPageHtml() {
     content: `
       <h2 class="section-title">最近 7 天商业化与成本</h2>
       <section id="businessCards" class="grid"></section>
-      <section class="card panel">
+      <nav id="businessTabs" class="admin-tabs" role="tablist" aria-label="商业化成本统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="funnel">订阅漏斗</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="distribution">Tokens / 成本分布</button>
+      </nav>
+      <section class="card panel" data-tab-panel="funnel">
         <h3>订阅漏斗事件</h3>
         <table>
           <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>最近时间</th></tr></thead>
           <tbody id="businessFunnelBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
         </table>
       </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="distribution">
         <h3>单用户 Tokens / 成本分布</h3>
         <table>
           <thead><tr><th>指标</th><th>P50</th><th>P90</th><th>P99</th></tr></thead>
           <tbody id="businessDistributionBody"><tr><td colspan="4" class="empty-cell">等待加载...</td></tr></tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getApiCostPageHtml() {
+  return createAdminPage({
+    pageName: 'apiCost',
+    title: '每日 API 成本',
+    description: '按天统计官方代理 API 的 tokens、官方价估算与实际云端成本；当前实际成本按 OpenAI 官方价格的 0.15 倍计算。',
+    content: `
+      <h2 class="section-title">API 成本核心指标</h2>
+      <section id="apiCostCards" class="grid"></section>
+      <nav id="apiCostTabs" class="admin-tabs" role="tablist" aria-label="API 成本统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="daily">每日成本</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="models">模型排行</button>
+      </nav>
+      <section class="card panel" data-tab-panel="daily">
+        <h3>近 30 天每日 API 成本</h3>
+        <p class="footer-note">实际云端成本 = 官方价格估算 × 成本倍率。当前倍率默认 <code>0.15</code>，可通过 <code>OFFICIAL_AGENT_COST_MULTIPLIER</code> 覆盖。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>请求数</th>
+              <th>输入 Tokens</th>
+              <th>输出 Tokens</th>
+              <th>总 Tokens</th>
+              <th>官方价估算</th>
+              <th>实际成本</th>
+              <th>单请求成本</th>
+            </tr>
+          </thead>
+          <tbody id="apiCostTrendBody">
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="card panel" data-tab-panel="models">
+        <h3>近 30 天模型成本排行</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>模型</th>
+              <th>请求数</th>
+              <th>总 Tokens</th>
+              <th>官方价估算</th>
+              <th>实际成本</th>
+              <th>登录用户</th>
+              <th>匿名设备</th>
+            </tr>
+          </thead>
+          <tbody id="apiCostModelsBody">
+            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+          </tbody>
         </table>
       </section>
     `
@@ -4428,7 +6639,11 @@ function getShareLinksPageHtml() {
     content: `
       <h2 class="section-title">近 7 天共享链接</h2>
       <section id="shareLinkCards" class="grid"></section>
-      <section class="card panel">
+      <nav id="shareLinksTabs" class="admin-tabs" role="tablist" aria-label="共享链接统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="trend">每日趋势</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="details">详情列表</button>
+      </nav>
+      <section class="card panel" data-tab-panel="trend">
         <h3>每日生成趋势</h3>
         <table>
           <thead>
@@ -4448,7 +6663,7 @@ function getShareLinksPageHtml() {
           </tbody>
         </table>
       </section>
-      <section class="card panel">
+      <section class="card panel" data-tab-panel="details">
         <h3>最近共享链接详情</h3>
         <p class="footer-note">按创建时间倒序展示。当前分享记录没有保存用户身份字段，因此这里只展示分享内容相关的真实字段。</p>
         <table>
@@ -4471,6 +6686,76 @@ function getShareLinksPageHtml() {
   });
 }
 
+function getCoursePromoPageHtml() {
+  return createAdminPage({
+    pageName: 'coursePromo',
+    title: '课程广告配置',
+    description: '控制主页课程广告的显示开关、图片、链接和频控参数。公开页面只读取安全字段，适合随时换图换链路。',
+    content: `
+      <section class="card panel">
+        <h2 class="section-title">广告配置</h2>
+        <div class="course-promo-grid">
+          <label class="field">
+            <span>是否显示广告</span>
+            <select id="coursePromoEnabled">
+              <option value="false">关闭</option>
+              <option value="true">开启</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>广告图片 URL</span>
+            <input id="coursePromoImageUrl" type="url" placeholder="https://..." />
+          </label>
+          <label class="field">
+            <span>点击链接 URL</span>
+            <input id="coursePromoTargetUrl" type="url" placeholder="https://..." />
+          </label>
+          <label class="field">
+            <span>标题</span>
+            <input id="coursePromoTitle" type="text" maxlength="80" />
+          </label>
+          <label class="field course-promo-field-wide">
+            <span>副标题</span>
+            <textarea id="coursePromoSubtitle" rows="3" maxlength="160"></textarea>
+          </label>
+          <label class="field">
+            <span>按钮文案</span>
+            <input id="coursePromoCtaText" type="text" maxlength="24" />
+          </label>
+          <label class="field">
+            <span>目标语言</span>
+            <input id="coursePromoTargetLocales" type="text" placeholder="zh_CN, zh_TW, zh" />
+          </label>
+          <label class="field">
+            <span>关闭后天数</span>
+            <input id="coursePromoDismissDays" type="number" min="1" max="365" step="1" />
+          </label>
+          <label class="field">
+            <span>每日最多展示</span>
+            <input id="coursePromoMaxImpressionsPerDay" type="number" min="1" max="20" step="1" />
+          </label>
+        </div>
+        <div class="course-promo-actions">
+          <button id="coursePromoSaveButton" type="button">保存配置</button>
+          <button id="coursePromoRefreshButton" type="button">重新加载</button>
+        </div>
+        <div class="course-promo-meta" id="coursePromoMeta"></div>
+      </section>
+      <section class="card panel">
+        <h3>图片预览</h3>
+        <div class="course-promo-preview">
+          <img id="coursePromoImagePreview" alt="课程广告预览" />
+          <div class="course-promo-preview-copy">
+            <div id="coursePromoPreviewTitle" class="course-promo-preview-title"></div>
+            <div id="coursePromoPreviewSubtitle" class="course-promo-preview-subtitle"></div>
+            <a id="coursePromoPreviewLink" class="course-promo-preview-link" href="#" target="_blank" rel="noopener noreferrer">打开链接</a>
+          </div>
+        </div>
+      </section>
+    `
+  });
+}
+
 function createEmptyUsageDay(dateKey) {
   return {
     date: dateKey,
@@ -4488,6 +6773,100 @@ function createEmptyUsageDay(dateKey) {
   };
 }
 
+function getAuthUserIso(value) {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
+async function listFirebaseAuthUsers(maxUsers = 5000) {
+  requireFirebaseAdmin();
+  const safeMaxUsers = clamp(parseInteger(maxUsers, 5000), 1, 20000);
+  const users = [];
+  let pageToken;
+  while (users.length < safeMaxUsers) {
+    const result = await admin.auth().listUsers(Math.min(1000, safeMaxUsers - users.length), pageToken);
+    users.push(...(Array.isArray(result.users) ? result.users : []));
+    pageToken = result.pageToken;
+    if (!pageToken) break;
+  }
+  return users;
+}
+
+function normalizePlanName(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized || 'free';
+}
+
+function buildPlanStatus(planValue, expiresAtValue) {
+  const plan = normalizePlanName(planValue);
+  if (!plan || plan === 'free' || plan === 'none') return '免费';
+  const expiresAtSeconds = getTimestampSeconds(expiresAtValue);
+  if (expiresAtSeconds > 0 && expiresAtSeconds * 1000 < Date.now()) {
+    return '已过期';
+  }
+  return `${plan} / 有效`;
+}
+
+function incrementLocaleCount(localeByUid, uid = '', locale = '') {
+  const normalizedUid = String(uid || '').trim();
+  const normalizedLocale = String(locale || '').trim();
+  if (!normalizedUid || !normalizedLocale) return;
+  if (!localeByUid.has(normalizedUid)) localeByUid.set(normalizedUid, new Map());
+  const counts = localeByUid.get(normalizedUid);
+  counts.set(normalizedLocale, (counts.get(normalizedLocale) || 0) + 1);
+}
+
+function getTopLocaleFromCounts(counts) {
+  if (!counts || !counts.size) return '';
+  return Array.from(counts.entries())
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0][0];
+}
+
+function detectQuestionLanguage(text = '') {
+  const source = String(text || '').trim();
+  if (!source) return '';
+  const cjkCount = (source.match(/[\u3400-\u9fff]/g) || []).length;
+  const kanaCount = (source.match(/[\u3040-\u30ff]/g) || []).length;
+  const hangulCount = (source.match(/[\uac00-\ud7af]/g) || []).length;
+  const latinCount = (source.match(/[a-zA-Z]/g) || []).length;
+  if (kanaCount > 0 && kanaCount >= cjkCount) return '日语';
+  if (hangulCount > 0) return '韩语';
+  if (cjkCount > 0) return '中文简体';
+  if (latinCount > 0) return '英语';
+  return '';
+}
+
+function getQuestionTextForLanguage(row = {}) {
+  return extractUserQueryForInsight(row.queryText || row.queryPreview || '');
+}
+
+async function getCommonQuestionLanguageByUid(days = 90) {
+  const dateKeys = getRecentDateKeys(days);
+  const [apiRows, siteRows] = await Promise.all([
+    listOfficialApiEvents(dateKeys),
+    listSiteCompareEvents(dateKeys)
+  ]);
+  const localeByUid = new Map();
+  apiRows.forEach((row) => incrementLocaleCount(localeByUid, row.uid, detectQuestionLanguage(getQuestionTextForLanguage(row))));
+  siteRows.forEach((row) => incrementLocaleCount(localeByUid, row.uid, detectQuestionLanguage(getQuestionTextForLanguage(row))));
+  const result = new Map();
+  localeByUid.forEach((counts, uid) => {
+    result.set(uid, getTopLocaleFromCounts(counts));
+  });
+  return result;
+}
+
+function getLocaleFallbackLabel(locale = '') {
+  const normalized = String(locale || '').trim().toLowerCase().replace('_', '-');
+  if (!normalized) return '';
+  if (normalized.startsWith('zh')) return '中文简体';
+  if (normalized.startsWith('en')) return '英语';
+  if (normalized.startsWith('ja')) return '日语';
+  if (normalized.startsWith('ko')) return '韩语';
+  return locale;
+}
+
 async function getUserDirectory() {
   requireFirebaseAdmin();
   const snapshot = await db.collection('users').get();
@@ -4499,14 +6878,106 @@ async function getUserDirectory() {
       email: String(data.email || data.googleEmail || data.lastLoginEmail || '').trim(),
       plan: String(data.plan || 'free').trim() || 'free',
       planExpiresAt: data.planExpiresAt || null,
+      apiPlan: String(data.apiPlan || 'free').trim() || 'free',
+      apiPlanExpiresAt: data.apiPlanExpiresAt || null,
       stripeCustomerId: String(data.stripeCustomerId || '').trim(),
       stripeSubscriptionId: String(data.stripeSubscriptionId || '').trim(),
       subscriptionStatus: String(data.subscriptionStatus || '').trim(),
+      apiSubscriptionStatus: String(data.apiSubscriptionStatus || '').trim(),
+      locale: String(data.locale || data.lastLocale || data.language || '').trim(),
       createdAt: data.createdAt || null,
       updatedAt: data.updatedAt || null
     });
   });
   return byUid;
+}
+
+function matchesUserListQuery(user, query = '') {
+  const normalizedQuery = String(query || '').trim().toLowerCase();
+  if (!normalizedQuery) return true;
+  return [
+    user.uid,
+    user.email,
+    user.chatPlanStatus,
+    user.chatSubscriptionStatus,
+    user.apiPlanStatus,
+    user.apiSubscriptionStatus,
+    user.commonLocale
+  ].some((value) => String(value || '').toLowerCase().includes(normalizedQuery));
+}
+
+function buildUserListItem(uid, profile = {}, authUser = null, commonLocaleByUid = new Map()) {
+  const email = String(authUser?.email || profile.email || '').trim();
+  const fallbackLocale = getLocaleFallbackLabel(profile.locale);
+  const commonLocale = commonLocaleByUid.get(uid) || fallbackLocale || '';
+  return {
+    uid,
+    email,
+    chatPlanStatus: buildPlanStatus(profile.plan, profile.planExpiresAt),
+    chatSubscriptionStatus: String(profile.subscriptionStatus || '').trim() || '-',
+    chatPlanExpiresAt: timestampToIso(profile.planExpiresAt),
+    apiPlanStatus: buildPlanStatus(profile.apiPlan, profile.apiPlanExpiresAt),
+    apiSubscriptionStatus: String(profile.apiSubscriptionStatus || '').trim() || '-',
+    apiPlanExpiresAt: timestampToIso(profile.apiPlanExpiresAt),
+    commonLocale,
+    localeSource: commonLocaleByUid.has(uid) ? '近 90 天 Query' : (fallbackLocale ? '设备语言' : ''),
+    createdAt: timestampToIso(profile.createdAt),
+    updatedAt: timestampToIso(profile.updatedAt),
+    authCreatedAt: getAuthUserIso(authUser?.metadata?.creationTime),
+    authLastSignInAt: getAuthUserIso(authUser?.metadata?.lastSignInTime),
+    lastSeenAt: timestampToIso(profile.updatedAt) || getAuthUserIso(authUser?.metadata?.lastSignInTime)
+  };
+}
+
+async function getAdminUsersListData(req) {
+  const limit = clamp(parseInteger(req.query?.limit, 500), 1, 1000);
+  const query = String(req.query?.query || '').trim();
+  const maxAuthUsers = clamp(parseInteger(req.query?.maxAuthUsers, 5000), 1, 20000);
+  const [userDirectory, authUsers, commonLocaleByUid] = await Promise.all([
+    getUserDirectory(),
+    listFirebaseAuthUsers(maxAuthUsers),
+    getCommonQuestionLanguageByUid(90)
+  ]);
+
+  const authByUid = new Map(authUsers.map((user) => [user.uid, user]));
+  const uidSet = new Set([...authByUid.keys(), ...userDirectory.keys()]);
+  const allUsers = Array.from(uidSet).map((uid) => {
+    const profile = userDirectory.get(uid) || { uid };
+    return buildUserListItem(uid, profile, authByUid.get(uid), commonLocaleByUid);
+  }).sort((left, right) => {
+    const rightTime = Date.parse(right.lastSeenAt || right.updatedAt || right.authLastSignInAt || right.createdAt || right.authCreatedAt || 0) || 0;
+    const leftTime = Date.parse(left.lastSeenAt || left.updatedAt || left.authLastSignInAt || left.createdAt || left.authCreatedAt || 0) || 0;
+    return rightTime - leftTime || String(left.email || left.uid).localeCompare(String(right.email || right.uid));
+  });
+
+  const filteredUsers = allUsers.filter((user) => matchesUserListQuery(user, query));
+  const localeCounts = new Map();
+  let chatProUsers = 0;
+  let apiProUsers = 0;
+  let usersWithEmail = 0;
+  let usersWithLocale = 0;
+  allUsers.forEach((user) => {
+    if (user.chatPlanStatus !== '免费' && user.chatPlanStatus !== '已过期') chatProUsers += 1;
+    if (user.apiPlanStatus !== '免费' && user.apiPlanStatus !== '已过期') apiProUsers += 1;
+    if (user.email) usersWithEmail += 1;
+    if (user.commonLocale) {
+      usersWithLocale += 1;
+      localeCounts.set(user.commonLocale, (localeCounts.get(user.commonLocale) || 0) + 1);
+    }
+  });
+
+  return {
+    users: filteredUsers.slice(0, limit),
+    total: allUsers.length,
+    filteredTotal: filteredUsers.length,
+    summary: {
+      chatProUsers,
+      apiProUsers,
+      usersWithEmail,
+      usersWithLocale,
+      topLocale: getTopLocaleFromCounts(localeCounts)
+    }
+  };
 }
 
 async function listStripeInvoices(options = {}) {
@@ -4864,7 +7335,8 @@ async function collectUsageEvents(dateKeys) {
     const promptTokens = Math.max(0, Number(data.promptTokens) || 0);
     const completionTokens = Math.max(0, Number(data.completionTokens) || 0);
     const totalTokens = Math.max(0, Number(data.totalTokens) || 0);
-    const estimatedCost = Math.max(0, Number(data.estimatedCost) || 0);
+    const cost = getOfficialApiEventCost(data);
+    const estimatedCost = Math.max(0, Number(cost.estimatedCost) || 0);
     bucket.promptTokens += promptTokens;
     bucket.completionTokens += completionTokens;
     bucket.totalTokens += totalTokens;
@@ -4927,6 +7399,7 @@ async function listOfficialApiEvents(dateKeys) {
     const data = doc.data() || {};
     const dateKey = String(data.dateKey || '').trim();
     if (!allowed.has(dateKey)) return;
+    const cost = getOfficialApiEventCost(data);
     rows.push({
       id: doc.id,
       dateKey,
@@ -4945,7 +7418,9 @@ async function listOfficialApiEvents(dateKeys) {
       promptTokens: Math.max(0, Number(data.promptTokens) || 0),
       completionTokens: Math.max(0, Number(data.completionTokens) || 0),
       totalTokens: Math.max(0, Number(data.totalTokens) || 0),
-      estimatedCost: Math.max(0, Number(data.estimatedCost) || 0),
+      officialEstimatedCost: Math.max(0, Number(cost.officialEstimatedCost) || 0),
+      estimatedCost: Math.max(0, Number(cost.estimatedCost) || 0),
+      costMultiplier: Math.max(0, Number(cost.costMultiplier) || officialAgentCostMultiplier),
       currency: String(data.currency || officialAgentCostCurrency || 'usd'),
       extensionVersion: String(data.extensionVersion || ''),
       createdAt: timestampToIso(data.createdAt)
@@ -5071,6 +7546,114 @@ function summarizeUsageRange(days) {
     anonymous: { requests: summary.anonymous.requests, activeUsers: summary.anonymous.clientIds.size, ...createUsageTokenBucket(summary.anonymous) },
     activeUsers: activeUsers.size,
     activeAnonymousClients: summary.anonymous.clientIds.size
+  };
+}
+
+function createEmptyApiCostSummary() {
+  return {
+    totalRequests: 0,
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    officialEstimatedCost: 0,
+    estimatedCost: 0,
+    costPerRequest: 0,
+    costPerMillionTokens: 0,
+    activeUsers: 0,
+    activeAnonymousClients: 0,
+    userIds: new Set(),
+    clientIds: new Set()
+  };
+}
+
+function finalizeApiCostSummary(summary = {}) {
+  const totalRequests = Math.max(0, Math.round(Number(summary.totalRequests) || 0));
+  const totalTokens = Math.max(0, Math.round(Number(summary.totalTokens) || 0));
+  const activeUsers = summary.userIds instanceof Set ? summary.userIds.size : Math.max(0, Number(summary.activeUsers) || 0);
+  const activeAnonymousClients = summary.clientIds instanceof Set ? summary.clientIds.size : Math.max(0, Number(summary.activeAnonymousClients) || 0);
+  const estimatedCost = roundCost(summary.estimatedCost);
+  return {
+    totalRequests,
+    promptTokens: Math.max(0, Math.round(Number(summary.promptTokens) || 0)),
+    completionTokens: Math.max(0, Math.round(Number(summary.completionTokens) || 0)),
+    totalTokens,
+    officialEstimatedCost: roundCost(summary.officialEstimatedCost),
+    estimatedCost,
+    costPerRequest: roundCost(estimatedCost / Math.max(1, totalRequests)),
+    costPerMillionTokens: roundCost(totalTokens > 0 ? estimatedCost / (totalTokens / 1000000) : 0),
+    activeUsers,
+    activeAnonymousClients
+  };
+}
+
+function addApiCostRow(summary, row = {}) {
+  summary.totalRequests += 1;
+  summary.promptTokens += Number(row.promptTokens || 0);
+  summary.completionTokens += Number(row.completionTokens || 0);
+  summary.totalTokens += Number(row.totalTokens || 0);
+  summary.officialEstimatedCost += Number(row.officialEstimatedCost || 0);
+  summary.estimatedCost += Number(row.estimatedCost || 0);
+  if (row.uid) summary.userIds.add(row.uid);
+  if (row.clientHash) summary.clientIds.add(row.clientHash);
+}
+
+async function getApiCostSummaryData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const rows = await listOfficialApiEvents(dateKeys);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  const summarizeRows = (items) => {
+    const summary = createEmptyApiCostSummary();
+    items.forEach((row) => addApiCostRow(summary, row));
+    return finalizeApiCostSummary(summary);
+  };
+  return {
+    currency: officialAgentCostCurrency,
+    costMultiplier: officialAgentCostMultiplier,
+    officialInputTokenPricePerMillion: officialAgentInputTokenPricePerMillion,
+    officialOutputTokenPricePerMillion: officialAgentOutputTokenPricePerMillion,
+    today: summarizeRows(rows.filter((row) => row.dateKey === todayKey)),
+    last7Days: summarizeRows(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey))),
+    last30Days: summarizeRows(rows)
+  };
+}
+
+async function getApiCostTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const rows = await listOfficialApiEvents(dateKeys);
+  const byDate = new Map(dateKeys.map((dateKey) => [dateKey, createEmptyApiCostSummary()]));
+  rows.forEach((row) => {
+    if (!byDate.has(row.dateKey)) return;
+    addApiCostRow(byDate.get(row.dateKey), row);
+  });
+  return {
+    currency: officialAgentCostCurrency,
+    costMultiplier: officialAgentCostMultiplier,
+    days: sortDateRowsDescending(dateKeys.map((dateKey) => ({
+      date: dateKey,
+      ...finalizeApiCostSummary(byDate.get(dateKey))
+    })))
+  };
+}
+
+async function getApiCostByModelData(req) {
+  const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 30), 1, 100);
+  const rows = await listOfficialApiEvents(getRecentDateKeys(days));
+  const byModel = new Map();
+  rows.forEach((row) => {
+    const model = row.model || 'unknown';
+    if (!byModel.has(model)) byModel.set(model, createEmptyApiCostSummary());
+    addApiCostRow(byModel.get(model), row);
+  });
+  return {
+    currency: officialAgentCostCurrency,
+    costMultiplier: officialAgentCostMultiplier,
+    models: Array.from(byModel.entries())
+      .map(([model, summary]) => ({ model, ...finalizeApiCostSummary(summary) }))
+      .sort((left, right) => right.estimatedCost - left.estimatedCost)
+      .slice(0, limit)
   };
 }
 
@@ -5517,6 +8100,7 @@ async function getCombinedUsageRecentData(req) {
         deviceId: row.clientHash || '',
         requestIp: row.requestIp || '',
         requestRegion: row.requestRegion || '',
+        locale: row.locale || '',
         queryPreview: row.queryPreview || '',
         queryText: row.queryText || '',
         queryHash: row.queryHash || '',
@@ -5543,6 +8127,7 @@ async function getCombinedUsageRecentData(req) {
         deviceId: row.clientHash || '',
         requestIp: row.requestIp || '',
         requestRegion: row.requestRegion || '',
+        locale: row.locale || '',
         queryPreview: row.queryPreview || '',
         queryText: row.queryText || '',
         queryHash: row.queryHash || '',
@@ -6782,6 +9367,65 @@ async function getFailureLogsTopTargetsData(req) {
   };
 }
 
+function isFinalFailureRow(row = {}) {
+  return row?.metadata?.finalFailurePopup === true
+    || String(row?.metadata?.finalFailurePopup || '').toLowerCase() === 'true'
+    || row.errorCode === 'FINAL_FAILURE_POPUP'
+    || row.phase === 'final_failure_popup';
+}
+
+function filterFinalFailureRows(rows, req) {
+  return filterFailureRows((Array.isArray(rows) ? rows : []).filter(isFinalFailureRow), req);
+}
+
+async function getFinalFailuresSummaryData() {
+  const dateKeys = getRecentDateKeys(30);
+  const rows = (await listFailureLogEvents(dateKeys)).filter(isFinalFailureRow);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  return {
+    today: summarizeFailureLogs(rows, todayKey),
+    last7Days: summarizeFailureLogs(rows.filter((row) => dateKeys.slice(-7).includes(row.dateKey))),
+    last30Days: summarizeFailureLogs(rows)
+  };
+}
+
+async function getFinalFailuresTrendData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const rows = (await listFailureLogEvents(dateKeys)).filter(isFinalFailureRow);
+  const daysPayload = dateKeys.map((dateKey) => {
+    const summary = summarizeFailureLogs(rows, dateKey);
+    return {
+      date: dateKey,
+      totalFailures: summary.totalFailures,
+      siteFailures: summary.siteFailures,
+      apiFailures: summary.apiFailures,
+      failedSites: summary.failedSites
+    };
+  });
+  return { days: sortDateRowsDescending(daysPayload) };
+}
+
+async function getFinalFailuresListData(req) {
+  const days = clamp(parseInteger(req.query?.days, 7), 1, 90);
+  const limit = clamp(parseInteger(req.query?.limit, 100), 1, 200);
+  const cursor = String(req.query?.cursor || '').trim();
+  const rows = filterFinalFailureRows(await listFailureLogEvents(getRecentDateKeys(days)), req);
+  rows.sort((left, right) => {
+    const rightTs = Date.parse(right.lastSeenAt || right.createdAt || right.uploadedAt || 0) || 0;
+    const leftTs = Date.parse(left.lastSeenAt || left.createdAt || left.uploadedAt || 0) || 0;
+    return rightTs - leftTs;
+  });
+  const startIndex = cursor ? rows.findIndex((item) => item.id === cursor) + 1 : 0;
+  const pageItems = rows.slice(Math.max(0, startIndex), Math.max(0, startIndex) + limit);
+  const nextCursor = rows.length > startIndex + limit ? pageItems[pageItems.length - 1]?.id || '' : '';
+  return {
+    logs: pageItems,
+    nextCursor,
+    total: rows.length
+  };
+}
+
 async function requireAdminPage(req, res) {
   try {
     await requireAdmin(req);
@@ -6813,6 +9457,14 @@ app.get('/payment-success', (_req, res) => {
   res.send(getPaymentSuccessPageHtml());
 });
 
+app.get(['/membership-pricing', '/membership-pricing.html'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  const requestedPlanType = String(req.query?.planType || req.query?.plan || '').trim().toLowerCase();
+  const planType = requestedPlanType === 'api' ? 'api' : 'chat';
+  res.send(getMembershipPricingPageHtml(planType));
+});
+
 app.get('/payment-status', asyncRoute(async (req, res) => {
   const snapshot = await getPaymentStatusSnapshot(req.query?.session_id);
   res.setHeader('Cache-Control', 'no-store');
@@ -6841,6 +9493,18 @@ app.get('/admin/orders', asyncRoute(async (req, res) => {
   res.send(getOrdersPageHtml());
 }));
 
+app.get('/admin/users', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getUsersPageHtml());
+}));
+
+app.get('/admin/redeem-codes', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getRedeemCodesPageHtml());
+}));
+
 app.get('/admin/api-usage', asyncRoute(async (req, res) => {
   if (!await requireAdminPage(req, res)) return;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -6856,6 +9520,18 @@ app.get('/admin/failure-logs', asyncRoute(async (req, res) => {
   if (!await requireAdminPage(req, res)) return;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getFailureLogsPageHtml());
+}));
+
+app.get('/admin/final-failures', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getFinalFailuresPageHtml());
+}));
+
+app.get('/admin/course-promo', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getCoursePromoPageHtml());
 }));
 
 app.get('/admin/product-health', asyncRoute(async (req, res) => {
@@ -6878,6 +9554,12 @@ app.get('/admin/business', asyncRoute(async (req, res) => {
   if (!await requireAdminPage(req, res)) return;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(getBusinessPageHtml());
+}));
+
+app.get('/admin/api-cost', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getApiCostPageHtml());
 }));
 
 app.get('/admin/share-links', asyncRoute(async (req, res) => {
@@ -6921,9 +9603,25 @@ app.get('/api/admin/orders/list', asyncRoute(async (req, res) => {
   res.json(await getOrderListData(req));
 }));
 
+app.get('/api/admin/users/list', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getAdminUsersListData(req));
+}));
+
 app.get('/api/admin/orders/trend', asyncRoute(async (req, res) => {
   await requireAdmin(req);
   res.json(await getOrderTrendData(req));
+}));
+
+app.get('/api/admin/redeem-codes', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await listRedeemCodes(req));
+}));
+
+app.post('/api/admin/redeem-codes', asyncRoute(async (req, res) => {
+  const adminUser = await requireAdmin(req);
+  res.json(await createRedeemCodes(req, adminUser));
 }));
 
 app.get('/api/admin/api-usage/summary', asyncRoute(async (req, res) => {
@@ -7001,6 +9699,65 @@ app.get('/api/admin/failure-logs/top-targets', asyncRoute(async (req, res) => {
   res.json(await getFailureLogsTopTargetsData(req));
 }));
 
+app.get('/api/admin/final-failures/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFinalFailuresSummaryData());
+}));
+
+app.get('/api/admin/final-failures/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFinalFailuresTrendData(req));
+}));
+
+app.get('/api/admin/final-failures/list', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getFinalFailuresListData(req));
+}));
+
+app.get('/api/admin/course-promo', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ config: sanitizeCoursePromoOutput(await getCoursePromoConfigFromStore()) });
+}));
+
+app.post('/api/admin/course-promo', asyncRoute(async (req, res) => {
+  const adminUser = await requireAdmin(req);
+  const config = normalizeCoursePromoConfig({
+    enabled: req.body?.enabled === true || req.body?.enabled === 'true',
+    imageUrl: req.body?.imageUrl,
+    targetUrl: req.body?.targetUrl,
+    title: req.body?.title,
+    subtitle: req.body?.subtitle,
+    ctaText: req.body?.ctaText,
+    targetLocales: req.body?.targetLocales,
+    dismissDays: req.body?.dismissDays,
+    maxImpressionsPerDay: req.body?.maxImpressionsPerDay
+  });
+  const errors = validateCoursePromoConfigInput(config);
+  if (errors.length) {
+    res.status(400).json({ error: errors.join('；') });
+    return;
+  }
+  const saved = await saveCoursePromoConfigToStore(config, adminUser.username || '');
+  res.json({ ok: true, config: sanitizeCoursePromoOutput(saved) });
+}));
+
+app.get('/api/public/course-promo', asyncRoute(async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  let config = getDefaultCoursePromoConfig();
+  try {
+    config = await getCoursePromoConfigFromStore();
+  } catch (error) {
+    res.json({ config: sanitizeCoursePromoPublicOutput({ ...getDefaultCoursePromoConfig(), enabled: false }) });
+    return;
+  }
+  const output = sanitizeCoursePromoPublicOutput(config);
+  if (!output.imageUrl || !output.targetUrl) {
+    output.enabled = false;
+  }
+  res.json({ config: output });
+}));
+
 app.get('/api/admin/product-health/summary', asyncRoute(async (req, res) => {
   await requireAdmin(req);
   res.json(await getProductHealthSummaryData());
@@ -7029,6 +9786,21 @@ app.get('/api/admin/growth/summary', asyncRoute(async (req, res) => {
 app.get('/api/admin/business/summary', asyncRoute(async (req, res) => {
   await requireAdmin(req);
   res.json(await getBusinessCostSummaryData());
+}));
+
+app.get('/api/admin/api-cost/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getApiCostSummaryData(req));
+}));
+
+app.get('/api/admin/api-cost/trend', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getApiCostTrendData(req));
+}));
+
+app.get('/api/admin/api-cost/by-model', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getApiCostByModelData(req));
 }));
 
 app.get('/api/admin/share-links/summary', asyncRoute(async (req, res) => {
@@ -7094,36 +9866,95 @@ app.post('/api/subscription-funnel-events', asyncRoute(async (req, res) => {
   res.json(await recordAnalyticsEvent(req, 'subscription'));
 }));
 
-app.get('/billingConfig', (_req, res) => {
+app.post('/auth/email-code/send', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await sendEmailLoginCode(req));
+}));
+
+app.post('/auth/email-code/verify', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await verifyEmailLoginCode(req));
+}));
+
+app.get('/billingConfig', asyncRoute(async (_req, res) => {
   res.json({
     mode: billingMode,
-    prices: getStripePrices()
+    limits: {
+      officialApiDailyFreeLimit: dailyFreeLimit,
+      chatPlanDailyFreeLimit
+    },
+    prices: getStripePrices(),
+    priceDetails: await getStripePriceDetails()
   });
-});
+}));
+
+app.post('/chatPlanUsage/consume', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await consumeChatPlanUsageForRequest(req));
+}));
 
 app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
-  const user = await requireUser(req);
+  const user = await getOptionalUser(req);
   const priceId = String(req.body?.priceId || '').trim();
   if (!priceId) {
     res.status(400).json({ error: 'priceId is required' });
     return;
   }
   assertCheckoutPriceAllowed(priceId);
+  const pricePlanType = getStripePlanTypeForPrice(priceId);
+  const requestedPlanTypeRaw = String(req.body?.planType || '').trim().toLowerCase();
+  const requestedPlanType = requestedPlanTypeRaw === 'api'
+    ? 'api'
+    : (requestedPlanTypeRaw === 'chat' ? 'chat' : '');
+  if (requestedPlanTypeRaw && !requestedPlanType) {
+    res.status(400).json({ error: 'Unsupported checkout plan type' });
+    return;
+  }
+  if (requestedPlanType && requestedPlanType !== pricePlanType) {
+    res.status(400).json({ error: 'Checkout plan type does not match price' });
+    return;
+  }
+  const planType = pricePlanType;
+  const prefillEmail = normalizeBillingEmail(req.body?.prefillEmail || req.body?.customerEmail || '');
 
-  const session = await createCheckoutSessionForFirebaseUser({
-    firebaseUser: user,
-    priceId
-  });
+  const session = user?.uid
+    ? await createCheckoutSessionForFirebaseUser({
+      firebaseUser: user,
+      priceId,
+      planType
+    })
+    : await createCheckoutSessionForAnonymousClient({
+      priceId,
+      planType,
+      prefillEmail
+    });
   recordInternalAnalyticsEvent({
     kind: 'subscription',
     eventName: 'checkout_started',
-    uid: user.uid,
-    uploaderType: 'user',
+    uid: user?.uid || '',
+    clientHash: '',
+    uploaderType: user?.uid ? 'user' : 'anonymous',
     source: 'backend',
-    metadata: { priceId, billingMode }
+    metadata: { priceId, planType, billingMode }
   }).catch(() => null);
 
   res.json({ url: session.url });
+}));
+
+app.get('/anonymousMembershipStatus', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    plan: 'free',
+    planExpiresAt: null,
+    apiPlan: 'free',
+    apiPlanExpiresAt: null,
+    stripeCustomerId: '',
+    stripeSubscriptionId: ''
+  });
+}));
+
+app.post('/redeemCode', asyncRoute(async (req, res) => {
+  res.json(await redeemMembershipCode(req));
 }));
 
 app.get('/billing-smoke', asyncRoute(async (req, res) => {
@@ -7187,25 +10018,65 @@ app.get('/listInvoices', asyncRoute(async (req, res) => {
   res.json({ invoices });
 }));
 
-async function updateUserFromSubscription(subscription) {
-  const uid = subscription.metadata?.firebaseUid;
-  if (!uid) return;
+async function updateUserFromSubscription(subscription, options = {}) {
+  const stripe = getStripe();
+  const customerId = extractStripeCustomerId(subscription.customer);
+  const checkoutEmail = normalizeBillingEmail(options.checkoutEmail || '');
+  const customerEmail = checkoutEmail || await getStripeCustomerEmail(stripe, subscription.customer);
+  let uid = String(subscription.metadata?.firebaseUid || '').trim();
+  if (!uid && customerEmail) {
+    const firebaseUser = await getOrCreateFirebaseUserForStripeEmail(customerEmail, { stripeCustomerId: customerId });
+    uid = String(firebaseUser?.uid || '').trim();
+    if (uid) {
+      try {
+        await stripe.subscriptions.update(subscription.id, {
+          metadata: {
+            ...(subscription.metadata || {}),
+            firebaseUid: uid,
+            stripeCustomerEmail: customerEmail
+          }
+        });
+      } catch (error) {
+        console.warn('[ai-compare-backend] failed to backfill subscription firebaseUid:', error.message || error);
+      }
+    }
+  }
+  if (!uid) return { uid: '', customerEmail };
 
   const item = subscription.items?.data?.[0];
   const periodEnd = item?.current_period_end || subscription.current_period_end || 0;
   const isActive = ['active', 'trialing'].includes(subscription.status);
+  const priceId = String(item?.price?.id || '').trim();
+  const planType = String(subscription.metadata?.planType || getStripePlanTypeForPrice(priceId)).trim() === 'api'
+    ? 'api'
+    : 'chat';
+  const planPatch = planType === 'api'
+    ? {
+      apiPlan: isActive ? 'pro' : 'free',
+      apiPlanExpiresAt: periodEnd ? admin.firestore.Timestamp.fromMillis(periodEnd * 1000) : null,
+      apiStripeSubscriptionId: subscription.id,
+      [`apiStripeSubscriptionId${getStripeModeSuffix()}`]: subscription.id,
+      apiSubscriptionStatus: subscription.status
+    }
+    : {
+      plan: isActive ? 'pro' : 'free',
+      planExpiresAt: periodEnd ? admin.firestore.Timestamp.fromMillis(periodEnd * 1000) : null,
+      stripeSubscriptionId: subscription.id,
+      [getStripeSubscriptionIdField()]: subscription.id,
+      subscriptionStatus: subscription.status
+    };
 
   await db.collection('users').doc(uid).set({
-    plan: isActive ? 'pro' : 'free',
-    planExpiresAt: periodEnd ? admin.firestore.Timestamp.fromMillis(periodEnd * 1000) : null,
-    stripeCustomerId: String(subscription.customer || ''),
-    [getStripeCustomerIdField()]: String(subscription.customer || ''),
-    stripeSubscriptionId: subscription.id,
-    [getStripeSubscriptionIdField()]: subscription.id,
-    subscriptionStatus: subscription.status,
+    ...planPatch,
+    ...(customerEmail ? { email: customerEmail } : {}),
+    ...(customerEmail ? { stripeCustomerEmail: customerEmail } : {}),
+    stripeCustomerId: customerId,
+    [getStripeCustomerIdField()]: customerId,
     billingMode,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
+
+  return { uid, customerEmail };
 }
 
 app.post('/stripeWebhook', asyncRoute(async (req, res) => {
@@ -7227,17 +10098,26 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const uid = String(session.metadata?.firebaseUid || session.client_reference_id || '').trim();
+    const sessionEmail = getCheckoutSessionEmail(session);
+    let uid = String(session.metadata?.firebaseUid || '').trim();
+    if (!uid && sessionEmail) {
+      const firebaseUser = await getOrCreateFirebaseUserForStripeEmail(sessionEmail, {
+        stripeCustomerId: extractStripeCustomerId(session.customer)
+      });
+      uid = String(firebaseUser?.uid || '').trim();
+    }
     if (uid) {
       recordInternalAnalyticsEvent({
         kind: 'subscription',
         eventName: 'checkout_success',
         uid,
+        clientHash: '',
         uploaderType: 'user',
         source: 'stripe_webhook',
         metadata: {
           customer: session.customer || '',
           subscription: session.subscription || '',
+          stripeCustomerEmail: sessionEmail,
           amountTotal: session.amount_total || 0,
           currency: session.currency || '',
           billingMode
@@ -7246,7 +10126,7 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
     }
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription);
-      await updateUserFromSubscription(subscription);
+      await updateUserFromSubscription(subscription, { checkoutEmail: sessionEmail });
     }
   }
 
@@ -7256,22 +10136,26 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
     event.type === 'invoice.payment_succeeded'
   ) {
     const object = event.data.object;
-    const subscriptionId = object.subscription || object.id;
+    const subscriptionId = typeof object.subscription === 'object'
+      ? String(object.subscription?.id || '')
+      : String(object.subscription || object.id || '');
     if (subscriptionId) {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      await updateUserFromSubscription(subscription);
-      const uid = String(subscription.metadata?.firebaseUid || '').trim();
+      const updateResult = await updateUserFromSubscription(subscription);
+      const uid = String(updateResult?.uid || subscription.metadata?.firebaseUid || '').trim();
       if (uid) {
         recordInternalAnalyticsEvent({
           kind: 'subscription',
           eventName: event.type === 'customer.subscription.deleted' ? 'subscription_canceled' : event.type.replace(/\./g, '_'),
           uid,
+          clientHash: '',
           uploaderType: 'user',
           source: 'stripe_webhook',
           metadata: {
             subscription: subscription.id,
             status: subscription.status,
             customer: subscription.customer || '',
+            stripeCustomerEmail: updateResult?.customerEmail || '',
             billingMode
           }
         }).catch(() => null);
@@ -7303,7 +10187,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     eventPayload = {
       uid: user.uid,
       clientHash: '',
-      userType: usageResult?.plan === 'pro' ? 'pro' : 'free',
+      userType: ['pro', 'api_pro'].includes(usageResult?.plan) ? 'pro' : 'free',
       locale,
       model: effectiveModel,
       queryPreview,
@@ -7320,7 +10204,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     eventPayload = {
       uid: '',
       clientHash: getAnonymousUsageDocId(anonymousClientId),
-      userType: 'anonymous',
+      userType: usageResult?.plan === 'api_pro' ? 'pro' : 'anonymous',
       locale,
       model: effectiveModel,
       queryPreview,

@@ -24,6 +24,8 @@ const HOMEPAGE_IS_MAC_PLATFORM = /Mac|iPhone|iPad|iPod/i.test(
 );
 const HOMEPAGE_BATCH_FAVORITES_STORAGE_KEY = 'homepageBatchFavorites';
 const HOMEPAGE_PK_STARTER_STORAGE_KEY = 'homepagePkStarterShown';
+const HOMEPAGE_COURSE_PROMO_STORAGE_KEY = 'homepageCoursePromoState';
+const HOMEPAGE_COURSE_PROMO_CAMPAIGN = 'codex_course';
 const AGENT_CUSTOM_SETTINGS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_CUSTOM_SETTINGS_STORAGE_KEY) || 'agentCustomSettings';
 const CUSTOM_AGENTS_STORAGE_KEY = (window.AICompareAgentCatalog?.CUSTOM_AGENTS_STORAGE_KEY) || 'customAgents';
 const AGENT_HIDDEN_IDS_STORAGE_KEY = (window.AICompareAgentCatalog?.AGENT_HIDDEN_IDS_STORAGE_KEY) || 'agentHiddenIds';
@@ -398,6 +400,229 @@ async function initializeHomepageMembershipBanner() {
     }
 
     renderHomepageMembershipBanner(planInfo);
+}
+
+function getHomepageCoursePromoEndpoint() {
+    try {
+        const baseUrl = String(window.FirebaseConfig?.getCloudFunctionsBaseUrl?.() || '').trim().replace(/\/+$/, '');
+        return baseUrl ? `${baseUrl}/api/public/course-promo` : '';
+    } catch (_) {
+        return '';
+    }
+}
+
+function getHomepageCurrentLocale() {
+    try {
+        return chrome.i18n.getUILanguage?.() || navigator.language || '';
+    } catch (_) {
+        return navigator.language || '';
+    }
+}
+
+function normalizeHomepageLocale(value = '') {
+    return String(value || '').trim().replace('-', '_').toLowerCase();
+}
+
+function homepageLocaleMatchesCoursePromo(targetLocales = []) {
+    const current = normalizeHomepageLocale(getHomepageCurrentLocale());
+    if (!current) return false;
+    const candidates = Array.isArray(targetLocales) && targetLocales.length ? targetLocales : ['zh_CN', 'zh_TW', 'zh'];
+    return candidates.some((locale) => {
+        const target = normalizeHomepageLocale(locale);
+        return target && (current === target || current.startsWith(`${target}_`) || target.startsWith(`${current}_`));
+    });
+}
+
+function isHttpsUrl(value = '') {
+    try {
+        return new URL(String(value || '')).protocol === 'https:';
+    } catch (_) {
+        return false;
+    }
+}
+
+function getTodayDateKey() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+async function readHomepageCoursePromoState() {
+    try {
+        const result = await chrome.storage.local.get(HOMEPAGE_COURSE_PROMO_STORAGE_KEY);
+        return result[HOMEPAGE_COURSE_PROMO_STORAGE_KEY] || {};
+    } catch (_) {
+        return {};
+    }
+}
+
+async function writeHomepageCoursePromoState(nextState = {}) {
+    try {
+        await chrome.storage.local.set({ [HOMEPAGE_COURSE_PROMO_STORAGE_KEY]: nextState });
+    } catch (_) {
+        // Promo state should never block the homepage.
+    }
+}
+
+function isHomepageCoursePromoDismissed(state = {}, dismissDays = 7) {
+    const dismissedAt = Number(state.dismissedAt || 0);
+    if (!dismissedAt) return false;
+    const durationMs = Math.max(1, Number(dismissDays) || 7) * 24 * 60 * 60 * 1000;
+    return Date.now() - dismissedAt < durationMs;
+}
+
+function hasHomepageCoursePromoDailyCapacity(state = {}, maxImpressionsPerDay = 3) {
+    const today = getTodayDateKey();
+    if (state.impressionDate !== today) return true;
+    return (Number(state.impressionsToday) || 0) < Math.max(1, Number(maxImpressionsPerDay) || 3);
+}
+
+async function markHomepageCoursePromoImpression(state = {}) {
+    const today = getTodayDateKey();
+    const nextState = {
+        ...state,
+        impressionDate: today,
+        impressionsToday: state.impressionDate === today ? (Number(state.impressionsToday) || 0) + 1 : 1,
+        lastImpressionAt: Date.now()
+    };
+    await writeHomepageCoursePromoState(nextState);
+    return nextState;
+}
+
+function normalizeHomepageCoursePromoConfig(payload = {}) {
+    const config = payload?.config && typeof payload.config === 'object' ? payload.config : payload;
+    return {
+        enabled: config?.enabled === true,
+        imageUrl: String(config?.imageUrl || '').trim(),
+        targetUrl: String(config?.targetUrl || '').trim(),
+        title: String(config?.title || '').trim(),
+        subtitle: String(config?.subtitle || '').trim(),
+        ctaText: String(config?.ctaText || '').trim() || '查看课程',
+        targetLocales: Array.isArray(config?.targetLocales) ? config.targetLocales : ['zh_CN', 'zh_TW', 'zh'],
+        dismissDays: Math.max(1, Math.min(365, Number(config?.dismissDays) || 7)),
+        maxImpressionsPerDay: Math.max(1, Math.min(20, Number(config?.maxImpressionsPerDay) || 3))
+    };
+}
+
+function getHomepageCoursePromoMessage(key, fallback = '') {
+    try {
+        return chrome.i18n.getMessage(key) || fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+function hideHomepageCoursePromo() {
+    const banner = document.getElementById('coursePromoBanner');
+    if (banner) {
+        banner.hidden = true;
+        banner.innerHTML = '';
+    }
+}
+
+function escapeHomepageCoursePromoAttr(value) {
+    return String(value ?? '').replace(/[&<>"]/g, (char) => {
+        switch (char) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            default: return char;
+        }
+    });
+}
+
+function renderHomepageCoursePromo(config, state) {
+    const banner = document.getElementById('coursePromoBanner');
+    if (!banner) return;
+
+    const title = config.title || 'Codex 编程课';
+    const subtitle = config.subtitle || '';
+    const ctaText = config.ctaText || getHomepageCoursePromoMessage('coursePromoDefaultCta', '查看课程');
+    const hasImage = isHttpsUrl(config.imageUrl);
+    banner.classList.toggle('is-text-only', !hasImage);
+    banner.innerHTML = `
+        <div class="homepage-course-promo-inner">
+            ${hasImage ? `<img class="homepage-course-promo-image" src="${escapeHomepageCoursePromoAttr(config.imageUrl)}" alt="${escapeHomepageCoursePromoAttr(title)}">` : ''}
+            <div class="homepage-course-promo-body">
+                <span class="homepage-course-promo-badge">${escapeHtml(getHomepageCoursePromoMessage('coursePromoBadge', '课程'))}</span>
+                <div class="homepage-course-promo-title">${escapeHtml(title)}</div>
+                ${subtitle ? `<div class="homepage-course-promo-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+                <div class="homepage-course-promo-actions">
+                    <button type="button" class="homepage-course-promo-cta">${escapeHtml(ctaText)}</button>
+                    <button type="button" class="homepage-course-promo-dismiss">${escapeHtml(getHomepageCoursePromoMessage('coursePromoDismissLater', '稍后再说'))}</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const openPromo = () => {
+        trackEvent('course_promo_click', {
+            surface: 'homepage',
+            campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+            target: 'video_shop',
+            kind: 'subscription'
+        });
+        chrome.tabs.create({ url: config.targetUrl });
+    };
+
+    const image = banner.querySelector('.homepage-course-promo-image');
+    if (image) {
+        image.addEventListener('error', () => {
+            banner.classList.add('is-text-only');
+            image.remove();
+        }, { once: true });
+        image.addEventListener('click', openPromo);
+    }
+    banner.querySelector('.homepage-course-promo-cta')?.addEventListener('click', openPromo);
+    banner.querySelector('.homepage-course-promo-dismiss')?.addEventListener('click', async () => {
+        const nextState = {
+            ...state,
+            dismissedAt: Date.now()
+        };
+        await writeHomepageCoursePromoState(nextState);
+        trackEvent('course_promo_dismiss', {
+            surface: 'homepage',
+            campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+            target: 'video_shop',
+            kind: 'subscription'
+        });
+        hideHomepageCoursePromo();
+    });
+    banner.hidden = false;
+}
+
+async function initializeHomepageCoursePromo() {
+    const banner = document.getElementById('coursePromoBanner');
+    if (!banner) return;
+    hideHomepageCoursePromo();
+
+    const endpoint = getHomepageCoursePromoEndpoint();
+    if (!endpoint) return;
+
+    try {
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        const config = normalizeHomepageCoursePromoConfig(payload);
+        if (!config.enabled || !isHttpsUrl(config.targetUrl) || !homepageLocaleMatchesCoursePromo(config.targetLocales)) {
+            return;
+        }
+        if (!isHttpsUrl(config.imageUrl) && !config.title) {
+            return;
+        }
+        const state = await readHomepageCoursePromoState();
+        if (isHomepageCoursePromoDismissed(state, config.dismissDays)) return;
+        if (!hasHomepageCoursePromoDailyCapacity(state, config.maxImpressionsPerDay)) return;
+        const nextState = await markHomepageCoursePromoImpression(state);
+        renderHomepageCoursePromo(config, nextState);
+        trackEvent('course_promo_impression', {
+            surface: 'homepage',
+            campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+            target: 'video_shop',
+            kind: 'subscription'
+        });
+    } catch (error) {
+        hideHomepageCoursePromo();
+    }
 }
 
 function openRemoteSearchSettingsPage() {
@@ -1241,7 +1466,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         measureAsyncStep('sites_list_init', () => initializeSitesList()),
         measureAsyncStep('agents_list_init', () => initializeAgentsList()),
         measureAsyncStep('custom_sites_init', () => initializeCustomSitesList()),
-        measureAsyncStep('remote_search_card_init', () => initializeRemoteSearchHomepageCard())
+        measureAsyncStep('remote_search_card_init', () => initializeRemoteSearchHomepageCard()),
+        measureAsyncStep('course_promo_init', () => initializeHomepageCoursePromo())
     ]).finally(() => {
         perfMark('non_critical_init_end');
         perfMeasure('non_critical_init_duration', 'non_critical_init_start', 'non_critical_init_end');

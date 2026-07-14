@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "4.3.4",
+  "version": "4.4.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_extDescription__",
   "permissions": [
@@ -19,7 +19,7 @@
     "<all_urls>"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src *; img-src 'self' chrome-extension: data: blob:;",
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src *; img-src 'self' chrome-extension: data: blob: https:;",
     "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'unsafe-eval' 'self'"
   },
   "action": {

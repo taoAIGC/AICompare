@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify</title>
+  <link rel="stylesheet" href="../shared/ui-tokens.css">
+  <link rel="stylesheet" href="account-login.css">
+</head>
+<body>
+  <main class="account-login-page">
+    <div class="account-login-topbar">
+      <a id="accountLoginVerifyBackLink" class="account-login-back" href="account-login.html" data-i18n="membershipAuthBackButton"></a>
+    </div>
+
+    <section class="account-login-shell account-login-shell-verify">
+      <section class="account-login-step account-login-step-standalone">
+        <div class="account-login-step-hero">
+          <h1 class="account-login-step-title" data-i18n="membershipEmailVerifyTitle"></h1>
+          <p id="accountLoginVerifyDescription" class="account-login-step-copy"></p>
+        </div>
+
+        <label class="account-login-field">
+          <span data-i18n="membershipEmailVerifyCodeLabel"></span>
+          <input id="accountLoginCodeInput" type="text" autocomplete="one-time-code" spellcheck="false" data-i18n-placeholder="membershipEmailVerifyPlaceholder" placeholder="Paste the verification code or sign-in link">
+        </label>
+
+        <button id="accountLoginVerifyBtn" class="account-login-submit" type="button" data-i18n="membershipEmailVerifyButton"></button>
+        <button id="accountLoginResendBtn" class="account-login-link" type="button" data-i18n="membershipEmailVerifyResendButton"></button>
+        <p class="account-login-note" data-i18n="membershipEmailVerifyHelper"></p>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="account-login-toast"></div>
+
+  <script src="../config/firebaseConfig.js"></script>
+  <script src="../shared/runtime-i18n.js"></script>
+  <script src="../firebase/firebase-auth.js"></script>
+  <script src="account-login-verify.js"></script>
+</body>
+</html>

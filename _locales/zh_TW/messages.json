@@ -163,7 +163,7 @@
     "message": "語言"
   },
   "settingsNavProTitle": {
-    "message": "Pro"
+    "message": "Account"
   },
   "languageSettingsTitle": {
     "message": "語言設定"
@@ -235,7 +235,7 @@
     "message": "使用內建 API，每天免費 $1 次。"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "免費的官方 API 使用次數已達上限（每天 $1 次）。請設定個人 API：$2"
+    "message": "今天的免費 API 能力提問次數已用完（每天 $1 次）。升級 API Plan 可解鎖總結和技能提問無限次數，或切換為自己的 API：$2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "請先設定自訂 API"
@@ -1269,7 +1269,7 @@
     "message": "同步與備份"
   },
   "cloudSyncTitle": {
-    "message": "雲端同步"
+    "message": "WebDAV sync"
   },
   "cloudSyncDescription": {
     "message": "透過 WebDAV 同步你的設定，讓不同裝置保持一致。"
@@ -1440,7 +1440,7 @@
     "message": "Pro 會員"
   },
   "membershipDescription": {
-    "message": "解鎖全部功能，暢享無限 AI 對比體驗"
+    "message": "開通 Chat Plan，享受無限 AI 對比提問。"
   },
   "membershipTabsAriaLabel": {
     "message": "會員分頁"
@@ -1455,13 +1455,13 @@
     "message": "Chat Plan"
   },
   "membershipChatPlanSubtitle": {
-    "message": "查看 Chat Plan 的啟用狀態，並選擇開通方式。"
+    "message": "查看 Chat Plan 的啟用狀態，並選擇如何解鎖無限提問。"
   },
   "membershipApiPlanTitle": {
     "message": "API Plan"
   },
   "membershipApiPlanSubtitle": {
-    "message": "這裡會顯示 API Plan 的啟用狀態與後續開通入口。"
+    "message": "解鎖由內建 API 支援的總結和技能提問無限次數。"
   },
   "membershipPlanStatusInactive": {
     "message": "未開通"
@@ -1473,28 +1473,28 @@
     "message": "待定"
   },
   "membershipChatPlanInactiveDescription": {
-    "message": "你的 Chat Plan 尚未開通，選擇月付或年付後即可解鎖無限 AI 對比。"
+    "message": "Chat Plan 尚未开通。订阅后可无限进行 AI 对比提问。"
   },
   "membershipChatPlanActiveDescription": {
-    "message": "你的 Chat Plan 已開通，可以正常使用。"
+    "message": "你的 Chat Plan 已開通，可以無限進行 AI 對比提問。"
   },
   "membershipChatPlanActiveUntil": {
     "message": "你的 Chat Plan 已開通，將於 $1 續費。"
   },
   "membershipApiPlanPendingDescription": {
-    "message": "無限量的 API 調用"
+    "message": "API Plan 尚未开通。免费用户每天可进行 10 次总结和技能提问。"
   },
   "membershipApiPlanFeature1": {
-    "message": "獨立 API 計費模式"
+    "message": "API 調用不限次數"
   },
   "membershipApiPlanFeature2": {
-    "message": "方案細節待公布"
+    "message": "隨時取消"
   },
   "membershipApiPlanFeature3": {
-    "message": "這裡將展示 API Plan 的開通狀態"
+    "message": "內建 API Key 安全保存在雲端後端"
   },
   "membershipApiPlanButton": {
-    "message": "敬請期待"
+    "message": "訂閱 API Plan"
   },
   "membershipInvoicesTitle": {
     "message": "Invoice 記錄"
@@ -1509,7 +1509,8 @@
     "message": "暫無發票記錄。"
   },
   "membershipInvoicesLoginHint": {
-    "message": "請先登入 Google 帳號後查看發票記錄。"
+    "message": "登入後查看發票記錄。",
+    "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
     "message": "暫時無法取得發票記錄。"
@@ -1599,7 +1600,7 @@
     "message": "正在載入會員狀態…"
   },
   "membershipLoginHint": {
-    "message": "請先在「資料同步」頁面登入谷歌账号后查看會員狀態"
+    "message": "使用 Google 或付款时填写的邮箱登录后查看会员状态。"
   },
   "membershipExpiresOn": {
     "message": "到期时间："
@@ -2741,7 +2742,7 @@
     "message": "測試中..."
   },
   "agentEngineUpgradeButton": {
-    "message": "立即升級 PRO"
+    "message": "升級 PRO"
   },
   "agentSkillCategoryLabel": {
     "message": "分類"
@@ -3005,7 +3006,7 @@
     "message": "AI 服務餘額不足，暫時無法產生結果。請聯絡管理員儲值或更換 API Key。"
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "今天的免費 AI 使用次數已用完。你可以升級 PRO，或切換為自己的 API。"
+    "message": "今天的免費 API 能力提問次數已用完。升級 API Plan 可解鎖總結和技能提問無限次數，或切換為自己的 API。"
   },
   "aiErrorApiNotConfigured": {
     "message": "AI 服務尚未設定完成，請稍後再試或聯絡管理員。"
@@ -3031,7 +3032,238 @@
   "aiErrorUnknown": {
     "message": "AI 生成失敗，請稍後重試。如果問題持續出現，請聯絡管理員。"
   },
+  "coursePromoBadge": {
+    "message": "課程"
+  },
+  "coursePromoDismissLater": {
+    "message": "稍後再說"
+  },
+  "coursePromoDefaultCta": {
+    "message": "查看課程"
+  },
   "aiErrorTechnicalDetails": {
     "message": "技術詳情"
+  },
+  "membershipApiPlanActiveDescription": {
+    "message": "你的 API Plan 已開通，總結和技能提問不限制次數。"
+  },
+  "apiPlanPricingTitle": {
+    "message": "選擇 API Plan"
+  },
+  "apiPlanPricingDescription": {
+    "message": "解鎖由內建 API 支援的總結和技能提問無限次數。"
+  },
+  "apiPlanPricingOptionsAriaLabel": {
+    "message": "選擇 API Plan"
+  },
+  "redeemCodeOpenButton": {
+    "message": "兑换码"
+  },
+  "redeemCodeDialogTitle": {
+    "message": "兑换会员码"
+  },
+  "redeemCodeCloseButton": {
+    "message": "关闭"
+  },
+  "redeemCodeDialogDescription": {
+    "message": "输入 AI 比一比兑换码后，会把对应会员开通到当前登录账号。"
+  },
+  "redeemCodeInputLabel": {
+    "message": "兑换码"
+  },
+  "redeemCodeInputPlaceholder": {
+    "message": "AIC-XXXX-XXXX-XXXX"
+  },
+  "redeemCodeCancelButton": {
+    "message": "取消"
+  },
+  "redeemCodeSubmitButton": {
+    "message": "兑换"
+  },
+  "redeemCodeRequired": {
+    "message": "请输入兑换码。"
+  },
+  "redeemCodeRedeeming": {
+    "message": "正在兑换..."
+  },
+  "redeemCodeServiceUnavailable": {
+    "message": "兑换服务暂时不可用。"
+  },
+  "redeemCodeApiPlanLabel": {
+    "message": "API Plan"
+  },
+  "redeemCodeChatPlanLabel": {
+    "message": "Chat Plan"
+  },
+  "redeemCodeSuccess": {
+    "message": "$1 已兑换成功，有效期至 $2。"
+  },
+  "redeemCodeFailed": {
+    "message": "兑换失败，请检查兑换码后重试。"
+  },
+  "membershipTopbarNote": {
+    "message": "你也可以在这里输入兑换码，直接开通对应会员。"
+  },
+  "chatPlanQuotaExceeded": {
+    "message": "您今天的 $1 次免費 AI 比較提問已用完。升級到 Chat Plan 後可無限提問：$2"
+  },
+  "membershipPlanStatusLoading": {
+    "message": "查詢中..."
+  },
+  "membershipAuthTitle": {
+    "message": "登入或註冊",
+    "description": "Title in the account login dialog"
+  },
+  "membershipAuthDescription": {
+    "message": "使用 Google 登入，或透過電子郵件接收驗證郵件繼續存取你的帳戶。",
+    "description": "Subtitle in the account login dialog"
+  },
+  "membershipEmailLabel": {
+    "message": "邮箱"
+  },
+  "membershipEmailPlaceholder": {
+    "message": "you@example.com"
+  },
+  "membershipPasswordLabel": {
+    "message": "密码"
+  },
+  "membershipPasswordPlaceholder": {
+    "message": "至少 6 位字符"
+  },
+  "membershipEmailLoginButton": {
+    "message": "繼續",
+    "description": "Primary button label for sending an email verification login message"
+  },
+  "membershipEmailSignupButton": {
+    "message": "创建账号"
+  },
+  "membershipPasswordResetButton": {
+    "message": "通过邮件设置或重置密码"
+  },
+  "membershipAuthOr": {
+    "message": "或"
+  },
+  "membershipEmailRequired": {
+    "message": "请输入邮箱地址。"
+  },
+  "membershipPasswordRequired": {
+    "message": "请输入密码。"
+  },
+  "membershipEmailLoginUnavailable": {
+    "message": "目前暫時無法使用電子郵件驗證登入，請先使用 Google 登入。",
+    "description": "Shown when email verification sign-in is not enabled"
+  },
+  "membershipEmailAuthFailed": {
+    "message": "登录失败，请稍后重试。"
+  },
+  "membershipEmailLoginSuccess": {
+    "message": "驗證郵件已寄出，請檢查收件匣。",
+    "description": "Toast shown after sending the email verification login message"
+  },
+  "membershipEmailSignupSuccess": {
+    "message": "登入成功。",
+    "description": "Toast shown after finishing email verification sign-in"
+  },
+  "membershipEmailCodeCooldown": {
+    "message": "請稍等後再重新取得驗證碼。"
+  },
+  "membershipEmailCodeExpired": {
+    "message": "驗證碼已過期，請重新取得。"
+  },
+  "membershipEmailCodeTooManyAttempts": {
+    "message": "驗證碼錯誤次數過多，請重新取得驗證碼。"
+  },
+  "membershipEmailCodeInvalid": {
+    "message": "驗證碼不正確。"
+  },
+  "membershipEmailCodeInvalidFormat": {
+    "message": "請輸入 6 位驗證碼。"
+  },
+  "membershipPasswordResetSent": {
+    "message": "密码设置邮件已发送，请检查收件箱。"
+  },
+  "firebaseAuthEmailExists": {
+    "message": "这个邮箱已经注册，请直接登录或重置密码。"
+  },
+  "firebaseAuthEmailNotFound": {
+    "message": "没有找到这个邮箱的账号，请创建账号，或确认是否和付款邮箱一致。"
+  },
+  "firebaseAuthInvalidCredentials": {
+    "message": "邮箱或密码不正确。"
+  },
+  "firebaseAuthUserDisabled": {
+    "message": "这个账号已被停用，请联系支持。"
+  },
+  "firebaseAuthWeakPassword": {
+    "message": "请使用至少 6 位字符的密码。"
+  },
+  "firebaseAuthInvalidEmail": {
+    "message": "请输入有效的邮箱地址。"
+  },
+  "firebaseAuthMissingPassword": {
+    "message": "请输入密码。"
+  },
+  "firebaseAuthEmailPasswordDisabled": {
+    "message": "邮箱密码登录尚未开启，请联系支持。"
+  },
+  "membershipPlanValidUntil": {
+    "message": "会员的有效期：$1"
+  },
+  "membershipRedeemTab": {
+    "message": "兑换激活码"
+  },
+  "membershipManageSubscriptionTab": {
+    "message": "管理订阅"
+  },
+  "membershipOpenStripeButton": {
+    "message": "进入 Stripe"
+  },
+  "membershipLoginButton": {
+    "message": "登入",
+    "description": "Login button label in the account section when signed out"
+  },
+  "membershipAuthBackButton": {
+    "message": "返回",
+    "description": "Back button label in the account login dialog"
+  },
+  "membershipEmailVerifyTitle": {
+    "message": "請檢查你的收件匣",
+    "description": "Title on the email verification step in the account login dialog"
+  },
+  "membershipEmailVerifyDescription": {
+    "message": "請輸入我們發送到 $1 的驗證碼。",
+    "description": "Description on the email verification step; $1 is the email address"
+  },
+  "membershipEmailVerifyCodeLabel": {
+    "message": "驗證碼",
+    "description": "Label for the verification code input"
+  },
+  "membershipEmailVerifyPlaceholder": {
+    "message": "輸入驗證碼",
+    "description": "Placeholder for the verification code input"
+  },
+  "membershipEmailVerifyButton": {
+    "message": "繼續",
+    "description": "Primary button label on the email verification step"
+  },
+  "membershipEmailVerifyResendButton": {
+    "message": "重新傳送郵件",
+    "description": "Button label to resend the verification email"
+  },
+  "membershipEmailVerifyHelper": {
+    "message": "請輸入郵件中的驗證碼。",
+    "description": "Helper text for pasting the verification email link or code"
+  },
+  "iframeLoginOverlayTitle": {
+    "message": "登入 AI 比一比",
+    "description": "Title shown on iframe panels when the extension account is signed out"
+  },
+  "iframeLoginOverlayDescription": {
+    "message": "登入後繼續使用多 AI 對比工作區。",
+    "description": "Description shown on iframe panels when the extension account is signed out"
+  },
+  "iframeLoginOverlayButton": {
+    "message": "立即登入",
+    "description": "Button that opens the extension login page from an iframe panel overlay"
   }
 }

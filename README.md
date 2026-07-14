@@ -8,7 +8,7 @@
 
 ### ✨ Introduction
 
-**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包, 元宝, and many more — side by side. Website comparison still works with your existing AI accounts; the built-in official API is metered for non-Chinese UI users, with 100 free uses per day before a Pro upgrade is required. Signed-out users are also metered through an anonymous client id.
+**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包, 元宝, and many more — side by side. Website comparison still works with your existing AI accounts; Chat Plan gates the built-in AI comparison flow for non-Chinese UI users with a backend-configured daily free limit, while API Plan gates built-in summary and skill questions with 10 free API-powered questions per day before an API Plan upgrade is required. Signed-out users are also metered through an anonymous client id.
 
 ### 📦 Features
 
@@ -88,8 +88,8 @@
 - **Built-in skill catalog**: Bundled skills now ship from `config/agentCatalog.json`, so the default built-in skill list can follow the same config-file workflow as site adapters.
 - **Built-in thinking skills**: The extension now includes analysis-first skills such as Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable for comparing one problem through different frameworks and personas.
 - **API settings**: Configure the shared skill engine used by the built-in skills.
-- **Official API / Pro**: In non-Chinese UI, the built-in official API includes 100 free uses per day for free users and signed-out users. Official API keys stay on the cloud backend, while custom API keys remain user-provided. The Pro page links to a dedicated pricing page where users choose monthly or yearly Stripe checkout after signing in, or switch to their own custom API and use their own quota.
-- **Billing tabs**: The Pro page now separates `Overview` and `Invoices`. Overview shows the current Chat Plan status, upcoming API Plan area, and subscription actions; Invoices lists recent billing records for the signed-in account.
+- **Chat Plan + API Plan**: Chat Plan controls non-Chinese built-in AI comparison access: free and signed-out users get `CHAT_PLAN_DAILY_FREE_LIMIT` questions per day, and Chat Plan removes that limit. API Plan controls built-in summary and skill questions: free and signed-out users get `OFFICIAL_API_DAILY_FREE_LIMIT` API-powered questions per day, and API Plan removes that limit. Official model keys stay on the cloud backend, while custom API keys remain user-provided and continue to use the user's own provider quota. The Pro page now opens a hosted pricing page on `aicompare.club`; users can go straight to monthly/yearly Stripe checkout without signing in first, and Stripe email plus the extension anonymous client id are used for post-payment binding. In API settings, the official API row only shows the `Upgrade PRO` action for non-PRO users, and it opens the hosted API Plan purchase page.
+- **Billing tabs**: The Pro page now separates `Overview` and `Invoices`. Overview shows the current Chat Plan and API Plan status plus subscription actions; Invoices lists recent billing records for the signed-in account.
 - **API connection test**: The custom API dialog can now send a small `chat/completions` probe and show the exact HTTP failure reason before you save, which is useful for local OpenAI-compatible servers such as Hermes.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
 - **Disabled sites**: List of sites where the floating ball is disabled; re-enable from here.
@@ -152,20 +152,23 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - It reuses Firebase Admin, Stripe, and the existing `officialAgentChat` proxy path to provide:
   - membership / order summary
   - Stripe invoice and subscription trend views
-  - combined 7-day usage summary for official API calls and site comparison events
+  - combined 7-day usage summary for built-in AI chat requests and site comparison events
   - product health metrics merged into usage statistics, experience quality metrics merged into failure logs, plus growth funnel and monetization / cost dashboards
 - Admin pages:
   - `/admin/login`
   - `/admin`
   - `/admin/orders`
+  - `/admin/redeem-codes`
   - `/admin/api-usage` (combined API + site usage statistics)
   - `/admin/failure-logs`
+  - `/admin/course-promo`
   - `/admin/growth`
   - `/admin/business`
 - Admin API routes:
   - `/api/admin/orders/summary`
   - `/api/admin/orders/list`
   - `/api/admin/orders/trend`
+  - `/api/admin/redeem-codes`
   - `/api/admin/api-usage/summary`
   - `/api/admin/api-usage/trend`
   - `/api/admin/api-usage/top-days`
@@ -181,6 +184,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `/api/admin/failure-logs/trend`
   - `/api/admin/failure-logs/list`
   - `/api/admin/failure-logs/top-targets`
+  - `/api/admin/course-promo`
   - `/api/admin/product-health/summary`
   - `/api/admin/experience/summary`
   - `/api/admin/growth/summary`
@@ -190,6 +194,8 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `/api/product-feature-events`
   - `/api/activation-events`
   - `/api/subscription-funnel-events`
+  - `/api/public/course-promo`
+  - `/redeemCode`
 - Required backend env vars:
   - `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH`
   - `STRIPE_SECRET_KEY`
@@ -197,12 +203,16 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `BILLING_MODE`
   - `STRIPE_PRICE_MONTHLY`
   - `STRIPE_PRICE_YEARLY`
+  - `STRIPE_API_PRICE_MONTHLY`
+  - `STRIPE_API_PRICE_YEARLY`
   - `STRIPE_PRICE_SMOKE_TEST` optional, hidden admin-only live payment smoke test price
   - `BILLING_SMOKE_TEST_TOKEN` optional, random token required by the hidden smoke test checkout entry
+  - `AI_COMPARE_EXTENSION_ID` optional, Chrome Web Store extension id used by the payment success page; invalid values fall back to the production extension id
   - `OFFICIAL_AGENT_API_BASE_URL`
   - `OFFICIAL_AGENT_API_KEY`
   - `OFFICIAL_AGENT_MODEL`
   - `OFFICIAL_AGENT_API_FORMAT`
+  - `CHAT_PLAN_DAILY_FREE_LIMIT` optional, defaults to `3`, controls non-Chinese free AI comparison questions before Chat Plan is required
   - `OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION` optional, used to estimate official API input token cost
   - `OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION` optional, used to estimate official API output token cost
   - `OFFICIAL_AGENT_COST_CURRENCY` optional, defaults to `usd`
@@ -219,24 +229,34 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   2. Enter the configured admin username and password
   3. Exchange them for an HttpOnly admin session cookie
   4. Visit `/admin` and the protected subpages
-- API usage note:
-  - `officialApiEvents` is now written on each `officialAgentChat` request so Pro usage can be counted going forward.
+- API Plan usage note:
+  - `officialApiEvents` is now written on each built-in summary/skill API request so API Plan usage can be counted going forward.
   - Historical free / anonymous totals can still be read from `users/{uid}/usage/{date}` and `anonymousUsage/{hash}/usage/{date}`.
   - Recent usage records include admin-only diagnostics such as user email/UID when signed in, hashed anonymous device ID, country/region derived from request IP, length-limited full Query text, Query preview/hash, model, status, token count, and locale. Full IP and full recorded Query are kept in the details drawer for troubleshooting.
   - Admin behavior insights are split by extension version where available, so new instrumentation and product changes can be evaluated without mixing current-version events with older extension behavior.
   - Query insight analysis can use OpenRouter to classify recorded Query text into daily/weekly question types, user needs, and marketing-case candidates. Configure `OPENROUTER_API_KEY`, optionally `OPENROUTER_CLASSIFIER_MODEL`, and trigger analysis manually from `/admin/api-usage`; cached results are stored in `queryInsightAnalyses`.
   - Weekly behavior insight reports can be generated with `cd backend && npm run weekly-insights`; production cron writes Markdown and JSON snapshots under the configured `WEEKLY_INSIGHT_REPORT_DIR`.
+  - Weekly reports are structured as a product optimization flywheel rather than a passive dashboard: fixed decision tree, prioritized Insight Action Queue, activation/workflow/quality/business meeting views, and a validation plan.
+- Redeem code note:
+  - `/admin/redeem-codes` generates hashed redemption codes for Chat Plan or API Plan, with monthly/yearly duration, quantity, redemption limit, expiry, and note fields.
+  - Generated plaintext codes are returned only once in the admin response; Firestore stores code hashes in `redeemCodes`.
+  - The extension Pro membership page exposes a redeem-code dialog that calls `/redeemCode` with the signed-in Firebase user token and extends the matching membership expiry. The standalone hosted pricing page stays focused on checkout and does not show redeem-code entry.
 - Site usage note:
   - `siteCompareEvents` is written when the compare iframe opens official sites, custom sites, or Agent panels, including signed-in users and anonymous devices.
   - Site usage events store site/Agent names, counts, workflow mode, site combination key, result state, extension version, locale, whether a query was present, query length, length-limited full Query text, Query preview/hash, derived country/region, request IP, and user agent; they do not store AI responses.
   - `/admin/api-usage` includes a 7-day site ranking by launch count to identify users' favorite or most frequently used AI sites, and `/admin/growth` summarizes high-frequency site/Agent combinations as workflow signals.
   - `/admin/api-usage` and `/admin/growth` expose extension-version distribution tables, including event counts, active identities, site launches, and query-bearing events for each version.
-  - The weekly insight report combines activation, feature, site workflow, API, failure, subscription, Query insight, and extension-version data into a product-action report for Monday product review.
+  - The weekly insight report combines activation, feature, site workflow, API, failure, subscription, Query insight, and extension-version data into prioritized product actions for Monday product review.
 - Product analytics note:
   - `productFeatureEvents`, `activationEvents`, and `subscriptionFunnelEvents` store minimized operational events such as feature name, source, locale, version, query presence, query length, and safe metadata.
   - These events power the product health, growth, and monetization dashboards and intentionally do not store full prompts, AI responses, API keys, page bodies, clipboard content, or sensitive URL parameters.
   - The behavior insight layer records first-open / first-query / first-compare / first-result activation events once per device, infers feature vs activation vs subscription event kinds, and classifies user maturity stages for the growth dashboard.
   - Query insight analysis now supports task, audience, and use-case dimensions in addition to type, domain, role, need, tags, and marketing-case candidates.
+- Course promo note:
+  - `/admin/course-promo` controls the Chinese homepage course ad for the Codex programming course.
+  - The config is stored in Firestore at `runtimeConfigs/coursePromo` and supports the display switch, HTTPS image URL, HTTPS target URL, title, subtitle, CTA text, target locales, dismiss cooldown, and daily impression cap.
+  - The extension reads only the safe public fields from `/api/public/course-promo`; if the backend or Firestore is unavailable, the homepage keeps the promo hidden and the compare flow is unaffected.
+  - The first version uses an external image URL and external video-shop checkout link. It does not upload images or sync video-shop orders back into AI Compare.
 - Failure log note:
   - Local site/API failure logs are automatically uploaded in small batches to `/api/failure-logs/batch` for signed-in users and anonymous devices.
   - The backend stores only the safe failure-log fields in `failureLogEvents`, including `queryPreview` and `queryHash`, not API keys, full prompts, or AI responses.
@@ -419,7 +439,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - **智能体设置**：按 Skill 覆盖显示名称、简介和 persona 提示词。
 - **内置思维类 Skill**：现已内置多学科思维、六顶思考帽、苏格拉底追问、大佬开会等分析型 Skill，方便从不同框架和人物视角拆解同一个问题。
 - **API 设置**：配置内置 Skill 共用的引擎参数。
-- **官方 API / Pro**：非中文界面下，免费用户和未登录用户每天可使用 100 次内置官方 API；官方 API 密钥只保存在云端后端，自定义 API 仍使用用户自己填写的密钥。Pro 页面会跳转到独立付费计划页，用户可选择月付或年付，并在登录后通过 Stripe 升级，也可切换为自己的自定义 API 并使用自己的额度。
+- **官方 API / Pro**：非中文界面下，免费用户和未登录用户每天可使用 100 次内置官方 API；官方 API 密钥只保存在云端后端，自定义 API 仍使用用户自己填写的密钥。Pro 页面会跳转到 `aicompare.club/membership-pricing` 独立付费页，用户可直接选择月付或年付进入 Stripe，无需先登录；付款后通过 Stripe 邮箱和插件匿名 client id 绑定会员，也可切换为自己的自定义 API 并使用自己的额度。API 设置里的官方 API 行仅对非 PRO 用户显示“升级 PRO”入口，点击后会进入托管的 API Plan 购买页。
 - **侧边栏子页面**：每个设置分组会在右侧作为独立子页面打开，不再堆成一个长滚动页。
 - **悬浮球禁用网站**：查看/管理「在此站禁用悬浮球」的列表，可在此重新启用。
 - **云同步**：使用 WebDAV 或 Google Drive 在不同设备之间同步设置。
@@ -558,20 +578,122 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-10 00:19:08 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-14 23:31:40 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `AGENTS.md`
+- `M` `STRIPE_SETUP.md`
+- `M` `_locales/am/messages.json`
+- `M` `_locales/ar/messages.json`
+- `M` `_locales/bg/messages.json`
+- `M` `_locales/bn/messages.json`
+- `M` `_locales/ca/messages.json`
+- `M` `_locales/cs/messages.json`
+- `M` `_locales/da/messages.json`
+- `M` `_locales/de/messages.json`
+- `M` `_locales/el/messages.json`
+- `M` `_locales/en/messages.json`
+- `M` `_locales/en_AU/messages.json`
+- `M` `_locales/en_GB/messages.json`
+- `M` `_locales/en_US/messages.json`
+- `M` `_locales/es/messages.json`
+- `M` `_locales/es_419/messages.json`
+- `M` `_locales/et/messages.json`
+- `M` `_locales/fa/messages.json`
+- `M` `_locales/fi/messages.json`
+- `M` `_locales/fil/messages.json`
+- `M` `_locales/fr/messages.json`
+- `M` `_locales/gu/messages.json`
+- `M` `_locales/he/messages.json`
+- `M` `_locales/hi/messages.json`
+- `M` `_locales/hr/messages.json`
+- `M` `_locales/hu/messages.json`
+- `M` `_locales/id/messages.json`
+- `M` `_locales/it/messages.json`
+- `M` `_locales/ja/messages.json`
+- `M` `_locales/kn/messages.json`
+- `M` `_locales/ko/messages.json`
+- `M` `_locales/lt/messages.json`
+- `M` `_locales/lv/messages.json`
+- `M` `_locales/ml/messages.json`
+- `M` `_locales/mr/messages.json`
+- `M` `_locales/ms/messages.json`
+- `M` `_locales/nl/messages.json`
+- `M` `_locales/no/messages.json`
+- `M` `_locales/pl/messages.json`
+- `M` `_locales/pt_BR/messages.json`
+- `M` `_locales/pt_PT/messages.json`
+- `M` `_locales/ro/messages.json`
+- `M` `_locales/ru/messages.json`
+- `M` `_locales/sk/messages.json`
+- `M` `_locales/sl/messages.json`
+- `M` `_locales/sr/messages.json`
+- `M` `_locales/sv/messages.json`
+- `M` `_locales/sw/messages.json`
+- `M` `_locales/ta/messages.json`
+- `M` `_locales/te/messages.json`
+- `M` `_locales/th/messages.json`
+- `M` `_locales/tr/messages.json`
+- `M` `_locales/uk/messages.json`
+- `M` `_locales/vi/messages.json`
+- `M` `_locales/zh_CN/messages.json`
+- `M` `_locales/zh_TW/messages.json`
+- `M` `backend/.env.example`
+- `M` `backend/package-lock.json`
+- `M` `backend/package.json`
+- `M` `backend/server.js`
+- `M` `backend/weekly-behavior-insight-report.cjs`
 - `M` `background.js`
+- `M` `config/firebaseConfig.js`
+- `A` `docs/release-notes/latest.md`
+- `M` `firebase/firebase-auth.js`
+- `M` `firebase/stripe-payment.js`
+- `M` `homepage/homepage.css`
+- `M` `homepage/homepage.html`
+- `M` `homepage/homepage.js`
+- `M` `iframe/iframe.css`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
+- `A` `options/account-login-verify.html`
+- `A` `options/account-login-verify.js`
+- `A` `options/account-login.css`
+- `A` `options/account-login.html`
+- `A` `options/account-login.js`
+- `M` `options/membership-pricing.css`
+- `M` `options/membership-pricing.html`
+- `M` `options/membership-pricing.js`
+- `M` `options/options.css`
+- `M` `options/options.html`
+- `M` `options/options.js`
+- `A` `reports/latest-weekly-behavior-insight.md`
+- `A` `scripts/generate-website-seo.js`
+- `M` `shared/sidebar.js`
+- `M` `website/README.md`
+- `M` `website/blog/ai-readability-checklist.html`
+- `M` `website/blog/brand-not-found-in-ai.html`
+- `M` `website/blog/check-geo-with-multi-ai.html`
+- `M` `website/blog/five-ai-content-test.html`
+- `M` `website/blog/index.html`
+- `M` `website/blog/what-is-geo.html`
+- `M` `website/blog/why-ai-answers-differ.html`
+- `M` `website/geo-checklist/index.html`
+- `M` `website/geo/index.html`
+- `M` `website/index.html`
+- `M` `website/resources/chrome-store-copy.html`
+- `A` `website/resources/multilingual-seo-plan.html`
+- `A` `website/seo/README.md`
+- `A` `website/seo/keyword-matrix.csv`
+- `A` `website/seo/locales.json`
+- `A` `website/seo/pages.json`
+- `M` `website/sitemap.xml`
+- `M` `website/use-cases/brand-monitoring/index.html`
+- `M` `website/use-cases/content-qa/index.html`
 
 ### Recent commits / 最近提交
+- `da28c7c` 2026-07-10 V4.3.4修复权限bug
 - `61a8efb` 2026-07-09 V4.3.4 修复bug
 - `57b5d1e` 2026-07-07 V4.3.3 修复bug
 - `7d51181` 2026-07-07 V 4.3.2 markdown方案采用开源解析方案
 - `c25a3a1` 2026-07-05 V4.3.1 修复豆包站点，默认站点去掉grok
-- `8e007c4` 2026-06-30 V4.3.0 首次安装插件 具有默认的搜索词
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

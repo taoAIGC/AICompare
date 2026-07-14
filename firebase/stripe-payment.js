@@ -98,8 +98,17 @@ async function getBillingConfig(options = {}) {
     mode: String(response?.mode || 'test').trim() || 'test',
     prices: {
       monthly: String(prices.monthly || '').trim(),
-      yearly: String(prices.yearly || '').trim()
-    }
+      yearly: String(prices.yearly || '').trim(),
+      chat: {
+        monthly: String(prices.chat?.monthly || prices.monthly || '').trim(),
+        yearly: String(prices.chat?.yearly || prices.yearly || '').trim()
+      },
+      api: {
+        monthly: String(prices.api?.monthly || '').trim(),
+        yearly: String(prices.api?.yearly || '').trim()
+      }
+    },
+    priceDetails: response?.priceDetails || { chat: {}, api: {} }
   };
   stripeBillingConfigCache = config;
   stripeBillingConfigCacheAt = Date.now();
@@ -109,6 +118,10 @@ async function getBillingConfig(options = {}) {
 async function getStripePrices(options = {}) {
   const config = await getBillingConfig(options);
   return config.prices || {};
+}
+
+async function getStripeBillingConfig(options = {}) {
+  return getBillingConfig(options);
 }
 
 /**
@@ -336,23 +349,31 @@ async function getUserPlan() {
     const doc = await res.json();
     const fields = doc.fields || {};
     const plan = fields.plan?.stringValue || 'free';
+    const apiPlan = fields.apiPlan?.stringValue || 'free';
 
     let planExpiresAt = null;
     if (fields.planExpiresAt?.timestampValue) {
       planExpiresAt = fields.planExpiresAt.timestampValue;
     }
+    let apiPlanExpiresAt = null;
+    if (fields.apiPlanExpiresAt?.timestampValue) {
+      apiPlanExpiresAt = fields.apiPlanExpiresAt.timestampValue;
+    }
 
     // 本地验证到期
     const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
     const effectivePlan = (plan === 'pro' && !isExpired) ? 'pro' : 'free';
+    const isApiExpired = apiPlanExpiresAt && new Date(apiPlanExpiresAt) < new Date();
+    const effectiveApiPlan = (apiPlan === 'pro' && !isApiExpired) ? 'pro' : 'free';
 
     // 缓存到 local storage（5 分钟有效）
+    const cachedPlan = { plan: effectivePlan, planExpiresAt, apiPlan: effectiveApiPlan, apiPlanExpiresAt };
     await chrome.storage.local.set({
-      _planCache: JSON.stringify({ plan: effectivePlan, planExpiresAt }),
+      _planCache: JSON.stringify(cachedPlan),
       _planCacheAt: Date.now(),
     });
 
-    return { plan: effectivePlan, planExpiresAt };
+    return cachedPlan;
   } catch (e) {
     console.warn('[stripe-payment] getUserPlan error:', e);
     // 读取缓存兜底
@@ -382,7 +403,7 @@ async function getCachedPlan() {
  * 调用 Cloud Function 创建 Checkout Session，并在新 Tab 中打开付款页
  * @param {string} priceId  Stripe Price ID（月付或年付）
  */
-async function startCheckout(priceId) {
+async function startCheckout(priceId, options = {}) {
   const idToken = await getFirebaseIdToken();
   if (!idToken) {
     throw new Error('请先登录谷歌账号后再升级 Pro');
@@ -393,7 +414,11 @@ async function startCheckout(priceId) {
     response = await fetchStripeFunctionJson('/createCheckoutSession', {
       method: 'POST',
       idToken,
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({
+        priceId,
+        ...(options.planType ? { planType: String(options.planType) } : {}),
+        ...(options.prefillEmail ? { prefillEmail: String(options.prefillEmail).trim() } : {})
+      }),
       retries: 1
     });
   } catch (error) {
@@ -455,6 +480,35 @@ async function listInvoices() {
   }
 }
 
+async function redeemMembershipCode(code) {
+  const normalizedCode = String(code || '').trim();
+  if (!normalizedCode) {
+    throw new Error(getStripeMessage('redeemCodeRequired', 'Please enter a redeem code.'));
+  }
+
+  const idToken = await getFirebaseIdToken();
+  if (!idToken) {
+    throw new Error(getStripeMessage('membershipLoginHint', 'Sign in with Google or the email you used at checkout to view your membership status.'));
+  }
+
+  let response = null;
+  try {
+    response = await fetchStripeFunctionJson('/redeemCode', {
+      method: 'POST',
+      idToken,
+      body: JSON.stringify({ code: normalizedCode }),
+      retries: 1
+    });
+  } catch (error) {
+    throw await normalizeStripeRequestError(error);
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.storage?.local?.remove) {
+    await chrome.storage.local.remove(['_planCache', '_planCacheAt']).catch(() => null);
+  }
+  return response;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 挂载到 window
 // ─────────────────────────────────────────────────────────────────────────────
@@ -465,7 +519,9 @@ if (typeof window !== 'undefined') {
   window.getCachedPlan = getCachedPlan;
   window.getBillingConfig = getBillingConfig;
   window.getStripePrices = getStripePrices;
+  window.getStripeBillingConfig = getStripeBillingConfig;
   window.startCheckout = startCheckout;
   window.openCustomerPortal = openCustomerPortal;
   window.listInvoices = listInvoices;
+  window.redeemMembershipCode = redeemMembershipCode;
 }

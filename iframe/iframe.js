@@ -39,7 +39,16 @@ const AGENT_HIDDEN_IDS_STORAGE_KEY = AgentCatalog.AGENT_HIDDEN_IDS_STORAGE_KEY |
 const DEFAULT_ANALYSIS_TEMPLATE_ID_STORAGE_KEY = 'defaultAnalysisTemplateId';
 const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY = 'liveSummaryAutoAnalysisEnabled';
 const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY = 'aiCompare.liveSummaryAutoAnalysisEnabled';
+const FIREBASE_AUTH_UID_STORAGE_KEY = 'firebase_uid';
+const FIREBASE_AUTH_EMAIL_STORAGE_KEY = 'firebase_email';
 const SITE_COMPARE_USAGE_EVENT_PREFIX = 'site_usage';
+let iframeAuthState = {
+  initialized: false,
+  isLoggedIn: false,
+  email: ''
+};
+let iframeAuthStatePromise = null;
+let iframeAuthStorageListenerBound = false;
 let suppressNextIframeQuerySuggestions = false;
 
 async function ensureIframeAgentCatalogReady() {
@@ -118,6 +127,133 @@ function recordSiteCompareUsage(payload = {}) {
   } catch (error) {
     console.warn('站点对比使用埋点发送失败:', error);
   }
+}
+
+async function getIframeAuthState() {
+  if (iframeAuthStatePromise) {
+    return iframeAuthStatePromise;
+  }
+
+  iframeAuthStatePromise = chrome.storage.local.get([
+    FIREBASE_AUTH_UID_STORAGE_KEY,
+    FIREBASE_AUTH_EMAIL_STORAGE_KEY
+  ]).then((stored = {}) => {
+    iframeAuthState = {
+      initialized: true,
+      isLoggedIn: Boolean(stored[FIREBASE_AUTH_UID_STORAGE_KEY]),
+      email: String(stored[FIREBASE_AUTH_EMAIL_STORAGE_KEY] || '').trim()
+    };
+    return iframeAuthState;
+  }).catch((error) => {
+    console.warn('读取 iframe 登录状态失败:', error);
+    iframeAuthState = {
+      initialized: true,
+      isLoggedIn: false,
+      email: ''
+    };
+    return iframeAuthState;
+  }).finally(() => {
+    iframeAuthStatePromise = null;
+  });
+
+  return iframeAuthStatePromise;
+}
+
+function getIframeLoginPageUrl() {
+  const pageUrl = new URL(chrome.runtime.getURL('options/account-login.html'));
+  pageUrl.searchParams.set('returnTo', `${chrome.runtime.getURL('options/options.html')}#membership`);
+  pageUrl.searchParams.set('closeOnSuccess', '1');
+  return pageUrl.toString();
+}
+
+function openIframeLoginPage() {
+  const url = getIframeLoginPageUrl();
+  try {
+    chrome.tabs.create({ url });
+  } catch (_) {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
+function createIframeLoginOverlay() {
+  const overlay = document.createElement('div');
+  const title = escapeHtml(t('iframeLoginOverlayTitle', 'Login to AI Compare'));
+  const description = escapeHtml(t('iframeLoginOverlayDescription', 'Log in to continue using the comparison workspace.'));
+  const buttonLabel = escapeHtml(t('iframeLoginOverlayButton', 'Log In Now'));
+  const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
+  overlay.className = 'iframe-login-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', title);
+  overlay.innerHTML = `
+    <div class="iframe-login-overlay-card">
+      <div class="iframe-login-overlay-heading">
+        <img class="iframe-login-overlay-logo" src="${iconUrl}" alt="" aria-hidden="true">
+        <span>${title}</span>
+      </div>
+      <p class="iframe-login-overlay-copy">${description}</p>
+      <button class="iframe-login-overlay-button" type="button">${buttonLabel}</button>
+    </div>
+  `;
+  const loginButton = overlay.querySelector('.iframe-login-overlay-button');
+  loginButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openIframeLoginPage();
+  });
+  return overlay;
+}
+
+function renderIframeAuthOverlay() {
+  const container = document.getElementById('iframes-container');
+  if (!container) return;
+  const existingOverlay = container.querySelector(':scope > .iframe-login-overlay');
+  if (!iframeAuthState.initialized) {
+    return;
+  }
+  if (iframeAuthState.isLoggedIn) {
+    existingOverlay?.remove();
+    container.classList.remove('requires-extension-login');
+    return;
+  }
+
+  container.classList.add('requires-extension-login');
+  if (!existingOverlay) {
+    container.appendChild(createIframeLoginOverlay());
+  }
+}
+
+async function refreshIframeAuthOverlays() {
+  await getIframeAuthState();
+  renderIframeAuthOverlay();
+}
+
+function ensureIframeAuthOverlayTracking() {
+  if (iframeAuthStorageListenerBound) {
+    return;
+  }
+  iframeAuthStorageListenerBound = true;
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (!changes[FIREBASE_AUTH_UID_STORAGE_KEY] && !changes[FIREBASE_AUTH_EMAIL_STORAGE_KEY]) {
+      return;
+    }
+    const hasUidChange = Object.prototype.hasOwnProperty.call(changes, FIREBASE_AUTH_UID_STORAGE_KEY);
+    const hasEmailChange = Object.prototype.hasOwnProperty.call(changes, FIREBASE_AUTH_EMAIL_STORAGE_KEY);
+    iframeAuthState = {
+      initialized: true,
+      isLoggedIn: hasUidChange
+        ? Boolean(changes[FIREBASE_AUTH_UID_STORAGE_KEY]?.newValue)
+        : iframeAuthState.isLoggedIn,
+      email: hasEmailChange
+        ? String(changes[FIREBASE_AUTH_EMAIL_STORAGE_KEY]?.newValue || '').trim()
+        : iframeAuthState.email
+    };
+    renderIframeAuthOverlay();
+  });
+  refreshIframeAuthOverlays().catch((error) => {
+    console.warn('初始化 iframe 登录蒙层失败:', error);
+  });
 }
 
 // 全局文件粘贴检测和处理
@@ -4163,6 +4299,56 @@ function partitionTimelineResponses(responses = []) {
   };
 }
 
+function isTimelinePromptNotFoundError(error) {
+  return /prompt\s+not\s+found/i.test(String(error || ''));
+}
+
+function normalizeTimelineFallbackContent(content, query) {
+  const normalizedContent = String(content || '').trim();
+  if (!normalizedContent) return '';
+
+  if (/^内容提取失败[:：]/.test(normalizedContent)) return '';
+  if (/无法自动提取[\s\S]*请手动复制/.test(normalizedContent)) return '';
+
+  const normalizedQuery = timelineNormalizeQuery(query);
+  if (normalizedQuery && timelineNormalizeQuery(normalizedContent) === normalizedQuery) {
+    return '';
+  }
+
+  return normalizedContent;
+}
+
+async function collectTimelineContentFallbackResponse(iframe, entry, originalResponse) {
+  const siteName = iframe?.getAttribute('data-site') || originalResponse?.siteName || '';
+  const fallbackResult = await requestIframeTimelineAction(
+    iframe,
+    'EXTRACT_CONTENT',
+    'EXTRACTED_CONTENT',
+    {
+      query: entry?.query || '',
+      occurrenceIndex: entry?.occurrenceIndex || 0
+    },
+    12000
+  );
+  const content = normalizeTimelineFallbackContent(fallbackResult?.content, entry?.query || '');
+  if (!content) {
+    return {
+      siteName: fallbackResult?.siteName || siteName,
+      answers: [],
+      content: '',
+      error: originalResponse?.error || fallbackResult?.error || ''
+    };
+  }
+
+  return {
+    siteName: fallbackResult?.siteName || siteName,
+    answers: [content],
+    content,
+    error: '',
+    fallbackSource: 'extract-content-after-prompt-not-found'
+  };
+}
+
 function showTimelineCopyPreviewActionFeedback(overlay, anchorButton, message, tone = 'success', duration = 2200) {
   if (!overlay || !anchorButton || !message) return;
 
@@ -6548,11 +6734,19 @@ async function collectTimelineEntryResponses(entry) {
     );
   }));
 
-  const normalizedResponses = siteResponses.map((item) => ({
-    siteName: item?.siteName || '',
-    answers: Array.isArray(item?.answers) ? item.answers : [],
-    content: item?.content || '',
-    error: item?.error || ''
+  const normalizedResponses = await Promise.all(siteResponses.map(async (item, index) => {
+    const normalized = {
+      siteName: item?.siteName || '',
+      answers: Array.isArray(item?.answers) ? item.answers : [],
+      content: item?.content || '',
+      error: item?.error || ''
+    };
+
+    if (normalized.content || !isTimelinePromptNotFoundError(normalized.error)) {
+      return normalized;
+    }
+
+    return collectTimelineContentFallbackResponse(iframes[index], entry, normalized);
   }));
   normalizedResponses.push(...agentResponses);
 
@@ -7137,8 +7331,10 @@ function createInjectProgressOverlay(siteName) {
   const overlay = document.createElement('div');
   const closeLabel = escapeHtml(t('closeButton', 'Close'));
   overlay.className = 'inject-progress';
+  overlay.dataset.siteName = siteName || '';
   overlay.dataset.visibleSince = '0';
   overlay.dataset.lastStatus = '';
+  overlay.dataset.finalFailureSignature = '';
   overlay.innerHTML = `
     <div class="inject-progress-content">
       <button class="inject-progress-dismiss" type="button" aria-label="${closeLabel}" title="${closeLabel}">×</button>
@@ -8170,6 +8366,60 @@ function scheduleInjectProgressHide(overlay, delayMs = 0) {
   }, Math.max(0, Number(delayMs) || 0));
 }
 
+function recordFinalFailurePopup(overlay, payload = {}, displayMessage = '') {
+  try {
+    const container = overlay?.closest('.iframe-container');
+    const iframe = container?.querySelector('iframe');
+    const siteName = overlay?.dataset?.siteName || container?.dataset?.siteName || iframe?.dataset?.siteName || iframe?.dataset?.site || '';
+    const query = (container?.dataset?.lastQuery || '').trim() || (document.getElementById('searchInput')?.value || '').trim();
+    const signature = [
+      siteName,
+      payload.phase || 'final_failure_popup',
+      payload.stepIndex || '',
+      payload.errorMessage || '',
+      query,
+      iframe?.src || ''
+    ].join('|');
+    if (overlay.dataset.finalFailureSignature === signature) {
+      return;
+    }
+    overlay.dataset.finalFailureSignature = signature;
+    chrome.runtime.sendMessage({
+      action: 'recordFailureLog',
+      payload: {
+        category: 'site',
+        source: 'iframe',
+        siteName,
+        phase: 'final_failure_popup',
+        errorCode: 'FINAL_FAILURE_POPUP',
+        errorMessage: payload.errorMessage || displayMessage || t('injectProgressTitleError', '执行失败'),
+        pageUrl: window.location.href,
+        runtimeUrl: iframe?.src || '',
+        query,
+        metadata: {
+          finalFailurePopup: true,
+          popupType: 'inject_progress',
+          displayMessage,
+          originalPhase: payload.phase || '',
+          status: payload.status || '',
+          stepIndex: payload.stepIndex || 0,
+          totalSteps: payload.totalSteps || 0,
+          action: payload.action || '',
+          description: payload.description || '',
+          retryAttempts: payload.retryAttempts || 0,
+          retryMax: payload.retryMax || 0,
+          panelKind: container?.dataset?.panelKind || '',
+          currentUrl: iframe?.src || ''
+        }
+      }
+    }).catch((error) => {
+      console.warn('记录最终失败弹窗失败:', error);
+    });
+  } catch (error) {
+    console.warn('记录最终失败弹窗失败:', error);
+  }
+}
+
 function setInjectProgressState(overlay, payload) {
   if (!overlay) return;
   const titleEl = overlay.querySelector('.inject-progress-title');
@@ -8187,6 +8437,7 @@ function setInjectProgressState(overlay, payload) {
     markInjectProgressVisible(overlay);
     overlay.classList.remove('is-error');
     overlay.dataset.lastStatus = status;
+    overlay.dataset.finalFailureSignature = '';
     if (titleEl) titleEl.textContent = t('injectProgressTitleComplete', '执行完成');
     if (detailEl) detailEl.textContent = payload.description || t('injectProgressDetailComplete', '脚本已执行完成');
     if (retryBtn) retryBtn.style.display = 'none';
@@ -8292,25 +8543,32 @@ function setInjectProgressState(overlay, payload) {
     overlay.classList.add('is-error');
     overlay.dataset.lastStatus = status;
     if (titleEl) titleEl.textContent = t('injectProgressTitleError', '执行失败');
+    let finalFailureDisplayMessage = '';
     if (detailEl) {
       if (isElementNotFoundError) {
         detailEl.textContent = notLoadedMessage;
+        finalFailureDisplayMessage = notLoadedMessage;
       } else {
         const stepInfo = payload.stepIndex && payload.totalSteps
           ? t('injectProgressStepInfo', '步骤 $1/$2', [String(payload.stepIndex), String(payload.totalSteps)])
           : t('injectProgressStepInfoFallback', '执行中断');
         const detailText = description ? `${stepInfo}：${description}${retrySuffix}` : stepInfo;
         detailEl.textContent = payload.errorMessage ? `${detailText}（${payload.errorMessage}）` : detailText;
+        finalFailureDisplayMessage = detailEl.textContent;
       }
     }
     if (retryBtn) retryBtn.style.display = 'inline-flex';
     if (closeBtn) closeBtn.style.display = 'inline-flex';
+    recordFinalFailurePopup(overlay, payload, finalFailureDisplayMessage);
     return;
   }
 
   markInjectProgressVisible(overlay);
   overlay.classList.remove('is-error');
   overlay.dataset.lastStatus = status;
+  if (status === 'start') {
+    overlay.dataset.finalFailureSignature = '';
+  }
   if (retryBtn) retryBtn.style.display = 'inline-flex';
   if (closeBtn) closeBtn.style.display = 'inline-flex';
 
@@ -8514,6 +8772,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         await window.RuntimeI18n.initializeRuntimeI18n();
     }
 
+    ensureIframeAuthOverlayTracking();
     initializeAgentRuntimeMessageBridge();
     await ensureIframeAgentCatalogReady();
     if (typeof window.RemoteAgentConfigManager?.autoCheckUpdate === 'function') {
@@ -11248,6 +11507,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
   iframeContainer.appendChild(iframe);
   iframeContainer.appendChild(createInjectProgressOverlay(siteName));
   container.appendChild(iframeContainer);
+  renderIframeAuthOverlay();
   scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
   
   // 添加按钮事件处理

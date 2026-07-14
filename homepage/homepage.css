@@ -245,6 +245,105 @@ html, body {
     opacity: 0.72;
 }
 
+.homepage-course-promo {
+    width: 100%;
+    max-width: 1120px;
+    box-sizing: border-box;
+    border-radius: 18px;
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.98) 100%);
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.homepage-course-promo-inner {
+    display: grid;
+    grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    padding: 16px;
+}
+
+.homepage-course-promo-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    border-radius: 14px;
+    background: #f3f4f6;
+}
+
+.homepage-course-promo-body {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.homepage-course-promo-title {
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1.35;
+    color: var(--ai-text);
+    word-break: break-word;
+}
+
+.homepage-course-promo-subtitle {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ai-text-muted);
+    word-break: break-word;
+}
+
+.homepage-course-promo-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.homepage-course-promo-cta {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: var(--ai-text);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.homepage-course-promo-dismiss {
+    border: 0;
+    background: transparent;
+    color: var(--ai-text-muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+.homepage-course-promo-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: rgba(17, 24, 39, 0.06);
+    color: var(--ai-text-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.homepage-course-promo.is-text-only .homepage-course-promo-inner {
+    grid-template-columns: 1fr;
+}
+
+.homepage-course-promo.is-text-only .homepage-course-promo-image {
+    display: none;
+}
+
+.homepage-course-promo[hidden] {
+    display: none;
+}
+
 /* Pin 引导提示样式 */
 .pin-guide-banner {
     width: 100%;
@@ -1643,6 +1742,7 @@ body.is-side-panel .homepage-container {
 }
 
 body.is-side-panel .extension-icon-container,
+body.is-side-panel .homepage-course-promo,
 body.is-side-panel .homepage-plan-banner,
 body.is-side-panel .pin-guide-banner,
 body.is-side-panel .search-bar,
@@ -1882,5 +1982,11 @@ body.is-side-panel .custom-site-item {
 
     .remote-search-home-button {
         width: 100%;
+    }
+}
+
+@media (max-width: 720px) {
+    .homepage-course-promo-inner {
+        grid-template-columns: 1fr;
     }
 }

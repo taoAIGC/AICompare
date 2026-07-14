@@ -1009,21 +1009,48 @@ async function getBackgroundUserPlan() {
     const fields = doc.fields || {};
     const plan = fields.plan?.stringValue || 'free';
     const planExpiresAt = fields.planExpiresAt?.timestampValue || null;
+    const apiPlan = fields.apiPlan?.stringValue || 'free';
+    const apiPlanExpiresAt = fields.apiPlanExpiresAt?.timestampValue || null;
     const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
     const effectivePlan = (plan === 'pro' && !isExpired) ? 'pro' : 'free';
+    const isApiExpired = apiPlanExpiresAt && new Date(apiPlanExpiresAt) < new Date();
+    const effectiveApiPlan = (apiPlan === 'pro' && !isApiExpired) ? 'pro' : 'free';
+    const cachedPlan = { plan: effectivePlan, planExpiresAt, apiPlan: effectiveApiPlan, apiPlanExpiresAt };
 
     await chrome.storage.local.set({
-      _planCache: JSON.stringify({ plan: effectivePlan, planExpiresAt }),
+      _planCache: JSON.stringify(cachedPlan),
       _planCacheAt: Date.now()
     });
 
-    return { plan: effectivePlan, planExpiresAt };
+    return cachedPlan;
   } catch (_) {
     return getCachedBackgroundPlan();
   }
 }
 
 async function getOfficialUsageStatus() {
+  const billingEnabled = await isOfficialAgentBillingEnabled();
+  if (!billingEnabled) {
+    return {
+      billingEnabled: false,
+      plan: 'free',
+      limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
+      used: 0,
+      remaining: Number.POSITIVE_INFINITY
+    };
+  }
+
+  const plan = await getBackgroundUserPlan();
+  if (plan.apiPlan === 'pro') {
+    return {
+      billingEnabled: true,
+      plan: 'api_pro',
+      limit: OFFICIAL_AGENT_DAILY_FREE_LIMIT,
+      used: 0,
+      remaining: Number.POSITIVE_INFINITY
+    };
+  }
+
   const stored = await chrome.storage.local.get(AGENT_ENGINE_USAGE_STORAGE_KEY);
   const usage = stored?.[AGENT_ENGINE_USAGE_STORAGE_KEY] || {};
   const today = getOfficialUsageDateKey();
@@ -1038,14 +1065,75 @@ async function getOfficialUsageStatus() {
   };
 }
 
+async function getChatPlanPricingUrl() {
+  try {
+    return new URL(`${getCloudFunctionsBaseUrl()}/membership-pricing`).toString();
+  } catch (_) {
+    return 'https://aicompare.club/membership-pricing';
+  }
+}
+
+async function consumeChatPlanUsageQuota(query = '') {
+  const normalizedQuery = String(query || '').trim();
+  if (!normalizedQuery) {
+    return { billingEnabled: false, plan: 'free', limit: 0, used: 0, remaining: Number.POSITIVE_INFINITY };
+  }
+
+  const billingEnabled = await isOfficialAgentBillingEnabled();
+  if (!billingEnabled) {
+    return { billingEnabled: false, plan: 'free', limit: 0, used: 0, remaining: Number.POSITIVE_INFINITY };
+  }
+
+  const locale = await getBillingLocale();
+  const idToken = await getFirebaseIdTokenIfAvailable();
+  const anonymousClientId = idToken ? '' : await getOrCreateAnonymousClientId();
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'X-AI-Compare-Locale': locale
+  };
+  if (idToken) {
+    headers.Authorization = `Bearer ${idToken}`;
+  } else if (anonymousClientId) {
+    headers['X-AI-Compare-Client-Id'] = anonymousClientId;
+  }
+
+  const response = await fetch(`${getCloudFunctionsBaseUrl()}/chatPlanUsage/consume`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      locale,
+      queryPreview: normalizedQuery,
+      queryLength: normalizedQuery.length
+    })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (response.status === 402 || payload?.code === 'CHAT_PLAN_LIMIT_REACHED') {
+      const rt = await getRuntimeI18nTranslator();
+      throw new Error(rt(
+        'chatPlanQuotaExceeded',
+        `You've reached today's $1 free AI comparison questions. Upgrade to Chat Plan for unlimited questions: $2`,
+        [String(payload.limit || ''), await getChatPlanPricingUrl()]
+      ));
+    }
+    throw new Error(payload?.error || `Chat Plan usage request failed: HTTP ${response.status}`);
+  }
+  return payload;
+}
+
 async function consumeOfficialUsageQuota() {
   const status = await getOfficialUsageStatus();
+
+  if (!status.billingEnabled || status.plan === 'pro' || status.plan === 'api_pro') {
+    return status;
+  }
 
   if (status.used >= status.limit) {
     const rt = await getRuntimeI18nTranslator();
     throw new Error(rt(
       'agentEngineOfficialQuotaExceeded',
-      `You've reached today's free official API limit of ${status.limit}. Please set up your personal API: $2`,
+      `You've reached today's ${status.limit} free API-powered questions. Upgrade to API Plan for unlimited summary and skill questions, or switch to your own API: $2`,
       [String(status.limit), getCustomApiSettingsUrl()]
     ));
   }
@@ -2750,6 +2838,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  else if (message.action === 'getAnonymousClientId') {
+    getOrCreateAnonymousClientId().then((clientId) => {
+      sendResponse({ success: true, clientId });
+    }).catch((error) => {
+      sendResponse({ success: false, error: error?.message || String(error) });
+    });
+    return true;
+  }
   else if (message.action === 'openOptionsPage') {
     // 立即打开设置页面
     chrome.tabs.create({
@@ -2918,6 +3014,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: error?.message || String(error) });
       });
     return true;
+  }
+  if (message?.action === 'recordFailureLog') {
+    recordFailureLog({
+      ...(message.payload || {}),
+      pageUrl: message.payload?.pageUrl || sender.tab?.url || '',
+      metadata: {
+        ...(message.payload?.metadata || {}),
+        tabId: sender.tab?.id || 0
+      }
+    });
+    sendResponse({ ok: true });
+    return false;
   }
   if (message.action === 'executeHandler') {
     (async () => {
@@ -3241,6 +3349,11 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
     
   console.log('符合条件的官方站点:', selectedOfficialSites);
   console.log('符合条件的 customSites:', selectedCustomSites);
+
+  const normalizedQuery = String(query || '').trim();
+  if (normalizedQuery && (selectedOfficialSites.length > 0 || selectedCustomSites.length > 0)) {
+    await consumeChatPlanUsageQuota(normalizedQuery);
+  }
 
   const iframeSites = selectedOfficialSites.filter(site => site.supportIframe === true);
   const externalSites = selectedOfficialSites.filter(site => site.supportIframe !== true);

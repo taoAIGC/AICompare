@@ -1095,6 +1095,110 @@ html {
   overscroll-behavior: contain;
 }
 
+.iframe-login-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  box-sizing: border-box;
+  background: rgba(18, 18, 22, 0.82);
+  color: #ffffff;
+  pointer-events: auto;
+}
+
+.iframe-login-overlay-card {
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+}
+
+.iframe-login-overlay-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: clamp(24px, 4vw, 38px);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.iframe-login-overlay-logo {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.iframe-login-overlay-copy {
+  max-width: 420px;
+  margin: -6px 0 2px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.iframe-login-overlay-button {
+  width: min(520px, 80%);
+  min-height: 64px;
+  border: 0;
+  border-radius: 999px;
+  background: #0f0f10;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+  transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.iframe-login-overlay-button:hover {
+  background: #242426;
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+}
+
+.iframe-login-overlay-button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  .iframe-login-overlay {
+    padding: 24px;
+  }
+
+  .iframe-login-overlay-card {
+    gap: 18px;
+  }
+
+  .iframe-login-overlay-heading {
+    gap: 12px;
+    font-size: 24px;
+  }
+
+  .iframe-login-overlay-logo {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+    font-size: 14px;
+  }
+
+  .iframe-login-overlay-button {
+    width: min(360px, 92%);
+    min-height: 52px;
+    font-size: 20px;
+  }
+}
+
 .snapshot-panel {
   background: #ffffff;
   min-height: 320px;
@@ -1749,6 +1853,7 @@ body.search-bar-bottom .search-bar.search-bar-auto-collapsed .query-suggestions 
 
 #iframes-container {
     margin: 0;
+    position: relative;
     display: grid;
     grid-template-columns: repeat(var(--columns, 2), 1fr);
     gap: 16px;

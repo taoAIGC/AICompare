@@ -1,16 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://aicompare.club/</loc><priority>1.0</priority></url>
-  <url><loc>https://aicompare.club/geo/</loc><priority>0.9</priority></url>
-  <url><loc>https://aicompare.club/geo-checklist/</loc><priority>0.9</priority></url>
-  <url><loc>https://aicompare.club/use-cases/brand-monitoring/</loc><priority>0.8</priority></url>
-  <url><loc>https://aicompare.club/use-cases/content-qa/</loc><priority>0.8</priority></url>
-  <url><loc>https://aicompare.club/blog/</loc><priority>0.8</priority></url>
-  <url><loc>https://aicompare.club/blog/what-is-geo.html</loc><priority>0.7</priority></url>
-  <url><loc>https://aicompare.club/blog/check-geo-with-multi-ai.html</loc><priority>0.7</priority></url>
-  <url><loc>https://aicompare.club/blog/ai-readability-checklist.html</loc><priority>0.7</priority></url>
-  <url><loc>https://aicompare.club/blog/brand-not-found-in-ai.html</loc><priority>0.7</priority></url>
-  <url><loc>https://aicompare.club/blog/five-ai-content-test.html</loc><priority>0.7</priority></url>
-  <url><loc>https://aicompare.club/blog/why-ai-answers-differ.html</loc><priority>0.7</priority></url>
-  <url><loc>https://aicompare.club/resources/chrome-store-copy.html</loc><priority>0.5</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://aicompare.club/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/geo/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/geo/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/geo/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/geo-checklist/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/geo-checklist/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/geo-checklist/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/use-cases/brand-monitoring/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/use-cases/brand-monitoring/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/use-cases/brand-monitoring/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/use-cases/content-qa/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/use-cases/content-qa/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/use-cases/content-qa/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/" />
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/what-is-geo.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/what-is-geo.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/what-is-geo.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/check-geo-with-multi-ai.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/check-geo-with-multi-ai.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/check-geo-with-multi-ai.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/ai-readability-checklist.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/ai-readability-checklist.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/ai-readability-checklist.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/brand-not-found-in-ai.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/brand-not-found-in-ai.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/brand-not-found-in-ai.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/five-ai-content-test.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/five-ai-content-test.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/five-ai-content-test.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/blog/why-ai-answers-differ.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/blog/why-ai-answers-differ.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/blog/why-ai-answers-differ.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/resources/chrome-store-copy.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/resources/chrome-store-copy.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/resources/chrome-store-copy.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/resources/multilingual-seo-plan.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/resources/multilingual-seo-plan.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/resources/multilingual-seo-plan.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>

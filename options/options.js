@@ -69,6 +69,63 @@ function getMessageWithFallback(key, fallback = '', substitutions = null) {
   return getMessage(key, substitutions) || fallback;
 }
 
+function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '') {
+  const baseUrl = typeof window.FirebaseConfig?.getCloudFunctionsBaseUrl === 'function'
+    ? window.FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/+$/, '')
+    : 'https://aicompare.club';
+  const url = new URL(`${baseUrl}/membership-pricing`);
+  if (String(planType || '').trim().toLowerCase() === 'api') {
+    url.searchParams.set('planType', 'api');
+  }
+  const normalizedEmail = String(prefillEmail || '').trim();
+  if (normalizedEmail) {
+    url.searchParams.set('prefillEmail', normalizedEmail);
+  }
+  return url.toString();
+}
+
+async function getMembershipPricingPrefillEmail() {
+  try {
+    const storedAuth = typeof window.firebaseGetStoredAuth === 'function'
+      ? await window.firebaseGetStoredAuth()
+      : null;
+    const storedEmail = String(storedAuth?.email || '').trim();
+    if (storedEmail) {
+      return storedEmail;
+    }
+  } catch (_) {
+    // Fall back to the local auth cache below.
+  }
+
+  try {
+    const stored = await chrome.storage.local.get(['firebase_email', 'email']);
+    return String(stored?.firebase_email || stored?.email || '').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+async function openHostedMembershipPricingPage(planType = 'chat') {
+  const prefillEmail = await getMembershipPricingPrefillEmail();
+  const url = getHostedMembershipPricingUrl(planType, prefillEmail);
+  if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+    await chrome.tabs.create({ url });
+    return;
+  }
+  window.location.href = url;
+}
+
+function getMembershipLoginPageUrl(returnTo = '') {
+  const pageUrl = new URL(chrome.runtime.getURL('options/account-login.html'));
+  const normalizedReturnTo = String(returnTo || '').trim();
+  if (normalizedReturnTo) {
+    pageUrl.searchParams.set('returnTo', normalizedReturnTo);
+  } else {
+    pageUrl.searchParams.set('returnTo', `${chrome.runtime.getURL('options/options.html')}#membership`);
+  }
+  return pageUrl.toString();
+}
+
 function getPromptTemplateUtils() {
   return window.PromptTemplateUtils || null;
 }
@@ -450,16 +507,7 @@ async function handleOfficialAgentEngineUpgrade(button) {
   }
 
   try {
-    const priceId = await getAgentEngineUpgradePriceId();
-    if (!priceId || priceId.startsWith('price_REPLACE')) {
-      showToast(getMessageWithFallback('membershipPriceNotConfigured', 'Stripe Price ID not configured. Please set it first.'), 3000);
-      return false;
-    }
-    await ensureAgentEngineCheckoutReady();
-    if (typeof window.startCheckout !== 'function') {
-      throw new Error(getMessageWithFallback('stripePaymentScriptNotLoaded', 'stripe-payment.js is not loaded.'));
-    }
-    await window.startCheckout(priceId);
+    window.location.href = getHostedMembershipPricingUrl('api');
     return true;
   } catch (error) {
     showToast(error?.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
@@ -485,6 +533,7 @@ async function refreshOfficialAgentEngineMeta() {
   const billingEnabled = isOfficialAgentEngineBillingEnabledForCurrentLocale();
   const dailyFreeLimitText = String(dailyFreeLimit);
   upgradeButton.dataset.plan = isPro ? 'pro' : 'free';
+  upgradeButton.hidden = isPro;
 
   officialMeta.textContent = isPro
     ? getMessageWithFallback('agentEngineOfficialMetaPro', 'Current plan: PRO')
@@ -500,8 +549,8 @@ async function refreshOfficialAgentEngineMeta() {
       )
     );
   upgradeButton.textContent = isPro
-    ? getMessageWithFallback('agentEngineManageProButton', '管理 PRO')
-    : getMessageWithFallback('agentEngineUpgradeButton', '立即升级 PRO');
+    ? ''
+    : getMessageWithFallback('agentEngineUpgradeButton', '升级 PRO');
 }
 
 function renderAgentEngineCard(config = {}) {
@@ -805,20 +854,6 @@ async function initializeAgentEngineSettings() {
     officialUpgradeButton.dataset.bound = 'true';
     officialUpgradeButton.addEventListener('click', async (event) => {
       event.stopPropagation();
-      const currentPlan = String(officialUpgradeButton.dataset.plan || '').trim();
-      if (currentPlan === 'pro') {
-        if (typeof window.openCustomerPortal === 'function') {
-          officialUpgradeButton.disabled = true;
-          try {
-            await window.openCustomerPortal();
-          } catch (error) {
-            showToast(error?.message || getMessageWithFallback('stripePortalOpenFailed', 'Failed to open the subscription management page.'), 3000);
-          } finally {
-            officialUpgradeButton.disabled = false;
-          }
-          return;
-        }
-      }
       const opened = await handleOfficialAgentEngineUpgrade(officialUpgradeButton);
       if (opened) {
         await refreshOfficialAgentEngineMeta();
@@ -5044,31 +5079,146 @@ function initializeRemoteSearchSettings() {
   });
 }
 
+async function ensureMembershipRedeemReady() {
+  if (typeof window.firebaseGetIdToken === 'function') {
+    const token = await window.firebaseGetIdToken();
+    if (token) {
+      return true;
+    }
+  }
+
+  if (typeof window.firebaseSignInWithGoogle !== 'function') {
+    throw new Error(getMessageWithFallback('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
+  }
+
+  await window.firebaseSignInWithGoogle();
+  if (typeof window.firebaseGetIdToken === 'function') {
+    const token = await window.firebaseGetIdToken();
+    if (token) {
+      return true;
+    }
+  }
+
+  throw new Error(getMessageWithFallback('membershipAuthDescription', 'Continue with Google or receive a verification email to access your account.'));
+}
+
+function formatMembershipRedeemExpiry(isoValue) {
+  const date = isoValue ? new Date(isoValue) : null;
+  if (!date || Number.isNaN(date.getTime())) {
+    return '';
+  }
+  try {
+    return new Intl.DateTimeFormat(getCurrentRuntimeLocale(), {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  } catch (_) {
+    return isoValue;
+  }
+}
+
+async function submitMembershipRedeemCode() {
+  const input = document.getElementById('membershipRedeemCodeInput');
+  const button = document.getElementById('submitMembershipRedeemCode');
+  const code = String(input?.value || '').trim();
+
+  if (!code) {
+    showToast(getMessageWithFallback('redeemCodeRequired', 'Please enter a redeem code.'), 3000);
+    input?.focus();
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.dataset.originalText = button.textContent || '';
+    button.textContent = getMessageWithFallback('redeemCodeRedeeming', 'Redeeming...');
+  }
+
+  try {
+    await ensureMembershipRedeemReady();
+    if (typeof window.redeemMembershipCode !== 'function') {
+      throw new Error(getMessageWithFallback('redeemCodeServiceUnavailable', 'Redeem service is unavailable right now.'));
+    }
+
+    const result = await window.redeemMembershipCode(code);
+    const planLabel = result?.planType === 'api'
+      ? getMessageWithFallback('redeemCodeApiPlanLabel', 'API Plan')
+      : getMessageWithFallback('redeemCodeChatPlanLabel', 'Chat Plan');
+    const expiry = formatMembershipRedeemExpiry(result?.planExpiresAt);
+    showToast(
+      getMessageWithFallback(
+        'redeemCodeSuccess',
+        expiry ? `${planLabel} redeemed. Valid until ${expiry}.` : `${planLabel} redeemed.`,
+        [planLabel, expiry]
+      ),
+      4000
+    );
+    if (input) input.value = '';
+    await initializeMembership();
+  } catch (error) {
+    showToast(error?.message || getMessageWithFallback('redeemCodeFailed', 'Redeem failed. Please check the code and try again.'), 4000);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || getMessageWithFallback('redeemCodeSubmitButton', 'Redeem');
+      delete button.dataset.originalText;
+    }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Pro 会员 UI
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function initializeMembership() {
+  const redeemSubmitBtn = document.getElementById('submitMembershipRedeemCode');
+  const redeemInput = document.getElementById('membershipRedeemCodeInput');
   const loadingEl = document.getElementById('membershipLoadingMsg');
-  const loginHintEl = document.getElementById('membershipLoginHint');
-  const loginActionsEl = document.getElementById('membershipLoginActions');
+  const guestEntryEl = document.getElementById('membershipGuestEntry');
+  const loginEntryBtn = document.getElementById('membershipOpenAuthDialogBtn');
   const plansEl = document.getElementById('membershipPlans');
-  const proActionsEl = document.getElementById('membershipProActions');
+  const accountCardEl = document.getElementById('membershipStatusCard');
+  const accountNameEl = document.getElementById('membershipAccountName');
+  const avatarImageEl = document.getElementById('membershipAvatarImage');
+  const avatarFallbackEl = document.getElementById('membershipAvatarFallback');
+  const logoutBtn = document.getElementById('membershipLogoutBtn');
   const badgeEl = document.getElementById('membershipBadge');
-  const planLabelEl = document.getElementById('membershipPlanLabel');
   const emailEl = document.getElementById('membershipEmail');
   const expiryEl = document.getElementById('membershipExpiry');
   const plansTabEl = document.getElementById('membershipPlansTab');
   const invoicesTabEl = document.getElementById('membershipInvoicesTab');
+  const redeemTabEl = document.getElementById('membershipRedeemTab');
+  const manageTabEl = document.getElementById('membershipManageTab');
   const plansPanelEl = document.getElementById('membershipPlansPanel');
   const invoicesPanelEl = document.getElementById('membershipInvoicesPanel');
+  const redeemPanelEl = document.getElementById('membershipRedeemPanel');
+  const managePanelEl = document.getElementById('membershipManagePanel');
+  const openStripePortalBtn = document.getElementById('membershipOpenStripePortalBtn');
   const chatPlanStatusBadgeEl = document.getElementById('chatPlanStatusBadge');
   const apiPlanStatusBadgeEl = document.getElementById('apiPlanStatusBadge');
+  const chatPlanStatusTextEl = document.getElementById('chatPlanStatusText');
   const apiPlanStatusTextEl = document.getElementById('apiPlanStatusText');
   const invoicesLoadingEl = document.getElementById('membershipInvoicesLoading');
   const invoicesEmptyEl = document.getElementById('membershipInvoicesEmpty');
   const invoicesTableEl = document.getElementById('membershipInvoicesTable');
   const invoicesBodyEl = document.getElementById('membershipInvoicesBody');
+  const authDialogEl = document.getElementById('membershipAuthDialog');
+  const authDialogOverlayEl = document.getElementById('membershipAuthDialogOverlay');
+  const authDialogCloseEl = document.getElementById('membershipAuthDialogClose');
+  const authEntryStepEl = document.getElementById('membershipAuthEntryStep');
+  const authVerifyStepEl = document.getElementById('membershipAuthVerifyStep');
+  const authGoogleBtn = document.getElementById('membershipAuthGoogleBtn');
+  const authEmailInput = document.getElementById('membershipAuthEmailInput');
+  const authSendCodeBtn = document.getElementById('membershipAuthSendCodeBtn');
+  const authBackBtn = document.getElementById('membershipAuthBackBtn');
+  const authCodeInput = document.getElementById('membershipAuthCodeInput');
+  const authVerifyBtn = document.getElementById('membershipAuthVerifyBtn');
+  const authResendBtn = document.getElementById('membershipAuthResendBtn');
+  const authVerifyDescriptionEl = document.getElementById('membershipAuthVerifyDescription');
+  let invoicesLoaded = false;
+  let authDialogStep = 'entry';
+  let authDialogEmail = '';
 
   function getMembershipLocale() {
     try {
@@ -5107,23 +5257,92 @@ async function initializeMembership() {
     }
   }
 
+  function getAuthDialogEmail() {
+    return String(authDialogEmail || authEmailInput?.value || '').trim();
+  }
+
+  function setAuthDialogStep(step = 'entry', email = '') {
+    authDialogStep = step === 'verify' ? 'verify' : 'entry';
+    authDialogEmail = String(email || authDialogEmail || authEmailInput?.value || '').trim();
+
+    if (authEntryStepEl) {
+      authEntryStepEl.hidden = authDialogStep === 'verify';
+    }
+    if (authVerifyStepEl) {
+      authVerifyStepEl.hidden = authDialogStep !== 'verify';
+    }
+    if (authVerifyDescriptionEl) {
+      authVerifyDescriptionEl.textContent = getMessageWithFallback(
+        'membershipEmailVerifyDescription',
+        'Paste the verification code or sign-in link we sent to $1.',
+        [authDialogEmail || 'your inbox']
+      );
+    }
+
+    if (authDialogStep === 'verify') {
+      setTimeout(() => authCodeInput?.focus(), 0);
+    } else {
+      setTimeout(() => authEmailInput?.focus(), 0);
+    }
+  }
+
+  function openAuthDialog(step = 'entry', email = '') {
+    if (!authDialogEl) return;
+    initializeI18nWithin(authDialogEl);
+    if (step !== 'verify' && authCodeInput) {
+      authCodeInput.value = '';
+    }
+    authDialogEl.style.display = 'block';
+    setAuthDialogStep(step, email);
+  }
+
+  function closeAuthDialog() {
+    if (!authDialogEl) return;
+    authDialogEl.style.display = 'none';
+  }
+
   function setMembershipTab(tabName = 'plans') {
     const isInvoices = tabName === 'invoices';
+    const isRedeem = tabName === 'redeem';
+    const isManage = tabName === 'manage';
+    const isPlans = !isInvoices && !isRedeem && !isManage;
     if (plansTabEl) {
-      plansTabEl.classList.toggle('is-active', !isInvoices);
-      plansTabEl.setAttribute('aria-selected', isInvoices ? 'false' : 'true');
-      plansTabEl.tabIndex = isInvoices ? -1 : 0;
+      plansTabEl.classList.toggle('is-active', isPlans);
+      plansTabEl.setAttribute('aria-selected', isPlans ? 'true' : 'false');
+      plansTabEl.tabIndex = isPlans ? 0 : -1;
     }
     if (invoicesTabEl) {
       invoicesTabEl.classList.toggle('is-active', isInvoices);
       invoicesTabEl.setAttribute('aria-selected', isInvoices ? 'true' : 'false');
       invoicesTabEl.tabIndex = isInvoices ? 0 : -1;
     }
+    if (redeemTabEl) {
+      redeemTabEl.classList.toggle('is-active', isRedeem);
+      redeemTabEl.setAttribute('aria-selected', isRedeem ? 'true' : 'false');
+      redeemTabEl.tabIndex = isRedeem ? 0 : -1;
+    }
+    if (manageTabEl) {
+      manageTabEl.classList.toggle('is-active', isManage);
+      manageTabEl.setAttribute('aria-selected', isManage ? 'true' : 'false');
+      manageTabEl.tabIndex = isManage ? 0 : -1;
+    }
     if (plansPanelEl) {
-      plansPanelEl.hidden = isInvoices;
+      plansPanelEl.hidden = !isPlans;
     }
     if (invoicesPanelEl) {
       invoicesPanelEl.hidden = !isInvoices;
+    }
+    if (redeemPanelEl) {
+      redeemPanelEl.hidden = !isRedeem;
+      if (isRedeem) {
+        setTimeout(() => redeemInput?.focus(), 0);
+      }
+    }
+    if (managePanelEl) {
+      managePanelEl.hidden = !isManage;
+      if (isManage) {
+        setTimeout(() => openStripePortalBtn?.focus(), 0);
+      }
     }
   }
 
@@ -5202,7 +5421,7 @@ async function initializeMembership() {
 
   async function loadInvoices(uid) {
     if (!uid) {
-      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Sign in with Google to view invoices.'));
+      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view invoices.'));
       return;
     }
 
@@ -5229,7 +5448,46 @@ async function initializeMembership() {
 
   if (invoicesTabEl && invoicesTabEl.dataset.bound !== 'true') {
     invoicesTabEl.dataset.bound = 'true';
-    invoicesTabEl.addEventListener('click', () => setMembershipTab('invoices'));
+    invoicesTabEl.addEventListener('click', () => {
+      setMembershipTab('invoices');
+      if (!invoicesLoaded) {
+        invoicesLoaded = true;
+        loadInvoices(uid).catch((error) => {
+          console.warn('Failed to load invoices after tab switch:', error);
+        });
+      }
+    });
+  }
+
+  if (redeemTabEl && redeemTabEl.dataset.bound !== 'true') {
+    redeemTabEl.dataset.bound = 'true';
+    redeemTabEl.addEventListener('click', () => setMembershipTab('redeem'));
+  }
+  if (manageTabEl && manageTabEl.dataset.bound !== 'true') {
+    manageTabEl.dataset.bound = 'true';
+    manageTabEl.addEventListener('click', () => setMembershipTab('manage'));
+  }
+  if (redeemSubmitBtn && redeemSubmitBtn.dataset.bound !== 'true') {
+    redeemSubmitBtn.dataset.bound = 'true';
+    redeemSubmitBtn.addEventListener('click', () => {
+      submitMembershipRedeemCode().catch((error) => {
+        showToast(error?.message || getMessageWithFallback('redeemCodeFailed', 'Redeem failed. Please check the code and try again.'), 4000);
+      });
+    });
+  }
+  if (redeemInput && redeemInput.dataset.bound !== 'true') {
+    redeemInput.dataset.bound = 'true';
+    redeemInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        submitMembershipRedeemCode().catch((error) => {
+          showToast(error?.message || getMessageWithFallback('redeemCodeFailed', 'Redeem failed. Please check the code and try again.'), 4000);
+        });
+      }
+      if (event.key === 'Escape') {
+        setMembershipTab('plans');
+      }
+    });
   }
 
   setMembershipTab('plans');
@@ -5238,144 +5496,503 @@ async function initializeMembership() {
     if (loadingEl) loadingEl.style.display = show ? 'block' : 'none';
   }
 
-  function setMembershipBadge(isPro) {
-    if (!badgeEl) return;
-    badgeEl.className = 'membership-badge' + (isPro ? ' pro' : '');
-    badgeEl.style.display = isPro ? 'inline-flex' : 'none';
+  function getAccountDisplayName(auth = {}) {
+    const displayName = String(auth?.displayName || '').trim();
+    if (displayName) {
+      return displayName;
+    }
+    const email = String(auth?.email || '').trim();
+    if (email) {
+      return email.split('@')[0] || email;
+    }
+    return getMessageWithFallback('settingsNavProTitle', 'Account');
   }
 
-  const loginBtn = document.getElementById('membershipGoogleLoginBtn');
-  if (loginBtn && !loginBtn.dataset.bound) {
-    loginBtn.dataset.bound = 'true';
-    loginBtn.addEventListener('click', async () => {
-      loginBtn.disabled = true;
+  function getAccountInitials(auth = {}) {
+    const name = getAccountDisplayName(auth).replace(/@.*$/, '').trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase() || 'AI';
+  }
+
+  function renderAccountAvatar(auth = {}) {
+    if (!avatarImageEl || !avatarFallbackEl) {
+      return;
+    }
+
+    const photoURL = String(auth?.photoURL || '').trim();
+    avatarFallbackEl.textContent = getAccountInitials(auth);
+    avatarFallbackEl.hidden = false;
+    avatarImageEl.hidden = true;
+
+    if (!photoURL) {
+      avatarImageEl.removeAttribute('src');
+      return;
+    }
+
+    if (avatarImageEl.getAttribute('src') === photoURL && avatarImageEl.complete && avatarImageEl.naturalWidth > 0) {
+      avatarImageEl.hidden = false;
+      avatarFallbackEl.hidden = true;
+      return;
+    }
+
+    avatarImageEl.onload = () => {
+      avatarImageEl.hidden = false;
+      avatarFallbackEl.hidden = true;
+    };
+    avatarImageEl.onerror = () => {
+      avatarImageEl.hidden = true;
+      avatarFallbackEl.hidden = false;
+    };
+    avatarImageEl.src = photoURL;
+  }
+
+  function setMembershipBadge(planInfo = null) {
+    if (!badgeEl) return;
+    if (!planInfo) {
+      badgeEl.className = 'membership-badge';
+      badgeEl.textContent = '';
+      badgeEl.style.display = 'none';
+      return;
+    }
+    const hasPaidPlan = planInfo.plan === 'pro' || planInfo.apiPlan === 'pro';
+    badgeEl.className = 'membership-badge' + (hasPaidPlan ? ' pro' : '');
+    badgeEl.textContent = hasPaidPlan
+      ? getMessageWithFallback('membershipPlanPro', 'Pro')
+      : getMessageWithFallback('membershipPlanFree', 'Free');
+    badgeEl.style.display = 'inline-flex';
+  }
+
+  function renderAccountCard(auth = {}, planInfo = null) {
+    const isLoggedIn = Boolean(auth?.uid);
+    if (accountCardEl) {
+      accountCardEl.hidden = !isLoggedIn;
+    }
+    if (!isLoggedIn) {
+      if (accountNameEl) accountNameEl.textContent = '';
+      if (emailEl) {
+        emailEl.textContent = '';
+        emailEl.style.display = 'none';
+      }
+      if (expiryEl) {
+        expiryEl.textContent = '';
+        expiryEl.style.display = 'none';
+      }
+      if (avatarImageEl) {
+        avatarImageEl.hidden = true;
+        avatarImageEl.removeAttribute('src');
+      }
+      if (avatarFallbackEl) {
+        avatarFallbackEl.textContent = '';
+        avatarFallbackEl.hidden = false;
+      }
+      setMembershipBadge(null);
+      return;
+    }
+
+    if (accountNameEl) {
+      accountNameEl.textContent = getAccountDisplayName(auth);
+    }
+    if (emailEl) {
+      const email = String(auth?.email || '').trim();
+      emailEl.textContent = email;
+      emailEl.style.display = email ? 'block' : 'none';
+    }
+    if (expiryEl) {
+      expiryEl.textContent = '';
+      expiryEl.style.display = 'none';
+    }
+    renderAccountAvatar(auth);
+    setMembershipBadge(null);
+  }
+
+  function renderPlanStatusLoading() {
+    const loadingText = getMessageWithFallback('membershipPlanStatusLoading', 'Checking...');
+    [chatPlanStatusBadgeEl, apiPlanStatusBadgeEl].forEach((badge) => {
+      if (!badge) return;
+      badge.className = 'membership-plan-status-badge loading';
+      badge.textContent = loadingText;
+    });
+    if (btnSubscribe) {
+      btnSubscribe.style.display = '';
+      btnSubscribe.disabled = true;
+      btnSubscribe.setAttribute('aria-busy', 'true');
+    }
+    if (btnApiSubscribe) {
+      btnApiSubscribe.style.display = '';
+      btnApiSubscribe.disabled = true;
+      btnApiSubscribe.setAttribute('aria-busy', 'true');
+    }
+    if (chatPlanStatusTextEl) chatPlanStatusTextEl.textContent = loadingText;
+    if (apiPlanStatusTextEl) apiPlanStatusTextEl.textContent = loadingText;
+  }
+
+  function renderMembershipPlan(planInfo = { plan: 'free', planExpiresAt: null }) {
+    const isPro = planInfo.plan === 'pro';
+    const isApiPro = planInfo.apiPlan === 'pro';
+    const chatExpiryText = planInfo.planExpiresAt
+      ? formatMembershipDate(planInfo.planExpiresAt)
+      : '';
+    const apiExpiryText = planInfo.apiPlanExpiresAt
+      ? formatMembershipDate(planInfo.apiPlanExpiresAt)
+      : '';
+
+    setMembershipBadge(null);
+
+    if (expiryEl) {
+      expiryEl.textContent = '';
+      expiryEl.style.display = 'none';
+    }
+
+    if (chatPlanStatusBadgeEl) {
+      chatPlanStatusBadgeEl.className = 'membership-plan-status-badge' + (isPro ? ' active' : '');
+      chatPlanStatusBadgeEl.textContent = isPro
+        ? getMessageWithFallback('membershipPlanStatusActive', 'Active')
+        : getMessageWithFallback('membershipPlanStatusInactive', 'Not active');
+    }
+
+    if (chatPlanStatusTextEl) {
+      chatPlanStatusTextEl.textContent = isPro && chatExpiryText
+        ? getMessageWithFallback('membershipPlanValidUntil', 'Membership valid until: $1', [chatExpiryText])
+        : getMessageWithFallback('membershipChatPlanInactiveDescription', 'Chat Plan is not active yet. Subscribe to unlock unlimited AI comparison questions.');
+    }
+
+    if (apiPlanStatusBadgeEl) {
+      apiPlanStatusBadgeEl.className = 'membership-plan-status-badge' + (isApiPro ? ' active' : '');
+      apiPlanStatusBadgeEl.textContent = isApiPro
+        ? getMessageWithFallback('membershipPlanStatusActive', 'Active')
+        : getMessageWithFallback('membershipPlanStatusInactive', 'Not active');
+    }
+
+    if (apiPlanStatusTextEl) {
+      apiPlanStatusTextEl.textContent = isApiPro && apiExpiryText
+        ? getMessageWithFallback('membershipPlanValidUntil', 'Membership valid until: $1', [apiExpiryText])
+        : getMessageWithFallback('membershipApiPlanPendingDescription', 'API Plan is not active yet. Free users can ask 10 summary and skill questions per day.');
+    }
+
+    if (btnSubscribe) {
+      btnSubscribe.style.display = '';
+      btnSubscribe.disabled = false;
+      btnSubscribe.removeAttribute('aria-hidden');
+      btnSubscribe.removeAttribute('aria-busy');
+    }
+    if (btnApiSubscribe) {
+      btnApiSubscribe.style.display = '';
+      btnApiSubscribe.disabled = false;
+      btnApiSubscribe.removeAttribute('aria-hidden');
+      btnApiSubscribe.removeAttribute('aria-busy');
+    }
+
+    if (plansEl) plansEl.style.display = 'grid';
+  }
+
+  function getMembershipAuthEmailValue() {
+    const email = String(authEmailInput?.value || '').trim();
+    if (!email) {
+      throw new Error(getMessageWithFallback('membershipEmailRequired', 'Please enter your email address.'));
+    }
+    return email;
+  }
+
+  async function runMembershipAuthAction(button, action, successMessageKey, successFallback) {
+    if (button) button.disabled = true;
+    try {
+      const result = await action();
+      if (successMessageKey) {
+        showToast(getMessageWithFallback(successMessageKey, successFallback), 3000);
+      }
+      return result;
+    } catch (error) {
+      showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+      return null;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function sendMembershipEmailCode(button = authSendCodeBtn) {
+    const email = getMembershipAuthEmailValue();
+    const result = await runMembershipAuthAction(button, async () => {
+      if (typeof window.firebaseSendEmailSignInLink !== 'function') {
+        throw new Error(getMessageWithFallback('membershipEmailLoginUnavailable', 'Email verification sign-in is unavailable right now.'));
+      }
+      await window.firebaseSendEmailSignInLink(email);
+      return { email };
+    }, 'membershipEmailLoginSuccess', 'Verification email sent. Please check your inbox.');
+
+    if (!result) {
+      return;
+    }
+
+    setAuthDialogStep('verify', result.email || email);
+  }
+
+  async function completeMembershipEmailSignIn(button = authVerifyBtn) {
+    const email = getAuthDialogEmail();
+    const code = String(authCodeInput?.value || '').trim();
+    if (!email) {
+      throw new Error(getMessageWithFallback('membershipEmailRequired', 'Please enter your email address.'));
+    }
+    if (!code) {
+      throw new Error(getMessageWithFallback('membershipEmailVerifyHelper', 'Paste the verification link or code from the email you received.'));
+    }
+
+    const result = await runMembershipAuthAction(button, async () => {
+      if (typeof window.firebaseSignInWithEmailLink !== 'function') {
+        throw new Error(getMessageWithFallback('membershipEmailLoginUnavailable', 'Email verification sign-in is unavailable right now.'));
+      }
+      await window.firebaseSignInWithEmailLink(email, code);
+      return { email };
+    }, 'membershipEmailSignupSuccess', 'Signed in successfully.');
+
+    if (!result) {
+      return;
+    }
+
+    closeAuthDialog();
+    if (authCodeInput) {
+      authCodeInput.value = '';
+    }
+    await initializeMembership();
+  }
+
+  if (loginEntryBtn && loginEntryBtn.dataset.bound !== 'true') {
+    loginEntryBtn.dataset.bound = 'true';
+    loginEntryBtn.addEventListener('click', () => {
+      window.location.href = getMembershipLoginPageUrl(window.location.href);
+    });
+  }
+
+  if (authDialogCloseEl && authDialogCloseEl.dataset.bound !== 'true') {
+    authDialogCloseEl.dataset.bound = 'true';
+    authDialogCloseEl.addEventListener('click', () => {
+      closeAuthDialog();
+    });
+  }
+
+  if (authDialogOverlayEl && authDialogOverlayEl.dataset.bound !== 'true') {
+    authDialogOverlayEl.dataset.bound = 'true';
+    authDialogOverlayEl.addEventListener('click', () => {
+      closeAuthDialog();
+    });
+  }
+
+  if (authDialogEl && authDialogEl.dataset.bound !== 'true') {
+    authDialogEl.dataset.bound = 'true';
+    authDialogEl.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeAuthDialog();
+      }
+    });
+  }
+
+  if (authBackBtn && authBackBtn.dataset.bound !== 'true') {
+    authBackBtn.dataset.bound = 'true';
+    authBackBtn.addEventListener('click', () => {
+      setAuthDialogStep('entry', getAuthDialogEmail());
+    });
+  }
+
+  if (authEmailInput && authEmailInput.dataset.bound !== 'true') {
+    authEmailInput.dataset.bound = 'true';
+    authEmailInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        authSendCodeBtn?.click();
+      }
+    });
+  }
+
+  if (authCodeInput && authCodeInput.dataset.bound !== 'true') {
+    authCodeInput.dataset.bound = 'true';
+    authCodeInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        authVerifyBtn?.click();
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeAuthDialog();
+      }
+    });
+  }
+
+  if (authSendCodeBtn && authSendCodeBtn.dataset.bound !== 'true') {
+    authSendCodeBtn.dataset.bound = 'true';
+    authSendCodeBtn.addEventListener('click', async () => {
+      try {
+        await sendMembershipEmailCode(authSendCodeBtn);
+      } catch (error) {
+        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+      }
+    });
+  }
+
+  if (authResendBtn && authResendBtn.dataset.bound !== 'true') {
+    authResendBtn.dataset.bound = 'true';
+    authResendBtn.addEventListener('click', async () => {
+      try {
+        await sendMembershipEmailCode(authResendBtn);
+      } catch (error) {
+        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+      }
+    });
+  }
+
+  if (authVerifyBtn && authVerifyBtn.dataset.bound !== 'true') {
+    authVerifyBtn.dataset.bound = 'true';
+    authVerifyBtn.addEventListener('click', async () => {
+      try {
+        await completeMembershipEmailSignIn(authVerifyBtn);
+      } catch (error) {
+        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+      }
+    });
+  }
+
+  if (authGoogleBtn && authGoogleBtn.dataset.bound !== 'true') {
+    authGoogleBtn.dataset.bound = 'true';
+    authGoogleBtn.addEventListener('click', async () => {
+      authGoogleBtn.disabled = true;
       try {
         if (typeof window.firebaseSignInWithGoogle !== 'function') {
           throw new Error(getMessageWithFallback('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
         }
         await window.firebaseSignInWithGoogle();
+        closeAuthDialog();
         await initializeMembership();
       } catch (error) {
         showToast(error.message || getMessageWithFallback('membershipGoogleLoginFailed', 'Failed to sign in with Google.'), 3000);
       } finally {
-        loginBtn.disabled = false;
+        authGoogleBtn.disabled = false;
+      }
+    });
+  }
+
+  if (logoutBtn && logoutBtn.dataset.bound !== 'true') {
+    logoutBtn.dataset.bound = 'true';
+    logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+      try {
+        if (typeof window.firebaseSignOut === 'function') {
+          await window.firebaseSignOut();
+        }
+        closeAuthDialog();
+        await initializeMembership();
+      } catch (error) {
+        showToast(error?.message || getMessageWithFallback('saveFailed', 'Save failed'), 3000);
+      } finally {
+        logoutBtn.disabled = false;
       }
     });
   }
 
   // 订阅入口需要对未登录用户也可点击：先跳转到独立方案页，选择后再登录并付款。
   const btnSubscribe = document.getElementById('btnUpgradeChatPlan');
+  const btnApiSubscribe = document.getElementById('btnUpgradeApiPlan');
 
   if (btnSubscribe && btnSubscribe.dataset.bound !== 'true') {
     btnSubscribe.dataset.bound = 'true';
-    btnSubscribe.addEventListener('click', () => {
-      window.location.href = chrome.runtime.getURL('options/membership-pricing.html');
+    btnSubscribe.addEventListener('click', async () => {
+      btnSubscribe.disabled = true;
+      try {
+        await openHostedMembershipPricingPage('chat');
+      } catch (error) {
+        showToast(error?.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
+      } finally {
+        btnSubscribe.disabled = false;
+      }
+    });
+  }
+  if (btnApiSubscribe && btnApiSubscribe.dataset.bound !== 'true') {
+    btnApiSubscribe.dataset.bound = 'true';
+    btnApiSubscribe.addEventListener('click', async () => {
+      btnApiSubscribe.disabled = true;
+      try {
+        await openHostedMembershipPricingPage('api');
+      } catch (error) {
+        showToast(error?.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
+      } finally {
+        btnApiSubscribe.disabled = false;
+      }
     });
   }
 
   setLoading(true);
+  renderPlanStatusLoading();
 
   // 检查是否已登录
-  const stored = await chrome.storage.local.get(['firebase_uid', 'firebase_email']);
-  const uid = stored.firebase_uid;
-  const email = stored.firebase_email || '';
+  const storedAuth = typeof window.firebaseHydrateStoredProfile === 'function'
+    ? await window.firebaseHydrateStoredProfile().catch(() => null)
+    : (typeof window.firebaseGetStoredAuth === 'function'
+      ? await window.firebaseGetStoredAuth().catch(() => null)
+      : null);
+  const fallbackStored = storedAuth || await chrome.storage.local.get([
+    'firebase_uid',
+    'firebase_email',
+    'firebase_displayName',
+    'firebase_photoURL'
+  ]);
+  const auth = {
+    uid: fallbackStored?.uid || fallbackStored?.firebase_uid || '',
+    email: fallbackStored?.email || fallbackStored?.firebase_email || '',
+    displayName: fallbackStored?.displayName || fallbackStored?.firebase_displayName || '',
+    photoURL: fallbackStored?.photoURL || fallbackStored?.firebase_photoURL || ''
+  };
+  const uid = auth.uid;
 
   if (!uid) {
-    setLoading(false);
-    setMembershipBadge(false);
-    if (planLabelEl) planLabelEl.textContent = '';
-    if (emailEl) emailEl.textContent = '';
-    if (expiryEl) {
-      expiryEl.textContent = '';
-      expiryEl.style.display = 'none';
+    renderAccountCard({});
+    if (guestEntryEl) {
+      guestEntryEl.hidden = false;
+      guestEntryEl.style.display = 'flex';
     }
-    if (loginHintEl) loginHintEl.style.display = 'none';
-    if (loginActionsEl) loginActionsEl.style.display = 'none';
     if (plansEl) plansEl.style.display = 'grid';
-    if (proActionsEl) proActionsEl.style.display = 'none';
-    if (chatPlanStatusBadgeEl) {
-      chatPlanStatusBadgeEl.className = 'membership-plan-status-badge';
-      chatPlanStatusBadgeEl.textContent = getMessageWithFallback('membershipPlanStatusInactive', 'Not active');
-    }
-    if (apiPlanStatusBadgeEl) {
-      apiPlanStatusBadgeEl.className = 'membership-plan-status-badge pending';
-      apiPlanStatusBadgeEl.textContent = getMessageWithFallback('membershipPlanStatusPending', 'Coming soon');
-    }
-    if (apiPlanStatusTextEl) {
-      apiPlanStatusTextEl.textContent = getMessageWithFallback('membershipApiPlanPendingDescription', 'Unlimited API calls.');
-    }
-    renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Sign in with Google to view invoices.'));
+    renderMembershipPlan({ plan: 'free', apiPlan: 'free' });
+    setLoading(false);
+    renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view invoices.'));
     return;
   }
 
-  if (loginHintEl) loginHintEl.style.display = 'none';
-  if (loginActionsEl) loginActionsEl.style.display = 'none';
-  if (emailEl) emailEl.textContent = email;
-
-  // 读取 plan
-  let planInfo = { plan: 'free', planExpiresAt: null };
-  try {
-    if (typeof window.getUserPlan === 'function') {
-      planInfo = await window.getUserPlan();
-    }
-  } catch (e) {
-    console.warn('Failed to load plan:', e);
+  if (guestEntryEl) {
+    guestEntryEl.hidden = true;
+    guestEntryEl.style.display = 'none';
   }
+  closeAuthDialog();
+  renderAccountCard(auth);
 
-  setLoading(false);
-
-  const isPro = planInfo.plan === 'pro';
-
-  setMembershipBadge(isPro);
-  if (planLabelEl) {
-    planLabelEl.textContent = isPro
-      ? (getMessage('membershipPlanPro') || 'Pro')
-      : '';
-  }
-
-  if (expiryEl) {
-    expiryEl.textContent = '';
-    expiryEl.style.display = 'none';
-  }
-
-  if (isPro && planInfo.planExpiresAt && expiryEl) {
-    const expiryDate = new Date(planInfo.planExpiresAt);
-    const dateStr = formatMembershipDate(expiryDate);
-    const expiryLabel = getMessage('membershipExpiresOn') || '到期时间：';
-    expiryEl.textContent = `${expiryLabel}${dateStr}`;
-    expiryEl.style.display = 'block';
-  }
-
-  if (chatPlanStatusBadgeEl) {
-    chatPlanStatusBadgeEl.className = 'membership-plan-status-badge' + (isPro ? ' active' : '');
-    chatPlanStatusBadgeEl.textContent = isPro
-      ? getMessageWithFallback('membershipPlanStatusActive', 'Active')
-      : getMessageWithFallback('membershipPlanStatusInactive', 'Not active');
-  }
-
-  if (apiPlanStatusBadgeEl) {
-    apiPlanStatusBadgeEl.className = 'membership-plan-status-badge pending';
-    apiPlanStatusBadgeEl.textContent = getMessageWithFallback('membershipPlanStatusPending', 'Coming soon');
-  }
-
-  if (apiPlanStatusTextEl) {
-    apiPlanStatusTextEl.textContent = getMessageWithFallback('membershipApiPlanPendingDescription', 'Unlimited API calls.');
-  }
-
-  if (isPro) {
-    if (plansEl) plansEl.style.display = 'grid';
-    if (proActionsEl) proActionsEl.style.display = 'block';
+  if (typeof window.getUserPlan === 'function') {
+    window.getUserPlan()
+      .then((planInfo) => {
+        const normalizedPlanInfo = planInfo || { plan: 'free', apiPlan: 'free' };
+        renderMembershipPlan(normalizedPlanInfo);
+        renderAccountCard(auth, normalizedPlanInfo);
+      })
+      .catch((error) => {
+        console.warn('Failed to refresh membership plan:', error);
+        const fallbackPlanInfo = { plan: 'free', apiPlan: 'free' };
+        renderMembershipPlan(fallbackPlanInfo);
+        renderAccountCard(auth, fallbackPlanInfo);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   } else {
-    if (plansEl) plansEl.style.display = 'grid';
-    if (proActionsEl) proActionsEl.style.display = 'none';
+    const fallbackPlanInfo = { plan: 'free', apiPlan: 'free' };
+    renderMembershipPlan(fallbackPlanInfo);
+    renderAccountCard(auth, fallbackPlanInfo);
+    setLoading(false);
   }
 
   // 管理订阅按钮
-  const btnManage = document.getElementById('btnManageSubscription');
-  if (btnManage && btnManage.dataset.bound !== 'true') {
-    btnManage.dataset.bound = 'true';
-    btnManage.addEventListener('click', async () => {
-      btnManage.disabled = true;
+  const bindManageSubscriptionButton = (button) => {
+    if (!button || button.dataset.bound === 'true') return;
+    button.dataset.bound = 'true';
+    button.addEventListener('click', async () => {
+      button.disabled = true;
       try {
         if (typeof window.openCustomerPortal === 'function') {
           await window.openCustomerPortal();
@@ -5385,10 +6002,11 @@ async function initializeMembership() {
       } catch (e) {
         showToast(e.message || getMessageWithFallback('stripePortalOpenFailed', 'Failed to open the subscription management page.'), 3000);
       } finally {
-        btnManage.disabled = false;
+        button.disabled = false;
       }
     });
-  }
+  };
+  bindManageSubscriptionButton(openStripePortalBtn);
 
   await loadInvoices(uid);
 

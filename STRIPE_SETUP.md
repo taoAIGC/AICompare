@@ -18,6 +18,8 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 BILLING_MODE=test
 STRIPE_PRICE_MONTHLY=price_xxx
 STRIPE_PRICE_YEARLY=price_xxx
+STRIPE_API_PRICE_MONTHLY=price_1TqO0cEKxBtGZOjf9rAI2nQB
+STRIPE_API_PRICE_YEARLY=price_1TsIYGEKxBtGZOjfSxqJeZfV
 STRIPE_PRICE_SMOKE_TEST=price_hidden_smoke_test_xxx
 BILLING_SMOKE_TEST_TOKEN=replace_with_random_secret
 STRIPE_SUCCESS_URL=https://aicompare.club/payment-success
@@ -28,7 +30,8 @@ OFFICIAL_AGENT_MODEL=your-default-model
 OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION=0
 OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION=0
 OFFICIAL_AGENT_COST_CURRENCY=usd
-OFFICIAL_API_DAILY_FREE_LIMIT=100
+OFFICIAL_API_DAILY_FREE_LIMIT=10
+CHAT_PLAN_DAILY_FREE_LIMIT=3
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=replace_with_sha256_hex
 ADMIN_SESSION_SECRET=replace_with_random_secret
@@ -47,6 +50,7 @@ FAILURE_LOG_DAILY_UPLOAD_LIMIT=2000
 - Webhook 的 `whsec_...` 也必须和当前模式一致
 - `functions/.env` 只能本地保存
 - `OFFICIAL_AGENT_*` 只保存在 Cloud Functions 环境中，不要写入扩展前端代码
+- `CHAT_PLAN_DAILY_FREE_LIMIT` 控制非中文免费/未登录用户每天可发起的 AI 对比提问次数；开通 Chat Plan 后不受该限制
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` 用于后台账号密码登录
 - `ADMIN_SESSION_SECRET` 建议单独设置，不要长期依赖 webhook secret 兼用
 
@@ -154,8 +158,9 @@ firebase deploy --only functions,firestore:rules
 1. 打开扩展的 Pro 页面
 2. 点击订阅
 3. 在测试模式下使用 Stripe 测试卡 `4242 4242 4242 4242`
-4. 调用 `officialAgentChat` 时，登录用户携带 Firebase ID Token，未登录用户携带匿名 client id；免费/未登录用户在非中文界面每天可用 100 次，超过后函数返回 402
-5. VPS backend 会在每次官方 API 请求时新增一条 `officialApiEvents` 记录，供后台统计 Pro / free / anonymous 使用量；如果上游返回 `usage`，还会记录 prompt/completion/total tokens 和按环境变量单价估算的成本
+4. 发起 AI 对比提问时，免费/未登录的非中文用户每天可免费使用 `CHAT_PLAN_DAILY_FREE_LIMIT` 次，超过后函数返回 402；开通 Chat Plan 后不受该次数限制
+5. 调用总结和技能提问等内置 API 能力时，登录用户携带 Firebase ID Token，未登录用户携带匿名 client id；免费/未登录用户每天可免费调用 `OFFICIAL_API_DAILY_FREE_LIMIT` 次，超过后函数返回 402；开通 API Plan 后不受该次数限制
+6. VPS backend 会在每次总结和技能提问等内置 API 请求时新增一条 `officialApiEvents` 记录，供后台统计 API Plan / free / anonymous 使用量；如果上游返回 `usage`，还会记录 prompt/completion/total tokens 和按环境变量单价估算的成本
 
 如果在正式模式下测试，测试卡会被拒绝，这是正常现象。
 

@@ -83,14 +83,46 @@ function inc(map, key, amount = 1) {
 function topRows(map, limit = 10) {
   return Array.from(map.entries())
     .map(([name, count]) => ({ name, count }))
+    .filter((row) => !/[{}"]/.test(row.name))
     .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
     .slice(0, limit);
+}
+
+function formatCombinationLabel(value = '') {
+  return String(value || '')
+    .split('|')
+    .map((part) => part.replace(/^site:/, '').replace(/^agent:/, 'Agent: '))
+    .filter(Boolean)
+    .join(' + ');
 }
 
 function percent(numerator, denominator) {
   const bottom = Number(denominator) || 0;
   if (!bottom) return 0;
   return Number((((Number(numerator) || 0) / bottom) * 100).toFixed(1));
+}
+
+function ratio(numerator, denominator) {
+  const bottom = Number(denominator) || 0;
+  if (!bottom) return 0;
+  return Number(((Number(numerator) || 0) / bottom).toFixed(4));
+}
+
+function getTopCount(rows = [], name = '') {
+  const item = rows.find((row) => row.name === name);
+  return item ? Number(item.count) || 0 : 0;
+}
+
+function addDays(date, days) {
+  const value = new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+  return value.toISOString().slice(0, 10);
+}
+
+function nextReviewDate(generatedAt) {
+  const start = new Date(generatedAt);
+  const day = start.getUTCDay();
+  const daysUntilNextMonday = ((8 - day) % 7) || 7;
+  return addDays(start, daysUntilNextMonday);
 }
 
 function createSiteCombinationKey(data = {}) {
@@ -251,8 +283,9 @@ function inferInsight(summary) {
   }
 
   if (topCombo) {
-    signals.push(`最强工作流组合是 ${topCombo.name}（${topCombo.count}）`);
-    actions.push(`把 ${topCombo.name.replace(/\|/g, ' + ')} 做成可见预设，并跟踪它的留存、失败率和付费转化。`);
+    const combinationLabel = formatCombinationLabel(topCombo.name);
+    signals.push(`最强工作流组合是 ${combinationLabel}（${topCombo.count}）`);
+    actions.push(`把 ${combinationLabel} 做成可见预设，并跟踪它的留存、失败率和付费转化。`);
   }
 
   if (topSite) {
@@ -284,6 +317,266 @@ function inferInsight(summary) {
   };
 }
 
+function scoreAction({ affectedUsers = 1, pain = 0.1, strategicWeight = 1, effort = 1 } = {}) {
+  const score = (Math.max(1, affectedUsers) * Math.max(0.01, pain) * Math.max(0.1, strategicWeight)) / Math.max(1, effort);
+  return Number(score.toFixed(2));
+}
+
+function createAction({ insight, metric, hypothesis, action, owner, expectedImpact, successMetric, reviewDate, affectedUsers, pain, strategicWeight, effort }) {
+  return {
+    insight,
+    metric,
+    hypothesis,
+    action,
+    owner,
+    expectedImpact,
+    successMetric,
+    reviewDate,
+    priorityScore: scoreAction({ affectedUsers, pain, strategicWeight, effort })
+  };
+}
+
+function buildProductFlywheel(summary, generatedAt) {
+  const reviewDate = nextReviewDate(new Date(generatedAt));
+  const firstOpen = getTopCount(summary.topActivationEvents, 'app_first_open');
+  const firstQuery = getTopCount(summary.topActivationEvents, 'activation_first_query_submitted');
+  const firstCompare = getTopCount(summary.topActivationEvents, 'activation_first_compare_opened');
+  const firstResult = getTopCount(summary.topActivationEvents, 'activation_first_result_seen');
+  const checkoutStarted = getTopCount(summary.topSubscriptionEvents, 'checkout_started');
+  const checkoutSuccess = getTopCount(summary.topSubscriptionEvents, 'checkout_success');
+  const limitReached = summary.topSubscriptionEvents
+    .filter((row) => /limit_reached/i.test(row.name))
+    .reduce((sum, row) => sum + Number(row.count || 0), 0);
+  const topTask = summary.topTasks[0] || summary.topQueryTypes[0] || null;
+  const topQueryType = summary.topQueryTypes[0] || null;
+  const topCombo = summary.topCombinations[0] || null;
+  const topSite = summary.topSites[0] || null;
+  const topFailure = summary.topFailures[0] || null;
+  const topFeature = summary.topFeatureEvents[0] || null;
+  const totalUsage = Math.max(1, summary.siteLaunches + summary.apiRequests);
+  const firstQueryRate = percent(firstQuery, firstOpen);
+  const firstCompareRate = percent(firstCompare, firstOpen);
+  const firstResultRate = percent(firstResult, firstOpen);
+  const checkoutConversionRate = percent(checkoutSuccess, checkoutStarted);
+  const failureRate = percent(summary.failureEvents, totalUsage);
+
+  const decisionTree = [
+    {
+      question: '激活卡在哪一步？',
+      answer: `first_open=${firstOpen}, first_query=${firstQuery} (${firstQueryRate}%), first_compare=${firstCompare} (${firstCompareRate}%), first_result=${firstResult} (${firstResultRate}%)`,
+      implication: firstOpen && firstQueryRate < 50
+        ? '首次提交偏低，优先优化首页默认组合、示例问题和首屏 CTA。'
+        : (firstQuery && firstResultRate < 70 ? '首次结果不足，优先优化默认站点组合、失败提示和加载状态。' : '激活漏斗没有出现单一明显断点，继续按版本观察。')
+    },
+    {
+      question: '用户为什么留下？',
+      answer: topCombo ? `高频工作流：${formatCombinationLabel(topCombo.name)} (${topCombo.count})；高频功能：${topFeature?.name || '暂无'} (${topFeature?.count || 0})` : '暂无稳定高频工作流。',
+      implication: topCombo ? '重复出现的组合应产品化为一键预设，并进入留存/付费验证。' : '先提高事件覆盖和样本规模。'
+    },
+    {
+      question: '用户真实任务是什么？',
+      answer: `Top task=${topTask?.name || '-'} (${topTask?.count || 0}); Top query type=${topQueryType?.name || '-'} (${topQueryType?.count || 0})`,
+      implication: topTask ? '首页模板、默认站点组合和商店文案应向该任务倾斜。' : 'Query insight 样本或分类维度不足。'
+    },
+    {
+      question: '哪个站点/组合最值得优化？',
+      answer: `Top site=${topSite?.name || '-'} (${topSite?.count || 0}); Top failure=${topFailure?.name || '-'} (${topFailure?.count || 0}); failureRate=${failureRate}%`,
+      implication: topFailure ? '高失败且仍被使用的站点进入最高优先级适配 backlog。' : '本周无明确质量修复对象。'
+    },
+    {
+      question: '哪些行为预示付费？',
+      answer: `limit_reached=${limitReached}; checkout_started=${checkoutStarted}; checkout_success=${checkoutSuccess}; checkout_conversion=${checkoutConversionRate}%`,
+      implication: checkoutStarted && checkoutConversionRate < 20
+        ? '支付前转化弱，应检查升级页价值表达、支付路径和额度触达提示。'
+        : '继续观察付费前置行为与高频工作流的关联。'
+    },
+    {
+      question: '哪些行为暴露新功能机会？',
+      answer: topCombo ? `高频组合 ${formatCombinationLabel(topCombo.name)}，Top task ${topTask?.name || '-'}` : '暂无足够信号。',
+      implication: topCombo ? '组合预设、场景模板、自动总结差异是本周最直接机会。' : '先积累更多工作流信号。'
+    }
+  ];
+
+  const actionQueue = [];
+  if (firstOpen && firstQueryRate < 50) {
+    actionQueue.push(createAction({
+      insight: '新用户首次打开后提交率偏低',
+      metric: `first_query_rate=${firstQueryRate}% (${firstQuery}/${firstOpen})`,
+      hypothesis: '用户不知道该问什么或不知道该选择哪些站点。',
+      action: '首页增加 3 个场景化快捷问题，并默认选中一个高频组合。',
+      owner: 'Product',
+      expectedImpact: '提升首次提交率',
+      successMetric: 'activation_first_query_submitted / app_first_open +15%',
+      reviewDate,
+      affectedUsers: firstOpen,
+      pain: 1 - ratio(firstQuery, firstOpen),
+      strategicWeight: 1.5,
+      effort: 2
+    }));
+  }
+  if (firstOpen && firstResultRate < 70) {
+    actionQueue.push(createAction({
+      insight: '首次打开到首次结果率不足',
+      metric: `first_result_rate=${firstResultRate}% (${firstResult}/${firstOpen})`,
+      hypothesis: '默认站点组合或加载/失败反馈阻碍首次价值。',
+      action: '优化默认站点组合、iframe 加载状态和失败后的备用站点提示。',
+      owner: 'Engineering',
+      expectedImpact: '提升首次有效结果率',
+      successMetric: 'activation_first_result_seen / app_first_open +20%',
+      reviewDate,
+      affectedUsers: firstOpen,
+      pain: 1 - ratio(firstResult, firstOpen),
+      strategicWeight: 1.5,
+      effort: 3
+    }));
+  }
+  if (topCombo) {
+    actionQueue.push(createAction({
+      insight: '高频站点组合重复出现',
+      metric: `${formatCombinationLabel(topCombo.name)}=${topCombo.count}`,
+      hypothesis: '用户在围绕该组合完成稳定工作流。',
+      action: `把 ${formatCombinationLabel(topCombo.name)} 做成一键预设组合。`,
+      owner: 'Product',
+      expectedImpact: '提升多站对比启动率和回访率',
+      successMetric: '该组合使用率 +10%，D7 回访提升',
+      reviewDate,
+      affectedUsers: summary.siteActiveIdentities,
+      pain: ratio(topCombo.count, Math.max(1, summary.siteEvents)),
+      strategicWeight: 1.4,
+      effort: 2
+    }));
+  }
+  if (topTask) {
+    actionQueue.push(createAction({
+      insight: '高频 Query 模式指向明确任务',
+      metric: `${topTask.name}=${topTask.count}`,
+      hypothesis: '任务模板会降低启动成本，并提高用户对产品价值的理解。',
+      action: `为 ${topTask.name} 增加首页模板、推荐组合和结果总结结构。`,
+      owner: 'Product',
+      expectedImpact: '提升模板点击、首次提交和任务留存',
+      successMetric: '模板触发率、首次提交率、同任务 D7 回访提升',
+      reviewDate,
+      affectedUsers: summary.activeIdentities,
+      pain: ratio(topTask.count, Math.max(1, summary.analyzedQueries)),
+      strategicWeight: 1.4,
+      effort: 3
+    }));
+  }
+  if (topFailure) {
+    actionQueue.push(createAction({
+      insight: '热门/关键目标失败较高',
+      metric: `${topFailure.name} failures=${topFailure.count}, total_failure_rate=${failureRate}%`,
+      hypothesis: '高频目标的失败会直接破坏首次价值和工作流留存。',
+      action: `优先修复 ${topFailure.name} 的 timeout/submit 路径，并增加失败降级策略。`,
+      owner: 'Engineering',
+      expectedImpact: '降低失败率和失败后流失',
+      successMetric: `${topFailure.name} 失败率下降 50%`,
+      reviewDate,
+      affectedUsers: summary.siteActiveIdentities,
+      pain: ratio(topFailure.count, totalUsage),
+      strategicWeight: 1.2,
+      effort: 2
+    }));
+  }
+  if (checkoutStarted > 0) {
+    actionQueue.push(createAction({
+      insight: '升级漏斗存在 checkout 断点',
+      metric: `checkout_started=${checkoutStarted}, checkout_success=${checkoutSuccess}, conversion=${checkoutConversionRate}%`,
+      hypothesis: '用户到达支付意图，但 Pro 价值或支付路径不足以完成转化。',
+      action: '在额度触达页展示 Pro 对高频工作流的价值，并检查 checkout 路径。',
+      owner: 'Growth',
+      expectedImpact: '提升 checkout success 和升级点击率',
+      successMetric: 'checkout_success / checkout_started 提升',
+      reviewDate,
+      affectedUsers: checkoutStarted,
+      pain: 1 - ratio(checkoutSuccess, checkoutStarted),
+      strategicWeight: 1.3,
+      effort: 2
+    }));
+  }
+  if (summary.apiTokens > 0 && summary.apiCost === 0) {
+    actionQueue.push(createAction({
+      insight: 'API 成本洞察缺失',
+      metric: `api_tokens=${summary.apiTokens}, estimated_cost=${summary.apiCost}`,
+      hypothesis: '没有成本数据会导致商业化和免费额度策略失真。',
+      action: '配置 OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION / OUTPUT / COST_CURRENCY。',
+      owner: 'Engineering',
+      expectedImpact: '恢复商业化成本看板',
+      successMetric: 'estimatedCost > 0 且 business dashboard 可显示成本分布',
+      reviewDate,
+      affectedUsers: summary.apiActiveIdentities,
+      pain: 0.8,
+      strategicWeight: 1.3,
+      effort: 1
+    }));
+  }
+  actionQueue.sort((left, right) => right.priorityScore - left.priorityScore);
+
+  const meetingViews = {
+    activation: {
+      goal: '让新用户尽快体验多 AI 对比价值',
+      metrics: {
+        firstOpen,
+        firstQuery,
+        firstQueryRate,
+        firstCompare,
+        firstCompareRate,
+        firstResult,
+        firstResultRate,
+        topTask: topTask?.name || ''
+      },
+      outputs: ['首页优化', '默认站点组合', '新手模板', '引导提示']
+    },
+    workflow: {
+      goal: '找到用户留下来的原因',
+      metrics: {
+        topCombination: topCombo ? formatCombinationLabel(topCombo.name) : '',
+        topCombinationCount: topCombo?.count || 0,
+        topFeature: topFeature?.name || '',
+        topFeatureCount: topFeature?.count || 0,
+        topSites: summary.topSites.slice(0, 5).map((row) => `${row.name}:${row.count}`).join(', ')
+      },
+      outputs: ['一键组合', '场景模板', '工作区/项目化', '自动总结差异']
+    },
+    quality: {
+      goal: '减少失败和流失',
+      metrics: {
+        totalFailures: summary.failureEvents,
+        failureRate,
+        topFailure: topFailure?.name || '',
+        topFailureCount: topFailure?.count || 0,
+        topFailurePhase: summary.topFailurePhases[0]?.name || ''
+      },
+      outputs: ['站点适配 backlog', '失败提示优化', '降级策略', '默认站点排序调整']
+    },
+    business: {
+      goal: '找到自然付费点',
+      metrics: {
+        limitReached,
+        checkoutStarted,
+        checkoutSuccess,
+        checkoutConversionRate,
+        apiTokens: summary.apiTokens,
+        apiCost: summary.apiCost
+      },
+      outputs: ['升级提示时机', 'Pro 权益包装', '免费额度策略', '成本控制']
+    }
+  };
+
+  const validationPlan = [
+    '修复站点适配、默认站点排序、模板、失败提示、快捷组合：采用发布前 7 天 vs 发布后 7 天对比。',
+    '首屏文案、默认站点组合、升级提示、模板推荐：后续加 experimentId / variant / surface / trigger 做轻量 A/B。',
+    '每条 Action Queue 必须有 successMetric 和 reviewDate；复盘时保留、升级、回滚或关闭。'
+  ];
+
+  return {
+    decisionTree,
+    actionQueue,
+    meetingViews,
+    validationPlan
+  };
+}
+
 function table(rows, columns) {
   if (!rows.length) return '暂无数据';
   const header = `| ${columns.map((item) => item.label).join(' |')} |`;
@@ -292,10 +585,14 @@ function table(rows, columns) {
   return [header, divider, ...body].join('\n');
 }
 
-function renderMarkdown({ summary, insight, dateKeys, generatedAt }) {
+function renderObjectMetrics(metrics = {}) {
+  return Object.entries(metrics).map(([key, value]) => `- ${key}: ${value}`).join('\n') || '- 暂无数据';
+}
+
+function renderMarkdown({ summary, insight, flywheel, dateKeys, generatedAt }) {
   const reportId = crypto.createHash('sha1').update(`${generatedAt}:${dateKeys.join(',')}`).digest('hex').slice(0, 10);
   return [
-    `# AI Compare Weekly Behavior Insight Report`,
+    `# AI Compare Weekly Product Optimization Flywheel`,
     ``,
     `- Report ID: ${reportId}`,
     `- Generated At: ${generatedAt}`,
@@ -319,9 +616,53 @@ function renderMarkdown({ summary, insight, dateKeys, generatedAt }) {
     `- Positioning: ${insight.positioning}`,
     ...insight.signals.map((item) => `- Signal: ${item}`),
     ``,
-    `## Recommended Product Actions`,
+    `## Fixed Decision Tree`,
     ``,
-    ...(insight.actions.length ? insight.actions.map((item, index) => `${index + 1}. ${item}`) : ['1. 样本不足，先等待新版插件覆盖并验证激活事件是否稳定进入 VPS。']),
+    table(flywheel.decisionTree, [
+      { key: 'question', label: 'Question' },
+      { key: 'answer', label: 'Answer' },
+      { key: 'implication', label: 'Product Implication' }
+    ]),
+    ``,
+    `## Insight Action Queue`,
+    ``,
+    table(flywheel.actionQueue, [
+      { key: 'priorityScore', label: 'Score' },
+      { key: 'insight', label: 'Insight' },
+      { key: 'metric', label: 'Metric' },
+      { key: 'hypothesis', label: 'Hypothesis' },
+      { key: 'action', label: 'Action' },
+      { key: 'owner', label: 'Owner' },
+      { key: 'expectedImpact', label: 'Expected Impact' },
+      { key: 'successMetric', label: 'Success Metric' },
+      { key: 'reviewDate', label: 'Review Date' }
+    ]),
+    ``,
+    `## Weekly Product Meeting Views`,
+    ``,
+    `### Activation View`,
+    `Goal: ${flywheel.meetingViews.activation.goal}`,
+    renderObjectMetrics(flywheel.meetingViews.activation.metrics),
+    `Outputs: ${flywheel.meetingViews.activation.outputs.join(', ')}`,
+    ``,
+    `### Workflow View`,
+    `Goal: ${flywheel.meetingViews.workflow.goal}`,
+    renderObjectMetrics(flywheel.meetingViews.workflow.metrics),
+    `Outputs: ${flywheel.meetingViews.workflow.outputs.join(', ')}`,
+    ``,
+    `### Quality View`,
+    `Goal: ${flywheel.meetingViews.quality.goal}`,
+    renderObjectMetrics(flywheel.meetingViews.quality.metrics),
+    `Outputs: ${flywheel.meetingViews.quality.outputs.join(', ')}`,
+    ``,
+    `### Business View`,
+    `Goal: ${flywheel.meetingViews.business.goal}`,
+    renderObjectMetrics(flywheel.meetingViews.business.metrics),
+    `Outputs: ${flywheel.meetingViews.business.outputs.join(', ')}`,
+    ``,
+    `## Validation Plan`,
+    ``,
+    ...flywheel.validationPlan.map((item, index) => `${index + 1}. ${item}`),
     ``,
     `## Version Distribution`,
     ``,
@@ -402,8 +743,9 @@ async function main() {
   });
   const insight = inferInsight(summary);
   const generatedAt = new Date().toISOString();
-  const markdown = renderMarkdown({ summary, insight, dateKeys, generatedAt });
-  const payload = { generatedAt, dateKeys, summary, insight };
+  const flywheel = buildProductFlywheel(summary, generatedAt);
+  const markdown = renderMarkdown({ summary, insight, flywheel, dateKeys, generatedAt });
+  const payload = { generatedAt, dateKeys, summary, insight, flywheel };
 
   if (options.write) {
     fs.mkdirSync(REPORT_DIR, { recursive: true });

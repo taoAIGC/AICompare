@@ -163,7 +163,7 @@
     "message": "Language"
   },
   "settingsNavProTitle": {
-    "message": "Pro"
+    "message": "Account"
   },
   "languageSettingsTitle": {
     "message": "Language settings"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "You've reached today's free official API limit of $1. Please set up your personal API: $2"
+    "message": "You've reached today's $1 free API-powered questions. Upgrade to API Plan for unlimited summary and skill questions, or switch to your own API: $2"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1337,7 +1337,7 @@
     "message": "Sync & backup"
   },
   "cloudSyncTitle": {
-    "message": "Cloud sync"
+    "message": "WebDAV sync"
   },
   "cloudSyncDescription": {
     "message": "Sync your settings through WebDAV so they follow you across devices."
@@ -1508,7 +1508,7 @@
     "message": "Pro Membership"
   },
   "membershipDescription": {
-    "message": "Unlock all features and enjoy unlimited AI comparison"
+    "message": "Unlock Chat Plan and enjoy unlimited AI comparison questions."
   },
   "membershipTabsAriaLabel": {
     "message": "Membership tabs"
@@ -1523,13 +1523,13 @@
     "message": "Chat Plan"
   },
   "membershipChatPlanSubtitle": {
-    "message": "View your chat plan status and choose how to activate it."
+    "message": "View your Chat Plan status and choose how to unlock unlimited questions."
   },
   "membershipApiPlanTitle": {
     "message": "API Plan"
   },
   "membershipApiPlanSubtitle": {
-    "message": "View the API plan status here when dedicated API billing is available."
+    "message": "Unlock unlimited summary and skill questions powered by the built-in API."
   },
   "membershipPlanStatusInactive": {
     "message": "Not active"
@@ -1541,28 +1541,28 @@
     "message": "Coming soon"
   },
   "membershipChatPlanInactiveDescription": {
-    "message": "Your chat plan is not active yet. Choose monthly or yearly to unlock unlimited AI comparisons."
+    "message": "Chat Plan is not active yet. Subscribe to unlock unlimited AI comparison questions."
   },
   "membershipChatPlanActiveDescription": {
-    "message": "Your chat plan is active and ready to use."
+    "message": "Your Chat Plan is active. You can ask unlimited AI comparison questions."
   },
   "membershipChatPlanActiveUntil": {
     "message": "Your chat plan is active. Renews on $1."
   },
   "membershipApiPlanPendingDescription": {
-    "message": "Unlimited API calls."
+    "message": "API Plan is not active yet. Free users can ask 10 summary and skill questions per day."
   },
   "membershipApiPlanFeature1": {
-    "message": "Separate API billing model"
+    "message": "Unlimited API calls"
   },
   "membershipApiPlanFeature2": {
-    "message": "Plan details to be announced"
+    "message": "Cancel anytime"
   },
   "membershipApiPlanFeature3": {
-    "message": "This area will show your API plan status"
+    "message": "Built-in API keys stay securely on the cloud backend"
   },
   "membershipApiPlanButton": {
-    "message": "Coming Soon"
+    "message": "Subscribe API Plan"
   },
   "membershipInvoicesTitle": {
     "message": "Invoice history"
@@ -1577,7 +1577,8 @@
     "message": "No invoices yet."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Sign in with Google to view invoices."
+    "message": "Log in to view invoices.",
+    "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
     "message": "Invoice records are not available yet."
@@ -1667,7 +1668,7 @@
     "message": "Loading membership status…"
   },
   "membershipLoginHint": {
-    "message": "Please sign in with Google to view your membership status."
+    "message": "Sign in with Google or the email you used at checkout to view your membership status."
   },
   "membershipExpiresOn": {
     "message": "Renews on: "
@@ -1700,7 +1701,7 @@
     "message": "Google Drive sync"
   },
   "googleDriveSyncDescription": {
-    "message": "Sign in with Google once, authorize Drive access, and sync the same backup data through your Google Drive app data space."
+    "message": "Connect Google Drive once, authorize Drive access, and sync the same backup data through your Google Drive app data space."
   },
   "googleDriveSyncBadge": {
     "message": "Google Drive"
@@ -1709,7 +1710,7 @@
     "message": "Not connected yet"
   },
   "googleDriveSyncConnectButton": {
-    "message": "Sign in with Google"
+    "message": "Connect Google Drive"
   },
   "googleDriveSyncReconnectButton": {
     "message": "Reconnect Google Drive"
@@ -3020,7 +3021,7 @@
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Today's free AI usage limit has been reached. You can upgrade to PRO or switch to your own API."
+    "message": "Today's free API-powered question limit has been reached. Upgrade to API Plan for unlimited summary and skill questions, or switch to your own API."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."
@@ -3046,7 +3047,238 @@
   "aiErrorUnknown": {
     "message": "AI generation failed. Please try again later. If the problem continues, contact the administrator."
   },
+  "coursePromoBadge": {
+    "message": "Course"
+  },
+  "coursePromoDismissLater": {
+    "message": "Later"
+  },
+  "coursePromoDefaultCta": {
+    "message": "View course"
+  },
   "aiErrorTechnicalDetails": {
     "message": "Technical details"
+  },
+  "membershipApiPlanActiveDescription": {
+    "message": "Your API Plan is active. Summary and skill questions are unlimited."
+  },
+  "apiPlanPricingTitle": {
+    "message": "Choose your API Plan"
+  },
+  "apiPlanPricingDescription": {
+    "message": "Unlock unlimited summary and skill questions powered by the built-in API."
+  },
+  "apiPlanPricingOptionsAriaLabel": {
+    "message": "Choose an API Plan"
+  },
+  "redeemCodeOpenButton": {
+    "message": "Redeem code"
+  },
+  "redeemCodeDialogTitle": {
+    "message": "Redeem membership code"
+  },
+  "redeemCodeCloseButton": {
+    "message": "Close"
+  },
+  "redeemCodeDialogDescription": {
+    "message": "Enter a redeem code from AI Compare to activate the matching membership on this account."
+  },
+  "redeemCodeInputLabel": {
+    "message": "Redeem code"
+  },
+  "redeemCodeInputPlaceholder": {
+    "message": "AIC-XXXX-XXXX-XXXX"
+  },
+  "redeemCodeCancelButton": {
+    "message": "Cancel"
+  },
+  "redeemCodeSubmitButton": {
+    "message": "Redeem"
+  },
+  "redeemCodeRequired": {
+    "message": "Please enter a redeem code."
+  },
+  "redeemCodeRedeeming": {
+    "message": "Redeeming..."
+  },
+  "redeemCodeServiceUnavailable": {
+    "message": "Redeem service is unavailable right now."
+  },
+  "redeemCodeApiPlanLabel": {
+    "message": "API Plan"
+  },
+  "redeemCodeChatPlanLabel": {
+    "message": "Chat Plan"
+  },
+  "redeemCodeSuccess": {
+    "message": "$1 redeemed. Valid until $2."
+  },
+  "redeemCodeFailed": {
+    "message": "Redeem failed. Please check the code and try again."
+  },
+  "membershipTopbarNote": {
+    "message": "You can redeem a membership code here."
+  },
+  "chatPlanQuotaExceeded": {
+    "message": "You've reached today's $1 free AI comparison questions. Upgrade to Chat Plan for unlimited questions: $2"
+  },
+  "membershipPlanStatusLoading": {
+    "message": "Checking..."
+  },
+  "membershipAuthTitle": {
+    "message": "Log in or sign up",
+    "description": "Title in the account login dialog"
+  },
+  "membershipAuthDescription": {
+    "message": "Continue with Google or receive a verification email to access your account.",
+    "description": "Subtitle in the account login dialog"
+  },
+  "membershipEmailLabel": {
+    "message": "Email"
+  },
+  "membershipEmailPlaceholder": {
+    "message": "you@example.com"
+  },
+  "membershipPasswordLabel": {
+    "message": "Password"
+  },
+  "membershipPasswordPlaceholder": {
+    "message": "At least 6 characters"
+  },
+  "membershipEmailLoginButton": {
+    "message": "Continue",
+    "description": "Primary button label for sending an email verification login message"
+  },
+  "membershipEmailSignupButton": {
+    "message": "Create account"
+  },
+  "membershipPasswordResetButton": {
+    "message": "Set or reset password by email"
+  },
+  "membershipAuthOr": {
+    "message": "or"
+  },
+  "membershipEmailRequired": {
+    "message": "Please enter your email address."
+  },
+  "membershipPasswordRequired": {
+    "message": "Please enter your password."
+  },
+  "membershipEmailLoginUnavailable": {
+    "message": "Email verification sign-in is unavailable right now. Please use Google login for now.",
+    "description": "Shown when email verification sign-in is not enabled"
+  },
+  "membershipEmailAuthFailed": {
+    "message": "Authentication failed. Please try again."
+  },
+  "membershipEmailLoginSuccess": {
+    "message": "Verification email sent. Please check your inbox.",
+    "description": "Toast shown after sending the email verification login message"
+  },
+  "membershipEmailSignupSuccess": {
+    "message": "Signed in successfully.",
+    "description": "Toast shown after finishing email verification sign-in"
+  },
+  "membershipEmailCodeCooldown": {
+    "message": "Please wait before requesting another code."
+  },
+  "membershipEmailCodeExpired": {
+    "message": "Verification code expired. Please request a new code."
+  },
+  "membershipEmailCodeTooManyAttempts": {
+    "message": "Too many verification attempts. Please request a new code."
+  },
+  "membershipEmailCodeInvalid": {
+    "message": "Incorrect verification code."
+  },
+  "membershipEmailCodeInvalidFormat": {
+    "message": "Please enter the 6-digit verification code."
+  },
+  "membershipPasswordResetSent": {
+    "message": "Password setup email sent. Please check your inbox."
+  },
+  "firebaseAuthEmailExists": {
+    "message": "This email is already registered. Please sign in or reset your password."
+  },
+  "firebaseAuthEmailNotFound": {
+    "message": "No account was found for this email. Please create an account or check the email you used at checkout."
+  },
+  "firebaseAuthInvalidCredentials": {
+    "message": "Email or password is incorrect."
+  },
+  "firebaseAuthUserDisabled": {
+    "message": "This account has been disabled. Please contact support."
+  },
+  "firebaseAuthWeakPassword": {
+    "message": "Please use a password with at least 6 characters."
+  },
+  "firebaseAuthInvalidEmail": {
+    "message": "Please enter a valid email address."
+  },
+  "firebaseAuthMissingPassword": {
+    "message": "Please enter a password."
+  },
+  "firebaseAuthEmailPasswordDisabled": {
+    "message": "Email/password sign-in is not enabled yet. Please contact support."
+  },
+  "membershipPlanValidUntil": {
+    "message": "Membership valid until: $1"
+  },
+  "membershipRedeemTab": {
+    "message": "Redeem Code"
+  },
+  "membershipManageSubscriptionTab": {
+    "message": "Manage Subscription"
+  },
+  "membershipOpenStripeButton": {
+    "message": "Open Stripe"
+  },
+  "membershipLoginButton": {
+    "message": "Login",
+    "description": "Login button label in the account section when signed out"
+  },
+  "membershipAuthBackButton": {
+    "message": "Back",
+    "description": "Back button label in the account login dialog"
+  },
+  "membershipEmailVerifyTitle": {
+    "message": "Check your inbox",
+    "description": "Title on the email verification step in the account login dialog"
+  },
+  "membershipEmailVerifyDescription": {
+    "message": "Enter the verification code we sent to $1.",
+    "description": "Description on the email verification step; $1 is the email address"
+  },
+  "membershipEmailVerifyCodeLabel": {
+    "message": "Code",
+    "description": "Label for the verification code input"
+  },
+  "membershipEmailVerifyPlaceholder": {
+    "message": "Enter the verification code",
+    "description": "Placeholder for the verification code input"
+  },
+  "membershipEmailVerifyButton": {
+    "message": "Continue",
+    "description": "Primary button label on the email verification step"
+  },
+  "membershipEmailVerifyResendButton": {
+    "message": "Resend email",
+    "description": "Button label to resend the verification email"
+  },
+  "membershipEmailVerifyHelper": {
+    "message": "Enter the verification code from the email you received.",
+    "description": "Helper text for pasting the verification email link or code"
+  },
+  "iframeLoginOverlayTitle": {
+    "message": "Login to AI Compare",
+    "description": "Title shown on iframe panels when the extension account is signed out"
+  },
+  "iframeLoginOverlayDescription": {
+    "message": "Log in to continue using the comparison workspace.",
+    "description": "Description shown on iframe panels when the extension account is signed out"
+  },
+  "iframeLoginOverlayButton": {
+    "message": "Log In Now",
+    "description": "Button that opens the extension login page from an iframe panel overlay"
   }
 }

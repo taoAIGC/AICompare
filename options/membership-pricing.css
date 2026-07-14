@@ -24,6 +24,13 @@ body::before {
   padding: 34px 0 54px;
 }
 
+.pricing-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
 .pricing-back-link {
   display: inline-flex;
   align-items: center;
@@ -41,6 +48,38 @@ body::before {
 
 .pricing-back-link:hover {
   border-color: rgba(17, 17, 17, 0.24);
+}
+
+.pricing-hero {
+  max-width: 720px;
+  margin-top: 42px;
+}
+
+.pricing-eyebrow {
+  margin: 0 0 10px;
+  color: rgba(24, 24, 24, 0.58);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pricing-hero h1 {
+  margin: 0;
+  color: #181818;
+  font-size: clamp(34px, 6vw, 58px);
+  font-weight: 950;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.pricing-hero p:not(.pricing-eyebrow) {
+  max-width: 620px;
+  margin: 18px 0 0;
+  color: rgba(24, 24, 24, 0.66);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.65;
 }
 
 .pricing-options {
@@ -188,6 +227,11 @@ body::before {
 
   .pricing-options {
     grid-template-columns: 1fr;
+  }
+
+  .pricing-topbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .pricing-card {

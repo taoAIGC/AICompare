@@ -1,0 +1,300 @@
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at top, rgba(98, 120, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 12% 18%, rgba(255, 214, 102, 0.12), transparent 24%),
+    linear-gradient(180deg, #1e1e1f 0%, #151516 100%);
+  color: #f7f8fb;
+  font-family: var(--ai-font-sans, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+
+.account-login-page {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 28px 18px 40px;
+  box-sizing: border-box;
+}
+
+.account-login-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.account-login-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f3f4f6;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.account-login-back:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.account-login-shell {
+  width: min(100%, 680px);
+  margin: 48px auto 0;
+  padding: 32px 32px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  box-shadow: 0 36px 100px rgba(0, 0, 0, 0.34);
+  box-sizing: border-box;
+  backdrop-filter: blur(14px);
+}
+
+.account-login-shell-verify {
+  width: min(100%, 760px);
+}
+
+.account-login-hero,
+.account-login-step-hero {
+  display: grid;
+  gap: 14px;
+  text-align: center;
+}
+
+.account-login-brand {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.account-login-title,
+.account-login-step-title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(38px, 7vw, 64px);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  line-height: 0.96;
+}
+
+.account-login-copy,
+.account-login-step-copy {
+  width: min(100%, 44ch);
+  margin: 0 auto;
+  color: #c7cdd8;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.account-login-step {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.account-login-email-entry {
+  display: grid;
+  gap: 18px;
+}
+
+.account-login-step-standalone {
+  margin-top: 0;
+}
+
+.account-login-step-standalone .account-login-step-title {
+  font-size: clamp(52px, 10vw, 92px);
+}
+
+.account-login-step-standalone .account-login-step-copy {
+  width: min(100%, 36ch);
+}
+
+.account-login-google-btn,
+.account-login-submit {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 999px;
+}
+
+.account-login-google-btn {
+  justify-content: center;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f7f8fb;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.account-login-google-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+
+.account-login-google-btn .btn-google-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%2334A853' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.14 7.09-10.22 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%23EA4335' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3Cpath fill='%23188FFF' d='M24 35.25c3.24 0 6.22-1.07 8.31-2.91l-7.73-6c-2.31 1.55-5.26 2.46-8.58 2.46-6.6 0-12.21-4.46-14.17-10.45l-7.98 6.19c3.64 7.16 11.08 12.71 22.15 12.71z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.account-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-login-divider::before,
+.account-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.account-login-field {
+  display: grid;
+  gap: 8px;
+  color: #dfe6f3;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-login-field input {
+  width: 100%;
+  min-height: 58px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  font: inherit;
+  font-size: 17px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.account-login-field input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.account-login-field input:focus {
+  border-color: rgba(134, 158, 255, 0.92);
+  box-shadow: 0 0 0 3px rgba(92, 119, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.account-login-submit {
+  border: none;
+  background: #f7f7f9;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.account-login-submit:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.account-login-submit:disabled,
+.account-login-google-btn:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.account-login-link,
+.account-login-step-back {
+  border: none;
+  background: transparent;
+  color: #d0d6e2;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.account-login-link:hover,
+.account-login-link:focus-visible,
+.account-login-step-back:hover,
+.account-login-step-back:focus-visible {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.account-login-step-back {
+  justify-self: start;
+}
+
+.account-login-note {
+  width: min(100%, 44ch);
+  margin: -4px auto 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.account-login-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 1000;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.account-login-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 720px) {
+  .account-login-shell {
+    margin-top: 28px;
+    padding: 24px 18px 22px;
+    border-radius: 26px;
+  }
+
+  .account-login-title,
+  .account-login-step-title {
+    font-size: clamp(34px, 12vw, 48px);
+  }
+
+  .account-login-step-standalone .account-login-step-title {
+    font-size: clamp(42px, 14vw, 60px);
+  }
+
+  .account-login-copy,
+  .account-login-step-copy {
+    font-size: 15px;
+  }
+}
