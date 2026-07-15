@@ -7,8 +7,11 @@
       ? window.FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/+$/, '')
       : 'https://aicompare.club';
     const url = new URL(`${baseUrl}/membership-pricing`);
-    if (planType === 'api') {
-      url.searchParams.set('planType', 'api');
+    url.searchParams.set('planType', planType);
+    const isTestBilling = url.pathname.startsWith('/test-api/')
+      || (chrome?.runtime?.id && chrome.runtime.id !== 'dkhpgbbhlnmjbkihoeniojpkggkabbbl');
+    if (isTestBilling) {
+      url.searchParams.set('billingMode', 'test');
     }
     if (prefillEmail) {
       url.searchParams.set('prefillEmail', prefillEmail);

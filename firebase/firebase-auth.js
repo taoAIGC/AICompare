@@ -9,6 +9,7 @@ const FIREBASE_AUTH_STORAGE_KEYS = {
   idToken: 'firebase_idToken',
   refreshToken: 'firebase_refreshToken',
   expiresAt: 'firebase_expiresAt',
+  updatedAt: 'firebase_auth_updated_at',
 };
 const FIREBASE_AUTH_RATE_LIMIT_PATTERNS = [
   /rate exceeded/i,
@@ -143,11 +144,15 @@ async function setStoredAuth(uid, idToken, refreshToken, expiresInSeconds, email
     [FIREBASE_AUTH_STORAGE_KEYS.idToken]: idToken || null,
     [FIREBASE_AUTH_STORAGE_KEYS.refreshToken]: refreshToken || null,
     [FIREBASE_AUTH_STORAGE_KEYS.expiresAt]: expiresInSeconds ? expiresAt : 0,
+    [FIREBASE_AUTH_STORAGE_KEYS.updatedAt]: Date.now(),
   });
 }
 
 async function clearStoredAuth() {
   await chrome.storage.local.remove(Object.values(FIREBASE_AUTH_STORAGE_KEYS));
+  await chrome.storage.local.set({
+    [FIREBASE_AUTH_STORAGE_KEYS.updatedAt]: Date.now(),
+  });
 }
 
 async function getAuthConfigAsync() {
@@ -230,6 +235,52 @@ async function fetchFirebaseAuthBackendJson(path, body = {}) {
     throw await normalizeFirebaseAuthError(error, 'Authentication failed');
   }
   return data || {};
+}
+
+async function fetchFirebaseAuthBackendStatus(path) {
+  const baseUrl = getFirebaseAuthBackendBaseUrl();
+  if (!baseUrl) {
+    return { enabled: false };
+  }
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) {
+      return { enabled: false, status: response.status };
+    }
+    const data = await response.json().catch(() => ({}));
+    return {
+      ...data,
+      enabled: Boolean(data?.enabled)
+    };
+  } catch (error) {
+    return {
+      enabled: false,
+      error: error?.message || String(error)
+    };
+  }
+}
+
+let firebaseEmailSignInStatusPromise = null;
+
+async function getFirebaseEmailSignInStatus(options = {}) {
+  const configEnabled = isFirebaseEmailLinkSignInEnabled();
+  if (!configEnabled) {
+    return { enabled: false, configEnabled: false };
+  }
+  if (!options.forceRefresh && firebaseEmailSignInStatusPromise) {
+    return firebaseEmailSignInStatusPromise;
+  }
+  firebaseEmailSignInStatusPromise = fetchFirebaseAuthBackendStatus('/auth/email-code/status')
+    .then((status) => ({
+      ...status,
+      configEnabled,
+      enabled: Boolean(configEnabled && status?.enabled)
+    }));
+  return firebaseEmailSignInStatusPromise;
 }
 
 function extractFirebaseEmailLinkCode(value) {
@@ -476,7 +527,7 @@ async function firebaseSendEmailSignInLink(email) {
   return { email: data.email || normalizedEmail };
 }
 
-async function firebaseSignInWithCustomToken(customToken, fallbackEmail = '') {
+async function firebaseSignInWithCustomToken(customToken, fallbackEmail = '', fallbackUid = '') {
   const config = await getAuthConfigAsync();
   if (!config || !config.apiKey) {
     throw new Error('云端同步暂未开放，请联系扩展维护者');
@@ -498,8 +549,12 @@ async function firebaseSignInWithCustomToken(customToken, fallbackEmail = '') {
   if (data.error) {
     throw await createFirebaseApiError(data, 'Email sign-in failed');
   }
+  const resolvedUid = String(data.localId || fallbackUid || '').trim();
+  if (!resolvedUid || !data.idToken || !data.refreshToken) {
+    throw new Error(getFirebaseAuthMessage('membershipEmailAuthFailed', 'Authentication failed. Please try again.'));
+  }
   await setStoredAuth(
-    data.localId,
+    resolvedUid,
     data.idToken,
     data.refreshToken,
     parseInt(data.expiresIn, 10) || 3600,
@@ -508,7 +563,7 @@ async function firebaseSignInWithCustomToken(customToken, fallbackEmail = '') {
     data.photoUrl || null
   );
   return {
-    uid: data.localId,
+    uid: resolvedUid,
     email: data.email || fallbackEmail || null,
     displayName: data.displayName || null,
     photoURL: data.photoUrl || null,
@@ -548,7 +603,7 @@ async function firebaseSignInWithEmailLink(email, codeOrLink) {
     email: normalizedEmail,
     code
   });
-  return firebaseSignInWithCustomToken(result.customToken, result.email || normalizedEmail);
+  return firebaseSignInWithCustomToken(result.customToken, result.email || normalizedEmail, result.uid || '');
 }
 
 /**
@@ -662,4 +717,5 @@ if (typeof window !== 'undefined') {
   window.firebaseHydrateStoredProfile = hydrateStoredProfile;
   window.firebaseClearStoredAuth = clearStoredAuth;
   window.firebaseIsEmailLinkSignInEnabled = isFirebaseEmailLinkSignInEnabled;
+  window.firebaseGetEmailSignInStatus = getFirebaseEmailSignInStatus;
 }

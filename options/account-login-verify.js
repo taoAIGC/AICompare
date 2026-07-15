@@ -3,7 +3,6 @@
   const DEFAULT_RETURN_TO = `${chrome.runtime.getURL('options/options.html')}#membership`;
 
   const backLink = document.getElementById('accountLoginVerifyBackLink');
-  const verifyDescription = document.getElementById('accountLoginVerifyDescription');
   const codeInput = document.getElementById('accountLoginCodeInput');
   const verifyButton = document.getElementById('accountLoginVerifyBtn');
   const resendButton = document.getElementById('accountLoginResendBtn');
@@ -37,8 +36,6 @@
         element.placeholder = message;
       }
     });
-
-    updateVerifyDescription();
   }
 
   function showToast(message, duration = 2600) {
@@ -106,7 +103,11 @@
     return url.toString();
   }
 
-  function isEmailLinkSignInEnabled() {
+  async function isEmailLinkSignInEnabled() {
+    if (typeof window.firebaseGetEmailSignInStatus === 'function') {
+      const status = await window.firebaseGetEmailSignInStatus().catch(() => ({ enabled: false }));
+      return Boolean(status?.enabled);
+    }
     return typeof window.firebaseIsEmailLinkSignInEnabled === 'function'
       ? Boolean(window.firebaseIsEmailLinkSignInEnabled())
       : false;
@@ -128,19 +129,10 @@
     redirectToReturnTo(true);
   }
 
-  function updateVerifyDescription() {
-    if (!verifyDescription) return;
-    verifyDescription.textContent = getMessage(
-      'membershipEmailVerifyDescription',
-      [currentEmail || 'your inbox'],
-      'Paste the verification code or sign-in link we sent to $1.'
-    );
-  }
-
   function getCodeValue() {
     const value = String(codeInput?.value || '').trim();
     if (!value) {
-      throw new Error(getMessage('membershipEmailVerifyHelper', null, 'Paste the verification link or code from the email you received.'));
+      throw new Error(getMessage('membershipEmailCodeInvalidFormat', null, 'Please enter the 6-digit verification code.'));
     }
     return value;
   }
@@ -253,7 +245,7 @@
     returnToUrl = requested.returnTo;
     closeOnSuccess = requested.closeOnSuccess === true;
 
-    if (!isEmailLinkSignInEnabled()) {
+    if (!await isEmailLinkSignInEnabled()) {
       window.location.replace(getEntryPageUrl());
       return;
     }

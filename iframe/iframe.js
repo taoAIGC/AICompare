@@ -41,6 +41,7 @@ const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_STORAGE_KEY = 'liveSummaryAutoAnalysisE
 const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY = 'aiCompare.liveSummaryAutoAnalysisEnabled';
 const FIREBASE_AUTH_UID_STORAGE_KEY = 'firebase_uid';
 const FIREBASE_AUTH_EMAIL_STORAGE_KEY = 'firebase_email';
+const FIREBASE_AUTH_UPDATED_AT_STORAGE_KEY = 'firebase_auth_updated_at';
 const SITE_COMPARE_USAGE_EVENT_PREFIX = 'site_usage';
 let iframeAuthState = {
   initialized: false,
@@ -175,13 +176,69 @@ function openIframeLoginPage() {
   }
 }
 
+async function getIframeMembershipPricingPrefillEmail() {
+  try {
+    const authState = await getIframeAuthState();
+    const email = String(authState?.email || '').trim();
+    if (email) return email;
+  } catch (_) {
+    // Fall back to the raw storage cache below.
+  }
+
+  try {
+    const stored = await chrome.storage.local.get([
+      FIREBASE_AUTH_EMAIL_STORAGE_KEY,
+      'email'
+    ]);
+    return String(stored?.[FIREBASE_AUTH_EMAIL_STORAGE_KEY] || stored?.email || '').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+async function getChatPlanPricingPageUrl() {
+  const fallbackBaseUrl = 'https://aicompare.club';
+  let baseUrl = fallbackBaseUrl;
+  try {
+    baseUrl = String(window.FirebaseConfig?.getCloudFunctionsBaseUrl?.() || fallbackBaseUrl).trim().replace(/\/+$/, '') || fallbackBaseUrl;
+  } catch (_) {
+    baseUrl = fallbackBaseUrl;
+  }
+
+  try {
+    const url = new URL(`${baseUrl}/membership-pricing`);
+    url.searchParams.set('planType', 'chat');
+    const isTestBilling = url.pathname.startsWith('/test-api/')
+      || (chrome?.runtime?.id && chrome.runtime.id !== 'dkhpgbbhlnmjbkihoeniojpkggkabbbl');
+    if (isTestBilling) {
+      url.searchParams.set('billingMode', 'test');
+    }
+    const prefillEmail = await getIframeMembershipPricingPrefillEmail();
+    if (prefillEmail) {
+      url.searchParams.set('prefillEmail', prefillEmail);
+    }
+    return url.toString();
+  } catch (_) {
+    return `${fallbackBaseUrl}/membership-pricing?planType=chat`;
+  }
+}
+
+async function openChatPlanPricingPage() {
+  const url = await getChatPlanPricingPageUrl();
+  try {
+    chrome.tabs.create({ url });
+  } catch (_) {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
 function createIframeLoginOverlay() {
   const overlay = document.createElement('div');
   const title = escapeHtml(t('iframeLoginOverlayTitle', 'Login to AI Compare'));
   const description = escapeHtml(t('iframeLoginOverlayDescription', 'Log in to continue using the comparison workspace.'));
   const buttonLabel = escapeHtml(t('iframeLoginOverlayButton', 'Log In Now'));
   const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
-  overlay.className = 'iframe-login-overlay';
+  overlay.className = 'iframe-login-overlay iframe-auth-login-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', title);
@@ -204,10 +261,49 @@ function createIframeLoginOverlay() {
   return overlay;
 }
 
+function createIframeChatPlanQuotaOverlay() {
+  const overlay = document.createElement('div');
+  const title = escapeHtml(t('chatPlanQuotaOverlayTitle', 'Free quota used up'));
+  const description = escapeHtml(t('chatPlanQuotaOverlayDescription', 'You have used today’s free AI comparison questions. Upgrade to Chat Plan to continue with unlimited questions.'));
+  const buttonLabel = escapeHtml(t('chatPlanQuotaOverlayButton', 'Upgrade Chat Plan'));
+  const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
+  overlay.className = 'iframe-login-overlay iframe-chat-plan-quota-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', title);
+  overlay.innerHTML = `
+    <div class="iframe-login-overlay-card">
+      <div class="iframe-login-overlay-heading">
+        <img class="iframe-login-overlay-logo" src="${iconUrl}" alt="" aria-hidden="true">
+        <span>${title}</span>
+      </div>
+      <p class="iframe-login-overlay-copy">${description}</p>
+      <button class="iframe-login-overlay-button" type="button">${buttonLabel}</button>
+    </div>
+  `;
+  const upgradeButton = overlay.querySelector('.iframe-login-overlay-button');
+  upgradeButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openChatPlanPricingPage().catch((error) => {
+      console.warn('打开 Chat Plan 商品页失败:', error);
+    });
+  });
+  return overlay;
+}
+
+function showIframeChatPlanQuotaOverlay() {
+  const container = document.getElementById('iframes-container');
+  if (!container) return;
+  container.querySelector(':scope > .iframe-auth-login-overlay')?.remove();
+  container.querySelector(':scope > .iframe-chat-plan-quota-overlay')?.remove();
+  container.appendChild(createIframeChatPlanQuotaOverlay());
+}
+
 function renderIframeAuthOverlay() {
   const container = document.getElementById('iframes-container');
   if (!container) return;
-  const existingOverlay = container.querySelector(':scope > .iframe-login-overlay');
+  const existingOverlay = container.querySelector(':scope > .iframe-auth-login-overlay');
   if (!iframeAuthState.initialized) {
     return;
   }
@@ -235,7 +331,17 @@ function ensureIframeAuthOverlayTracking() {
   iframeAuthStorageListenerBound = true;
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
-    if (!changes[FIREBASE_AUTH_UID_STORAGE_KEY] && !changes[FIREBASE_AUTH_EMAIL_STORAGE_KEY]) {
+    if (
+      !changes[FIREBASE_AUTH_UID_STORAGE_KEY]
+      && !changes[FIREBASE_AUTH_EMAIL_STORAGE_KEY]
+      && !changes[FIREBASE_AUTH_UPDATED_AT_STORAGE_KEY]
+    ) {
+      return;
+    }
+    if (changes[FIREBASE_AUTH_UPDATED_AT_STORAGE_KEY]) {
+      refreshIframeAuthOverlays().catch((error) => {
+        console.warn('刷新 iframe 登录蒙层失败:', error);
+      });
       return;
     }
     const hasUidChange = Object.prototype.hasOwnProperty.call(changes, FIREBASE_AUTH_UID_STORAGE_KEY);
@@ -10907,6 +11013,10 @@ async function createIframes(query, sites, customSites = [], agents = []) {
       console.log('清空iframe');
     }
 
+    if (hasQuery && !window._openedFromHistory) {
+      triggerChatPlanUsageCheckForIframeQuery(query, { source: 'iframe-initial-query' });
+    }
+
     if (hasQuery) {
       const timelineEntry = upsertTimelineEntry({
         query,
@@ -12396,6 +12506,58 @@ async function submitIframeSearch(trigger) {
   });
 }
 
+async function consumeChatPlanUsageForIframeQuery(query = '') {
+  const normalizedQuery = String(query || '').trim();
+  if (!normalizedQuery) {
+    return { billingEnabled: false, skipped: true };
+  }
+  if (!chrome?.runtime?.sendMessage) {
+    return { billingEnabled: false, skipped: true };
+  }
+
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      action: 'consumeChatPlanUsageQuota',
+      query: normalizedQuery
+    }, (response) => {
+      const runtimeError = chrome.runtime.lastError;
+      if (runtimeError) {
+        reject(new Error(runtimeError.message || t('saveFailedGeneric', 'Save failed. Please try again.')));
+        return;
+      }
+      if (!response?.success) {
+        const error = new Error(response?.error || t('saveFailedGeneric', 'Save failed. Please try again.'));
+        error.code = response?.code || '';
+        error.limit = response?.limit || null;
+        reject(error);
+        return;
+      }
+      resolve(response.result || { ok: true });
+    });
+  });
+}
+
+function triggerChatPlanUsageCheckForIframeQuery(query = '', metadata = {}) {
+  const normalizedQuery = String(query || '').trim();
+  if (!normalizedQuery) return;
+
+  consumeChatPlanUsageForIframeQuery(normalizedQuery).catch((error) => {
+    if (error?.code === 'CHAT_PLAN_LIMIT_REACHED') {
+      showIframeChatPlanQuotaOverlay();
+      trackEvent('iframe_search_chat_plan_quota_overlay_shown', {
+        kind: 'subscription',
+        surface: 'iframe',
+        query_length: normalizedQuery.length,
+        result_state: 'overlay_shown',
+        limit: error.limit || null,
+        source: metadata.source || 'iframe'
+      });
+      return;
+    }
+    console.warn('Chat Plan usage check failed without blocking iframe execution:', error?.message || error);
+  });
+}
+
 async function runQueryAcrossOpenIframes(query, options = {}) {
       const {
         persistHistory = true,
@@ -12408,6 +12570,8 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
         ? new Set(targetSiteNames.map((name) => String(name || '').trim()).filter(Boolean))
         : null;
       const hasAgentPanels = getAgentPanelFrames().length > 0;
+
+      triggerChatPlanUsageCheckForIframeQuery(query, { source: 'iframe-existing-panels' });
 
       let historyId = providedHistoryId || window._currentHistoryId || null;
       if (persistHistory) {

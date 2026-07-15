@@ -12,6 +12,7 @@
 
   let returnToUrl = DEFAULT_RETURN_TO;
   let closeOnSuccess = false;
+  let emailLinkAvailable = false;
 
   function getMessage(key, substitutions = null, fallback = '') {
     return RuntimeI18n?.getMessage?.(key, substitutions)
@@ -89,21 +90,25 @@
     }
   }
 
-  function isEmailLinkSignInEnabled() {
+  async function isEmailLinkSignInEnabled() {
+    if (typeof window.firebaseGetEmailSignInStatus === 'function') {
+      const status = await window.firebaseGetEmailSignInStatus().catch(() => ({ enabled: false }));
+      return Boolean(status?.enabled);
+    }
     return typeof window.firebaseIsEmailLinkSignInEnabled === 'function'
       ? Boolean(window.firebaseIsEmailLinkSignInEnabled())
       : false;
   }
 
-  function syncEmailLoginAvailability() {
-    const enabled = isEmailLinkSignInEnabled();
+  function setEmailLoginAvailability(enabled) {
+    emailLinkAvailable = Boolean(enabled);
     if (authDivider) {
-      authDivider.hidden = !enabled;
+      authDivider.hidden = !emailLinkAvailable;
     }
     if (emailEntry) {
-      emailEntry.hidden = !enabled;
+      emailEntry.hidden = !emailLinkAvailable;
     }
-    return enabled;
+    return emailLinkAvailable;
   }
 
   function redirectToReturnTo(useReplace = true) {
@@ -190,7 +195,7 @@
   }
 
   async function sendEmailVerification() {
-    if (!isEmailLinkSignInEnabled()) {
+    if (!emailLinkAvailable) {
       showToast(getMessage('membershipEmailLoginUnavailable', null, 'Email verification sign-in is unavailable right now.'), 4000);
       return;
     }
@@ -258,7 +263,7 @@
       await RuntimeI18n.initializeRuntimeI18n();
     }
     initializeI18n();
-    const emailLinkEnabled = syncEmailLoginAvailability();
+    const emailLinkEnabled = setEmailLoginAvailability(await isEmailLinkSignInEnabled());
     bindEvents();
 
     const prefilledEmail = getPrefilledEmail();

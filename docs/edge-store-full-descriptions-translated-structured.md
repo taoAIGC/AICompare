@@ -5,166 +5,166 @@ Generated from the latest Simplified Chinese source. This version preserves line
 ## Amharic (am)
 
 ```text
-አንድ ጊዜ ጥያቄ ይጠይቁ እና እንደ ChatGPT ፣ Gemini ፣ Claude ላሉት የይዘት ማረጋገጫ ፣ የምርት ክትትል እና GEO (የትውልድ ሞተር ማመቻቸት) ባሉ AI ውስጥ መልስ ይስጡ ።
+አንድ ጥያቄ ይጠይቁ እና ከ ChatGPT፣ Gemini፣ Claude እና ሌሎች AI መሣሪያዎች የሚመጡ መልሶችን በአንድ ጊዜ ያወዳድሩ። ለይዘት ማረጋገጥ፣ ለብራንድ ክትትል እና ለ GEO (Generative Engine Optimization) ጠቃሚ ነው።
 
-ChatGPT ጨምሮ በርካታ AI መካከል አንድ-ጠቅ ንፅፅር. Gemini. Grok. Claude. Diandian እና ከደርዘን AI በላይ!
+ChatGPT፣ Gemini፣ Grok፣ Claude፣ Diandian እና ከአሥር በላይ ሌሎች AI መሣሪያዎችን በአንድ ጠቅታ ያወዳድሩ!
 
-🎉 እንደገና አንድ በአንድ መገልበጥ እና መለጠፍ ፈጽሞ, "ZXZAIZCOMPAREZX" ሁሉም በአንድ ጠቅታ ይከናወናል! 🎉
+🎉 ከእንግዲህ አንድ በአንድ copy-paste ማድረግ አያስፈልግም። AI Compare ሁሉንም በአንድ ጠቅታ ያከናውናል! 🎉
 
-👉 "ZXAICOMPAREZX" ሁሉንም AI በአንድ ጠቅታ ይልካል ፣ ማን ሊጠቀምበት ይችላል ፣ ማን ማን ሊጠቀምበት ይችላል!
+👉 AI Compare ጥያቄዎን ለተመረጡት ሁሉም AI መሣሪያዎች በአንድ ጠቅታ ይልካል። እነሱን ያወዳድሩ እና የተሻለውን ወይም ፈጣኑን ይጠቀሙ!
 
-💬 ከዚህ በላይ ምን የተሻለ ነገር አለ?
-✅ Auto-Summarize: Multisite ውጤቶች አይታዩም? በጣም ጥሩውን መልስ ለማግኘት የጣቢያ ምላሾችን በራስ-ሰር ያወዳድሩ
-✅ መልስ ማጋራት: ድር ገጽ URL, MD ፋይሎች በኩል የንፅፅር ውጤቶችን ለማጋራት ድጋፍ, ቅጂ ዘዴዎች
-✅ የጽሑፍ ሁነታ ፣ የቀኝ ጠቅታ ሁነታ-በድር ገጽ ውስጥ መጻፍ በርካታ የ AI ንፅፅሮችን ያነቃቃል
-✅ የመሰብሰቢያ ሁነታ-የጣቢያ ውጤቶች በተለይ አጥጋቢ ፣ ፈጣን ስብስብ ናቸው ፣ ላለማግኘት አይፈሩም
-✅ የፋይል ሁነታ: በአንድ ጠቅታ በርካታ ሞዴሎች ፋይሎችን ይስቀሉ
-✅ Ultra Multisite: የአሁኑ ዋና ዋና LLM የውይይት ጣቢያዎች, ወኪል ጣቢያዎች, የትርጉም ጣቢያዎች ይደግፋል
-✅ ታሪክ: ታሪክ በቀዳሚ ውይይቶች ቀላል ለመመልከት እና ለመፈለግ በአካባቢው የተከማቸ ነው.
-✅ ፈጣን አብነት: ቀልጣፋ ለመውሰድ ፈጣን አብነቶችን መፍጠር ይደግፋል
-✅ Cross-device ማመሳሰል: የመሰብሰቢያ መዛግብት, የንፅፅር መዛግብት, ፈጣን አብነት ማመሳሰል ድጋፍ መሣሪያ ማመሳሰል
-✅ የጎን አሞሌ ሁነታ: የጎን አሞሌ ተሰኪውን ይከፍታል, AI ለመጠቀም ቀላል ያደርገዋል
+💬 ሌላ ምን ይሻላል?
+✅ ራስ-ሰር ማጠቃለያ፦ ከብዙ ጣቢያዎች የመጡ ውጤቶችን ለማንበብ ከባድ ነው? የጣቢያዎችን መልሶች በራስ-ሰር ያወዳድሩ እና ምርጡን መልስ ያግኙ
+✅ መልስ ማጋራት፦ የንጽጽር ውጤቶችን በድር URL፣ MD ፋይል ወይም copy በመጠቀም ያጋሩ
+✅ የጽሑፍ ምርጫ/የቀኝ ጠቅታ ሁነታ፦ በድር ገጽ ላይ ጽሑፍ ይምረጡ እና multi-AI ንጽጽርን ያስጀምሩ
+✅ ተወዳጆች ሁነታ፦ ከአንድ ጣቢያ ውጤት በጣም ተደስተዋል? በኋላ በቀላሉ እንዲያገኙት ፈጥነው ያስቀምጡ
+✅ ፋይል ሁነታ፦ ፋይሎችን በአንድ ጠቅታ ወደ ብዙ ሞዴሎች upload ያድርጉ
+✅ ብዙ ጣቢያዎች፦ ዋና ዋና LLM chat ጣቢያዎችን፣ agent ጣቢያዎችን እና translation ጣቢያዎችን ይደግፋል
+✅ ታሪክ፦ ታሪክ በአካባቢዎ ይቀመጣል፣ ቀደም ያሉ ውይይቶችን ማየትና መፈለግ ቀላል ይሆናል
+✅ Prompt templates፦ prompt templates ይፍጠሩ እና ውጤታማነትን ያሳድጉ
+✅ በመሣሪያዎች መካከል sync፦ ተወዳጆች፣ የንጽጽር ታሪክ እና prompt templates sync ይደግፋል
+✅ Sidebar mode፦ extensionን በ sidebar ውስጥ ይክፈቱ እና AIን በቀላሉ ይጠቀሙ
 
-🤖 ከዚያን ጊዜ ጀምሮ የ AI ውጤታማነት በቀጥታ ጠፍቷል!
+🤖 ከአሁን ጀምሮ የ AI አጠቃቀም ውጤታማነትዎ ወዲያውኑ ይጨምራል!
 
-ይህ ክፍት ምንጭ ስርዓት ነው ፣ ብዙ ሰዎች መሳተፍ እንደሚችሉ ተስፋ ያድርጉ ፣ የፕሮጀክቱ አድራሻ https://github.com/taoAIGC/AI-Shortcuts/
+ይህ open-source ስርዓት ነው። ብዙ ሰዎች እንዲሳተፉ እንመኛለን። Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 ማንኛውም ጥያቄዎች እና ጥቆማዎች, እባክዎ ያነጋግሩ:
+💌 ማንኛውም ጥያቄ ወይም ምክር ካለዎት ያግኙን፦
 
-wechat የተጠቃሚ ቡድን: aipmgpt
-ኢሜይል: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Arabic (ar)
 
 ```text
-اطرح سؤالًا مرة واحدة وأجب عليه في AI مثل ChatGPT و Gemini و Claude للتحقق من المحتوى ومراقبة العلامة التجارية و GEO (التحسين التوليدي للمحرك).
+اطرح سؤالًا واحدًا وقارن في الوقت نفسه الإجابات من ChatGPT وGemini وClaude وغيرها من أدوات AI. مفيد للتحقق من المحتوى، ومراقبة العلامة التجارية، وGEO (Generative Engine Optimization).
 
-مقارنة بنقرة واحدة بين العديد من AI، بما في ذلك ChatGPT. Gemini. Grok. Claude. Diandian وأكثر من اثني عشر AI!
+قارن عدة أدوات AI بنقرة واحدة، بما في ذلك ChatGPT وGemini وGrok وClaude وDiandian وأكثر من عشر أدوات AI أخرى!
 
-🎉 لا تنسخ وتلصق واحدة تلو الأخرى مرة أخرى، "ZXAICOMPAREZX" يتم كل ذلك بنقرة واحدة! 🎉
+🎉 لا حاجة بعد الآن للنسخ واللصق واحدًا تلو الآخر. AI Compare ينجز كل شيء بنقرة واحدة! 🎉
 
-👉 ترسل "ZXAICOMPAREZX" كل AI بنقرة واحدة، دعهم PK، الذين يمكنهم استخدام WHO، الذين يمكنهم استخدام WHO!
+👉 يرسل AI Compare سؤالك إلى جميع أدوات AI المحددة بنقرة واحدة. دعها تتنافس، ثم استخدم الأداة الأفضل أو الأسرع!
 
-💬 ما هو الأفضل ؟
-✅ التلخيص التلقائي: نتائج المواقع المتعددة غير مرئية ؟ قارن إجابات الموقع تلقائيًا للعثور على أفضل إجابة
-✅ مشاركة الإجابة: دعم مشاركة نتائج المقارنة من خلال صفحة الويب URL وملفات MD وطرق النسخ
-✅ وضع الخدش، وضع النقر بزر الماوس الأيمن: الخدش في صفحة الويب ينشط مقارنات AI متعددة
-✅ وضع التجميع: نتائج الموقع مرضية بشكل خاص، وسريعة التجميع، ولا تخشى عدم العثور عليها
-✅ وضع الملف: تحميل الملفات إلى طرز متعددة بنقرة واحدة
-✅ Ultra Multisite: يدعم مواقع الدردشة الحالية السائدة LLM ومواقع الوكلاء ومواقع الترجمة
-✅ المحفوظات: يتم تخزين المحفوظات محليًا لسهولة عرض المحادثات السابقة والبحث عنها.
-✅ قالب المطالبة: يدعم إنشاء قوالب مطالبة للإقلاع الفعال
-✅ المزامنة عبر الأجهزة: دعم مزامنة الجهاز لسجلات التجميع وسجلات المقارنة ومزامنة القالب الفوري
-✅ وضع الشريط الجانبي: يفتح الشريط الجانبي المكون الإضافي، مما يسهل استخدام AI
+💬 ما الأفضل أيضًا؟
+✅ ملخص تلقائي: هل من الصعب قراءة نتائج من عدة مواقع؟ قارن إجابات المواقع تلقائيًا واعثر على أفضل إجابة
+✅ مشاركة الإجابات: شارك نتائج المقارنة عبر رابط ويب URL أو ملف MD أو النسخ
+✅ وضع تحديد النص والنقر بزر الفأرة الأيمن: حدد نصًا في صفحة ويب لبدء مقارنة multi-AI
+✅ وضع المفضلة: هل أعجبك جدًا ناتج من موقع معين؟ احفظه بسرعة حتى تجده بسهولة لاحقًا
+✅ وضع الملفات: ارفع الملفات إلى عدة نماذج بنقرة واحدة
+✅ مواقع كثيرة مدعومة: يدعم مواقع LLM chat الشائعة، ومواقع agent، ومواقع translation
+✅ السجل: يتم حفظ السجل محليًا، مما يسهل عرض المحادثات السابقة والبحث فيها
+✅ قوالب prompt: أنشئ قوالب prompt وارفع كفاءتك
+✅ المزامنة بين الأجهزة: يدعم مزامنة المفضلة وسجل المقارنات وقوالب prompt
+✅ وضع الشريط الجانبي: افتح extension في sidebar واستخدم AI بسهولة أكبر
 
-🤖 منذ ذلك الحين، انطلقت كفاءة AI مباشرة!
+🤖 من الآن فصاعدًا، سترتفع كفاءتك في استخدام AI مباشرة!
 
-هذا نظام مفتوح المصدر، آمل أن يتمكن المزيد من الناس من المشاركة، وعنوان المشروع هو https://github.com/taoAIGC/AI-Shortcuts/
+هذا نظام open-source. نأمل أن يشارك المزيد من الأشخاص. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 لطرح أي أسئلة واقتراحات، يرجى التواصل مع:
+💌 لأي أسئلة أو اقتراحات، يرجى التواصل:
 
-مجموعة مستخدمين wechat: aipmgpt
-البريد الإلكتروني: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Bangla (bn)
 
 ```text
-একবার একটি প্রশ্ন জিজ্ঞাসা করুন এবং AI যেমন ChatGPT, Gemini, Claude বিষয়বস্তু যাচাইকরণ, ব্র্যান্ড পর্যবেক্ষণ এবং GEO (জেনারেটিভ ইঞ্জিন অপ্টিমাইজেশন) -এ উত্তর দিন ।
+একবার প্রশ্ন করুন এবং একই সময়ে ChatGPT, Gemini, Claude ও অন্যান্য AI টুলের উত্তর তুলনা করুন। কনটেন্ট যাচাই, ব্র্যান্ড মনিটরিং এবং GEO (Generative Engine Optimization)-এর জন্য উপযোগী।
 
-ChatGPT সহ একাধিক AI এর এক-ক্লিক তুলনা । Gemini. Grok. Claude. Diandian এবং এক ডজনেরও বেশি AI!
+এক ক্লিকে একাধিক AI টুল তুলনা করুন, যেমন ChatGPT, Gemini, Grok, Claude, Diandian এবং আরও দশটির বেশি AI টুল!
 
-🎉 কখনই একের পর এক কপি এবং পেস্ট করবেন না, "ZXAICOMPAREZX" এক ক্লিকেই শেষ! 🎉
+🎉 আর একে একে copy-paste করতে হবে না। AI Compare এক ক্লিকেই সব করে দেয়! 🎉
 
-👉 "ZXAICOMPAREZX" সমস্ত AI কে এক ক্লিকে পাঠায়, তাদের PK, কে ব্যবহার করতে পারে, কে ব্যবহার করতে পারে!
+👉 AI Compare আপনার প্রশ্ন এক ক্লিকে নির্বাচিত সব AI টুলে পাঠায়। তাদের তুলনা করতে দিন, তারপর যেটি ভালো বা দ্রুত সেটি ব্যবহার করুন!
 
-💬 এর থেকে ভালো আর কী হতে পারে?
-✅ অটো-সামারাইজ: মাল্টিসাইটের ফলাফল দেখা যাচ্ছে না? সেরা উত্তর খুঁজে পেতে স্বয়ংক্রিয়ভাবে সাইটের উত্তরগুলির তুলনা করুন
-✅ উত্তর ভাগ করে নেওয়া: ওয়েবপৃষ্ঠা URL, MD ফাইল, অনুলিপি পদ্ধতির মাধ্যমে তুলনা ফলাফল শেয়ার করতে সহায়তা
-✅ স্ক্রিবিং মোড, ডান-ক্লিক মোড: ওয়েবপৃষ্ঠায় স্ক্রিবিং একাধিক AI তুলনা সক্রিয় করে
-✅ সংগ্রহ মোড: কোনও সাইটের ফলাফলগুলি বিশেষত সন্তোষজনক, দ্রুত সংগ্রহ, খুঁজে না পাওয়ার ভয় নেই
-✅ ফাইল মোড: এক ক্লিকে একাধিক মডেলে ফাইল আপলোড করুন
-✅ আল্ট্রা মাল্টিসাইট: বর্তমান মূলধারার LLM চ্যাট সাইট, এজেন্ট সাইট, অনুবাদ সাইটগুলিকে সমর্থন করে
-✅ ইতিহাস: পূর্ববর্তী কথোপকথনগুলি সহজে দেখা এবং অনুসন্ধানের জন্য ইতিহাস স্থানীয়ভাবে সংরক্ষণ করা হয় ।
-✅ প্রম্পট টেমপ্লেট: দক্ষ টেক-অফের জন্য প্রম্পট টেমপ্লেট তৈরি করতে সহায়তা করে
-✅ ক্রস-ডিভাইস সিঙ্ক্রোনাইজেশন: সংগ্রহ রেকর্ড, তুলনা রেকর্ড, প্রম্পট টেমপ্লেট সিঙ্ক্রোনাইজেশন সমর্থন ডিভাইস সিঙ্ক্রোনাইজেশন
-✅ সাইডবার মোড: সাইডবার প্লাগইনটি খোলে, যা AI ব্যবহার করা সহজ করে তোলে
+💬 আরও কী সুবিধা আছে?
+✅ স্বয়ংক্রিয় সারাংশ: একাধিক সাইটের ফলাফল পড়তে কষ্ট হচ্ছে? সাইটগুলোর উত্তর স্বয়ংক্রিয়ভাবে তুলনা করে সেরা উত্তর খুঁজুন
+✅ উত্তর শেয়ারিং: ওয়েব URL, MD ফাইল বা copy-এর মাধ্যমে তুলনা ফলাফল শেয়ার করুন
+✅ টেক্সট নির্বাচন/রাইট-ক্লিক মোড: ওয়েবপেজে টেক্সট নির্বাচন করে multi-AI তুলনা শুরু করুন
+✅ ফেভারিট মোড: কোনো সাইটের ফলাফল বিশেষভাবে ভালো লেগেছে? দ্রুত সংরক্ষণ করুন, পরে সহজে খুঁজে পাবেন
+✅ ফাইল মোড: এক ক্লিকে ফাইল একাধিক মডেলে upload করুন
+✅ অনেক সাইট: জনপ্রিয় LLM chat সাইট, agent সাইট এবং translation সাইট সমর্থন করে
+✅ ইতিহাস: ইতিহাস লোকালি সংরক্ষিত থাকে, তাই আগের কথোপকথন দেখা ও খোঁজা সহজ
+✅ Prompt templates: prompt templates তৈরি করুন এবং দক্ষতা বাড়ান
+✅ Cross-device sync: favorites, comparison history এবং prompt templates sync সমর্থন করে
+✅ Sidebar mode: sidebar-এ extension খুলে AI আরও সুবিধাজনকভাবে ব্যবহার করুন
 
-🤖 তারপর থেকে, AI এর দক্ষতা সরাসরি বন্ধ হয়ে গেছে!
+🤖 এখন থেকে আপনার AI ব্যবহারের দক্ষতা সরাসরি বাড়বে!
 
-এটি একটি ওপেন সোর্স সিস্টেম, আশা করি আরও বেশি লোক এতে অংশ নিতে পারবে, প্রকল্পের ঠিকানা হল https://github.com/taoAIGC/AI-Shortcuts/
+এটি একটি open-source সিস্টেম। আমরা আশা করি আরও মানুষ এতে অংশ নেবে। Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 কোনও প্রশ্ন এবং পরামর্শের জন্য, অনুগ্রহ করে যোগাযোগ করুন:
+💌 যেকোনো প্রশ্ন বা পরামর্শের জন্য যোগাযোগ করুন:
 
-উইচ্যাট ইউজার গ্রুপ: aipmgpt
-ইমেইল: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Bulgarian (bg)
 
 ```text
-Задайте въпрос веднъж и отговорете на него в AI като ChatGPT, Gemini, Claude за проверка на съдържанието, мониторинг на марката и GEO (генеративна оптимизация на двигателя).
+Задайте един въпрос и едновременно сравнете отговорите от ChatGPT, Gemini, Claude и други AI инструменти. Полезно за проверка на съдържание, наблюдение на бранд и GEO (Generative Engine Optimization).
 
-Сравнение с едно щракване на множество AI, включително ChatGPT. Gemini. Grok. Claude. Diandian и повече от дузина AI!
+Сравнявайте няколко AI инструмента с едно щракване, включително ChatGPT, Gemini, Grok, Claude, Diandian и още над десет AI инструмента!
 
-🎉 Никога не копирайте и поставяйте един по един отново, "ZXAICOMPAREZX" е направено с едно кликване! 🎉
+🎉 Без повече копиране и поставяне едно по едно. AI Compare върши всичко с едно щракване! 🎉
 
-👉 "ZXAICOMPAREZX" изпраща всички AI с едно кликване, нека PK, кой може да използва кой, кой може да използва кой!
+👉 AI Compare изпраща въпроса ви до всички избрани AI инструменти с едно щракване. Оставете ги да се сравнят и използвайте по-добрия или по-бързия!
 
-💬 Кое е още по - хубаво?
-✅ Автоматично обобщаване: резултатите от няколко сайта не са видими? Автоматично сравняване на отговорите на сайта, за да намерите най - добрия отговор
-✅ Споделяне на отговори: поддръжка за споделяне на резултатите от сравнението чрез уеб страница URL, MD файлове, методи за копиране
-✅ Режим на записване, режим на щракване с десния бутон на мишката: Записването в уеб страницата активира множество сравнения със AI
-✅ Режим на събиране: резултатите от даден обект са особено задоволителни, бързо събиране, не се страхуват да не намерят
-✅ Режим на файл: Качване на файлове в няколко модела с едно щракване
-✅ Ultra Multisite: Поддържа текущите масови сайтове за чат LLM, сайтове на агенти, сайтове за превод
-✅ История: Хронологията се съхранява локално за лесно преглеждане и търсене на предишни разговори.
-✅ Бърз шаблон: Поддържа създаването на бързи шаблони за ефективно излитане
-✅ Синхронизиране на различни устройства: синхронизиране на устройства за поддръжка на записи за събиране, записи за сравнение, синхронизиране на шаблони с подкана
-✅ Режим на страничната лента: Страничната лента отваря приставката, което улеснява използването на AI
+💬 Какво още е по-добро?
+✅ Автоматично резюме: твърде много резултати от различни сайтове? Автоматично сравнете отговорите и намерете най-добрия
+✅ Споделяне на отговори: споделяйте резултатите чрез уеб URL, MD файл или копиране
+✅ Режим за избран текст и десен бутон: изберете текст в уеб страница, за да стартирате multi-AI сравнение
+✅ Режим любими: особено доволни сте от резултат от даден сайт? Запазете го бързо, за да го намерите лесно по-късно
+✅ Режим файлове: качвайте файлове в няколко модела с едно щракване
+✅ Много сайтове: поддържа популярни LLM chat сайтове, agent сайтове и translation сайтове
+✅ История: историята се съхранява локално, така че лесно да преглеждате и търсите предишни разговори
+✅ Prompt templates: създавайте prompt templates и повишавайте ефективността
+✅ Синхронизация между устройства: поддържа sync на любими, история на сравненията и prompt templates
+✅ Sidebar mode: отворете extension в sidebar и използвайте AI по-удобно
 
-🤖 Оттогава ефективността на AI се понижи директно!
+🤖 Отсега нататък ефективността ви при използване на AI се повишава веднага!
 
-Това е система с отворен код, надявам се повече хора да могат да участват, адресът на проекта е https://github.com/taoAIGC/AI-Shortcuts/
+Това е open-source система. Надяваме се повече хора да се включат. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 За всякакви въпроси и предложения, моля, свържете се с:
+💌 За въпроси и предложения се свържете с нас:
 
-група потребители на wechat: aipmgpt
-имейл: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Catalan (ca)
 
 ```text
-Fer una pregunta una vegada i respondre-la en AI com ChatGPT, Gemini, Claude per a la verificació de continguts, monitorització de marca i GEO (optimització generativa de motors).
+Feu una pregunta una sola vegada i compareu alhora les respostes de ChatGPT, Gemini, Claude i altres eines d'AI. Útil per a la verificació de contingut, el seguiment de marca i el GEO (Generative Engine Optimization).
 
-Comparació amb un sol clic de múltiples AI, inclòs ChatGPT. Gemini. Grok. Claude. Diandian i més d'una dotzena de AI!
+Compareu diverses eines d'AI amb un sol clic, inclosos ChatGPT, Gemini, Grok, Claude, Diandian i més de deu altres eines d'AI!
 
-🎉 No tornis a copiar i enganxar mai més, "ZXAICOMPAREZX" es fa amb un sol clic! 🎉
+🎉 S'ha acabat copiar i enganxar d'un lloc a l'altre. AI Compare ho fa tot amb un sol clic! 🎉
 
-👉 "ZXAICOMPAREZX" envia tots els AI amb un sol clic, deixa'ls PK, qui pot utilitzar qui, qui pot utilitzar qui!
+👉 AI Compare envia la vostra pregunta a totes les eines d'AI seleccionades amb un sol clic. Deixeu que es comparin i feu servir la millor o la més ràpida!
 
-💬 Què és encara millor?
-✅ Resum automàtic: els resultats de múltiples llocs no són visibles? Compara automàticament les respostes del lloc per trobar la millor resposta
-✅ Intercanvi de respostes: suport per compartir resultats de comparació a través de la pàgina web URL, arxius MD, mètodes de còpia
-✅ Mode d'escriptura, mode de clic amb el botó dret: l'escriptura a la pàgina web activa diverses comparacions AI
-✅ Mode recollida: els resultats d'un lloc són particularment satisfactoris, recollida ràpida, sense por de no trobar
-✅ Mode de fitxer: puja fitxers a diversos models amb un sol clic
-✅ Ultra Multisite: és compatible amb els llocs de xat LLM actuals, els llocs d'agents i els llocs de traducció
-✅ Historial: l'historial s'emmagatzema localment per veure i cercar fàcilment les converses anteriors.
-✅ Plantilla de prompte: permet la creació de plantilles de prompte per a un enlairament eficient.
-✅ Sincronització entre dispositius: suporta la sincronització de registres de recollida, registres de comparació, sincronització de plantilles immediata
-✅ Mode de barra lateral: la barra lateral obre el connector, facilitant l'ús de AI
+💬 Què més és millor?
+✅ Resum automàtic: massa resultats de diversos llocs? Compareu automàticament les respostes i trobeu la millor
+✅ Compartició de respostes: compartiu els resultats mitjançant URL web, fitxer MD o còpia
+✅ Modes de selecció de text i clic dret: seleccioneu text en una pàgina web per iniciar una comparació multi-AI
+✅ Mode favorits: us agrada especialment el resultat d'un lloc? Deseu-lo ràpidament per trobar-lo fàcilment més tard
+✅ Mode fitxer: carregueu fitxers a diversos models amb un sol clic
+✅ Molts llocs compatibles: admet llocs populars de LLM chat, llocs agent i llocs translation
+✅ Historial: l'historial es desa localment, de manera que és fàcil veure i cercar converses anteriors
+✅ Prompt templates: creeu prompt templates i milloreu l'eficiència
+✅ Sync entre dispositius: admet sync de favorits, historial de comparacions i prompt templates
+✅ Sidebar mode: obriu extension al sidebar i feu servir AI amb més comoditat
 
-🤖 Des de llavors, l'eficiència de AI s'ha disparat directament!
+🤖 A partir d'ara, la vostra eficiència amb AI puja directament!
 
-Aquest és un sistema de codi obert, espero que hi pugui participar més gent, l'adreça del projecte és https://github.com/taoAIGC/AI-Shortcuts/
+Aquest és un sistema open-source. Esperem que més persones hi participin. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Per a qualsevol dubte o suggeriment, posa't en contacte amb:
+💌 Per a qualsevol pregunta o suggeriment, contacteu-nos:
 
-grup d'usuaris de wechat: aipmgpt
-correu electrònic: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Chinese (China) (zh_CN)
@@ -176,7 +176,7 @@ correu electrònic: AIShortcuts@outlook.com
 
 🎉 再也不用一个个来回复制粘贴，「AI 比一比」一键全搞定！ 🎉
 
-👉 「AI 比一比」一键群发所有AI，让它们PK，谁好用用谁，谁快用谁！
+👉 「AI 比一比」一键群发所有 AI，让它们对比回答，谁好用用谁，谁快用谁！
 
 💬 更爽的是？
 ✅ 自动总结：多站点结果看不过来？支持自动比较站点答案，找到最佳答案
@@ -209,7 +209,7 @@ email: AIShortcuts@outlook.com
 
 🎉 再也不用一个个来回复制粘贴，「AI 比一比」一键全搞定！ 🎉
 
-👉 「AI 比一比」一键群发所有AI，让它们PK，谁好用用谁，谁快用谁！
+👉 「AI 比一比」一键群发所有 AI，让它们对比回答，谁好用用谁，谁快用谁！
 
 💬 更爽的是？
 ✅ 自动总结：多站点结果看不过来？支持自动比较站点答案，找到最佳答案
@@ -269,67 +269,67 @@ email: AIShortcuts@outlook.com
 ## Czech (cs)
 
 ```text
-Položte otázku jednou a odpovězte na ni v AI, jako jsou ChatGPT, Gemini, Claude pro ověření obsahu, sledování značky a GEO (generativní optimalizace motoru).
+Položte jednu otázku a zároveň porovnejte odpovědi z ChatGPT, Gemini, Claude a dalších AI nástrojů. Užitečné pro ověřování obsahu, sledování značky a GEO (Generative Engine Optimization).
 
-One-click comparison of multiple AI, including ChatGPT. Gemini. Grok. Claude. Diandian a více než tucet AI!
+Porovnejte více AI nástrojů jedním kliknutím, včetně ChatGPT, Gemini, Grok, Claude, Diandian a více než deseti dalších AI nástrojů!
 
-🎉 Nikdy nekopírujte a nevkládejte jeden po druhém, "ZXAICOMPAREZX" je hotovo jedním kliknutím! 🎉
+🎉 Už žádné kopírování a vkládání po jednom. AI Compare vše vyřeší jedním kliknutím! 🎉
 
-👉 "ZXAICOMPAREZX" pošle všechny AI na jedno kliknutí, nechte je PK, kdo může použít kdo, kdo může použít kdo!
+👉 AI Compare odešle vaši otázku všem vybraným AI nástrojům jedním kliknutím. Nechte je soutěžit a použijte ten lepší nebo rychlejší!
 
 💬 Co je ještě lepší?
-✅ Auto-Summarize: Multisite výsledky nejsou viditelné? Automaticky porovnávat odpovědi na stránky, abyste našli nejlepší odpověď
-✅ Sdílení odpovědí: podpora sdílení výsledků porovnání prostřednictvím webových stránek URL, souborů MD, metod kopírování
-✅ Režim rytí, režim kliknutí pravým tlačítkem: rytí na webové stránce aktivuje více porovnání AI
-✅ Režim sběru: výsledky webu jsou obzvláště uspokojivé, rychlý sběr, nebojíte se, že nenajdete
-✅ Režim souboru: Nahrajte soubory do více modelů jedním kliknutím
-✅ Ultra Multisite: Podporuje současné hlavní chatovací stránky LLM, stránky agentů, překladatelské stránky
-✅ Historie: Historie je uložena lokálně pro snadné prohlížení a vyhledávání předchozích konverzací.
-✅ Prompt Template: Podporuje vytváření promptních šablon pro efektivní vzlet
-✅ Synchronizace mezi zařízeními: Podpora synchronizace záznamů o sbírkách, porovnávání záznamů, synchronizace šablon výzev
-✅ Režim postranního panelu: Postranní panel otevře plugin, což usnadňuje použití AI
+✅ Automatické shrnutí: příliš mnoho výsledků z více webů? Automaticky porovnejte odpovědi a najděte tu nejlepší
+✅ Sdílení odpovědí: sdílejte výsledky porovnání přes webovou URL, MD soubor nebo kopírování
+✅ Režim výběru textu a pravého kliknutí: vyberte text na webové stránce a spusťte multi-AI porovnání
+✅ Režim oblíbených: jste zvlášť spokojeni s výsledkem z jednoho webu? Rychle si ho uložte, abyste ho později snadno našli
+✅ Režim souborů: nahrajte soubory do více modelů jedním kliknutím
+✅ Mnoho podporovaných webů: podporuje populární LLM chat weby, agent weby a translation weby
+✅ Historie: historie se ukládá lokálně, takže předchozí konverzace snadno zobrazíte a vyhledáte
+✅ Prompt templates: vytvářejte prompt templates a zvyšte efektivitu
+✅ Sync mezi zařízeními: podporuje sync oblíbených položek, historie porovnání a prompt templates
+✅ Sidebar mode: otevřete extension v sidebar a používejte AI pohodlněji
 
-🤖 Od té doby se účinnost AIu přímo zvýšila!
+🤖 Odteď vaše efektivita při používání AI okamžitě roste!
 
-Jedná se o open source systém, doufám, že se ho může zúčastnit více lidí, adresa projektu je https://github.com/taoAIGC/AI-Shortcuts/
+Toto je open-source systém. Doufáme, že se zapojí více lidí. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 V případě jakýchkoliv dotazů a návrhů se obraťte na:
+💌 Pro dotazy a návrhy nás kontaktujte:
 
-uživatelská skupina wechat: aipmgpt
-e-mail: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Danish (da)
 
 ```text
-Stil et spørgsmål én gang, og svar på det i AI såsom ChatGPT, Gemini, Claude til indholdsverifikation, brandovervågning og GEO (generativ motoroptimering).
+Stil ét spørgsmål, og sammenlign samtidig svar fra ChatGPT, Gemini, Claude og andre AI-værktøjer. Nyttigt til indholdsverificering, brandovervågning og GEO (Generative Engine Optimization).
 
-Et-klik sammenligning af flere AI, herunder ChatGPT. Gemini. Grok. Claude. Diandian og mere end et dusin AI!
+Sammenlign flere AI-værktøjer med ét klik, herunder ChatGPT, Gemini, Grok, Claude, Diandian og mere end ti andre AI-værktøjer!
 
-🎉 Kopier og indsæt aldrig en efter en igen, "ZXAICOMPAREZX" er alt sammen gjort med et enkelt klik! 🎉
+🎉 Ikke mere kopiering og indsætning én efter én. AI Compare klarer det hele med ét klik! 🎉
 
-👉 "ZXAICOMPAREZX" sender alle AI med et enkelt klik, lad dem PK, der kan bruge hvem, der kan bruge hvem!
+👉 AI Compare sender dit spørgsmål til alle valgte AI-værktøjer med ét klik. Lad dem konkurrere, og brug den bedste eller hurtigste!
 
 💬 Hvad er endnu bedre?
-✅ Automatisk opsummering: Resultater for flere websteder er ikke synlige? Sammenlign automatisk webstedets svar for at finde det bedste svar
-✅ Svardeling: støtte til at dele sammenligningsresultater via websiden URL, MD-filer, kopieringsmetoder
-✅ Skrifttilstand, højreklikstilstand: Skrifttilstand på websiden aktiverer flere AI-sammenligninger
-✅ Indsamlingstilstand: Resultaterne af et websted er særligt tilfredsstillende, hurtig indsamling, ikke bange for ikke at finde
-✅ Filtilstand: Upload filer til flere modeller med et enkelt klik
-✅ Ultra Multisite: Understøtter aktuelle mainstream LLM-chatwebsteder, agentwebsteder, oversættelseswebsteder
-✅ Historik: Historik gemmes lokalt for nem visning og søgning af tidligere samtaler.
-✅ Prompt Template: Understøtter oprettelsen af prompte skabeloner til effektiv start
-✅ Synkronisering på tværs af enheder: Understøtter enhedssynkronisering af indsamlingsoptegnelser, sammenligningsoptegnelser, hurtig skabelonsynkronisering
-✅ Sidebjælketilstand: Sidebjælken åbner plugin'et, hvilket gør det nemmere at bruge AI
+✅ Automatisk resumé: for mange resultater fra flere sites? Sammenlign automatisk svarene og find det bedste
+✅ Deling af svar: del sammenligningsresultater via web-URL, MD-fil eller kopiering
+✅ Tekstvalg og højreklik-tilstand: vælg tekst på en webside for at starte en multi-AI-sammenligning
+✅ Favorit-tilstand: særligt tilfreds med et resultat fra et site? Gem det hurtigt, så du nemt kan finde det senere
+✅ Filtilstand: upload filer til flere modeller med ét klik
+✅ Mange understøttede sites: understøtter populære LLM chat-sites, agent-sites og translation-sites
+✅ Historik: historik gemmes lokalt, så tidligere samtaler er nemme at se og søge i
+✅ Prompt templates: opret prompt templates og øg effektiviteten
+✅ Sync på tværs af enheder: understøtter sync af favoritter, sammenligningshistorik og prompt templates
+✅ Sidebar mode: åbn extension i sidebar og brug AI mere bekvemt
 
-🤖 Siden da har effektiviteten af AI taget direkte fart!
+🤖 Fra nu af stiger din effektivitet med AI med det samme!
 
-Dette er et open source-system, håber flere kan deltage, projektadressen er https://github.com/taoAIGC/AI-Shortcuts/
+Dette er et open-source-system. Vi håber, at flere vil deltage. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Hvis du har spørgsmål eller forslag, bedes du kontakte:
+💌 Kontakt os ved spørgsmål eller forslag:
 
-wechat brugergruppe: aipmgpt
-e-mail: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Dutch (nl)
@@ -368,31 +368,31 @@ email: AIShortcuts@outlook.com
 ## English (en)
 
 ```text
-Ask a question once and answer it in AI such as ChatGPT, Gemini, Claude for content verification, brand monitoring and GEO (generative engine optimization).
+Ask once and compare answers from ChatGPT, Gemini, Claude, and other AI tools at the same time. Useful for content verification, brand monitoring, and GEO (Generative Engine Optimization).
 
-One-click comparison of multiple AI, including ChatGPT. Gemini. Grok. Claude. Diandian and more than a dozen AI!
+Compare multiple AI tools in one click, including ChatGPT, Gemini, Grok, Claude, Diandian, and more than a dozen other AI tools!
 
-🎉 Never copy and paste one by one again, "ZXAICOMPAREZX" is all done with one click! 🎉
+🎉 No more copying and pasting one by one. AI Compare handles it all in one click! 🎉
 
-👉 "ZXAICOMPAREZX" sends all AI in one click, let them PK, who can use who, who can use who!
+👉 AI Compare sends your question to all selected AI tools in one click. Let them compete, then use whichever is better or faster!
 
-💬 What's even better?
-✅ Auto-Summarize: Multisite results are not visible? Automatically compare site answers to find the best answer
-✅ Answer sharing: support to share comparison results through webpage URL, MD files, copy methods
-✅ Scribing mode, right-click mode: Scribing in the webpage activates multiple AI comparisons
-✅ Collection mode: the results of a site are particularly satisfactory, fast collection, not afraid of not finding
-✅ File Mode: Upload files to multiple models with one click
-✅ Ultra Multisite: Supports current mainstream LLM chat sites, agent sites, translation sites
-✅ History: History is stored locally for easy viewing and searching of previous conversations.
-✅ Prompt Template: Supports the creation of prompt templates for efficient take-off
-✅ Cross-device synchronization: Support device synchronization of collection records, comparison records, prompt template synchronization
-✅ Sidebar mode: The sidebar opens the plugin, making it easier to use AI
+💬 What else is better?
+✅ Automatic summary: too many results from multiple sites? Automatically compare site answers and find the best one
+✅ Answer sharing: share comparison results via a web URL, MD file, or copy
+✅ Text selection and right-click modes: select text on a webpage to start a multi-AI comparison
+✅ Favorites mode: especially happy with a result from one site? Save it quickly so you can find it later
+✅ File mode: upload files to multiple models in one click
+✅ Many supported sites: supports popular LLM chat sites, agent sites, and translation sites
+✅ History: history is stored locally, making it easy to view and search previous conversations
+✅ Prompt templates: create prompt templates and boost efficiency
+✅ Cross-device sync: supports syncing favorites, comparison history, and prompt templates
+✅ Sidebar mode: open the extension in the sidebar and use AI more conveniently
 
-🤖 Since then, the efficiency of AI has taken off directly!
+🤖 From now on, your AI efficiency takes off!
 
-This is an open source system, hope more people can participate, the project address is https://github.com/taoAIGC/AI-Shortcuts/
+This is an open-source system. We hope more people can get involved. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 For any questions and suggestions, please contact:
+💌 For any questions or suggestions, please contact:
 
 wechat user group: aipmgpt
 email: AIShortcuts@outlook.com
@@ -401,31 +401,31 @@ email: AIShortcuts@outlook.com
 ## English (Australia) (en_AU)
 
 ```text
-Ask a question once and answer it in AI such as ChatGPT, Gemini, Claude for content verification, brand monitoring and GEO (generative engine optimization).
+Ask once and compare answers from ChatGPT, Gemini, Claude and other AI tools at the same time. Useful for content verification, brand monitoring and GEO (Generative Engine Optimisation).
 
-One-click comparison of multiple AI, including ChatGPT. Gemini. Grok. Claude. Diandian and more than a dozen AI!
+Compare multiple AI tools in one click, including ChatGPT, Gemini, Grok, Claude, Diandian and more than a dozen other AI tools!
 
-🎉 Never copy and paste one by one again, "ZXAICOMPAREZX" is all done with one click! 🎉
+🎉 No more copying and pasting one by one. AI Compare handles it all in one click! 🎉
 
-👉 "ZXAICOMPAREZX" sends all AI in one click, let them PK, who can use who, who can use who!
+👉 AI Compare sends your question to all selected AI tools in one click. Let them compete, then use whichever is better or faster!
 
-💬 What's even better?
-✅ Auto-Summarize: Multisite results are not visible? Automatically compare site answers to find the best answer
-✅ Answer sharing: support to share comparison results through webpage URL, MD files, copy methods
-✅ Scribing mode, right-click mode: Scribing in the webpage activates multiple AI comparisons
-✅ Collection mode: the results of a site are particularly satisfactory, fast collection, not afraid of not finding
-✅ File Mode: Upload files to multiple models with one click
-✅ Ultra Multisite: Supports current mainstream LLM chat sites, agent sites, translation sites
-✅ History: History is stored locally for easy viewing and searching of previous conversations.
-✅ Prompt Template: Supports the creation of prompt templates for efficient take-off
-✅ Cross-device synchronization: Support device synchronization of collection records, comparison records, prompt template synchronization
-✅ Sidebar mode: The sidebar opens the plugin, making it easier to use AI
+💬 What else is better?
+✅ Automatic summary: too many results from multiple sites? Automatically compare site answers and find the best one
+✅ Answer sharing: share comparison results via a web URL, MD file or copy
+✅ Text selection and right-click modes: select text on a webpage to start a multi-AI comparison
+✅ Favourites mode: especially happy with a result from one site? Save it quickly so you can find it later
+✅ File mode: upload files to multiple models in one click
+✅ Many supported sites: supports popular LLM chat sites, agent sites and translation sites
+✅ History: history is stored locally, making it easy to view and search previous conversations
+✅ Prompt templates: create prompt templates and boost efficiency
+✅ Cross-device sync: supports syncing favourites, comparison history and prompt templates
+✅ Sidebar mode: open the extension in the sidebar and use AI more conveniently
 
-🤖 Since then, the efficiency of AI has taken off directly!
+🤖 From now on, your AI efficiency takes off!
 
-This is an open source system, hope more people can participate, the project address is https://github.com/taoAIGC/AI-Shortcuts/
+This is an open-source system. We hope more people can get involved. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 For any questions and suggestions, please contact:
+💌 For any questions or suggestions, please contact:
 
 wechat user group: aipmgpt
 email: AIShortcuts@outlook.com
@@ -434,31 +434,31 @@ email: AIShortcuts@outlook.com
 ## English (United Kingdom) (en_GB)
 
 ```text
-Ask a question once and answer it in AI such as ChatGPT, Gemini, Claude for content verification, brand monitoring and GEO (generative engine optimization).
+Ask once and compare answers from ChatGPT, Gemini, Claude and other AI tools at the same time. Useful for content verification, brand monitoring and GEO (Generative Engine Optimisation).
 
-One-click comparison of multiple AI, including ChatGPT. Gemini. Grok. Claude. Diandian and more than a dozen AI!
+Compare multiple AI tools in one click, including ChatGPT, Gemini, Grok, Claude, Diandian and more than a dozen other AI tools!
 
-🎉 Never copy and paste one by one again, "ZXAICOMPAREZX" is all done with one click! 🎉
+🎉 No more copying and pasting one by one. AI Compare handles it all in one click! 🎉
 
-👉 "ZXAICOMPAREZX" sends all AI in one click, let them PK, who can use who, who can use who!
+👉 AI Compare sends your question to all selected AI tools in one click. Let them compete, then use whichever is better or faster!
 
-💬 What's even better?
-✅ Auto-Summarize: Multisite results are not visible? Automatically compare site answers to find the best answer
-✅ Answer sharing: support to share comparison results through webpage URL, MD files, copy methods
-✅ Scribing mode, right-click mode: Scribing in the webpage activates multiple AI comparisons
-✅ Collection mode: the results of a site are particularly satisfactory, fast collection, not afraid of not finding
-✅ File Mode: Upload files to multiple models with one click
-✅ Ultra Multisite: Supports current mainstream LLM chat sites, agent sites, translation sites
-✅ History: History is stored locally for easy viewing and searching of previous conversations.
-✅ Prompt Template: Supports the creation of prompt templates for efficient take-off
-✅ Cross-device synchronization: Support device synchronization of collection records, comparison records, prompt template synchronization
-✅ Sidebar mode: The sidebar opens the plugin, making it easier to use AI
+💬 What else is better?
+✅ Automatic summary: too many results from multiple sites? Automatically compare site answers and find the best one
+✅ Answer sharing: share comparison results via a web URL, MD file or copy
+✅ Text selection and right-click modes: select text on a webpage to start a multi-AI comparison
+✅ Favourites mode: especially happy with a result from one site? Save it quickly so you can find it later
+✅ File mode: upload files to multiple models in one click
+✅ Many supported sites: supports popular LLM chat sites, agent sites and translation sites
+✅ History: history is stored locally, making it easy to view and search previous conversations
+✅ Prompt templates: create prompt templates and boost efficiency
+✅ Cross-device sync: supports syncing favourites, comparison history and prompt templates
+✅ Sidebar mode: open the extension in the sidebar and use AI more conveniently
 
-🤖 Since then, the efficiency of AI has taken off directly!
+🤖 From now on, your AI efficiency takes off!
 
-This is an open source system, hope more people can participate, the project address is https://github.com/taoAIGC/AI-Shortcuts/
+This is an open-source system. We hope more people can get involved. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 For any questions and suggestions, please contact:
+💌 For any questions or suggestions, please contact:
 
 wechat user group: aipmgpt
 email: AIShortcuts@outlook.com
@@ -467,31 +467,31 @@ email: AIShortcuts@outlook.com
 ## English (United States) (en_US)
 
 ```text
-Ask a question once and answer it in AI such as ChatGPT, Gemini, Claude for content verification, brand monitoring and GEO (generative engine optimization).
+Ask once and compare answers from ChatGPT, Gemini, Claude, and other AI tools at the same time. Useful for content verification, brand monitoring, and GEO (Generative Engine Optimization).
 
-One-click comparison of multiple AI, including ChatGPT. Gemini. Grok. Claude. Diandian and more than a dozen AI!
+Compare multiple AI tools in one click, including ChatGPT, Gemini, Grok, Claude, Diandian, and more than a dozen other AI tools!
 
-🎉 Never copy and paste one by one again, "ZXAICOMPAREZX" is all done with one click! 🎉
+🎉 No more copying and pasting one by one. AI Compare handles it all in one click! 🎉
 
-👉 "ZXAICOMPAREZX" sends all AI in one click, let them PK, who can use who, who can use who!
+👉 AI Compare sends your question to all selected AI tools in one click. Let them compete, then use whichever is better or faster!
 
-💬 What's even better?
-✅ Auto-Summarize: Multisite results are not visible? Automatically compare site answers to find the best answer
-✅ Answer sharing: support to share comparison results through webpage URL, MD files, copy methods
-✅ Scribing mode, right-click mode: Scribing in the webpage activates multiple AI comparisons
-✅ Collection mode: the results of a site are particularly satisfactory, fast collection, not afraid of not finding
-✅ File Mode: Upload files to multiple models with one click
-✅ Ultra Multisite: Supports current mainstream LLM chat sites, agent sites, translation sites
-✅ History: History is stored locally for easy viewing and searching of previous conversations.
-✅ Prompt Template: Supports the creation of prompt templates for efficient take-off
-✅ Cross-device synchronization: Support device synchronization of collection records, comparison records, prompt template synchronization
-✅ Sidebar mode: The sidebar opens the plugin, making it easier to use AI
+💬 What else is better?
+✅ Automatic summary: too many results from multiple sites? Automatically compare site answers and find the best one
+✅ Answer sharing: share comparison results via a web URL, MD file, or copy
+✅ Text selection and right-click modes: select text on a webpage to start a multi-AI comparison
+✅ Favorites mode: especially happy with a result from one site? Save it quickly so you can find it later
+✅ File mode: upload files to multiple models in one click
+✅ Many supported sites: supports popular LLM chat sites, agent sites, and translation sites
+✅ History: history is stored locally, making it easy to view and search previous conversations
+✅ Prompt templates: create prompt templates and boost efficiency
+✅ Cross-device sync: supports syncing favorites, comparison history, and prompt templates
+✅ Sidebar mode: open the extension in the sidebar and use AI more conveniently
 
-🤖 Since then, the efficiency of AI has taken off directly!
+🤖 From now on, your AI efficiency takes off!
 
-This is an open source system, hope more people can participate, the project address is https://github.com/taoAIGC/AI-Shortcuts/
+This is an open-source system. We hope more people can get involved. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 For any questions and suggestions, please contact:
+💌 For any questions or suggestions, please contact:
 
 wechat user group: aipmgpt
 email: AIShortcuts@outlook.com
@@ -500,232 +500,232 @@ email: AIShortcuts@outlook.com
 ## Estonian (et)
 
 ```text
-Esitage üks küsimus ja vastake sellele AI-is, näiteks ChatGPT, Gemini, Claude sisu kontrollimiseks, kaubamärgi jälgimiseks ja GEO (generatiivne mootori optimeerimine).
+Esitage üks küsimus ja võrrelge samal ajal ChatGPT, Gemini, Claude’i ja teiste AI-tööriistade vastuseid. Sobib sisu kontrollimiseks, brändi jälgimiseks ja GEO-ks (Generative Engine Optimization).
 
-Mitme AI-i, sealhulgas ChatGPT-i võrdlus ühe klõpsuga. Gemini. Grok. Claude. Diandian ja rohkem kui tosin AI!
+Võrrelge ühe klõpsuga mitut AI-tööriista, sealhulgas ChatGPT-d, Geminit, Groki, Claude’i, Diandiani ja rohkem kui kümmet muud AI-tööriista!
 
-🎉 Ärge kunagi kopeerige ja kleepige ükshaaval, "ZXAICOMPAREZX" on tehtud ühe klõpsuga! 🎉
+🎉 Enam pole vaja ükshaaval kopeerida ja kleepida. AI Compare teeb kõik ühe klõpsuga ära! 🎉
 
-👉 "ZXAICOMPAREZX" saadab kõik AI ühe klõpsuga, lase neil PK, kes saavad kasutada keda, kes saavad kasutada keda!
+👉 AI Compare saadab teie küsimuse ühe klõpsuga kõigile valitud AI-tööriistadele. Las nad võistlevad, teie valite parema või kiirema!
 
-💬 Mis on veelgi parem?
-✅ Automaatne summeerimine: Mitme laoala tulemused pole nähtavad? Parima vastuse leidmiseks võrrelge saidi vastuseid automaatselt
-✅ Vastuste jagamine: tugi võrdlustulemuste jagamiseks veebilehe URL, MD failide, kopeerimismeetodite kaudu
-✅ Kritseldamisrežiim, paremklõpsu režiim: kritseldamine veebilehel aktiveerib mitu AI-i võrdlust
-✅ Kogumisrežiim: saidi tulemused on eriti rahuldavad, kiire kogumine, ei karda mitte leida
-✅ Failirežiim: failide üleslaadimine mitmesse mudelisse ühe klõpsuga
-✅ Ultra Multisite: toetab praeguseid peavoolu LLM vestlussaite, agentide saite, tõlkesaite
-✅ Ajalugu: varasemate vestluste hõlpsaks vaatamiseks ja otsimiseks salvestatakse ajalugu kohalikult.
-✅ Viiba mall: toetab viipa mallide loomist tõhusaks stardiks
-✅ Seadmeteülene sünkroonimine: tugi seadme kollektsioonikirjete sünkroonimisele, võrdluskirjetele, viiba malli sünkroonimisele
-✅ Külgriba režiim: külgriba avab plugina, muutes AI-i kasutamise lihtsamaks
+💬 Mis on veel parem?
+✅ Automaatne kokkuvõte: liiga palju tulemusi mitmelt saidilt? Võrrelge saitide vastuseid automaatselt ja leidke parim
+✅ Vastuste jagamine: jagage võrdlustulemusi veebi-URL-i, MD-faili või kopeerimise kaudu
+✅ Teksti valimise ja paremklõpsu režiimid: valige veebilehel tekst, et käivitada multi-AI võrdlus
+✅ Lemmikute režiim: kas mõne saidi tulemus meeldib eriti? Salvestage see kiiresti, et hiljem hõlpsalt üles leida
+✅ Failirežiim: laadige failid ühe klõpsuga mitmesse mudelisse üles
+✅ Palju toetatud saite: toetab populaarseid LLM chat saite, agent saite ja translation saite
+✅ Ajalugu: ajalugu salvestatakse kohalikult, nii et varasemaid vestlusi on lihtne vaadata ja otsida
+✅ Prompt templates: looge prompt templates ja suurendage tõhusust
+✅ Seadmeteülene sync: toetab lemmikute, võrdlusajaloo ja prompt templates syncimist
+✅ Sidebar mode: avage extension sidebaris ja kasutage AI-d mugavamalt
 
-🤖 Sellest ajast alates on AI-i tõhusus otseselt tõusnud!
+🤖 Nüüdsest tõuseb teie AI kasutamise tõhusus kohe!
 
-See on avatud lähtekoodiga süsteem, loodame, et rohkem inimesi saab osaleda, projekti aadress on https://github.com/taoAIGC/AI-Shortcuts/
+See on open-source süsteem. Loodame, et rohkem inimesi saab kaasa lüüa. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Küsimuste ja soovituste korral võta ühendust:
+💌 Küsimuste ja ettepanekute korral võtke ühendust:
 
-wechati kasutajagrupp: aipmgpt
-e-post: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Filipino (fil)
 
 ```text
-Magtanong nang isang beses at sagutin ito sa ChatGPT tulad ng Gemini, Claude para sa pag - verify ng nilalaman, pagmamanman ng tatak at GEO (generative engine optimization).
+Magtanong nang isang beses at sabay na ihambing ang mga sagot mula sa ChatGPT, Gemini, Claude, at iba pang AI tool. Kapaki-pakinabang para sa pag-verify ng content, brand monitoring, at GEO (Generative Engine Optimization).
 
-Isang - click na paghahambing ng maramihang AI, kabilang ang ChatGPT. Gemini. Grok. Claude. Diandian at higit sa isang dosenang AI!
+Ihambing ang maraming AI tool sa isang click, kabilang ang ChatGPT, Gemini, Grok, Claude, Diandian, at higit sa sampung iba pang AI tool!
 
-🎉 Huwag kailanman kopyahin at i - paste ang isa - isa muli, "ZXAICOMPAREZX" ay tapos na sa isang click! 🎉
+🎉 Hindi mo na kailangang mag-copy-paste isa-isa. Ginagawa ng AI Compare ang lahat sa isang click! 🎉
 
-👉 Ang "ZXAICOMPAREZX" ay nagpapadala ng lahat ng AI sa isang pag - click, hayaan silang PK, na maaaring gumamit ng sino, na maaaring gumamit ng sino!
+👉 Ipinapadala ng AI Compare ang iyong tanong sa lahat ng napiling AI tool sa isang click. Hayaan silang maglaban, pagkatapos piliin ang mas mahusay o mas mabilis!
 
 💬 Ano pa ang mas maganda?
-✅ Auto - Summarize: Hindi nakikita ang mga resulta ng Multisite? Awtomatikong ihambing ang mga sagot sa site upang mahanap ang pinakamahusay na sagot
-✅ Pagbabahagi ng sagot: suporta upang ibahagi ang mga resulta ng paghahambing sa pamamagitan ng webpage URL, MD file, mga paraan ng pagkopya
-✅ Scribing mode, right - click mode: Pinapagana ng Scribing sa webpage ang maramihang paghahambing ng AI
-✅ Mode ng koleksyon: ang mga resulta ng isang site ay partikular na kasiya - siya, mabilis na koleksyon, hindi natatakot na hindi mahanap
-✅ File Mode: Mag - upload ng mga file sa maramihang mga modelo sa isang click
-✅ Ultra Multisite: Sinusuportahan ang kasalukuyang mainstream LLM chat site, mga site ng ahente, mga site ng pagsasalin
-✅ Kasaysayan: Ang kasaysayan ay nakaimbak nang lokal para sa madaling pagtingin at paghahanap ng mga nakaraang pag - uusap.
-✅ Prompt Template: Sinusuportahan ang paglikha ng mga prompt template para sa mahusay na take - off
-✅ Pag - synchronize ng cross - device: Pagsuporta sa pag - synchronize ng device ng mga tala ng koleksyon, mga tala ng paghahambing, pag - synchronize ng prompt template
-✅ Sidebar mode: Binubuksan ng sidebar ang plugin, na ginagawang mas madali ang paggamit ng AI
+✅ Awtomatikong buod: masyadong maraming resulta mula sa maraming site? Awtomatikong ihambing ang mga sagot ng mga site at hanapin ang pinakamahusay
+✅ Pagbabahagi ng sagot: ibahagi ang mga resulta ng paghahambing gamit ang web URL, MD file, o pagkopya
+✅ Text selection at right-click mode: pumili ng text sa isang webpage para simulan ang multi-AI comparison
+✅ Favorites mode: lalo bang nagustuhan ang resulta mula sa isang site? I-save ito agad para madali itong mahanap muli
+✅ File mode: mag-upload ng mga file sa maraming model sa isang click
+✅ Maraming suportadong site: sumusuporta sa mga sikat na LLM chat site, agent site, at translation site
+✅ History: lokal na sine-save ang history, kaya madaling tingnan at hanapin ang mga nakaraang pag-uusap
+✅ Prompt templates: gumawa ng prompt templates para mapataas ang efficiency
+✅ Cross-device sync: sumusuporta sa pag-sync ng favorites, comparison history, at prompt templates
+✅ Sidebar mode: buksan ang extension sa sidebar at gamitin ang AI nang mas maginhawa
 
-🤖 Simula noon, ang kahusayan ng AI ay kinuha off direkta!
+🤖 Mula ngayon, tataas agad ang efficiency mo sa paggamit ng AI!
 
-Ito ay isang open source system, umaasa na mas maraming tao ang maaaring lumahok, ang address ng proyekto ay https://github.com/taoAIGC/AI-Shortcuts/
+Ito ay isang open-source system. Umaasa kaming mas maraming tao ang makikilahok. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Para sa anumang mga katanungan at mga mungkahi, mangyaring makipag - ugnay sa:
+💌 Para sa anumang tanong at mungkahi, makipag-ugnayan sa:
 
-email: info@aipmgpt.com
+wechat user group: aipmgpt
 email: AIShortcuts@outlook.com
 ```
 
 ## Finnish (fi)
 
 ```text
-Esitä kysymys kerran ja vastaa siihen AI: ssä, kuten ChatGPT, Gemini, Claude sisällön todentamiseen, tuotemerkin valvontaan ja GEO (generatiivinen moottorin optimointi).
+Kysy kerran ja vertaile samalla ChatGPT:n, Geminin, Clauden ja muiden AI-työkalujen vastauksia. Hyödyllinen sisällön tarkistamiseen, brändin seurantaan ja GEO:hon (Generative Engine Optimization).
 
-Vertaile useita AI: iä yhdellä napsautuksella, mukaan lukien ChatGPT. Gemini. Grok. Claude. Diandian ja yli tusina AI!
+Vertaile useita AI-työkaluja yhdellä klikkauksella, mukaan lukien ChatGPT, Gemini, Grok, Claude, Diandian ja yli kymmenen muuta AI-työkalua!
 
-🎉 Älä koskaan kopioi ja liitä yksi kerrallaan uudelleen, "ZXAICOMPAREZX" on valmis yhdellä napsautuksella! 🎉
+🎉 Ei enää kopiointia ja liittämistä yksi kerrallaan. AI Compare hoitaa kaiken yhdellä klikkauksella! 🎉
 
-👉 "ZXAICOMPAREZX" lähettää kaikki AI yhdellä napsautuksella, anna heidän PK, kuka voi käyttää ketä, kuka voi käyttää ketä!
+👉 AI Compare lähettää kysymyksesi kaikille valituille AI-työkaluille yhdellä klikkauksella. Anna niiden kilpailla ja valitse parempi tai nopeampi!
 
 💬 Mikä on vielä parempaa?
-✅ Automaattinen yhteenveto: Multisite-tulokset eivät näy? Vertaile sivuston vastauksia automaattisesti löytääksesi parhaan vastauksen
-✅ Vastausten jakaminen: tuki vertailutulosten jakamiseen verkkosivun URL, MD-tiedostojen, kopiointimenetelmien kautta
-✅ Kirjoitustila, hiiren kakkospainikkeella: Kirjoitustila verkkosivulla aktivoi useita AI-vertailuja
-✅ Keräystapa: toimipaikan tulokset ovat erityisen tyydyttäviä, nopea keräys, älä pelkää olla löytämättä
-✅ Tiedostotila: Lataa tiedostoja useisiin malleihin yhdellä napsautuksella
-✅ Ultra Multisite: Tukee nykyisiä valtavirran LLM-keskustelusivustoja, agenttisivustoja, käännössivustoja
-✅ Historia: Historia tallennetaan paikallisesti aiempien keskustelujen katselun ja haun helpottamiseksi.
-✅ Kehotemalli: Tukee kehotemallien luomista tehokasta lentoonlähtöä varten
-✅ Laitteiden välinen synkronointi: Tukilaitteiden synkronointi kokoelmatietueissa, vertailutietueissa, kehotemallien synkronoinnissa
-✅ Sivupalkin tila: Sivupalkki avaa laajennuksen, mikä helpottaa AI: n käyttöä
+✅ Automaattinen yhteenveto: liikaa tuloksia useilta sivustoilta? Vertaile sivustojen vastauksia automaattisesti ja löydä paras
+✅ Vastausten jakaminen: jaa vertailutulokset verkko-URL:n, MD-tiedoston tai kopioinnin kautta
+✅ Tekstin valinta- ja oikean klikkauksen tilat: valitse teksti verkkosivulta käynnistääksesi multi-AI-vertailun
+✅ Suosikkitila: oletko erityisen tyytyväinen jonkin sivuston tulokseen? Tallenna se nopeasti, jotta löydät sen myöhemmin helposti
+✅ Tiedostotila: lataa tiedostoja useisiin malleihin yhdellä klikkauksella
+✅ Paljon tuettuja sivustoja: tukee suosittuja LLM chat -sivustoja, agent-sivustoja ja translation-sivustoja
+✅ Historia: historia tallennetaan paikallisesti, joten aiempia keskusteluja on helppo tarkastella ja hakea
+✅ Prompt templates: luo prompt templates ja paranna tehokkuutta
+✅ Laitteiden välinen sync: tukee suosikkien, vertailuhistorian ja prompt templates -synkronointia
+✅ Sidebar mode: avaa extension sidebarissa ja käytä AI:ta kätevämmin
 
-🤖 Siitä lähtien AI: n tehokkuus on noussut suoraan!
+🤖 Tästä lähtien AI:n käytön tehokkuus nousee heti!
 
-Tämä on avoimen lähdekoodin järjestelmä, toivottavasti useammat ihmiset voivat osallistua, projektin osoite on https://github.com/taoAIGC/AI-Shortcuts/
+Tämä on open-source-järjestelmä. Toivomme, että useammat ihmiset osallistuvat. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Jos sinulla on kysyttävää tai ehdotuksia, ota yhteyttä:
+💌 Kysymyksiä ja ehdotuksia varten ota yhteyttä:
 
-wechat-käyttäjäryhmä: aipmgpt
-sähköposti: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## French (fr)
 
 ```text
-Posez une question une fois et répondez-y dans AI comme ChatGPT, Gemini, Claude pour la vérification du contenu, la surveillance de la marque et GEO (optimisation générative du moteur).
+Posez une seule question et comparez en même temps les réponses de ChatGPT, Gemini, Claude et d’autres outils d’AI. Utile pour la vérification de contenu, la surveillance de marque et le GEO (Generative Engine Optimization).
 
-Comparaison en un clic de plusieurs AI, y compris ChatGPT. Gemini. Grok. Claude. Diandian et plus d'une douzaine de AI!
+Comparez plusieurs outils d’AI en un clic, dont ChatGPT, Gemini, Grok, Claude, Diandian et plus d’une dizaine d’autres outils d’AI !
 
-🎉 Ne copiez et ne collez plus jamais un par un, "ZXAICOMPAREZX" est terminé en un clic! 🎉
+🎉 Plus besoin de copier-coller un par un. AI Compare s’occupe de tout en un clic ! 🎉
 
-👉 "ZXAICOMPAREZX" envoie tous les AI en un clic, laissez-les PK, qui peut utiliser qui, qui peut utiliser qui!
+👉 AI Compare envoie votre question à tous les outils d’AI sélectionnés en un clic. Laissez-les se comparer, puis utilisez le meilleur ou le plus rapide !
 
-💬 Quoi de mieux?
-✅ Synthèse automatique: les résultats multisites ne sont pas visibles? Comparer automatiquement les réponses du site pour trouver la meilleure réponse
-✅ Partage des réponses: prise en charge du partage des résultats de comparaison via la page Web URL, les fichiers MD, les méthodes de copie
-✅ Mode Scribing, mode clic droit: Scribing in the webpage active multiple AI comparisons
-✅ Mode de collecte: les résultats d'un site sont particulièrement satisfaisants, collecte rapide, pas peur de ne pas trouver
-✅ Mode fichier: téléchargez des fichiers sur plusieurs modèles en un seul clic
-✅ Ultra Multisite: prend en charge les sites de discussion LLM courants, les sites d'agents, les sites de traduction
-✅ Historique: l'historique est stocké localement pour faciliter la visualisation et la recherche des conversations précédentes.
-✅ Modèle d'invite: prend en charge la création de modèles d'invite pour un décollage efficace
-✅ Synchronisation inter-appareils: prise en charge de la synchronisation des appareils des enregistrements de collecte, des enregistrements de comparaison, de la synchronisation rapide des modèles
-✅ Mode barre latérale: la barre latérale ouvre le plugin, ce qui facilite l'utilisation de AI
+💬 Quoi d’autre ?
+✅ Résumé automatique : trop de résultats provenant de plusieurs sites ? Comparez automatiquement les réponses et trouvez la meilleure
+✅ Partage des réponses : partagez les résultats de comparaison via une URL web, un fichier MD ou par copie
+✅ Modes sélection de texte et clic droit : sélectionnez du texte sur une page web pour lancer une comparaison multi-AI
+✅ Mode favoris : particulièrement satisfait du résultat d’un site ? Enregistrez-le rapidement pour le retrouver facilement plus tard
+✅ Mode fichier : importez des fichiers vers plusieurs modèles en un clic
+✅ Nombreux sites pris en charge : prend en charge les principaux sites LLM chat, sites agent et sites translation
+✅ Historique : l’historique est stocké localement, ce qui facilite la consultation et la recherche des conversations précédentes
+✅ Prompt templates : créez des prompt templates et gagnez en efficacité
+✅ Sync multi-appareils : prend en charge la sync des favoris, de l’historique des comparaisons et des prompt templates
+✅ Sidebar mode : ouvrez extension dans sidebar et utilisez AI plus facilement
 
-🤖 Depuis, l'efficacité de AI a directement décollé!
+🤖 Désormais, votre efficacité avec AI décolle !
 
-Il s'agit d'un système open source, j'espère que plus de gens pourront participer, l'adresse du projet est https://github.com/taoAIGC/AI-Shortcuts/
+Il s’agit d’un système open-source. Nous espérons que davantage de personnes pourront y participer. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Pour toute question ou suggestion, veuillez contacter:
+💌 Pour toute question ou suggestion, contactez-nous :
 
-groupe d'utilisateurs wechat: aipmgpt
-e-mail: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## German (de)
 
 ```text
-Stellen Sie einmal eine Frage und beantworten Sie sie in AI wie ChatGPT, Gemini, Claude zur Inhaltsüberprüfung, Markenüberwachung und GEO (generative Motoroptimierung).
+Stellen Sie eine Frage und vergleichen Sie gleichzeitig Antworten von ChatGPT, Gemini, Claude und anderen AI-Tools. Nützlich für Inhaltsprüfung, Markenmonitoring und GEO (Generative Engine Optimization).
 
-Ein-Klick-Vergleich mehrerer AI, einschließlich ChatGPT. Gemini. Grok. Claude. Diandian und mehr als ein Dutzend AI!
+Vergleichen Sie mehrere AI-Tools mit einem Klick, darunter ChatGPT, Gemini, Grok, Claude, Diandian und mehr als zehn weitere AI-Tools!
 
-🎉 Nie wieder eins nach dem anderen kopieren und einfügen, "ZXAICOMPAREZX" ist alles mit einem Klick erledigt! 🎉
+🎉 Kein Kopieren und Einfügen einzeln mehr. AI Compare erledigt alles mit einem Klick! 🎉
 
-👉 "ZXAICOMPAREZX" sendet alle AI mit einem Klick, lassen Sie sie PK, wer kann wen benutzen, wer kann wen benutzen!
+👉 AI Compare sendet Ihre Frage mit einem Klick an alle ausgewählten AI-Tools. Lassen Sie sie vergleichen und nutzen Sie dann das bessere oder schnellere Ergebnis!
 
 💬 Was ist noch besser?
-✅ Automatische Zusammenfassung: Multisite-Ergebnisse sind nicht sichtbar? Website-Antworten automatisch vergleichen, um die beste Antwort zu finden
-✅ Teilen von Antworten: Unterstützung zum Teilen von Vergleichsergebnissen über die Webseite URL, MD-Dateien, Kopiermethoden
-✅ Schreibmodus, Rechtsklickmodus: Das Schreiben auf der Webseite aktiviert mehrere AI-Vergleiche
-✅ Erfassungsmodus: Die Ergebnisse einer Website sind besonders zufriedenstellend, schnelle Erfassung, keine Angst, nicht zu finden
-✅ Dateimodus: Dateien mit einem Klick auf mehrere Modelle hochladen
-✅ Ultra-Multisite: Unterstützt aktuelle Mainstream-LLM-Chat-Websites, Agenten-Websites, Übersetzungs-Websites
-✅ Verlauf: Der Verlauf wird lokal gespeichert, um frühere Konversationen einfach anzuzeigen und zu durchsuchen.
-✅ Eingabeaufforderungsvorlage: Unterstützt die Erstellung von Eingabeaufforderungsvorlagen für einen effizienten Start
-✅ Geräteübergreifende Synchronisation: Unterstützung der Gerätesynchronisation von Sammlungsdatensätzen, Vergleichsdatensätzen, Eingabeaufforderung zur Vorlagensynchronisation
-✅ Seitenleistenmodus: Die Seitenleiste öffnet das Plugin und erleichtert die Verwendung von AI
+✅ Automatische Zusammenfassung: zu viele Ergebnisse von mehreren Websites? Vergleichen Sie die Antworten automatisch und finden Sie die beste
+✅ Antworten teilen: teilen Sie Vergleichsergebnisse per Web-URL, MD-Datei oder Kopieren
+✅ Textauswahl- und Rechtsklick-Modus: wählen Sie Text auf einer Webseite aus, um einen multi-AI-Vergleich zu starten
+✅ Favoritenmodus: besonders zufrieden mit dem Ergebnis einer Website? Speichern Sie es schnell, damit Sie es später leicht wiederfinden
+✅ Dateimodus: laden Sie Dateien mit einem Klick in mehrere Modelle hoch
+✅ Viele unterstützte Websites: unterstützt beliebte LLM chat-Websites, agent-Websites und translation-Websites
+✅ Verlauf: der Verlauf wird lokal gespeichert, sodass frühere Gespräche leicht angezeigt und durchsucht werden können
+✅ Prompt templates: erstellen Sie prompt templates und steigern Sie die Effizienz
+✅ Geräteübergreifende sync: unterstützt sync von Favoriten, Vergleichsverlauf und prompt templates
+✅ Sidebar mode: öffnen Sie extension in sidebar und nutzen Sie AI bequemer
 
-🤖 Seitdem hat die Effizienz von AI direkt zugenommen!
+🤖 Ab jetzt steigt Ihre Effizienz bei der Nutzung von AI sofort!
 
-Dies ist ein Open-Source-System, hoffen, dass mehr Menschen teilnehmen können, die Projektadresse ist https://github.com/taoAIGC/AI-Shortcuts/
+Dies ist ein open-source-System. Wir hoffen, dass sich mehr Menschen beteiligen. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Bei Fragen und Anregungen wenden Sie sich bitte an:
+💌 Bei Fragen oder Vorschlägen kontaktieren Sie uns:
 
-wechat Benutzergruppe: aipmgpt
-e-Mail: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Greek (el)
 
 ```text
-Κάντε μια ερώτηση μία φορά και απαντήστε σε AI όπως ChatGPT, Gemini, Claude για επαλήθευση περιεχομένου, παρακολούθηση επωνυμίας και GEO (δημιουργική βελτιστοποίηση κινητήρα).
+Κάντε μία ερώτηση και συγκρίνετε ταυτόχρονα απαντήσεις από ChatGPT, Gemini, Claude και άλλα εργαλεία AI. Χρήσιμο για επαλήθευση περιεχομένου, παρακολούθηση brand και GEO (Generative Engine Optimization).
 
-Σύγκριση πολλαπλών AI με ένα κλικ, συμπεριλαμβανομένου του ChatGPT. Gemini. Grok. Claude. Diandian και πάνω από δώδεκα AI!
+Συγκρίνετε πολλά εργαλεία AI με ένα κλικ, όπως ChatGPT, Gemini, Grok, Claude, Diandian και πάνω από δέκα άλλα εργαλεία AI!
 
-🎉 Ποτέ μην αντιγράφετε και επικολλάτε ένα προς ένα ξανά, το "ZXAICOMPAREZX" γίνεται με ένα κλικ! 🎉
+🎉 Τέρμα η αντιγραφή και επικόλληση ένα-ένα. Το AI Compare τα χειρίζεται όλα με ένα κλικ! 🎉
 
-👉 Το "ZXAICOMPAREZX" στέλνει όλα τα AI με ένα κλικ, αφήστε τα PK, ποιος μπορεί να χρησιμοποιήσει ποιος, ποιος μπορεί να χρησιμοποιήσει ποιος!
+👉 Το AI Compare στέλνει την ερώτησή σας σε όλα τα επιλεγμένα εργαλεία AI με ένα κλικ. Αφήστε τα να συγκριθούν και χρησιμοποιήστε το καλύτερο ή το ταχύτερο!
 
-💬 Τι είναι ακόμα καλύτερο;
-✅ Αυτόματη άθροιση: Τα αποτελέσματα πολλαπλών τοποθεσιών δεν είναι ορατά; Συγκρίνετε αυτόματα τις απαντήσεις του ιστότοπου για να βρείτε την καλύτερη απάντηση
-✅ Κοινή χρήση απαντήσεων: υποστήριξη για κοινή χρήση αποτελεσμάτων σύγκρισης μέσω της ιστοσελίδας URL, αρχείων MD, μεθόδων αντιγραφής
-✅ Λειτουργία εγγραφής με δεξί κλικ: Η εγγραφή στην ιστοσελίδα ενεργοποιεί πολλαπλές συγκρίσεις AI
-✅ Λειτουργία συλλογής: τα αποτελέσματα μιας τοποθεσίας είναι ιδιαίτερα ικανοποιητικά, γρήγορη συλλογή, δεν φοβούνται να μην βρουν
-✅ Λειτουργία αρχείου: Μεταφόρτωση αρχείων σε πολλαπλά μοντέλα με ένα κλικ
-✅ Ultra Multisite: Υποστηρίζει τους τρέχοντες κύριους ιστότοπους συνομιλίας LLM, ιστότοπους αντιπροσώπων, ιστότοπους μετάφρασης
-✅ Ιστορικό: Το ιστορικό αποθηκεύεται τοπικά για εύκολη προβολή και αναζήτηση προηγούμενων συνομιλιών.
-✅ Πρότυπο προτροπής: Υποστηρίζει τη δημιουργία προτύπων προτροπής για αποτελεσματική απογείωση
-✅ Συγχρονισμός μεταξύ συσκευών: Συγχρονισμός συσκευών υποστήριξης αρχείων συλλογής, αρχείων σύγκρισης, άμεσου συγχρονισμού προτύπων
-✅ Λειτουργία πλαϊνής στήλης: Η πλαϊνή στήλη ανοίγει το πρόσθετο, διευκολύνοντας τη χρήση του AI
+💬 Τι άλλο είναι καλύτερο;
+✅ Αυτόματη σύνοψη: πάρα πολλά αποτελέσματα από πολλές ιστοσελίδες; Συγκρίνετε αυτόματα τις απαντήσεις και βρείτε την καλύτερη
+✅ Κοινή χρήση απαντήσεων: μοιραστείτε αποτελέσματα σύγκρισης μέσω web URL, αρχείου MD ή αντιγραφής
+✅ Λειτουργίες επιλογής κειμένου και δεξιού κλικ: επιλέξτε κείμενο σε μια ιστοσελίδα για να ξεκινήσετε σύγκριση multi-AI
+✅ Λειτουργία αγαπημένων: σας άρεσε ιδιαίτερα το αποτέλεσμα από έναν ιστότοπο; Αποθηκεύστε το γρήγορα για να το βρείτε εύκολα αργότερα
+✅ Λειτουργία αρχείων: ανεβάστε αρχεία σε πολλά μοντέλα με ένα κλικ
+✅ Πολλοί υποστηριζόμενοι ιστότοποι: υποστηρίζει δημοφιλείς ιστότοπους LLM chat, ιστότοπους agent και ιστότοπους translation
+✅ Ιστορικό: το ιστορικό αποθηκεύεται τοπικά, ώστε να βλέπετε και να αναζητάτε εύκολα προηγούμενες συνομιλίες
+✅ Prompt templates: δημιουργήστε prompt templates και αυξήστε την αποδοτικότητα
+✅ Sync μεταξύ συσκευών: υποστηρίζει sync αγαπημένων, ιστορικού συγκρίσεων και prompt templates
+✅ Sidebar mode: ανοίξτε extension στο sidebar και χρησιμοποιήστε AI πιο άνετα
 
-🤖 Έκτοτε, η αποτελεσματικότητα του AI έχει απογειωθεί άμεσα!
+🤖 Από εδώ και πέρα, η αποδοτικότητά σας με το AI ανεβαίνει άμεσα!
 
-Αυτό είναι ένα σύστημα ανοιχτού κώδικα, ελπίζουμε ότι περισσότεροι άνθρωποι μπορούν να συμμετάσχουν, η διεύθυνση του έργου είναι https://github.com/taoAIGC/AI-Shortcuts/
+Αυτό είναι ένα open-source σύστημα. Ελπίζουμε να συμμετάσχουν περισσότεροι άνθρωποι. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Για τυχόν ερωτήσεις και προτάσεις, επικοινωνήστε με:
+💌 Για ερωτήσεις ή προτάσεις, επικοινωνήστε:
 
-ομάδα χρηστών wechat: aipmgpt
+wechat user group: aipmgpt
 email: AIShortcuts@outlook.com
 ```
 
 ## Gujarati (gu)
 
 ```text
-એકવાર પ્રશ્ન પૂછો અને AI માં તેનો જવાબ આપો જેમ કે ChatGPT, Gemini, Claude કન્ટેન્ટ વેરિફિકેશન, બ્રાન્ડ મોનિટરિંગ અને GEO (જનરેટિવ એન્જિન ઓપ્ટિમાઇઝેશન) માટે.
+એક જ વાર પ્રશ્ન પૂછો અને ChatGPT, Gemini, Claude તથા અન્ય AI ટૂલ્સના જવાબો એક સાથે સરખાવો. કન્ટેન્ટ ચકાસણી, બ્રાન્ડ મોનિટરિંગ અને GEO (Generative Engine Optimization) માટે ઉપયોગી.
 
-ChatGPT સહિત બહુવિધ AI ની એક-ક્લિક સરખામણી. Gemini. Grok. Claude. Diandian અને એક ડઝનથી વધુ AI!
+એક ક્લિકમાં અનેક AI ટૂલ્સની સરખામણી કરો, જેમાં ChatGPT, Gemini, Grok, Claude, Diandian અને દસથી વધુ અન્ય AI ટૂલ્સ સામેલ છે!
 
-🎉 એક પછી એક કૉપિ અને પેસ્ટ ક્યારેય ન કરો, "ZXAICOMPAREZX" બધું એક ક્લિકથી થઈ ગયું છે! 🎉
+🎉 હવે એક-એક કરીને copy-paste કરવાની જરૂર નથી. AI Compare બધું એક ક્લિકમાં કરી આપે છે! 🎉
 
-👉 "ZXAICOMPAREZX" એક ક્લિકમાં બધા AI મોકલે છે, તેમને PK દો, કોણ કોનો ઉપયોગ કરી શકે છે, કોણ કોનો ઉપયોગ કરી શકે છે!
+👉 AI Compare તમારો પ્રશ્ન એક ક્લિકમાં પસંદ કરેલા બધા AI ટૂલ્સને મોકલે છે. તેમને સરખાવો, પછી જે વધુ સારું કે ઝડપી હોય તે પસંદ કરો!
 
-💬 શું વધુ સારું છે?
-✅ આપમેળે સારાંશ: મલ્ટીસાઇટ પરિણામો દેખાતા નથી? શ્રેષ્ઠ જવાબ શોધવા માટે સાઇટના જવાબોની આપમેળે સરખામણી કરો
-✅ જવાબ શેરિંગ: વેબપેજ URL, MD ફાઇલો, કૉપિ પદ્ધતિઓ દ્વારા સરખામણી પરિણામો શેર કરવા માટે સપોર્ટ
-✅ સ્ક્રિબિંગ મોડ, રાઇટ-ક્લિક મોડ: વેબપેજમાં સ્ક્રિબિંગ બહુવિધ AI સરખામણીઓને સક્રિય કરે છે
-✅ કલેક્શન મોડ: સાઇટના પરિણામો ખાસ કરીને સંતોષકારક, ઝડપી સંગ્રહ છે, શોધવામાં ડરતા નથી
-✅ ફાઇલ મોડ: એક ક્લિક સાથે બહુવિધ મોડેલો પર ફાઇલો અપલોડ કરો
-✅ અલ્ટ્રા મલ્ટિસાઇટ: વર્તમાન મુખ્ય પ્રવાહની LLM ચેટ સાઇટ્સ, એજન્ટ સાઇટ્સ, અનુવાદ સાઇટ્સને સપોર્ટ કરે છે
-✅ ઇતિહાસ: અગાઉની વાતચીતોને સરળ રીતે જોવા અને શોધવા માટે ઇતિહાસ સ્થાનિક રીતે સંગ્રહિત કરવામાં આવે છે.
-✅ પ્રોમ્પ્ટ ટેમ્પલેટ: કાર્યક્ષમ ટેક-ઓફ માટે પ્રોમ્પ્ટ ટેમ્પલેટો બનાવવાનું સમર્થન કરે છે
-✅ ક્રોસ-ડિવાઇસ સિંક્રનાઇઝેશન: સંગ્રહ રેકોર્ડ્સ, તુલના રેકોર્ડ્સ, પ્રોમ્પ્ટ ટેમ્પલેટ સિંક્રનાઇઝેશનનું સપોર્ટ ડિવાઇસ સિંક્રનાઇઝેશન
-✅ સાઇડબાર મોડ: સાઇડબાર પ્લગઇનને ખોલે છે, જે AI નો ઉપયોગ કરવાનું સરળ બનાવે છે
+💬 વધુ શું સરસ છે?
+✅ ઓટોમેટિક સારાંશ: ઘણી સાઇટ્સના પરિણામો વાંચવા મુશ્કેલ છે? સાઇટ્સના જવાબોની આપમેળે સરખામણી કરો અને શ્રેષ્ઠ જવાબ શોધો
+✅ જવાબ શેરિંગ: વેબ URL, MD ફાઇલ અથવા copy દ્વારા સરખામણી પરિણામો શેર કરો
+✅ ટેક્સ્ટ પસંદગી અને રાઇટ-ક્લિક મોડ: વેબપેજ પર ટેક્સ્ટ પસંદ કરો અને multi-AI સરખામણી શરૂ કરો
+✅ ફેવરિટ્સ મોડ: કોઈ સાઇટનું પરિણામ ખાસ ગમ્યું? તેને ઝડપથી સાચવો જેથી પછી સરળતાથી મળી રહે
+✅ ફાઇલ મોડ: એક ક્લિકમાં ફાઇલોને અનેક મોડેલ્સમાં upload કરો
+✅ ઘણી સપોર્ટેડ સાઇટ્સ: લોકપ્રિય LLM chat સાઇટ્સ, agent સાઇટ્સ અને translation સાઇટ્સને સપોર્ટ કરે છે
+✅ હિસ્ટરી: હિસ્ટરી લોકલી સાચવાય છે, જેથી અગાઉની વાતચીત સરળતાથી જોઈ અને શોધી શકાય
+✅ Prompt templates: prompt templates બનાવો અને કાર્યક્ષમતા વધારો
+✅ Cross-device sync: favorites, comparison history અને prompt templates sync કરવા માટે સપોર્ટ
+✅ Sidebar mode: sidebar માં extension ખોલો અને AI વધુ સરળતાથી વાપરો
 
-🤖 ત્યારથી, AI ની કાર્યક્ષમતા સીધી બંધ થઈ ગઈ છે!
+🤖 હવે AI વાપરવાની કાર્યક્ષમતા સીધી વધી જશે!
 
-આ એક ઓપન સોર્સ સિસ્ટમ છે, આશા છે કે વધુ લોકો ભાગ લઈ શકે છે, પ્રોજેક્ટનું સરનામું https://github.com/taoAIGC/AI-Shortcuts/ છે
+આ એક open-source સિસ્ટમ છે. અમને આશા છે કે વધુ લોકો તેમાં જોડાશે. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 કોઈપણ પ્રશ્નો અને સૂચનો માટે, કૃપા કરીને સંપર્ક કરો:
+💌 કોઈપણ પ્રશ્નો અથવા સૂચનો માટે સંપર્ક કરો:
 
-wechat વપરાશકર્તા જૂથ: aipmgpt
-ઇમેઇલ: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Hebrew (he)
@@ -770,7 +770,7 @@ email: AIShortcuts@outlook.com
 
 🎉 अब बार-बार कॉपी-पेस्ट करने की जरूरत नहीं। AI Compare एक क्लिक में सब कर देता है! 🎉
 
-👉 AI Compare एक क्लिक में सभी चुने गए AI को प्रश्न भेजता है, उन्हें PK करने देता है, और आप जो बेहतर या तेज हो उसे चुन सकते हैं!
+👉 AI Compare एक क्लिक में सभी चुने गए AI को प्रश्न भेजता है, उनके उत्तरों की तुलना कराता है, और आप जो बेहतर या तेज़ हो उसे चुन सकते हैं!
 
 💬 और क्या अच्छा है?
 ✅ ऑटो सारांश: कई साइटों के परिणाम पढ़ना मुश्किल है? साइटों के उत्तरों की तुलना कर सबसे अच्छा उत्तर खोजें
@@ -1226,34 +1226,34 @@ email: AIShortcuts@outlook.com
 ## Persian (fa)
 
 ```text
-برای تأیید محتوا، نظارت بر برند و GEO (بهینه‌سازی موتور مولد)، سؤالی بپرسید و مقایسه‌ای از پاسخ‌ها در AI، ChatGPT، Gemini، Claude و غیره دریافت کنید.
+یک سؤال بپرسید و هم‌زمان پاسخ‌های ChatGPT، Gemini، Claude و سایر ابزارهای AI را با هم مقایسه کنید. مناسب برای تأیید محتوا، پایش برند و GEO (Generative Engine Optimization).
 
-با یک کلیک چندین AI، از جمله ChatGPT، Gemini، Grok، Claude، Diandian و بیش از دوازده AI دیگر را با هم مقایسه کنید!
+با یک کلیک چندین ابزار AI را مقایسه کنید، از جمله ChatGPT، Gemini، Grok، Claude، Diandian و بیش از ده ابزار AI دیگر!
 
-🎉 دیگه لازم نیست کپی و پیست کنی! &quot;ZXAICOMPAREZX&quot; همه این کارها رو با یک کلیک انجام میده! 🎉
+🎉 دیگر نیازی نیست یکی‌یکی copy-paste کنید. AI Compare همه چیز را با یک کلیک انجام می‌دهد! 🎉
 
-👉 «ZXAICOMPAREZX» را می‌توان با یک کلیک به همه حساب‌های AI ارسال کرد و آنها را با یکدیگر به رقابت واداشت. از هر کدام که بهترین و سریع‌ترین است استفاده کنید!
+👉 AI Compare سؤال شما را با یک کلیک به همه ابزارهای AI انتخاب‌شده ارسال می‌کند. بگذارید مقایسه شوند، سپس بهترین یا سریع‌ترین را استفاده کنید!
 
-💬 چه چیزی حتی بهتر است؟
-✅ خلاصه خودکار: آیا نمی‌توانید نتایج چندین سایت را پیگیری کنید؟ از مقایسه خودکار پاسخ‌ها از سایت‌های مختلف برای یافتن بهترین پاسخ پشتیبانی می‌کند.
-✅ اشتراک‌گذاری پاسخ: از اشتراک‌گذاری نتایج مقایسه از طریق صفحه وب (URL)، فایل MD یا کپی کردن پشتیبانی می‌کند.
-✅ حالت انتخاب کلمه و حالت کلیک راست: انتخاب کلمات در صفحه وب، چندین مقایسه AI را فعال می‌کند.
-✅ حالت علاقه‌مندی‌ها: اگر از نتایج راضی هستید، به سرعت یک سایت را نشانه‌گذاری کنید تا دیگر هرگز آن را از دست ندهید.
-✅ حالت فایل: آپلود فایل با یک کلیک به چندین مدل
-✅ سایت‌های متعدد: از سایت‌های چت LLM رایج فعلی، سایت‌های عامل هوشمند و سایت‌های ترجمه پشتیبانی می‌کند.
-✅ تاریخچه: تاریخچه به صورت محلی ذخیره می‌شود و مشاهده و جستجوی مکالمات قبلی را آسان می‌کند.
-✅ الگوهای راهنما: از ایجاد الگوهای راهنما برای کارایی فوق‌العاده سریع پشتیبانی می‌کند.
-✅ همگام‌سازی بین دستگاه‌های مختلف: از همگام‌سازی موارد دلخواه، سوابق مقایسه و قالب‌های کلمات پیشنهادی در دستگاه‌های مختلف پشتیبانی می‌کند.
-✅ حالت نوار کناری: برای تجربه راحت‌تر AI، افزونه را از طریق نوار کناری باز کنید.
+💬 چه چیز دیگری بهتر است؟
+✅ خلاصه‌سازی خودکار: نتایج چندین سایت زیاد است؟ پاسخ‌های سایت‌ها را به‌طور خودکار مقایسه کنید و بهترین پاسخ را پیدا کنید
+✅ اشتراک‌گذاری پاسخ: نتایج مقایسه را از طریق URL وب، فایل MD یا copy به اشتراک بگذارید
+✅ حالت انتخاب متن و راست‌کلیک: در یک صفحه وب متن را انتخاب کنید تا مقایسه multi-AI شروع شود
+✅ حالت علاقه‌مندی‌ها: از نتیجه یک سایت خیلی راضی هستید؟ سریع ذخیره کنید تا بعداً راحت پیدایش کنید
+✅ حالت فایل: فایل‌ها را با یک کلیک در چند مدل upload کنید
+✅ سایت‌های زیاد: از سایت‌های محبوب LLM chat، سایت‌های agent و سایت‌های translation پشتیبانی می‌کند
+✅ تاریخچه: تاریخچه به‌صورت محلی ذخیره می‌شود، بنابراین مشاهده و جستجوی گفتگوهای قبلی آسان است
+✅ Prompt templates: prompt templates بسازید و بهره‌وری را افزایش دهید
+✅ Sync بین دستگاه‌ها: از sync علاقه‌مندی‌ها، تاریخچه مقایسه و prompt templates پشتیبانی می‌کند
+✅ Sidebar mode: extension را در sidebar باز کنید و AI را راحت‌تر استفاده کنید
 
-🤖 از آن به بعد، کارایی AI به شدت افزایش یافت!
+🤖 از این به بعد، بهره‌وری شما در استفاده از AI فوراً افزایش می‌یابد!
 
-این یک سیستم متن‌باز است و ما امیدواریم افراد بیشتری بتوانند در آن شرکت کنند. آدرس پروژه https://github.com/taoAIGC/AI-Shortcuts/ است.
+این یک سیستم open-source است. امیدواریم افراد بیشتری مشارکت کنند. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 برای هرگونه سوال یا پیشنهاد، لطفا با ما تماس بگیرید:
+💌 برای هرگونه سؤال یا پیشنهاد، تماس بگیرید:
 
-گروه کاربران وی چت: aipmgpt
-ایمیل: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Polish (pl)
@@ -1523,67 +1523,67 @@ email: AIShortcuts@outlook.com
 ## Spanish (es)
 
 ```text
-Haz una pregunta una vez y respóndela en AI como ChatGPT, Gemini, Claude para verificación de contenido, monitoreo de marca y GEO (optimización generativa de motores).
+Haz una sola pregunta y compara al mismo tiempo las respuestas de ChatGPT, Gemini, Claude y otras herramientas de AI. Útil para verificación de contenido, monitoreo de marca y GEO (Generative Engine Optimization).
 
-Comparación con un solo clic de múltiples AI, incluido ChatGPT. ¡Gemini. Grok. Claude. Diandian y más de una docena de AI!
+Compara varias herramientas de AI con un solo clic, incluidas ChatGPT, Gemini, Grok, Claude, Diandian y más de diez herramientas de AI más.
 
-🎉 Nunca vuelva a copiar y pegar uno por uno, ¡"ZXAICOMPAREZX" se hace con un solo clic! 🎉
+🎉 No más copiar y pegar una por una. AI Compare se encarga de todo con un solo clic. 🎉
 
-👉 "ZXAICOMPAREZX" envía todos los AI en un solo clic, ¡déjalos PK, quién puede usar a quién, quién puede usar a quién!
+👉 AI Compare envía tu pregunta a todas las herramientas de AI seleccionadas con un solo clic. Deja que se comparen y usa la mejor o la más rápida.
 
-💬 ¿Qué es aún mejor?
-✅ Resumen automático: ¿Los resultados multisitio no son visibles? Compare automáticamente las respuestas del sitio para encontrar la mejor respuesta
-✅ Intercambio de respuestas: soporte para compartir resultados de comparación a través de la página web URL, archivos MD, métodos de copia
-✅ Modo de escritura, modo de clic derecho: la escritura en la página web activa múltiples comparaciones AI
-✅ Modo de recolección: los resultados de un sitio son particularmente satisfactorios, recolección rápida, sin miedo a no encontrar
-✅ Modo de archivo: sube archivos a varios modelos con un solo clic
-✅ Ultra Multisitio: Admite los sitios de chat LLM convencionales actuales, sitios de agentes, sitios de traducción
-✅ Historial: el historial se almacena localmente para facilitar la visualización y búsqueda de conversaciones anteriores.
-✅ Plantilla de aviso: admite la creación de plantillas de aviso para un despegue eficiente
-✅ Sincronización entre dispositivos: admite la sincronización de dispositivos de registros de recopilación, registros de comparación, sincronización de plantillas rápidas
-✅ Modo de barra lateral: la barra lateral abre el complemento, lo que facilita el uso de AI
+💬 ¿Qué más es mejor?
+✅ Resumen automático: ¿demasiados resultados de varios sitios? Compara automáticamente las respuestas y encuentra la mejor
+✅ Compartir respuestas: comparte los resultados de comparación mediante URL web, archivo MD o copia
+✅ Modos de selección de texto y clic derecho: selecciona texto en una página web para iniciar una comparación multi-AI
+✅ Modo favoritos: ¿te gustó especialmente el resultado de un sitio? Guárdalo rápidamente para encontrarlo fácilmente después
+✅ Modo archivo: sube archivos a varios modelos con un solo clic
+✅ Muchos sitios compatibles: admite sitios populares de LLM chat, sitios agent y sitios translation
+✅ Historial: el historial se guarda localmente, lo que facilita ver y buscar conversaciones anteriores
+✅ Prompt templates: crea prompt templates y aumenta la eficiencia
+✅ Sync entre dispositivos: admite sync de favoritos, historial de comparaciones y prompt templates
+✅ Sidebar mode: abre extension en sidebar y usa AI con más comodidad
 
-🤖 ¡Desde entonces, la eficiencia de AI ha despegado directamente!
+🤖 Desde ahora, tu eficiencia con AI despega.
 
-Este es un sistema de código abierto, espero que más personas puedan participar, la dirección del proyecto es https://github.com/taoAIGC/AI-Shortcuts/
+Este es un sistema open-source. Esperamos que más personas puedan participar. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Para cualquier pregunta o sugerencia, póngase en contacto con:
+💌 Para cualquier pregunta o sugerencia, contáctanos:
 
-grupo de usuarios de wechat: aipmgpt
-correo electrónico: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Spanish (Latin America and the Caribbean) (es_419)
 
 ```text
-Haz una pregunta una vez y respóndela en AI como ChatGPT, Gemini, Claude para verificación de contenido, monitoreo de marca y GEO (optimización generativa de motores).
+Haz una sola pregunta y compara al mismo tiempo las respuestas de ChatGPT, Gemini, Claude y otras herramientas de AI. Útil para verificación de contenido, monitoreo de marca y GEO (Generative Engine Optimization).
 
-Comparación con un solo clic de múltiples AI, incluido ChatGPT. ¡Gemini. Grok. Claude. Diandian y más de una docena de AI!
+Compara varias herramientas de AI con un solo clic, incluidas ChatGPT, Gemini, Grok, Claude, Diandian y más de diez herramientas de AI más.
 
-🎉 Nunca vuelva a copiar y pegar uno por uno, ¡"ZXAICOMPAREZX" se hace con un solo clic! 🎉
+🎉 No más copiar y pegar una por una. AI Compare se encarga de todo con un solo clic. 🎉
 
-👉 "ZXAICOMPAREZX" envía todos los AI en un solo clic, ¡déjalos PK, quién puede usar a quién, quién puede usar a quién!
+👉 AI Compare envía tu pregunta a todas las herramientas de AI seleccionadas con un solo clic. Deja que se comparen y usa la mejor o la más rápida.
 
-💬 ¿Qué es aún mejor?
-✅ Resumen automático: ¿Los resultados multisitio no son visibles? Compare automáticamente las respuestas del sitio para encontrar la mejor respuesta
-✅ Intercambio de respuestas: soporte para compartir resultados de comparación a través de la página web URL, archivos MD, métodos de copia
-✅ Modo de escritura, modo de clic derecho: la escritura en la página web activa múltiples comparaciones AI
-✅ Modo de recolección: los resultados de un sitio son particularmente satisfactorios, recolección rápida, sin miedo a no encontrar
-✅ Modo de archivo: sube archivos a varios modelos con un solo clic
-✅ Ultra Multisitio: Admite los sitios de chat LLM convencionales actuales, sitios de agentes, sitios de traducción
-✅ Historial: el historial se almacena localmente para facilitar la visualización y búsqueda de conversaciones anteriores.
-✅ Plantilla de aviso: admite la creación de plantillas de aviso para un despegue eficiente
-✅ Sincronización entre dispositivos: admite la sincronización de dispositivos de registros de recopilación, registros de comparación, sincronización de plantillas rápidas
-✅ Modo de barra lateral: la barra lateral abre el complemento, lo que facilita el uso de AI
+💬 ¿Qué más es mejor?
+✅ Resumen automático: ¿demasiados resultados de varios sitios? Compara automáticamente las respuestas y encuentra la mejor
+✅ Compartir respuestas: comparte los resultados de comparación mediante URL web, archivo MD o copia
+✅ Modos de selección de texto y clic derecho: selecciona texto en una página web para iniciar una comparación multi-AI
+✅ Modo favoritos: ¿te gustó especialmente el resultado de un sitio? Guárdalo rápidamente para encontrarlo fácilmente después
+✅ Modo archivo: sube archivos a varios modelos con un solo clic
+✅ Muchos sitios compatibles: admite sitios populares de LLM chat, sitios agent y sitios translation
+✅ Historial: el historial se guarda localmente, lo que facilita ver y buscar conversaciones anteriores
+✅ Prompt templates: crea prompt templates y aumenta la eficiencia
+✅ Sync entre dispositivos: admite sync de favoritos, historial de comparaciones y prompt templates
+✅ Sidebar mode: abre extension en sidebar y usa AI con más comodidad
 
-🤖 ¡Desde entonces, la eficiencia de AI ha despegado directamente!
+🤖 Desde ahora, tu eficiencia con AI despega.
 
-Este es un sistema de código abierto, espero que más personas puedan participar, la dirección del proyecto es https://github.com/taoAIGC/AI-Shortcuts/
+Este es un sistema open-source. Esperamos que más personas puedan participar. Project: https://github.com/taoAIGC/AI-Shortcuts/
 
-💌 Para cualquier pregunta o sugerencia, póngase en contacto con:
+💌 Para cualquier pregunta o sugerencia, contáctanos:
 
-grupo de usuarios de wechat: aipmgpt
-correo electrónico: AIShortcuts@outlook.com
+wechat user group: aipmgpt
+email: AIShortcuts@outlook.com
 ```
 
 ## Swedish (sv)
@@ -1661,7 +1661,7 @@ ChatGPT, Gemini, Grok, Claude, Diandian మరియు పది కంటే �
 
 🎉 ఇక ఒక్కొక్కటి copy paste చేయాల్సిన అవసరం లేదు. AI Compare ఒకే క్లిక్‌లో అన్నీ చేస్తుంది! 🎉
 
-👉 AI Compare మీరు ఎంచుకున్న అన్ని AIలకు ప్రశ్నను ఒకేసారి పంపి, వాటిని PK చేయించి, మంచి లేదా వేగమైనదాన్ని ఎంచుకోవడంలో సహాయపడుతుంది!
+👉 AI Compare మీరు ఎంచుకున్న అన్ని AIలకు ప్రశ్నను ఒకేసారి పంపి, వాటి సమాధానాలను పోల్చి, మంచి లేదా వేగమైనదాన్ని ఎంచుకోవడంలో సహాయపడుతుంది!
 
 💬 ఇంకా బాగుందేమిటి?
 ✅ ఆటో సారాంశం: అనేక సైట్ ఫలితాలు ఎక్కువగా ఉన్నాయా? సమాధానాలను ఆటోమేటిక్‌గా పోల్చి ఉత్తమ సమాధానం కనుగొనండి
@@ -1694,7 +1694,7 @@ email: AIShortcuts@outlook.com
 
 🎉 ไม่ต้องคัดลอกและวางทีละเว็บอีกต่อไป AI Compare จัดการให้ครบในคลิกเดียว! 🎉
 
-👉 AI Compare ส่งคำถามไปยัง AI ที่เลือกทั้งหมดพร้อมกัน ให้พวกมัน PK กัน แล้วคุณเลือกตัวที่ดีที่สุดหรือเร็วที่สุด!
+👉 AI Compare ส่งคำถามไปยัง AI ที่เลือกทั้งหมดพร้อมกัน ให้เปรียบเทียบคำตอบกัน แล้วคุณเลือกตัวที่ดีที่สุดหรือเร็วที่สุด!
 
 💬 อะไรที่ดีกว่านั้น?
 ✅ สรุปอัตโนมัติ: ผลลัพธ์จากหลายเว็บเยอะเกินไป? เปรียบเทียบคำตอบอัตโนมัติและหาคำตอบที่ดีที่สุด
@@ -1727,7 +1727,7 @@ ChatGPT, Gemini, Grok, Claude, Diandian ve ondan fazla AI hizmetini tek tıkla k
 
 🎉 Artık tek tek kopyalayıp yapıştırmaya gerek yok. AI Compare hepsini tek tıkla halleder! 🎉
 
-👉 AI Compare seçtiğiniz tüm AI araçlarına soruyu aynı anda gönderir, onları PK yaptırır ve en iyi ya da en hızlı olanı kullanmanıza yardımcı olur!
+👉 AI Compare soruyu seçtiğiniz tüm AI araçlarına aynı anda gönderir, yanıtları karşılaştırır ve en iyi ya da en hızlı olanı kullanmanıza yardımcı olur!
 
 💬 Daha iyi olan ne?
 ✅ Otomatik özet: çok fazla site sonucu mu var? Yanıtları otomatik karşılaştırıp en iyi cevabı bulun
@@ -1793,7 +1793,7 @@ So sánh nhiều AI chỉ với một cú nhấp, bao gồm ChatGPT, Gemini, Gro
 
 🎉 Không cần copy paste qua lại từng trang nữa. AI Compare xử lý tất cả chỉ với một cú nhấp! 🎉
 
-👉 AI Compare gửi câu hỏi đến tất cả AI đã chọn cùng lúc, để chúng PK với nhau, rồi bạn dùng cái tốt hơn hoặc nhanh hơn!
+👉 AI Compare gửi câu hỏi đến tất cả AI đã chọn cùng lúc, so sánh câu trả lời, rồi bạn dùng câu trả lời tốt hơn hoặc nhanh hơn!
 
 💬 Còn gì tuyệt hơn?
 ✅ Tóm tắt tự động: quá nhiều kết quả từ nhiều trang? Tự động so sánh câu trả lời và tìm câu trả lời tốt nhất

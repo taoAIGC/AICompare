@@ -548,34 +548,21 @@ html, body {
     transform: translateY(0);
 }
 
-.search-bar {
-    width: 100%;
-    max-width: 720px;
-    background: var(--ai-surface-strong);
-    border: 1px solid var(--ai-border);
-    border-radius: var(--ai-radius-lg);
-    box-shadow: var(--ai-shadow);
-    padding: 18px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-}
-
 body.search-bar-bottom .homepage-container {
-    padding-bottom: 160px;
+    padding-bottom: 192px;
 }
 
-body.search-bar-bottom .search-bar {
+body.search-bar-bottom .search-input-container {
     position: fixed;
     bottom: 20px;
     left: calc(50% + 90px);
     transform: translateX(-50%);
     width: calc(100% - 40px);
-    max-width: 720px;
+    max-width: 980px;
     z-index: 1000;
 }
 
-body.is-side-panel.search-bar-bottom .search-bar {
+body.is-side-panel.search-bar-bottom .search-input-container {
     left: 50%;
 }
 
@@ -588,11 +575,20 @@ body.search-bar-bottom .query-suggestions {
 }
 
 .search-input-container {
-    flex: 1;
+    width: 100%;
+    max-width: 980px;
     min-width: 0;
     position: relative;
     height: auto;
-    min-height: 44px;
+    min-height: 88px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 20px 22px 34px;
+    background: transparent;
+    border: none;
+    border-radius: 28px;
+    box-shadow: none;
+    box-sizing: border-box;
 }
 
 .input-wrapper {
@@ -601,9 +597,9 @@ body.search-bar-bottom .query-suggestions {
     align-items: flex-end;
     width: 100%;
     height: auto;
-    min-height: 44px;
+    min-height: 64px;
     border: 1px solid rgba(15, 23, 42, 0.10);
-    border-radius: 18px;
+    border-radius: 20px;
     background: #ffffff;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
     transition: min-height 0.18s ease, border-color var(--ai-transition), background-color var(--ai-transition), box-shadow var(--ai-transition), border-radius var(--ai-transition);
@@ -614,32 +610,64 @@ body.search-bar-bottom .query-suggestions {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
-.search-bar textarea {
+.homepage-course-promo-text-ad {
+    position: absolute;
+    right: 32px;
+    bottom: 10px;
+    display: block;
+    width: fit-content;
+    max-width: calc(100% - 64px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ai-text-muted);
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.homepage-course-promo-text-ad:hover,
+.homepage-course-promo-text-ad:focus-visible {
+    color: var(--ai-text);
+    text-decoration: underline;
+}
+
+.homepage-course-promo-text-ad[hidden] {
+    display: none;
+}
+
+.search-input-container textarea {
     width: 100%;
-    padding: 10px 12px;
+    padding: 16px 18px;
     border: none;
     box-sizing: border-box;
     resize: none;
     overflow-x: hidden;
     overflow-y: hidden;
     scrollbar-gutter: stable;
-    min-height: 36px;
+    min-height: 54px;
     max-height: 200px;
     line-height: 1.6;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 15px;
     outline: none;
     background: transparent;
     color: #111111;
     transition: height 0.18s ease, opacity 0.12s ease, padding 0.18s ease;
 }
 
-.search-bar textarea::placeholder {
+.search-input-container textarea::placeholder {
     color: rgba(17, 17, 17, 0.45);
 }
 
-.search-bar textarea:focus,
-.search-bar textarea:focus-visible {
+.search-input-container textarea:focus,
+.search-input-container textarea:focus-visible {
     outline: none;
     box-shadow: none;
     border-color: transparent;
@@ -705,10 +733,10 @@ body.search-bar-bottom .query-suggestions {
     border: 1px solid transparent;
     cursor: pointer;
     width: auto;
-    min-width: 24px;
-    height: 36px;
-    padding: 0 4px;
-    border-radius: 12px;
+    min-width: 28px;
+    height: 40px;
+    padding: 0 6px;
+    border-radius: 14px;
     transition: background-color var(--ai-transition), border-color var(--ai-transition), transform var(--ai-transition), box-shadow var(--ai-transition);
     display: flex;
     align-items: center;
@@ -792,30 +820,30 @@ body.search-bar-bottom .query-suggestions {
     height: 16px;
 }
 
-.search-bar .search-btn {
+.search-input-container .search-btn {
     position: static;
     background: #111111 !important;
     color: #ffffff !important;
     border: 1px solid #111111;
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 8px 16px;
+    font-size: 13px;
     font-weight: 700;
     transition: transform var(--ai-transition), box-shadow var(--ai-transition), filter var(--ai-transition);
-    height: 36px;
+    height: 40px;
     line-height: 1;
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
 }
 
-.search-bar .search-btn:hover {
+.search-input-container .search-btn:hover {
     background: #222222 !important;
     border-color: #222222;
     box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
 }
 
-.search-bar .search-btn:active,
-.search-bar .search-btn.active {
+.search-input-container .search-btn:active,
+.search-input-container .search-btn.active {
     transform: scale(0.95);
     background: #000000 !important;
     border-color: #000000;
@@ -825,8 +853,8 @@ body.search-bar-bottom .query-suggestions {
 .query-suggestions {
     position: absolute;
     top: 100%;
-    left: 0;
-    right: 0;
+    left: 22px;
+    right: 22px;
     background: var(--ai-surface-strong);
     border: 1px solid var(--ai-border);
     border-top: none;
@@ -1745,7 +1773,7 @@ body.is-side-panel .extension-icon-container,
 body.is-side-panel .homepage-course-promo,
 body.is-side-panel .homepage-plan-banner,
 body.is-side-panel .pin-guide-banner,
-body.is-side-panel .search-bar,
+body.is-side-panel .search-input-container,
 body.is-side-panel .sites-section {
     width: 100%;
     max-width: none;
@@ -1937,22 +1965,22 @@ body.is-side-panel .custom-site-item {
     color: var(--ai-text);
 }
 
-.search-bar .file-upload-btn {
+.search-input-container .file-upload-btn {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: none;
 }
 
-.search-bar .file-upload-btn:hover {
+.search-input-container .file-upload-btn:hover {
     background: var(--ai-accent-soft);
     border-color: var(--ai-border);
     transform: translateY(-1px);
     box-shadow: none;
 }
 
-.search-bar .file-upload-btn:focus,
-.search-bar .file-upload-btn:focus-visible {
+.search-input-container .file-upload-btn:focus,
+.search-input-container .file-upload-btn:focus-visible {
     outline: none;
     box-shadow: none;
 }

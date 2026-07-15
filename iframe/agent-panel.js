@@ -75,19 +75,44 @@
             return '';
         }
         const urlPattern = /(https?:\/\/[^\s<>"']+|chrome-extension:\/\/[^\s<>"']+)/g;
+        const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
+
+        function renderPlainErrorText(text = '') {
+            return escapeHtml(text).replace(urlPattern, (url) => {
+                const safeUrl = String(url || '').replace(/[).,;:!?]+$/, '');
+                const trailing = String(url || '').slice(safeUrl.length);
+                if (!isSafeUserFacingLinkUrl(safeUrl)) {
+                    return `${escapeHtml(safeUrl)}${escapeHtml(trailing)}`;
+                }
+                const escapedUrl = escapeHtmlAttribute(safeUrl);
+                return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(safeUrl)}</a>${escapeHtml(trailing)}`;
+            });
+        }
+
+        function renderErrorLine(line = '') {
+            const source = String(line || '');
+            let html = '';
+            let lastIndex = 0;
+            source.replace(markdownLinkPattern, (match, label, rawUrl, offset) => {
+                html += renderPlainErrorText(source.slice(lastIndex, offset));
+                const safeUrl = String(rawUrl || '').trim();
+                if (isSafeUserFacingLinkUrl(safeUrl)) {
+                    html += `<a href="${escapeHtmlAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+                } else {
+                    html += escapeHtml(match);
+                }
+                lastIndex = offset + match.length;
+                return match;
+            });
+            html += renderPlainErrorText(source.slice(lastIndex));
+            return html;
+        }
+
         return normalized
             .split(/\n{2,}/)
             .map((paragraph) => {
                 const lines = paragraph.split('\n').map((line) => (
-                    escapeHtml(line).replace(urlPattern, (url) => {
-                        const safeUrl = String(url || '').replace(/[).,;:!?]+$/, '');
-                        const trailing = String(url || '').slice(safeUrl.length);
-                        if (!isSafeUserFacingLinkUrl(safeUrl)) {
-                            return `${escapeHtml(safeUrl)}${escapeHtml(trailing)}`;
-                        }
-                        const escapedUrl = escapeHtmlAttribute(safeUrl);
-                        return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(safeUrl)}</a>${escapeHtml(trailing)}`;
-                    })
+                    renderErrorLine(line)
                 ));
                 return `<p>${lines.join('<br>')}</p>`;
             })

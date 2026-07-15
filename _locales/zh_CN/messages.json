@@ -257,7 +257,7 @@
     "message": "当前套餐：PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "今天的免费 API 能力提问次数已用完（每天 $1 次）。升级 API Plan 可解锁总结和技能提问无限次数，或切换为自己的 API：$2"
+    "message": "每日 API 额度 $1 次，API 已经用完，您可以购买 [API Plan]($2) 或者使用 [自定义 API]($3)。"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "请先配置自定义 API"
@@ -1509,7 +1509,7 @@
     "message": "会员标签页"
   },
   "membershipOverviewTab": {
-    "message": "概览"
+    "message": "Plans"
   },
   "membershipInvoicesTab": {
     "message": "发票"
@@ -3010,13 +3010,13 @@
     "message": "Tiếng Việt"
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "官网API 余额不足。建议您使用自定义API：$1"
+    "message": "每日 API 额度 $1 次，API 已经用完，您可以购买 [API Plan]($2) 或者使用 [自定义 API]($3)。"
   },
   "aiErrorBalanceInsufficient": {
     "message": "AI 服务余额不足，暂时无法生成结果。请联系管理员充值或更换 API Key。"
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "今天的免费 API 能力提问次数已用完。升级 API Plan 可解锁总结和技能提问无限次数，或切换为自己的 API。"
+    "message": "每日 API 额度 $1 次，API 已经用完，您可以购买 [API Plan]($2) 或者使用 [自定义 API]($3)。"
   },
   "aiErrorApiNotConfigured": {
     "message": "AI 服务暂未配置完成，请稍后再试或联系管理员。"
@@ -3115,7 +3115,7 @@
     "message": "你也可以在这里输入兑换码，直接开通对应会员。"
   },
   "chatPlanQuotaExceeded": {
-    "message": "您今天的 $1 次免费 AI 对比提问已用完。升级到 Chat Plan 后可无限提问：$2"
+    "message": "你的 $1 次免费 AI 对比提问额度已经用完。升级 Chat Plan 后可无限提问：$2"
   },
   "membershipPlanStatusLoading": {
     "message": "查询中..."
@@ -3275,5 +3275,14 @@
   "iframeLoginOverlayButton": {
     "message": "立即登录",
     "description": "Button that opens the extension login page from an iframe panel overlay"
+  },
+  "chatPlanQuotaOverlayTitle": {
+    "message": "免费额度已用完"
+  },
+  "chatPlanQuotaOverlayDescription": {
+    "message": "你的免费 AI 对比提问额度已经用完。升级 Chat Plan 后可继续无限提问。"
+  },
+  "chatPlanQuotaOverlayButton": {
+    "message": "升级 Chat Plan"
   }
 }

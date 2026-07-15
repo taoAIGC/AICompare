@@ -1,5 +1,6 @@
+const path = require('path');
 require('dotenv').config();
-
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
@@ -18,6 +19,7 @@ const port = Number(process.env.PORT || 8790);
 const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 10) || 10);
 const chatPlanDailyFreeLimit = Math.max(0, Number(process.env.CHAT_PLAN_DAILY_FREE_LIMIT || 3) || 3);
 const billingMode = String(process.env.BILLING_MODE || 'test').trim() || 'test';
+const billingMeterAllLocales = String(process.env.BILLING_METER_ALL_LOCALES || '').trim().toLowerCase() === 'true';
 const adminSessionOrigin = String(process.env.ADMIN_SESSION_ORIGIN || '').trim();
 const adminSessionSecret = String(process.env.ADMIN_SESSION_SECRET || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
 const adminSessionCookieName = 'ai_compare_admin_session';
@@ -29,7 +31,7 @@ const emailLoginCodeCollection = 'emailLoginCodes';
 const emailAuthCodeTtlSeconds = Math.max(60, Number(process.env.EMAIL_AUTH_CODE_TTL_SECONDS || 10 * 60) || (10 * 60));
 const emailAuthResendCooldownSeconds = Math.max(0, Number(process.env.EMAIL_AUTH_RESEND_COOLDOWN_SECONDS || 60) || 60);
 const emailAuthMaxAttempts = Math.max(1, Number(process.env.EMAIL_AUTH_MAX_ATTEMPTS || 5) || 5);
-const emailAuthFrom = String(process.env.EMAIL_AUTH_FROM || 'AI Compare <norely@aimcompare.club>').trim();
+const emailAuthFrom = String(process.env.EMAIL_AUTH_FROM || 'AI Compare <noreply@aicompare.club>').trim();
 const emailAuthReplyTo = String(process.env.EMAIL_AUTH_REPLY_TO || '').trim();
 const failureLogDailyUploadLimit = Math.max(1, Number(process.env.FAILURE_LOG_DAILY_UPLOAD_LIMIT || 2000) || 2000);
 const failureLogBatchLimit = 50;
@@ -1598,6 +1600,9 @@ function readCoursePromoForm() {
     title: document.getElementById('coursePromoTitle')?.value.trim() || '',
     subtitle: document.getElementById('coursePromoSubtitle')?.value.trim() || '',
     ctaText: document.getElementById('coursePromoCtaText')?.value.trim() || '',
+    textAdEnabled: document.getElementById('coursePromoTextAdEnabled')?.value === 'true',
+    textAdText: document.getElementById('coursePromoTextAdText')?.value.trim() || '',
+    textAdUrl: document.getElementById('coursePromoTextAdUrl')?.value.trim() || '',
     targetLocales: normalizeCoursePromoLocalesValue(document.getElementById('coursePromoTargetLocales')?.value || ''),
     dismissDays: document.getElementById('coursePromoDismissDays')?.value || '',
     maxImpressionsPerDay: document.getElementById('coursePromoMaxImpressionsPerDay')?.value || ''
@@ -1610,6 +1615,7 @@ function applyCoursePromoPreview(config = {}) {
   const subtitle = document.getElementById('coursePromoPreviewSubtitle');
   const link = document.getElementById('coursePromoPreviewLink');
   const meta = document.getElementById('coursePromoMeta');
+  const textAdPreview = document.getElementById('coursePromoTextAdPreview');
 
   if (image) {
     image.hidden = !config.imageUrl;
@@ -1625,9 +1631,15 @@ function applyCoursePromoPreview(config = {}) {
     link.href = config.targetUrl || '#';
     link.textContent = config.ctaText || '打开链接';
   }
+  if (textAdPreview) {
+    textAdPreview.hidden = !config.textAdText;
+    textAdPreview.href = config.textAdUrl || '#';
+    textAdPreview.textContent = config.textAdText || '';
+  }
   if (meta) {
     meta.textContent = [
       config.enabled ? '已开启' : '已关闭',
+      config.textAdEnabled ? '文字广告已开启' : '文字广告已关闭',
       '目标语言: ' + normalizeCoursePromoLocalesValue(config.targetLocales),
       '关闭频控: ' + String(config.dismissDays || 7) + ' 天',
       '日展示上限: ' + String(config.maxImpressionsPerDay || 3)
@@ -1642,6 +1654,9 @@ function fillCoursePromoForm(config = {}) {
   const title = document.getElementById('coursePromoTitle');
   const subtitle = document.getElementById('coursePromoSubtitle');
   const ctaText = document.getElementById('coursePromoCtaText');
+  const textAdEnabled = document.getElementById('coursePromoTextAdEnabled');
+  const textAdText = document.getElementById('coursePromoTextAdText');
+  const textAdUrl = document.getElementById('coursePromoTextAdUrl');
   const targetLocales = document.getElementById('coursePromoTargetLocales');
   const dismissDays = document.getElementById('coursePromoDismissDays');
   const maxImpressionsPerDay = document.getElementById('coursePromoMaxImpressionsPerDay');
@@ -1652,6 +1667,9 @@ function fillCoursePromoForm(config = {}) {
   if (title) title.value = config.title || '';
   if (subtitle) subtitle.value = config.subtitle || '';
   if (ctaText) ctaText.value = config.ctaText || '';
+  if (textAdEnabled) textAdEnabled.value = config.textAdEnabled ? 'true' : 'false';
+  if (textAdText) textAdText.value = config.textAdText || '';
+  if (textAdUrl) textAdUrl.value = config.textAdUrl || '';
   if (targetLocales) targetLocales.value = Array.isArray(config.targetLocales) ? config.targetLocales.join(', ') : normalizeCoursePromoLocalesValue(config.targetLocales);
   if (dismissDays) dismissDays.value = String(config.dismissDays || 7);
   if (maxImpressionsPerDay) maxImpressionsPerDay.value = String(config.maxImpressionsPerDay || 3);
@@ -1702,7 +1720,7 @@ async function loadCoursePromoPage() {
       });
     });
   }
-  ['coursePromoEnabled', 'coursePromoImageUrl', 'coursePromoTargetUrl', 'coursePromoTitle', 'coursePromoSubtitle', 'coursePromoCtaText', 'coursePromoTargetLocales', 'coursePromoDismissDays', 'coursePromoMaxImpressionsPerDay']
+  ['coursePromoEnabled', 'coursePromoImageUrl', 'coursePromoTargetUrl', 'coursePromoTitle', 'coursePromoSubtitle', 'coursePromoCtaText', 'coursePromoTextAdEnabled', 'coursePromoTextAdText', 'coursePromoTextAdUrl', 'coursePromoTargetLocales', 'coursePromoDismissDays', 'coursePromoMaxImpressionsPerDay']
     .forEach((id) => {
       const element = document.getElementById(id);
       if (!element || element.dataset.bound === 'true') return;
@@ -2077,6 +2095,15 @@ const ADMIN_STYLES = `
   }
   .course-promo-field-wide {
     grid-column: 1 / -1;
+  }
+  .course-promo-subsection {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .course-promo-subsection h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
   }
   .course-promo-actions {
     display: flex;
@@ -2615,6 +2642,30 @@ function getEmailAuthTransporter() {
   return emailAuthTransporter;
 }
 
+function getEmailAuthStatus() {
+  const host = String(process.env.EMAIL_AUTH_SMTP_HOST || process.env.SMTP_HOST || '').trim();
+  const user = String(process.env.EMAIL_AUTH_SMTP_USER || process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.EMAIL_AUTH_SMTP_PASS || process.env.SMTP_PASS || '').trim();
+  const secret = String(
+    process.env.EMAIL_AUTH_CODE_SECRET
+    || adminSessionSecret
+    || process.env.STRIPE_WEBHOOK_SECRET
+    || ''
+  ).trim();
+  const firebaseAdminReady = initializeFirebaseAdmin() && Boolean(db);
+  const senderConfigured = Boolean(host && user && pass);
+  const secretConfigured = Boolean(secret);
+
+  return {
+    enabled: Boolean(firebaseAdminReady && senderConfigured && secretConfigured),
+    firebaseAdminReady,
+    senderConfigured,
+    secretConfigured,
+    expiresInSeconds: emailAuthCodeTtlSeconds,
+    resendCooldownSeconds: emailAuthResendCooldownSeconds
+  };
+}
+
 function assertEmailAuthSecret() {
   const secret = String(
     process.env.EMAIL_AUTH_CODE_SECRET
@@ -2704,6 +2755,11 @@ function buildEmailLoginMessage({ code, ttlMinutes }) {
 async function sendEmailLoginCode(req) {
   requireFirebaseAdmin();
   const email = normalizeEmailLoginAddress(req.body?.email);
+  console.info('[ai-compare-backend] email login code request', JSON.stringify({
+    emailHash: getEmailLoginCodeDocId(email).slice(0, 12),
+    userAgent: String(req.get?.('user-agent') || '').slice(0, 120),
+    origin: String(req.get?.('origin') || '').slice(0, 120)
+  }));
   const docRef = db.collection(emailLoginCodeCollection).doc(getEmailLoginCodeDocId(email));
   const now = Date.now();
   const existing = await docRef.get();
@@ -2716,6 +2772,12 @@ async function sendEmailLoginCode(req) {
     error.status = 429;
     error.code = 'EMAIL_CODE_COOLDOWN';
     error.retryAfterSeconds = Math.ceil((cooldownMs - (now - lastSentAtMs)) / 1000);
+    console.info('[ai-compare-backend] email login code cooldown', JSON.stringify({
+      emailHash: getEmailLoginCodeDocId(email).slice(0, 12),
+      retryAfterSeconds: error.retryAfterSeconds,
+      userAgent: String(req.get?.('user-agent') || '').slice(0, 120),
+      origin: String(req.get?.('origin') || '').slice(0, 120)
+    }));
     throw error;
   }
 
@@ -2737,7 +2799,7 @@ async function sendEmailLoginCode(req) {
   }, { merge: true });
 
   try {
-    await getEmailAuthTransporter().sendMail({
+    const info = await getEmailAuthTransporter().sendMail({
       from: emailAuthFrom,
       ...(emailAuthReplyTo ? { replyTo: emailAuthReplyTo } : {}),
       to: email,
@@ -2745,6 +2807,15 @@ async function sendEmailLoginCode(req) {
       text: mail.text,
       html: mail.html
     });
+    console.info('[ai-compare-backend] email login code sent', JSON.stringify({
+      emailHash: getEmailLoginCodeDocId(email).slice(0, 12),
+      messageId: info.messageId || '',
+      accepted: Array.isArray(info.accepted) ? info.accepted.length : 0,
+      rejected: Array.isArray(info.rejected) ? info.rejected.length : 0,
+      response: String(info.response || '').slice(0, 160),
+      userAgent: String(req.get?.('user-agent') || '').slice(0, 120),
+      origin: String(req.get?.('origin') || '').slice(0, 120)
+    }));
   } catch (error) {
     await docRef.delete().catch(() => null);
     error.status = 502;
@@ -2859,7 +2930,7 @@ function getCorsOrigin(req) {
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', getCorsOrigin(req));
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-AI-Compare-Locale, X-AI-Compare-Client-Id');
+  res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type, Authorization, X-AI-Compare-Locale, X-AI-Compare-Client-Id, X-AI-Compare-Extension-Version');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (adminSessionOrigin) {
     res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${adminSessionOrigin}`);
@@ -3097,6 +3168,7 @@ function normalizeLocale(locale = '') {
 }
 
 function shouldMeterLocale(locale = '') {
+  if (billingMeterAllLocales) return true;
   return !normalizeLocale(locale).startsWith('zh');
 }
 
@@ -3301,12 +3373,28 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
   });
 }
 
+const CHAT_PLAN_USAGE_TOTAL_FIELD = 'chatQuestionCountTotal';
+
 function createChatPlanLimitError(limit) {
-  const error = new Error(`You've used today's ${limit} free AI comparison questions. Upgrade to Chat Plan for unlimited questions.`);
+  const error = new Error(`You've used your ${limit} free AI comparison questions. Upgrade to Chat Plan for unlimited questions.`);
   error.status = 402;
   error.code = 'CHAT_PLAN_LIMIT_REACHED';
   error.limit = Math.max(0, Number(limit) || 0);
   return error;
+}
+
+async function getHistoricalChatQuestionCount(ownerRef) {
+  const snapshot = await ownerRef.collection('usage').get();
+  let total = 0;
+  snapshot.forEach((doc) => {
+    total += Math.max(0, Number(doc.data()?.chatQuestionCount) || 0);
+  });
+  return total;
+}
+
+function getStoredChatQuestionTotal(data = {}) {
+  const value = Number(data?.[CHAT_PLAN_USAGE_TOTAL_FIELD]);
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : null;
 }
 
 async function consumeChatPlanUsage(uid, locale) {
@@ -3320,10 +3408,14 @@ async function consumeChatPlanUsage(uid, locale) {
   }
 
   const dateKey = getTodayKey();
-  const usageRef = db.collection('users').doc(uid).collection('usage').doc(dateKey);
+  const userRef = db.collection('users').doc(uid);
+  const userSnap = await userRef.get();
+  const initialUsed = getStoredChatQuestionTotal(userSnap.data() || {}) ?? await getHistoricalChatQuestionCount(userRef);
+  const usageRef = userRef.collection('usage').doc(dateKey);
   return db.runTransaction(async (transaction) => {
-    const snap = await transaction.get(usageRef);
-    const used = snap.exists ? Math.max(0, Number(snap.data().chatQuestionCount) || 0) : 0;
+    const snap = await transaction.get(userRef);
+    const data = snap.exists ? snap.data() || {} : {};
+    const used = getStoredChatQuestionTotal(data) ?? initialUsed;
     if (used >= chatPlanDailyFreeLimit) {
       recordInternalAnalyticsEvent({
         kind: 'subscription',
@@ -3337,8 +3429,15 @@ async function consumeChatPlanUsage(uid, locale) {
       throw createChatPlanLimitError(chatPlanDailyFreeLimit);
     }
     const nextUsed = used + 1;
+    transaction.set(userRef, {
+      [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
+      chatQuestionLimit: chatPlanDailyFreeLimit,
+      chatQuestionLastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
     transaction.set(usageRef, {
-      chatQuestionCount: nextUsed,
+      chatQuestionCount: admin.firestore.FieldValue.increment(1),
+      [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
       date: dateKey,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
@@ -3367,10 +3466,14 @@ async function consumeAnonymousChatPlanUsage(clientId, locale) {
   requireFirebaseAdmin();
   const dateKey = getTodayKey();
   const clientHash = getAnonymousUsageDocId(normalizedClientId);
-  const usageRef = db.collection('anonymousUsage').doc(clientHash).collection('usage').doc(dateKey);
+  const clientRef = db.collection('anonymousUsage').doc(clientHash);
+  const clientSnap = await clientRef.get();
+  const initialUsed = getStoredChatQuestionTotal(clientSnap.data() || {}) ?? await getHistoricalChatQuestionCount(clientRef);
+  const usageRef = clientRef.collection('usage').doc(dateKey);
   return db.runTransaction(async (transaction) => {
-    const snap = await transaction.get(usageRef);
-    const used = snap.exists ? Math.max(0, Number(snap.data().chatQuestionCount) || 0) : 0;
+    const snap = await transaction.get(clientRef);
+    const data = snap.exists ? snap.data() || {} : {};
+    const used = getStoredChatQuestionTotal(data) ?? initialUsed;
     if (used >= chatPlanDailyFreeLimit) {
       recordInternalAnalyticsEvent({
         kind: 'subscription',
@@ -3384,8 +3487,16 @@ async function consumeAnonymousChatPlanUsage(clientId, locale) {
       throw createChatPlanLimitError(chatPlanDailyFreeLimit);
     }
     const nextUsed = used + 1;
+    transaction.set(clientRef, {
+      [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
+      chatQuestionLimit: chatPlanDailyFreeLimit,
+      clientHash,
+      chatQuestionLastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
     transaction.set(usageRef, {
-      chatQuestionCount: nextUsed,
+      chatQuestionCount: admin.firestore.FieldValue.increment(1),
+      [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
       date: dateKey,
       clientHash,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -3884,6 +3995,9 @@ function getDefaultCoursePromoConfig() {
     title: 'Codex 编程课',
     subtitle: '面向中文用户的 Codex 编程课，学习如何把 AI 变成稳定可落地的开发效率工具。',
     ctaText: '查看课程',
+    textAdEnabled: false,
+    textAdText: '',
+    textAdUrl: '',
     targetLocales: ['zh_CN', 'zh_TW', 'zh'],
     dismissDays: 7,
     maxImpressionsPerDay: 3,
@@ -3954,6 +4068,9 @@ function normalizeCoursePromoConfig(raw = {}) {
     title: normalizeCoursePromoText(raw.title, 80, defaults.title),
     subtitle: normalizeCoursePromoText(raw.subtitle, 160, defaults.subtitle),
     ctaText: normalizeCoursePromoText(raw.ctaText, 24, defaults.ctaText),
+    textAdEnabled: raw.textAdEnabled === true,
+    textAdText: normalizeCoursePromoText(raw.textAdText, 80, ''),
+    textAdUrl: normalizeCoursePromoUrl(raw.textAdUrl),
     targetLocales: normalizeCoursePromoLocales(raw.targetLocales),
     dismissDays: normalizePositiveInteger(raw.dismissDays, defaults.dismissDays, 1, 365),
     maxImpressionsPerDay: normalizePositiveInteger(raw.maxImpressionsPerDay, defaults.maxImpressionsPerDay, 1, 20),
@@ -3996,6 +4113,13 @@ function validateCoursePromoConfigInput(input = {}) {
   if (input.targetUrl && !input.targetUrl.startsWith('https://')) {
     errors.push('点击链接必须以 https:// 开头');
   }
+  if (input.textAdEnabled === true) {
+    if (!input.textAdText) errors.push('文字广告文案不能为空');
+    if (!input.textAdUrl) errors.push('文字广告跳转链接必须以 https:// 开头');
+  }
+  if (input.textAdUrl && !input.textAdUrl.startsWith('https://')) {
+    errors.push('文字广告跳转链接必须以 https:// 开头');
+  }
   return errors;
 }
 
@@ -4008,6 +4132,9 @@ function sanitizeCoursePromoOutput(config = {}) {
     title: normalized.title,
     subtitle: normalized.subtitle,
     ctaText: normalized.ctaText,
+    textAdEnabled: normalized.textAdEnabled,
+    textAdText: normalized.textAdText,
+    textAdUrl: normalized.textAdUrl,
     targetLocales: normalized.targetLocales,
     dismissDays: normalized.dismissDays,
     maxImpressionsPerDay: normalized.maxImpressionsPerDay,
@@ -4025,6 +4152,9 @@ function sanitizeCoursePromoPublicOutput(config = {}) {
     title: normalized.title,
     subtitle: normalized.subtitle,
     ctaText: normalized.ctaText,
+    textAdEnabled: normalized.textAdEnabled,
+    textAdText: normalized.textAdText,
+    textAdUrl: normalized.textAdUrl,
     targetLocales: normalized.targetLocales,
     dismissDays: normalized.dismissDays,
     maxImpressionsPerDay: normalized.maxImpressionsPerDay,
@@ -4589,6 +4719,13 @@ async function resolveBillingSmokeTestUser(req) {
   throw error;
 }
 
+function getStripeAdaptivePricingConfig() {
+  const raw = String(process.env.STRIPE_ADAPTIVE_PRICING_ENABLED || 'true').trim().toLowerCase();
+  return {
+    enabled: !['0', 'false', 'off', 'no'].includes(raw)
+  };
+}
+
 async function createCheckoutSessionForFirebaseUser({
   firebaseUser,
   priceId,
@@ -4635,6 +4772,7 @@ async function createCheckoutSessionForFirebaseUser({
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: getCheckoutSuccessUrl(),
     cancel_url: getCancelUrl(),
+    adaptive_pricing: getStripeAdaptivePricingConfig(),
     metadata,
     subscription_data: {
       metadata
@@ -4659,6 +4797,7 @@ async function createCheckoutSessionForAnonymousClient({
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: getCheckoutSuccessUrl(),
     cancel_url: getCancelUrl(),
+    adaptive_pricing: getStripeAdaptivePricingConfig(),
     metadata,
     subscription_data: {
       metadata
@@ -4717,8 +4856,7 @@ function getMembershipPricingPageHtml(planType = 'chat') {
   const pageCopy = JSON.stringify(isApiPlan ? {
     eyebrow: 'AI Compare Pro',
     title: 'Choose your API Plan',
-    description: 'Unlock unlimited summary and skill questions powered by the built-in API.',
-    back: 'Back to AICompare',
+    description: '',
     signIn: 'Continue to Stripe',
     signedIn: 'Stripe will collect your email securely.',
     monthlyName: 'API Plan · Monthly',
@@ -4732,19 +4870,18 @@ function getMembershipPricingPageHtml(planType = 'chat') {
     feature1: 'Unlimited summary questions',
     feature2: 'Unlimited built-in skill questions',
     feature3: 'Built-in API keys stay securely on the cloud backend',
-    loginHint: 'No account is required before checkout. Stripe will collect your email securely.',
+    loginHint: '',
     loading: 'Loading pricing…',
     error: 'Failed to load pricing.',
     logout: 'Switch account'
   } : {
     eyebrow: 'AI Compare Pro',
-    title: 'Choose your Pro plan',
-    description: 'Pick monthly or yearly, then continue to Stripe. No account is required before checkout.',
-    back: 'Back to AICompare',
+    title: 'Choose your Chat Plan',
+    description: '',
     signIn: 'Continue to Stripe',
     signedIn: 'Stripe will collect your email securely.',
-    monthlyName: 'Pro Plan · Monthly',
-    yearlyName: 'Pro Plan · Yearly',
+    monthlyName: '',
+    yearlyName: '',
     monthlyPrice: 'Loading price…',
     yearlyPrice: 'Loading price…',
     monthlyCta: 'Subscribe Monthly',
@@ -4753,8 +4890,8 @@ function getMembershipPricingPageHtml(planType = 'chat') {
     yearlyDesc: 'Best value for long-term use, with one yearly payment.',
     feature1: 'Unlimited AI comparison questions',
     feature2: 'Switch between supported AI sites',
-    feature3: 'Built for non-Chinese interfaces',
-    loginHint: 'No account is required before checkout. Stripe will collect your email securely.',
+    feature3: '',
+    loginHint: '',
     loading: 'Loading pricing…',
     error: 'Failed to load pricing.',
     logout: 'Switch account'
@@ -4765,7 +4902,7 @@ function getMembershipPricingPageHtml(planType = 'chat') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isApiPlan ? 'Choose your API Plan' : 'Choose your Pro plan'} | AICompare</title>
+  <title>${isApiPlan ? 'Choose your API Plan' : 'Choose your Chat Plan'} | AICompare</title>
   <style>
     :root {
       color-scheme: light;
@@ -4983,17 +5120,13 @@ function getMembershipPricingPageHtml(planType = 'chat') {
 </head>
 <body>
   <main class="page">
-    <div class="topbar">
-      <a class="back-link" href="https://aicompare.club" rel="noopener noreferrer">${isApiPlan ? 'Back to AICompare' : 'Back to AICompare'}</a>
-    </div>
     <header class="hero">
       <p class="eyebrow">${isApiPlan ? 'AI Compare Pro' : 'AI Compare Pro'}</p>
-      <h1 id="pricingTitle">${isApiPlan ? 'Choose your API Plan' : 'Choose your Pro plan'}</h1>
-      <p class="lead" id="pricingDescription">${isApiPlan ? 'Unlock unlimited summary and skill questions powered by the built-in API.' : 'Pick monthly or yearly, then continue to Stripe. No account is required before checkout.'}</p>
-      <div class="auth-bar">
-        <span class="auth-status" id="authStatus">No account is required before checkout. Stripe will collect your email securely.</span>
+      <h1 id="pricingTitle">${isApiPlan ? 'Choose your API Plan' : 'Choose your Chat Plan'}</h1>
+      <p class="lead" id="pricingDescription" hidden></p>
+      <div class="auth-bar" id="authBar" hidden>
+        <span class="auth-status" id="authStatus"></span>
       </div>
-      <p class="note">If you opened this page from the extension, payment will unlock this browser automatically after Stripe confirms the subscription.</p>
     </header>
 
     <section class="pricing-options" id="pricingOptions" aria-label="${isApiPlan ? 'Choose an API Plan' : 'Choose a Pro plan'}">
@@ -5087,7 +5220,12 @@ function getMembershipPricingPageHtml(planType = 'chat') {
       }
 
       function updateCheckoutUi() {
-        authStatus.textContent = copy.loginHint;
+        const authBar = document.getElementById('authBar');
+        const descriptionText = String(copy.description || '').trim();
+        const loginHintText = String(copy.loginHint || '').trim();
+        pricingDescription.hidden = !descriptionText;
+        authBar.hidden = !loginHintText;
+        authStatus.textContent = loginHintText;
         monthlyButton.disabled = false;
         yearlyButton.disabled = false;
       }
@@ -5096,10 +5234,12 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         const details = billingConfig?.priceDetails?.[planType] || {};
         const monthly = details.monthly || {};
         const yearly = details.yearly || {};
-        const planLabel = planType === 'api' ? 'API Plan' : 'Pro Plan';
+        const planLabel = planType === 'api' ? 'API Plan' : 'Chat Plan';
 
         pricingTitle.textContent = copy.title;
-        pricingDescription.textContent = copy.description;
+        pricingDescription.textContent = copy.description || '';
+        monthlyName.hidden = !String(copy.monthlyName || '').trim();
+        yearlyName.hidden = !String(copy.yearlyName || '').trim();
         monthlyName.textContent = copy.monthlyName;
         yearlyName.textContent = copy.yearlyName;
         monthlyPrice.textContent = formatPrice(monthly, planType === 'api' ? 'HK$10 / month' : '$4.99 / month');
@@ -5108,10 +5248,12 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         yearlyDescription.textContent = copy.yearlyDesc;
         monthlyFeature1.textContent = copy.feature1;
         monthlyFeature2.textContent = copy.feature2;
-        monthlyFeature3.textContent = copy.feature3;
+        monthlyFeature3.hidden = !String(copy.feature3 || '').trim();
+        monthlyFeature3.textContent = copy.feature3 || '';
         yearlyFeature1.textContent = copy.feature1;
         yearlyFeature2.textContent = copy.feature2;
-        yearlyFeature3.textContent = copy.feature3;
+        yearlyFeature3.hidden = !String(copy.feature3 || '').trim();
+        yearlyFeature3.textContent = copy.feature3 || '';
         monthlyButton.textContent = copy.monthlyCta;
         yearlyButton.textContent = copy.yearlyCta;
         pricingOptions.setAttribute('aria-label', planLabel);
@@ -5373,7 +5515,7 @@ function getPaymentSuccessPageHtml() {
       <div class="panel" id="nextPanel" hidden>
         <h2 class="panel-title">What to do next</h2>
         <ol class="steps">
-          <li>Install the <a class="inline-link" href="${chromeWebStoreInstallUrl}" target="_blank" rel="noopener noreferrer">AI比一比</a> extension.</li>
+          <li>Install the <a class="inline-link" href="${chromeWebStoreInstallUrl}" target="_blank" rel="noopener noreferrer">AI Compare</a> extension.</li>
           <li>Enter the extension <a class="inline-link" href="${membershipUrl}">account page</a>.</li>
           <li>Check whether your <code id="planName">membership</code> status has changed to active.</li>
           <li>If it still looks unchanged, wait a few seconds and reopen the page once.</li>
@@ -5407,6 +5549,7 @@ function getPaymentSuccessPageHtml() {
       statusIcon.className = 'badge-spinner';
       statusLabel.textContent = 'Waiting for payment result';
       pageTitle.textContent = 'Waiting for your payment result.';
+      pageLead.hidden = false;
       pageLead.textContent = 'We are confirming the final Stripe payment status. This usually takes a few seconds, so please keep this page open.';
       nextPanel.hidden = true;
     }
@@ -5417,7 +5560,8 @@ function getPaymentSuccessPageHtml() {
       statusIcon.className = 'badge-dot';
       statusLabel.textContent = 'Payment successful';
       pageTitle.textContent = 'Your ' + result.planLabel + ' payment is complete.';
-      pageLead.textContent = 'Stripe confirmed the payment successfully. You can now open AICompare and check your membership status.';
+      pageLead.hidden = true;
+      pageLead.textContent = '';
       nextPanel.hidden = false;
     }
 
@@ -5427,6 +5571,7 @@ function getPaymentSuccessPageHtml() {
       statusIcon.className = 'badge-dot';
       statusLabel.textContent = 'Payment not completed';
       pageTitle.textContent = 'We could not confirm this payment.';
+      pageLead.hidden = false;
       pageLead.textContent = 'The checkout session did not finish with a successful payment. You can return to AICompare and start a new checkout if needed.';
       nextPanel.hidden = true;
     }
@@ -6690,7 +6835,7 @@ function getCoursePromoPageHtml() {
   return createAdminPage({
     pageName: 'coursePromo',
     title: '课程广告配置',
-    description: '控制主页课程广告的显示开关、图片、链接和频控参数。公开页面只读取安全字段，适合随时换图换链路。',
+    description: '控制主页课程广告的显示开关、图片、搜索框文字广告、链接和频控参数。公开页面只读取安全字段，适合随时换图换链路。',
     content: `
       <section class="card panel">
         <h2 class="section-title">广告配置</h2>
@@ -6735,6 +6880,26 @@ function getCoursePromoPageHtml() {
             <input id="coursePromoMaxImpressionsPerDay" type="number" min="1" max="20" step="1" />
           </label>
         </div>
+        <div class="course-promo-subsection">
+          <h3>搜索框文字广告</h3>
+          <div class="course-promo-grid">
+            <label class="field">
+              <span>文字广告开关</span>
+              <select id="coursePromoTextAdEnabled">
+                <option value="false">关闭</option>
+                <option value="true">开启</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>文字广告文案</span>
+              <input id="coursePromoTextAdText" type="text" maxlength="80" placeholder="例如：系统学习 Codex 编程课，点这里" />
+            </label>
+            <label class="field course-promo-field-wide">
+              <span>文字广告跳转链接</span>
+              <input id="coursePromoTextAdUrl" type="url" placeholder="https://..." />
+            </label>
+          </div>
+        </div>
         <div class="course-promo-actions">
           <button id="coursePromoSaveButton" type="button">保存配置</button>
           <button id="coursePromoRefreshButton" type="button">重新加载</button>
@@ -6749,6 +6914,7 @@ function getCoursePromoPageHtml() {
             <div id="coursePromoPreviewTitle" class="course-promo-preview-title"></div>
             <div id="coursePromoPreviewSubtitle" class="course-promo-preview-subtitle"></div>
             <a id="coursePromoPreviewLink" class="course-promo-preview-link" href="#" target="_blank" rel="noopener noreferrer">打开链接</a>
+            <a id="coursePromoTextAdPreview" class="course-promo-preview-link" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
           </div>
         </div>
       </section>
@@ -9462,6 +9628,22 @@ app.get(['/membership-pricing', '/membership-pricing.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const requestedPlanType = String(req.query?.planType || req.query?.plan || '').trim().toLowerCase();
   const planType = requestedPlanType === 'api' ? 'api' : 'chat';
+  const requestedBillingMode = String(req.query?.billingMode || req.query?.mode || '').trim().toLowerCase();
+  if (requestedBillingMode === 'test' && billingMode !== 'test') {
+    const redirectUrl = new URL(req.originalUrl || req.path, 'https://aicompare.club');
+    redirectUrl.pathname = redirectUrl.pathname.replace(/^\/+/, '/test-api/');
+    redirectUrl.searchParams.set('billingMode', 'test');
+    redirectUrl.searchParams.delete('mode');
+    res.redirect(302, `${redirectUrl.pathname}${redirectUrl.search}`);
+    return;
+  }
+  if (!String(req.query?.planType || '').trim()) {
+    const redirectUrl = new URL(req.originalUrl || req.path, 'https://aicompare.club');
+    redirectUrl.searchParams.delete('plan');
+    redirectUrl.searchParams.set('planType', planType);
+    res.redirect(302, `${redirectUrl.pathname}${redirectUrl.search}`);
+    return;
+  }
   res.send(getMembershipPricingPageHtml(planType));
 });
 
@@ -9729,6 +9911,9 @@ app.post('/api/admin/course-promo', asyncRoute(async (req, res) => {
     title: req.body?.title,
     subtitle: req.body?.subtitle,
     ctaText: req.body?.ctaText,
+    textAdEnabled: req.body?.textAdEnabled === true || req.body?.textAdEnabled === 'true',
+    textAdText: req.body?.textAdText,
+    textAdUrl: req.body?.textAdUrl,
     targetLocales: req.body?.targetLocales,
     dismissDays: req.body?.dismissDays,
     maxImpressionsPerDay: req.body?.maxImpressionsPerDay
@@ -9874,6 +10059,11 @@ app.post('/auth/email-code/send', asyncRoute(async (req, res) => {
 app.post('/auth/email-code/verify', asyncRoute(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(await verifyEmailLoginCode(req));
+}));
+
+app.get('/auth/email-code/status', asyncRoute(async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(getEmailAuthStatus());
 }));
 
 app.get('/billingConfig', asyncRoute(async (_req, res) => {

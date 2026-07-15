@@ -127,39 +127,14 @@ function getSidebarLoginLabel() {
     return sidebarMessage('logIn', 'login');
 }
 
-const sidebarScriptLoadPromises = new Map();
-
-function loadSidebarScriptOnce(relativePath) {
-    const path = String(relativePath || '').trim();
-    if (!path) {
-        return Promise.resolve();
-    }
-    if (sidebarScriptLoadPromises.has(path)) {
-        return sidebarScriptLoadPromises.get(path);
-    }
-
-    const promise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = chrome.runtime.getURL(path);
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load ${path}`));
-        document.head.appendChild(script);
-    });
-
-    sidebarScriptLoadPromises.set(path, promise);
-    return promise;
+function getSidebarAccountPageUrl() {
+    return chrome.runtime.getURL('options/options.html#membership');
 }
 
-async function ensureSidebarAuthReady() {
-    if (typeof window.firebaseSignInWithGoogle === 'function') {
-        return;
-    }
-    if (typeof window.FirebaseConfig === 'undefined' && typeof FirebaseConfig === 'undefined') {
-        await loadSidebarScriptOnce('config/firebaseConfig.js');
-    }
-    if (typeof window.firebaseSignInWithGoogle !== 'function') {
-        await loadSidebarScriptOnce('firebase/firebase-auth.js');
-    }
+function getSidebarLoginPageUrl() {
+    const loginUrl = new URL(chrome.runtime.getURL('options/account-login.html'));
+    loginUrl.searchParams.set('returnTo', getSidebarAccountPageUrl());
+    return loginUrl.toString();
 }
 
 function applySidebarI18n(root) {
@@ -434,19 +409,14 @@ function bindSyncBar() {
             const stored = await chrome.storage.local.get(['firebase_uid']);
             if (stored?.firebase_uid) {
                 safeTrackEvent('sidebar_account_click');
-                window.location.href = chrome.runtime.getURL('options/options.html#membership');
+                window.location.href = getSidebarAccountPageUrl();
                 return;
             }
             safeTrackEvent('sidebar_login_click');
-            await ensureSidebarAuthReady();
-            if (typeof window.firebaseSignInWithGoogle !== 'function') {
-                throw new Error(sidebarMessage('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
-            }
-            await window.firebaseSignInWithGoogle();
-            await updateSyncBar();
+            window.location.href = getSidebarLoginPageUrl();
         } catch (error) {
-            console.warn('Sidebar Google sign-in failed', error);
-            window.location.href = chrome.runtime.getURL('options/options.html#membership');
+            console.warn('Sidebar account navigation failed', error);
+            window.location.href = getSidebarLoginPageUrl();
         } finally {
             syncBar.dataset.loading = 'false';
         }

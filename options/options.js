@@ -74,6 +74,11 @@ function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '') {
     ? window.FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/+$/, '')
     : 'https://aicompare.club';
   const url = new URL(`${baseUrl}/membership-pricing`);
+  const isTestBilling = url.pathname.startsWith('/test-api/')
+    || (chrome?.runtime?.id && chrome.runtime.id !== 'dkhpgbbhlnmjbkihoeniojpkggkabbbl');
+  if (isTestBilling) {
+    url.searchParams.set('billingMode', 'test');
+  }
   if (String(planType || '').trim().toLowerCase() === 'api') {
     url.searchParams.set('planType', 'api');
   }
@@ -5180,6 +5185,7 @@ async function initializeMembership() {
   const plansEl = document.getElementById('membershipPlans');
   const accountCardEl = document.getElementById('membershipStatusCard');
   const accountNameEl = document.getElementById('membershipAccountName');
+  const avatarEl = document.getElementById('membershipAvatar');
   const avatarImageEl = document.getElementById('membershipAvatarImage');
   const avatarFallbackEl = document.getElementById('membershipAvatarFallback');
   const logoutBtn = document.getElementById('membershipLogoutBtn');
@@ -5508,23 +5514,15 @@ async function initializeMembership() {
     return getMessageWithFallback('settingsNavProTitle', 'Account');
   }
 
-  function getAccountInitials(auth = {}) {
-    const name = getAccountDisplayName(auth).replace(/@.*$/, '').trim();
-    const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase() || 'AI';
-  }
-
   function renderAccountAvatar(auth = {}) {
-    if (!avatarImageEl || !avatarFallbackEl) {
+    if (!avatarEl || !avatarImageEl || !avatarFallbackEl) {
       return;
     }
 
     const photoURL = String(auth?.photoURL || '').trim();
-    avatarFallbackEl.textContent = getAccountInitials(auth);
-    avatarFallbackEl.hidden = false;
+    avatarEl.hidden = true;
+    avatarFallbackEl.textContent = '';
+    avatarFallbackEl.hidden = true;
     avatarImageEl.hidden = true;
 
     if (!photoURL) {
@@ -5533,18 +5531,23 @@ async function initializeMembership() {
     }
 
     if (avatarImageEl.getAttribute('src') === photoURL && avatarImageEl.complete && avatarImageEl.naturalWidth > 0) {
+      avatarEl.hidden = false;
       avatarImageEl.hidden = false;
       avatarFallbackEl.hidden = true;
       return;
     }
 
     avatarImageEl.onload = () => {
+      avatarEl.hidden = false;
       avatarImageEl.hidden = false;
       avatarFallbackEl.hidden = true;
     };
     avatarImageEl.onerror = () => {
+      avatarEl.hidden = true;
       avatarImageEl.hidden = true;
-      avatarFallbackEl.hidden = false;
+      avatarImageEl.removeAttribute('src');
+      avatarFallbackEl.textContent = '';
+      avatarFallbackEl.hidden = true;
     };
     avatarImageEl.src = photoURL;
   }
@@ -5584,9 +5587,12 @@ async function initializeMembership() {
         avatarImageEl.hidden = true;
         avatarImageEl.removeAttribute('src');
       }
+      if (avatarEl) {
+        avatarEl.hidden = true;
+      }
       if (avatarFallbackEl) {
         avatarFallbackEl.textContent = '';
-        avatarFallbackEl.hidden = false;
+        avatarFallbackEl.hidden = true;
       }
       setMembershipBadge(null);
       return;

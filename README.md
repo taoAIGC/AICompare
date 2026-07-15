@@ -8,7 +8,7 @@
 
 ### ✨ Introduction
 
-**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包, 元宝, and many more — side by side. Website comparison still works with your existing AI accounts; Chat Plan gates the built-in AI comparison flow for non-Chinese UI users with a backend-configured daily free limit, while API Plan gates built-in summary and skill questions with 10 free API-powered questions per day before an API Plan upgrade is required. Signed-out users are also metered through an anonymous client id.
+**AI Compare** (formerly "AI Shortcuts") is a browser extension that lets you compare answers from multiple AI models in one place. Enter a query once and see results from ChatGPT, Gemini, Claude, Grok, Manus, DeepSeek, Kimi, 豆包, 元宝, and many more — side by side. Website comparison still works with your existing AI accounts; Chat Plan gates the built-in AI comparison flow for non-Chinese UI users with a backend-configured lifetime free limit, while API Plan gates built-in summary and skill questions with 10 free API-powered questions per day before an API Plan upgrade is required. Signed-out users are also metered through an anonymous client id.
 
 ### 📦 Features
 
@@ -88,7 +88,7 @@
 - **Built-in skill catalog**: Bundled skills now ship from `config/agentCatalog.json`, so the default built-in skill list can follow the same config-file workflow as site adapters.
 - **Built-in thinking skills**: The extension now includes analysis-first skills such as Multidisciplinary Thinking, Six Thinking Hats, Socratic Questioning, and Big Shots Roundtable for comparing one problem through different frameworks and personas.
 - **API settings**: Configure the shared skill engine used by the built-in skills.
-- **Chat Plan + API Plan**: Chat Plan controls non-Chinese built-in AI comparison access: free and signed-out users get `CHAT_PLAN_DAILY_FREE_LIMIT` questions per day, and Chat Plan removes that limit. API Plan controls built-in summary and skill questions: free and signed-out users get `OFFICIAL_API_DAILY_FREE_LIMIT` API-powered questions per day, and API Plan removes that limit. Official model keys stay on the cloud backend, while custom API keys remain user-provided and continue to use the user's own provider quota. The Pro page now opens a hosted pricing page on `aicompare.club`; users can go straight to monthly/yearly Stripe checkout without signing in first, and Stripe email plus the extension anonymous client id are used for post-payment binding. In API settings, the official API row only shows the `Upgrade PRO` action for non-PRO users, and it opens the hosted API Plan purchase page.
+- **Chat Plan + API Plan**: Chat Plan controls non-Chinese built-in AI comparison access: free and signed-out users get `CHAT_PLAN_DAILY_FREE_LIMIT` lifetime free questions, and Chat Plan removes that limit. API Plan controls built-in summary and skill questions: free and signed-out users get `OFFICIAL_API_DAILY_FREE_LIMIT` API-powered questions per day, and API Plan removes that limit. Official model keys stay on the cloud backend, while custom API keys remain user-provided and continue to use the user's own provider quota. The Pro page now opens a hosted pricing page on `aicompare.club`; users can go straight to monthly/yearly Stripe checkout without signing in first, and Stripe email plus the extension anonymous client id are used for post-payment binding. In API settings, the official API row only shows the `Upgrade PRO` action for non-PRO users, and it opens the hosted API Plan purchase page.
 - **Billing tabs**: The Pro page now separates `Overview` and `Invoices`. Overview shows the current Chat Plan and API Plan status plus subscription actions; Invoices lists recent billing records for the signed-in account.
 - **API connection test**: The custom API dialog can now send a small `chat/completions` probe and show the exact HTTP failure reason before you save, which is useful for local OpenAI-compatible servers such as Hermes.
 - **Sidebar subpages**: Each settings group opens as its own subpage in the right panel instead of one long scroll page.
@@ -207,12 +207,13 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - `STRIPE_API_PRICE_YEARLY`
   - `STRIPE_PRICE_SMOKE_TEST` optional, hidden admin-only live payment smoke test price
   - `BILLING_SMOKE_TEST_TOKEN` optional, random token required by the hidden smoke test checkout entry
+  - `STRIPE_ADAPTIVE_PRICING_ENABLED` optional, defaults to `true`, enables Stripe Checkout Adaptive Pricing for localized presentment currency
   - `AI_COMPARE_EXTENSION_ID` optional, Chrome Web Store extension id used by the payment success page; invalid values fall back to the production extension id
   - `OFFICIAL_AGENT_API_BASE_URL`
   - `OFFICIAL_AGENT_API_KEY`
   - `OFFICIAL_AGENT_MODEL`
   - `OFFICIAL_AGENT_API_FORMAT`
-  - `CHAT_PLAN_DAILY_FREE_LIMIT` optional, defaults to `3`, controls non-Chinese free AI comparison questions before Chat Plan is required
+  - `CHAT_PLAN_DAILY_FREE_LIMIT` optional, defaults to `3`, controls the non-Chinese lifetime free AI comparison questions before Chat Plan is required
   - `OFFICIAL_AGENT_INPUT_TOKEN_PRICE_PER_MILLION` optional, used to estimate official API input token cost
   - `OFFICIAL_AGENT_OUTPUT_TOKEN_PRICE_PER_MILLION` optional, used to estimate official API output token cost
   - `OFFICIAL_AGENT_COST_CURRENCY` optional, defaults to `usd`
@@ -254,7 +255,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Query insight analysis now supports task, audience, and use-case dimensions in addition to type, domain, role, need, tags, and marketing-case candidates.
 - Course promo note:
   - `/admin/course-promo` controls the Chinese homepage course ad for the Codex programming course.
-  - The config is stored in Firestore at `runtimeConfigs/coursePromo` and supports the display switch, HTTPS image URL, HTTPS target URL, title, subtitle, CTA text, target locales, dismiss cooldown, and daily impression cap.
+  - The config is stored in Firestore at `runtimeConfigs/coursePromo` and supports the display switch, HTTPS image URL, HTTPS target URL, title, subtitle, CTA text, search-box text ad switch/text/link, target locales, dismiss cooldown, and daily impression cap.
   - The extension reads only the safe public fields from `/api/public/course-promo`; if the backend or Firestore is unavailable, the homepage keeps the promo hidden and the compare flow is unaffected.
   - The first version uses an external image URL and external video-shop checkout link. It does not upload images or sync video-shop orders back into AI Compare.
 - Failure log note:
@@ -578,10 +579,9 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-14 23:31:40 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-15 17:23:41 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `STRIPE_SETUP.md`
 - `M` `_locales/am/messages.json`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/bg/messages.json`
@@ -638,62 +638,32 @@ Last auto-update / 最近自动更新：2026-07-14 23:31:40 UTC+08:00
 - `M` `_locales/zh_CN/messages.json`
 - `M` `_locales/zh_TW/messages.json`
 - `M` `backend/.env.example`
-- `M` `backend/package-lock.json`
-- `M` `backend/package.json`
 - `M` `backend/server.js`
-- `M` `backend/weekly-behavior-insight-report.cjs`
 - `M` `background.js`
-- `M` `config/firebaseConfig.js`
-- `A` `docs/release-notes/latest.md`
+- `M` `docs/edge-store-full-descriptions-translated-structured.md`
+- `A` `docs/edge-store-placeholder-fixed-21-languages.md`
 - `M` `firebase/firebase-auth.js`
-- `M` `firebase/stripe-payment.js`
 - `M` `homepage/homepage.css`
 - `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
-- `M` `iframe/iframe.css`
+- `M` `iframe/agent-panel.js`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `A` `options/account-login-verify.html`
-- `A` `options/account-login-verify.js`
-- `A` `options/account-login.css`
-- `A` `options/account-login.html`
-- `A` `options/account-login.js`
-- `M` `options/membership-pricing.css`
-- `M` `options/membership-pricing.html`
+- `M` `options/account-login-verify.html`
+- `M` `options/account-login-verify.js`
+- `M` `options/account-login.js`
 - `M` `options/membership-pricing.js`
 - `M` `options/options.css`
 - `M` `options/options.html`
 - `M` `options/options.js`
-- `A` `reports/latest-weekly-behavior-insight.md`
-- `A` `scripts/generate-website-seo.js`
 - `M` `shared/sidebar.js`
-- `M` `website/README.md`
-- `M` `website/blog/ai-readability-checklist.html`
-- `M` `website/blog/brand-not-found-in-ai.html`
-- `M` `website/blog/check-geo-with-multi-ai.html`
-- `M` `website/blog/five-ai-content-test.html`
-- `M` `website/blog/index.html`
-- `M` `website/blog/what-is-geo.html`
-- `M` `website/blog/why-ai-answers-differ.html`
-- `M` `website/geo-checklist/index.html`
-- `M` `website/geo/index.html`
-- `M` `website/index.html`
-- `M` `website/resources/chrome-store-copy.html`
-- `A` `website/resources/multilingual-seo-plan.html`
-- `A` `website/seo/README.md`
-- `A` `website/seo/keyword-matrix.csv`
-- `A` `website/seo/locales.json`
-- `A` `website/seo/pages.json`
-- `M` `website/sitemap.xml`
-- `M` `website/use-cases/brand-monitoring/index.html`
-- `M` `website/use-cases/content-qa/index.html`
 
 ### Recent commits / 最近提交
+- `56a657f` 2026-07-14 V4.4.0 增加付费流程
 - `da28c7c` 2026-07-10 V4.3.4修复权限bug
 - `61a8efb` 2026-07-09 V4.3.4 修复bug
 - `57b5d1e` 2026-07-07 V4.3.3 修复bug
 - `7d51181` 2026-07-07 V 4.3.2 markdown方案采用开源解析方案
-- `c25a3a1` 2026-07-05 V4.3.1 修复豆包站点，默认站点去掉grok
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

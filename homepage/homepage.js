@@ -411,12 +411,19 @@ function getHomepageCoursePromoEndpoint() {
     }
 }
 
-function getHomepageCurrentLocale() {
+function getHomepageLocaleCandidates() {
+    const locales = [];
     try {
-        return chrome.i18n.getUILanguage?.() || navigator.language || '';
+        const chromeLocale = chrome.i18n.getUILanguage?.();
+        if (chromeLocale) locales.push(chromeLocale);
     } catch (_) {
-        return navigator.language || '';
+        // Ignore locale API failures; navigator still gives us useful hints.
     }
+    if (navigator.language) locales.push(navigator.language);
+    if (Array.isArray(navigator.languages)) {
+        locales.push(...navigator.languages);
+    }
+    return [...new Set(locales.map(normalizeHomepageLocale).filter(Boolean))];
 }
 
 function normalizeHomepageLocale(value = '') {
@@ -424,12 +431,14 @@ function normalizeHomepageLocale(value = '') {
 }
 
 function homepageLocaleMatchesCoursePromo(targetLocales = []) {
-    const current = normalizeHomepageLocale(getHomepageCurrentLocale());
-    if (!current) return false;
+    const currentLocales = getHomepageLocaleCandidates();
+    if (!currentLocales.length) return false;
     const candidates = Array.isArray(targetLocales) && targetLocales.length ? targetLocales : ['zh_CN', 'zh_TW', 'zh'];
     return candidates.some((locale) => {
         const target = normalizeHomepageLocale(locale);
-        return target && (current === target || current.startsWith(`${target}_`) || target.startsWith(`${current}_`));
+        return target && currentLocales.some((current) => (
+            current === target || current.startsWith(`${target}_`) || target.startsWith(`${current}_`)
+        ));
     });
 }
 
@@ -496,6 +505,9 @@ function normalizeHomepageCoursePromoConfig(payload = {}) {
         title: String(config?.title || '').trim(),
         subtitle: String(config?.subtitle || '').trim(),
         ctaText: String(config?.ctaText || '').trim() || '查看课程',
+        textAdEnabled: config?.textAdEnabled === true,
+        textAdText: String(config?.textAdText || '').trim(),
+        textAdUrl: String(config?.textAdUrl || '').trim(),
         targetLocales: Array.isArray(config?.targetLocales) ? config.targetLocales : ['zh_CN', 'zh_TW', 'zh'],
         dismissDays: Math.max(1, Math.min(365, Number(config?.dismissDays) || 7)),
         maxImpressionsPerDay: Math.max(1, Math.min(20, Number(config?.maxImpressionsPerDay) || 3))
@@ -516,6 +528,16 @@ function hideHomepageCoursePromo() {
         banner.hidden = true;
         banner.innerHTML = '';
     }
+    hideHomepageCoursePromoTextAd();
+}
+
+function hideHomepageCoursePromoTextAd() {
+    const textAd = document.getElementById('coursePromoTextAd');
+    if (!textAd) return;
+    textAd.hidden = true;
+    textAd.textContent = '';
+    textAd.removeAttribute('aria-label');
+    textAd.onclick = null;
 }
 
 function escapeHomepageCoursePromoAttr(value) {
@@ -590,9 +612,40 @@ function renderHomepageCoursePromo(config, state) {
     banner.hidden = false;
 }
 
+function renderHomepageCoursePromoTextAd(config) {
+    const textAd = document.getElementById('coursePromoTextAd');
+    if (!textAd) return false;
+    if (!config.textAdEnabled || !config.textAdText || !isHttpsUrl(config.textAdUrl)) {
+        hideHomepageCoursePromoTextAd();
+        return false;
+    }
+
+    textAd.textContent = config.textAdText;
+    textAd.title = config.textAdText;
+    textAd.setAttribute('aria-label', config.textAdText);
+    textAd.onclick = () => {
+        trackEvent('course_promo_text_ad_click', {
+            surface: 'homepage_search_bar',
+            campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+            target: 'video_shop',
+            kind: 'subscription'
+        });
+        chrome.tabs.create({ url: config.textAdUrl });
+    };
+    textAd.hidden = false;
+    trackEvent('course_promo_text_ad_impression', {
+        surface: 'homepage_search_bar',
+        campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+        target: 'video_shop',
+        kind: 'subscription'
+    });
+    return true;
+}
+
 async function initializeHomepageCoursePromo() {
     const banner = document.getElementById('coursePromoBanner');
-    if (!banner) return;
+    const textAd = document.getElementById('coursePromoTextAd');
+    if (!banner && !textAd) return;
     hideHomepageCoursePromo();
 
     const endpoint = getHomepageCoursePromoEndpoint();
@@ -603,23 +656,24 @@ async function initializeHomepageCoursePromo() {
         if (!response.ok) return;
         const payload = await response.json();
         const config = normalizeHomepageCoursePromoConfig(payload);
-        if (!config.enabled || !isHttpsUrl(config.targetUrl) || !homepageLocaleMatchesCoursePromo(config.targetLocales)) {
+        if (!homepageLocaleMatchesCoursePromo(config.targetLocales)) {
             return;
         }
-        if (!isHttpsUrl(config.imageUrl) && !config.title) {
-            return;
+        renderHomepageCoursePromoTextAd(config);
+
+        if (config.enabled && isHttpsUrl(config.targetUrl) && (isHttpsUrl(config.imageUrl) || config.title)) {
+            const state = await readHomepageCoursePromoState();
+            if (isHomepageCoursePromoDismissed(state, config.dismissDays)) return;
+            if (!hasHomepageCoursePromoDailyCapacity(state, config.maxImpressionsPerDay)) return;
+            const nextState = await markHomepageCoursePromoImpression(state);
+            renderHomepageCoursePromo(config, nextState);
+            trackEvent('course_promo_impression', {
+                surface: 'homepage',
+                campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+                target: 'video_shop',
+                kind: 'subscription'
+            });
         }
-        const state = await readHomepageCoursePromoState();
-        if (isHomepageCoursePromoDismissed(state, config.dismissDays)) return;
-        if (!hasHomepageCoursePromoDailyCapacity(state, config.maxImpressionsPerDay)) return;
-        const nextState = await markHomepageCoursePromoImpression(state);
-        renderHomepageCoursePromo(config, nextState);
-        trackEvent('course_promo_impression', {
-            surface: 'homepage',
-            campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
-            target: 'video_shop',
-            kind: 'subscription'
-        });
     } catch (error) {
         hideHomepageCoursePromo();
     }
@@ -2362,7 +2416,8 @@ async function handleQuery(query) {
                 query: processedQuery,
                 sites: selectionContext.externalSiteNames,
                 customSiteIds: selectionContext.customExternalSiteIds,
-                openIframePage: false
+                openIframePage: false,
+                skipChatPlanUsage: Boolean(processedQuery && selectionContext.hasRunnableIframePanels)
             });
             if (selectionContext.hasRunnableIframePanels) {
                 externalSearchPromise.catch((error) => {

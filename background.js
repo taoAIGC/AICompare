@@ -421,6 +421,21 @@ function getCustomApiSettingsUrl() {
   }
 }
 
+function getApiPlanPricingUrl() {
+  const fallbackBaseUrl = 'https://aicompare.club';
+  try {
+    const baseUrl = getCloudFunctionsBaseUrl();
+    const url = new URL(`${baseUrl}/membership-pricing`);
+    url.searchParams.set('planType', 'api');
+    if (url.pathname.startsWith('/test-api/')) {
+      url.searchParams.set('billingMode', 'test');
+    }
+    return url.toString();
+  } catch (_) {
+    return `${fallbackBaseUrl}/membership-pricing?planType=api`;
+  }
+}
+
 function getFirebaseApiKey() {
   return String(FirebaseConfig?.apiKey || '').trim();
 }
@@ -1098,24 +1113,42 @@ async function consumeChatPlanUsageQuota(query = '') {
     headers['X-AI-Compare-Client-Id'] = anonymousClientId;
   }
 
-  const response = await fetch(`${getCloudFunctionsBaseUrl()}/chatPlanUsage/consume`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
+  const usageUrl = `${getCloudFunctionsBaseUrl()}/chatPlanUsage/consume`;
+  let response = null;
+  try {
+    response = await fetch(usageUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        locale,
+        queryPreview: normalizedQuery,
+        queryLength: normalizedQuery.length
+      })
+    });
+  } catch (error) {
+    console.warn('[AI Compare] Chat Plan usage request failed:', {
+      url: usageUrl,
       locale,
-      queryPreview: normalizedQuery,
-      queryLength: normalizedQuery.length
-    })
-  });
+      message: error?.message || String(error)
+    });
+    const rt = await getRuntimeI18nTranslator();
+    throw new Error(rt(
+      'disabledSitesLoadFailed',
+      'Failed to load. Please refresh and try again.'
+    ));
+  }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 402 || payload?.code === 'CHAT_PLAN_LIMIT_REACHED') {
       const rt = await getRuntimeI18nTranslator();
-      throw new Error(rt(
+      const error = new Error(rt(
         'chatPlanQuotaExceeded',
         `You've reached today's $1 free AI comparison questions. Upgrade to Chat Plan for unlimited questions: $2`,
         [String(payload.limit || ''), await getChatPlanPricingUrl()]
       ));
+      error.code = 'CHAT_PLAN_LIMIT_REACHED';
+      error.limit = payload.limit;
+      throw error;
     }
     throw new Error(payload?.error || `Chat Plan usage request failed: HTTP ${response.status}`);
   }
@@ -1133,8 +1166,8 @@ async function consumeOfficialUsageQuota() {
     const rt = await getRuntimeI18nTranslator();
     throw new Error(rt(
       'agentEngineOfficialQuotaExceeded',
-      `You've reached today's ${status.limit} free API-powered questions. Upgrade to API Plan for unlimited summary and skill questions, or switch to your own API: $2`,
-      [String(status.limit), getCustomApiSettingsUrl()]
+      `Daily API quota is ${status.limit} uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3).`,
+      [String(status.limit), getApiPlanPricingUrl(), getCustomApiSettingsUrl()]
     ));
   }
 
@@ -1517,6 +1550,7 @@ async function parseAgentErrorMessage(response) {
   const fallback = `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
   const rt = await getRuntimeI18nTranslator();
   const customApiSettingsUrl = getCustomApiSettingsUrl();
+  const apiPlanPricingUrl = getApiPlanPricingUrl();
 
   const buildFriendlyAgentErrorMessage = (status, rawMessage = '', options = {}) => {
     const normalizedMessage = String(rawMessage || '').trim();
@@ -1544,8 +1578,8 @@ async function parseAgentErrorMessage(response) {
       if (options.isOfficialAgentApi) {
         return withoutDetails(
           'aiErrorOfficialBalanceInsufficient',
-          'The official API balance is insufficient. We recommend using a custom API: $1',
-          [customApiSettingsUrl]
+          'Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3).',
+          [String(OFFICIAL_AGENT_DAILY_FREE_LIMIT), apiPlanPricingUrl, customApiSettingsUrl]
         );
       }
       return withDetails(
@@ -1562,7 +1596,8 @@ async function parseAgentErrorMessage(response) {
     ) {
       return withDetails(
         'aiErrorFreeQuotaExceeded',
-        'Today\'s free AI usage limit has been reached. You can upgrade to PRO or switch to your own API.'
+        'Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3).',
+        [String(OFFICIAL_AGENT_DAILY_FREE_LIMIT), apiPlanPricingUrl, customApiSettingsUrl]
       );
     }
 
@@ -2801,7 +2836,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     openSearchTabs(message.query, message.sites, {
       openIframePage: message.openIframePage !== false,
       customSiteIds: message.customSiteIds,
-      openExternalSites: true
+      openExternalSites: true,
+      skipChatPlanUsage: message.skipChatPlanUsage === true
     }).then((result) => {
       sendResponse({ success: true, result });
     }).catch(error => {
@@ -2835,6 +2871,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }).catch((error) => {
       console.warn('记录产品统计事件失败:', error?.message || error);
       sendResponse({ success: false, error: error?.message || String(error) });
+    });
+    return true;
+  }
+  else if (message.action === 'consumeChatPlanUsageQuota') {
+    consumeChatPlanUsageQuota(message.query || '').then((result) => {
+      sendResponse({ success: true, result });
+    }).catch((error) => {
+      sendResponse({
+        success: false,
+        error: error?.message || String(error),
+        code: error?.code || '',
+        limit: error?.limit || null
+      });
     });
     return true;
   }
@@ -3351,7 +3400,7 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
   console.log('符合条件的 customSites:', selectedCustomSites);
 
   const normalizedQuery = String(query || '').trim();
-  if (normalizedQuery && (selectedOfficialSites.length > 0 || selectedCustomSites.length > 0)) {
+  if (!options.skipChatPlanUsage && normalizedQuery && (selectedOfficialSites.length > 0 || selectedCustomSites.length > 0)) {
     await consumeChatPlanUsageQuota(normalizedQuery);
   }
 

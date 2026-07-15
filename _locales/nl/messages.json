@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Je hebt de dagelijkse limiet van $1 gratis officiële API-verzoeken bereikt. Stel je persoonlijke API in: $2"
+    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1499,7 +1499,7 @@
     "message": "Membership tabs"
   },
   "membershipOverviewTab": {
-    "message": "Overview"
+    "message": "Plans"
   },
   "membershipInvoicesTab": {
     "message": "Invoices"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "The official API balance is insufficient. We recommend using a custom API: $1"
+    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Today's free AI usage limit has been reached. You can upgrade to PRO or switch to your own API."
+    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."
@@ -3087,7 +3087,7 @@
     "message": "You can redeem a membership code here."
   },
   "chatPlanQuotaExceeded": {
-    "message": "You've reached today's $1 free AI comparison questions. Upgrade to Chat Plan for unlimited questions: $2"
+    "message": "You have used your $1 free AI comparison questions. Upgrade to Chat Plan for unlimited questions: $2"
   },
   "membershipPlanStatusLoading": {
     "message": "Checking..."
@@ -3247,5 +3247,14 @@
   "iframeLoginOverlayButton": {
     "message": "Log In Now",
     "description": "Button that opens the extension login page from an iframe panel overlay"
+  },
+  "chatPlanQuotaOverlayTitle": {
+    "message": "Free quota used up"
+  },
+  "chatPlanQuotaOverlayDescription": {
+    "message": "You have used your free AI comparison questions. Upgrade to Chat Plan to continue with unlimited questions."
+  },
+  "chatPlanQuotaOverlayButton": {
+    "message": "Upgrade Chat Plan"
   }
 }
