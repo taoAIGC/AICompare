@@ -568,10 +568,9 @@ body.is-side-panel.search-bar-bottom .search-input-container {
 
 body.search-bar-bottom .query-suggestions {
     top: auto;
-    bottom: 100%;
-    border-radius: 16px 16px 0 0;
-    border-top: 1px solid var(--ai-border);
-    border-bottom: none;
+    bottom: calc(100% + 10px);
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .search-input-container {
@@ -605,19 +604,67 @@ body.search-bar-bottom .query-suggestions {
     transition: min-height 0.18s ease, border-color var(--ai-transition), background-color var(--ai-transition), box-shadow var(--ai-transition), border-radius var(--ai-transition);
 }
 
+.prompt-template-trigger-btn {
+    align-self: stretch;
+    flex: 0 0 auto;
+    width: 52px;
+    min-width: 52px;
+    border: none;
+    border-right: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 20px 0 0 20px;
+    background: transparent;
+    color: rgba(17, 17, 17, 0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color var(--ai-transition), color var(--ai-transition);
+}
+
+.prompt-template-trigger-btn:hover,
+.prompt-template-trigger-btn:focus-visible,
+.prompt-template-trigger-btn[aria-expanded="true"] {
+    background: rgba(15, 23, 42, 0.05);
+    color: #111111;
+}
+
+.prompt-template-trigger-btn:focus,
+.prompt-template-trigger-btn:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.prompt-template-trigger-btn svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
 .input-wrapper:focus-within {
     border-color: rgba(15, 23, 42, 0.22);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
-.homepage-course-promo-text-ad {
+.homepage-course-promo-text-ads {
     position: absolute;
     right: 32px;
     bottom: 10px;
-    display: block;
-    width: fit-content;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
     max-width: calc(100% - 64px);
     margin: 0;
+}
+
+.homepage-course-promo-text-ads[hidden] {
+    display: none;
+}
+
+.homepage-course-promo-text-ad {
+    display: block;
+    max-width: min(220px, 100%);
     padding: 0;
     border: 0;
     background: transparent;
@@ -629,22 +676,25 @@ body.search-bar-bottom .query-suggestions {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+button.homepage-course-promo-text-ad {
     cursor: pointer;
 }
 
-.homepage-course-promo-text-ad:hover,
-.homepage-course-promo-text-ad:focus-visible {
+button.homepage-course-promo-text-ad:hover,
+button.homepage-course-promo-text-ad:focus-visible {
     color: var(--ai-text);
     text-decoration: underline;
 }
 
-.homepage-course-promo-text-ad[hidden] {
-    display: none;
+.homepage-course-promo-text-ad.is-static {
+    cursor: default;
 }
 
 .search-input-container textarea {
     width: 100%;
-    padding: 16px 18px;
+    padding: 16px 18px 16px 14px;
     border: none;
     box-sizing: border-box;
     resize: none;
@@ -852,58 +902,97 @@ body.search-bar-bottom .query-suggestions {
 
 .query-suggestions {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 10px);
     left: 22px;
-    right: 22px;
-    background: var(--ai-surface-strong);
-    border: 1px solid var(--ai-border);
-    border-top: none;
-    border-radius: 0 0 16px 16px;
-    box-shadow: var(--ai-shadow-sm);
-    z-index: 1001;
+    width: min(320px, calc(100% - 44px));
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
+    z-index: 1004;
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 8px;
-    max-height: 60px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    max-height: 320px;
+    overflow-x: hidden;
     overflow-y: auto;
+}
+
+.query-suggestion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .query-suggestion-label {
     font-size: 12px;
+    font-weight: 600;
     color: var(--ai-text-muted);
-    align-self: center;
-    white-space: nowrap;
+    flex: 1 1 auto;
+    white-space: normal;
 }
 
 .query-suggestion-item {
-    padding: 4px 8px;
-    background: var(--ai-surface-soft);
-    border: 1px solid var(--ai-border);
-    border-radius: 999px;
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.03);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 12px;
-    white-space: nowrap;
-    transition: background-color var(--ai-transition), border-color var(--ai-transition), color var(--ai-transition);
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    transition: background-color var(--ai-transition), border-color var(--ai-transition), color var(--ai-transition), transform var(--ai-transition);
 }
 
 .query-suggestion-item:hover {
-    background: var(--ai-accent-soft);
-    border-color: var(--ai-border-strong);
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.16);
+    transform: translateY(-1px);
+}
+
+.query-suggestion-item:focus,
+.query-suggestion-item:focus-visible {
+    outline: none;
+    border-color: rgba(15, 23, 42, 0.2);
+    background: rgba(15, 23, 42, 0.07);
+}
+
+.query-suggestion-settings-btn {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s, background-color 0.2s, border-color 0.2s;
+}
+
+.query-suggestion-settings-btn:hover,
+.query-suggestion-settings-btn:focus-visible {
+    background: rgba(15, 23, 42, 0.05);
+    border-color: rgba(15, 23, 42, 0.08);
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.query-suggestion-settings-btn:focus,
+.query-suggestion-settings-btn:focus-visible {
+    outline: none;
 }
 
 .query-suggestion-settings-icon {
-    cursor: pointer;
-    width: 14px;
-    height: 14px;
-    margin-left: 8px;
-    align-self: center;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-}
-
-.query-suggestion-settings-icon:hover {
-    opacity: 1;
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 .batch-mode-modal {

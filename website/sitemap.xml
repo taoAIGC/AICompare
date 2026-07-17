@@ -3,7 +3,55 @@
   <url>
     <loc>https://aicompare.club/</loc>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://aicompare.club/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aicompare.club/ja/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aicompare.club/de/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aicompare.club/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/en/" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/en/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://aicompare.club/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aicompare.club/ja/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aicompare.club/de/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aicompare.club/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/en/" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://aicompare.club/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aicompare.club/ja/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aicompare.club/de/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aicompare.club/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/en/" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/de/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://aicompare.club/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aicompare.club/ja/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aicompare.club/de/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aicompare.club/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/en/" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://aicompare.club/es/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://aicompare.club/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://aicompare.club/en/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aicompare.club/ja/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aicompare.club/de/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aicompare.club/es/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aicompare.club/en/" />
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>

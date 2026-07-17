@@ -163,7 +163,7 @@
     "message": "ቋንቋ"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "መለያ"
   },
   "languageSettingsTitle": {
     "message": "የቋንቋ ቅንብሮች"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "የቀን $1 ነፃ ጥያቄ ኮታዎ ተጠናቋል። ወደ [API Plan]($2) ማሻሻል ወይም [ብጁ API]($3) መጠቀም ይችላሉ።"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "የክፍያ መዝገቦች"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "የክፍያ መዝገብ ታሪክ"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "ለዚህ መለያ የቅርብ ጊዜ የክፍያ መዝገቦችን ይመልከቱ።"
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "የክፍያ መዝገቦች በመጫን ላይ…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "እስካሁን የክፍያ መዝገብ የለም።"
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "የክፍያ መዝገቦችን ለማየት ይግቡ።",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "የክፍያ መዝገቦች አሁን አይገኙም።"
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "የክፍያ መዝገቦችን መጫን አልተሳካም።"
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "የክፍያ መዝገብ ቁጥር"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "የቀን $1 ነፃ ጥያቄ ኮታዎ ተጠናቋል። ወደ [API Plan]($2) ማሻሻል ወይም [ብጁ API]($3) መጠቀም ይችላሉ።"
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "የቀን $1 ነፃ ጥያቄ ኮታዎ ተጠናቋል። ወደ [API Plan]($2) ማሻሻል ወይም [ብጁ API]($3) መጠቀም ይችላሉ።"
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

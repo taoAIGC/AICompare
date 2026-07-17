@@ -163,7 +163,7 @@
     "message": "Jazyk"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "Účet"
   },
   "languageSettingsTitle": {
     "message": "Nastavení jazyka"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Denní bezplatný limit $1 použití byl vyčerpán. Můžete upgradovat na [API Plan]($2) nebo použít [vlastní API]($3)."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "Vyúčtování"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "Historie vyúčtování"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "Zobrazte nedávné záznamy vyúčtování pro tento účet."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "Načítání vyúčtování…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "Zatím žádné vyúčtování."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "Pro zobrazení vyúčtování se přihlaste.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "Záznamy vyúčtování zatím nejsou k dispozici."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "Nepodařilo se načíst záznamy vyúčtování."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "Číslo vyúčtování"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Denní bezplatný limit $1 použití byl vyčerpán. Můžete upgradovat na [API Plan]($2) nebo použít [vlastní API]($3)."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Denní bezplatný limit $1 použití byl vyčerpán. Můžete upgradovat na [API Plan]($2) nebo použít [vlastní API]($3)."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

@@ -163,7 +163,7 @@
     "message": "Язык"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "Аккаунт"
   },
   "languageSettingsTitle": {
     "message": "Настройки языка"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Ваш дневной бесплатный лимит в $1 запросов исчерпан. Вы можете перейти на [API Plan]($2) или использовать [собственный API]($3)."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "Счета"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "История счетов"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "Просмотрите последние записи по счетам для этой учетной записи."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "Загрузка счетов…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "Счетов пока нет."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "Войдите, чтобы просмотреть счета.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "Записи по счетам пока недоступны."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "Не удалось загрузить записи по счетам."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "Номер счета"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Ваш дневной бесплатный лимит в $1 запросов исчерпан. Вы можете перейти на [API Plan]($2) или использовать [собственный API]($3)."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Ваш дневной бесплатный лимит в $1 запросов исчерпан. Вы можете перейти на [API Plan]($2) или использовать [собственный API]($3)."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

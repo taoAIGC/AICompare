@@ -163,7 +163,7 @@
     "message": "ഭാഷ"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "അക്കൗണ്ട്"
   },
   "languageSettingsTitle": {
     "message": "ഭാഷാ ക്രമീകരണങ്ങൾ"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "നിങ്ങളുടെ ദിവസേനയുള്ള $1 സൗജന്യ ക്വോട്ട തീർന്നിരിക്കുന്നു. നിങ്ങൾക്ക് [API Plan]($2)-ലേക്ക് അപ്‌ഗ്രേഡ് ചെയ്യാം അല്ലെങ്കിൽ [കസ്റ്റം API]($3) ഉപയോഗിക്കാം."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "ബില്ലുകൾ"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "ബില്ലിംഗ് ചരിത്രം"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "ഈ അക്കൗണ്ടിന്റെ പുതിയ ബില്ലിംഗ് രേഖകൾ കാണുക."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "ബില്ലുകൾ ലോഡ് ചെയ്യുന്നു…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "ഇതുവരെ ബില്ലുകളൊന്നുമില്ല."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "ബില്ലുകൾ കാണാൻ ലോഗിൻ ചെയ്യുക.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "ബില്ലിംഗ് രേഖകൾ ഇതുവരെ ലഭ്യമല്ല."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "ബില്ലിംഗ് രേഖകൾ ലോഡ് ചെയ്യാനായില്ല."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "ബിൽ നമ്പർ"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "നിങ്ങളുടെ ദിവസേനയുള്ള $1 സൗജന്യ ക്വോട്ട തീർന്നിരിക്കുന്നു. നിങ്ങൾക്ക് [API Plan]($2)-ലേക്ക് അപ്‌ഗ്രേഡ് ചെയ്യാം അല്ലെങ്കിൽ [കസ്റ്റം API]($3) ഉപയോഗിക്കാം."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "നിങ്ങളുടെ ദിവസേനയുള്ള $1 സൗജന്യ ക്വോട്ട തീർന്നിരിക്കുന്നു. നിങ്ങൾക്ക് [API Plan]($2)-ലേക്ക് അപ്‌ഗ്രേഡ് ചെയ്യാം അല്ലെങ്കിൽ [കസ്റ്റം API]($3) ഉപയോഗിക്കാം."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

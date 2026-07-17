@@ -1,8 +1,9 @@
 page_id,intent,locale,primary_keyword,secondary_keywords,conversion_goal,priority,status
 home,brand-category,zh-CN,AI比一比,"多 AI 对比; GEO 诊断; 品牌答案监测",install_extension,P0,published
-home,brand-category,en,AI Compare,"AI comparison tool; compare AI responses; AI Chrome extension",install_extension,P0,planned
-home,brand-category,ja,AI 比較ツール,"複数の AI に同時質問; Chrome AI 拡張機能",install_extension,P1,planned
-home,brand-category,de,KI Vergleichstool,"KI Antworten vergleichen; Chrome KI Erweiterung",install_extension,P1,planned
+home,brand-category,en,AI Compare,"AI comparison tool; compare AI responses; AI Chrome extension",install_extension,P0,published
+home,brand-category,ja,AI 比較ツール,"複数の AI に同時質問; Chrome AI 拡張機能",install_extension,P1,published
+home,brand-category,de,KI Vergleichstool,"KI Antworten vergleichen; Chrome KI Erweiterung",install_extension,P1,published
+home,brand-category,es,herramienta para comparar IA,"comparar respuestas de IA; extensión de IA para Chrome",install_extension,P1,published
 geo,problem-education,zh-CN,GEO 是什么,"生成式引擎优化; AI 搜索优化; AI 引用内容",read_geo_method,P0,published
 geo,problem-education,en,what is GEO,"generative engine optimization; AI search optimization",read_geo_method,P0,planned
 check-geo-with-multi-ai,tutorial,zh-CN,多 AI 检查 GEO,"ChatGPT 豆包 Kimi Gemini 对比; AI 内容测试",install_extension,P0,published

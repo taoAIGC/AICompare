@@ -1,6 +1,6 @@
 {
   "defaultLocale": "zh-CN",
-  "xDefaultLocale": "zh-CN",
+  "xDefaultLocale": "en",
   "locales": [
     { "code": "zh-CN", "chromeLocale": "zh_CN", "hreflang": "zh-CN", "pathPrefix": "", "nativeName": "简体中文", "tier": "core", "status": "published" },
     { "code": "en", "chromeLocale": "en", "hreflang": "en", "pathPrefix": "en", "nativeName": "English", "tier": "core", "status": "planned" },

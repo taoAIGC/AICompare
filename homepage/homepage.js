@@ -56,6 +56,7 @@ let homepageAgentNameTooltipController = null;
 let homepageBatchModeEditor = null;
 let homepageBatchFavorites = [];
 let homepageActiveBatchFavoriteId = '';
+let homepagePromptTemplatePanelBound = false;
 
 async function ensureHomepageAgentCatalogReady() {
     if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
@@ -96,15 +97,11 @@ async function refreshHomepageVisibleQuerySuggestions() {
         return;
     }
 
-    const query = String(searchInput.value || '').trim();
-    if (!query) {
-        querySuggestions.innerHTML = '';
-        querySuggestions.style.display = 'none';
-        return;
-    }
-
     try {
-        await showQuerySuggestions(query);
+        await showQuerySuggestions({
+            query: String(searchInput.value || '').trim(),
+            source: 'refresh'
+        });
     } catch (error) {
         console.warn('Failed to refresh homepage query suggestions:', error);
     }
@@ -196,22 +193,28 @@ window.getHomepagePerfMeasures = function() {
 perfMark('script_eval_start');
 
 function trackEvent(name, params = {}) {
-    const insightPayload = window.AICompareBehaviorInsights?.buildAnalyticsPayload?.({
-        eventName: name,
-        source: 'homepage',
-        surface: params?.surface || 'homepage',
-        trigger: params?.trigger || '',
-        kind: params?.kind || '',
-        hasQuery: Boolean(params?.has_query || params?.query_length),
-        queryLength: Math.max(0, Number(params?.query_length) || 0),
-        metadata: params
-    }) || {
+    const fallbackPayload = {
         eventName: name,
         source: 'homepage',
         hasQuery: Boolean(params?.has_query || params?.query_length),
         queryLength: Math.max(0, Number(params?.query_length) || 0),
         metadata: params
     };
+    let insightPayload = fallbackPayload;
+    try {
+        insightPayload = window.AICompareBehaviorInsights?.buildAnalyticsPayload?.({
+            eventName: name,
+            source: 'homepage',
+            surface: params?.surface || 'homepage',
+            trigger: params?.trigger || '',
+            kind: params?.kind || '',
+            hasQuery: Boolean(params?.has_query || params?.query_length),
+            queryLength: Math.max(0, Number(params?.query_length) || 0),
+            metadata: params
+        }) || fallbackPayload;
+    } catch (_) {
+        insightPayload = fallbackPayload;
+    }
     try {
         chrome.runtime.sendMessage({
             action: 'recordAnalyticsEvent',
@@ -226,7 +229,14 @@ function trackEvent(name, params = {}) {
     }
     const analytics = window.AIShortcutsAnalytics;
     if (analytics && typeof analytics.logEvent === 'function') {
-        analytics.logEvent(name, params);
+        try {
+            const maybePromise = analytics.logEvent(name, params);
+            if (maybePromise && typeof maybePromise.catch === 'function') {
+                maybePromise.catch(() => {});
+            }
+        } catch (_) {
+            // Analytics must never block the product flow.
+        }
     }
 }
 
@@ -290,6 +300,13 @@ function refreshHomepageDynamicI18n() {
         batchModeButton.setAttribute('data-tooltip', batchModeTitle);
     }
 
+    const promptTemplateTriggerButton = document.getElementById('promptTemplateTriggerButton');
+    if (promptTemplateTriggerButton) {
+        const promptTemplateTitle = t('promptTemplatesTitle', 'Chat Prompt');
+        promptTemplateTriggerButton.title = promptTemplateTitle;
+        promptTemplateTriggerButton.setAttribute('aria-label', promptTemplateTitle);
+    }
+
     const saveBtn = document.getElementById('saveSitesBtn');
     if (saveBtn) {
         const saveTitle = t('saveFavoriteSitesTitle', '') || t('saveFavoriteSites', 'Save as default sites');
@@ -348,12 +365,6 @@ async function initializeHomepagePkStarterQuery() {
 
     searchInput.value = starterQuery;
     searchInput.dispatchEvent(new Event('input'));
-
-    try {
-        await showQuerySuggestions(starterQuery);
-    } catch (error) {
-        console.warn('Failed to show homepage PK starter suggestions:', error);
-    }
 }
 
 function openHomepageMembershipPage() {
@@ -404,7 +415,13 @@ async function initializeHomepageMembershipBanner() {
 
 function getHomepageCoursePromoEndpoint() {
     try {
-        const baseUrl = String(window.FirebaseConfig?.getCloudFunctionsBaseUrl?.() || '').trim().replace(/\/+$/, '');
+        // Course promo is a public, read-only payload managed from the production admin surface.
+        // Always read the canonical public endpoint so dev/test extension IDs still receive `textAds`.
+        const baseUrl = String(
+            window.FirebaseConfig?.cloudFunctionsBaseUrl
+            || window.FirebaseConfig?.getCloudFunctionsBaseUrl?.()
+            || ''
+        ).trim().replace(/\/+$/, '');
         return baseUrl ? `${baseUrl}/api/public/course-promo` : '';
     } catch (_) {
         return '';
@@ -496,8 +513,20 @@ async function markHomepageCoursePromoImpression(state = {}) {
     return nextState;
 }
 
+function normalizeHomepageCoursePromoTextAds(config = {}) {
+    return (Array.isArray(config?.textAds) ? config.textAds : [])
+        .slice(0, 3)
+        .map((item = {}) => ({
+            enabled: item.enabled === true,
+            text: String(item.text || '').trim(),
+            url: String(item.url || '').trim()
+        }))
+        .filter((item) => item.enabled || item.text || item.url);
+}
+
 function normalizeHomepageCoursePromoConfig(payload = {}) {
     const config = payload?.config && typeof payload.config === 'object' ? payload.config : payload;
+    const textAds = normalizeHomepageCoursePromoTextAds(config);
     return {
         enabled: config?.enabled === true,
         imageUrl: String(config?.imageUrl || '').trim(),
@@ -505,9 +534,7 @@ function normalizeHomepageCoursePromoConfig(payload = {}) {
         title: String(config?.title || '').trim(),
         subtitle: String(config?.subtitle || '').trim(),
         ctaText: String(config?.ctaText || '').trim() || '查看课程',
-        textAdEnabled: config?.textAdEnabled === true,
-        textAdText: String(config?.textAdText || '').trim(),
-        textAdUrl: String(config?.textAdUrl || '').trim(),
+        textAds,
         targetLocales: Array.isArray(config?.targetLocales) ? config.targetLocales : ['zh_CN', 'zh_TW', 'zh'],
         dismissDays: Math.max(1, Math.min(365, Number(config?.dismissDays) || 7)),
         maxImpressionsPerDay: Math.max(1, Math.min(20, Number(config?.maxImpressionsPerDay) || 3))
@@ -531,13 +558,40 @@ function hideHomepageCoursePromo() {
     hideHomepageCoursePromoTextAd();
 }
 
+function ensureHomepageCoursePromoTextAdsContainer() {
+    const existing = document.getElementById('coursePromoTextAds');
+    if (existing) return existing;
+
+    const legacyTextAd = document.getElementById('coursePromoTextAd');
+    const container = document.createElement('div');
+    container.id = 'coursePromoTextAds';
+    container.className = 'homepage-course-promo-text-ads';
+    container.hidden = true;
+    if (legacyTextAd) {
+        legacyTextAd.replaceWith(container);
+        return container;
+    }
+
+    const querySuggestions = document.getElementById('querySuggestions');
+    if (querySuggestions?.parentNode) {
+        querySuggestions.parentNode.insertBefore(container, querySuggestions);
+        return container;
+    }
+
+    const searchInputContainer = document.querySelector('.search-input-container');
+    if (searchInputContainer) {
+        searchInputContainer.appendChild(container);
+        return container;
+    }
+
+    return null;
+}
+
 function hideHomepageCoursePromoTextAd() {
-    const textAd = document.getElementById('coursePromoTextAd');
-    if (!textAd) return;
-    textAd.hidden = true;
-    textAd.textContent = '';
-    textAd.removeAttribute('aria-label');
-    textAd.onclick = null;
+    const textAds = ensureHomepageCoursePromoTextAdsContainer();
+    if (!textAds) return;
+    textAds.hidden = true;
+    textAds.innerHTML = '';
 }
 
 function escapeHomepageCoursePromoAttr(value) {
@@ -613,39 +667,60 @@ function renderHomepageCoursePromo(config, state) {
 }
 
 function renderHomepageCoursePromoTextAd(config) {
-    const textAd = document.getElementById('coursePromoTextAd');
-    if (!textAd) return false;
-    if (!config.textAdEnabled || !config.textAdText || !isHttpsUrl(config.textAdUrl)) {
+    const textAds = ensureHomepageCoursePromoTextAdsContainer();
+    if (!textAds) return false;
+    const enabledAds = (Array.isArray(config.textAds) ? config.textAds : [])
+        .filter((item) => item.enabled && item.text);
+    if (!enabledAds.length) {
         hideHomepageCoursePromoTextAd();
         return false;
     }
 
-    textAd.textContent = config.textAdText;
-    textAd.title = config.textAdText;
-    textAd.setAttribute('aria-label', config.textAdText);
-    textAd.onclick = () => {
-        trackEvent('course_promo_text_ad_click', {
+    textAds.innerHTML = '';
+    enabledAds.forEach((item, index) => {
+        const hasUrl = isHttpsUrl(item.url);
+        const element = document.createElement(hasUrl ? 'button' : 'span');
+        if (hasUrl) element.type = 'button';
+        element.className = `homepage-course-promo-text-ad${hasUrl ? '' : ' is-static'}`;
+        element.textContent = item.text;
+        element.title = item.text;
+        element.setAttribute('aria-label', item.text);
+        if (hasUrl) {
+            element.addEventListener('click', () => {
+                trackEvent('course_promo_text_ad_click', {
+                    surface: 'homepage_search_bar',
+                    campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
+                    target: 'video_shop',
+                    kind: 'subscription',
+                    adIndex: index + 1,
+                    adCount: enabledAds.length,
+                    hasUrl
+                });
+                chrome.tabs.create({ url: item.url });
+            });
+        }
+        textAds.appendChild(element);
+    });
+    textAds.hidden = false;
+
+    enabledAds.forEach((item, index) => {
+        const hasUrl = isHttpsUrl(item.url);
+        trackEvent('course_promo_text_ad_impression', {
             surface: 'homepage_search_bar',
             campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
             target: 'video_shop',
-            kind: 'subscription'
+            kind: 'subscription',
+            adIndex: index + 1,
+            adCount: enabledAds.length,
+            hasUrl
         });
-        chrome.tabs.create({ url: config.textAdUrl });
-    };
-    textAd.hidden = false;
-    trackEvent('course_promo_text_ad_impression', {
-        surface: 'homepage_search_bar',
-        campaign: HOMEPAGE_COURSE_PROMO_CAMPAIGN,
-        target: 'video_shop',
-        kind: 'subscription'
     });
     return true;
 }
-
 async function initializeHomepageCoursePromo() {
     const banner = document.getElementById('coursePromoBanner');
-    const textAd = document.getElementById('coursePromoTextAd');
-    if (!banner && !textAd) return;
+    const textAds = ensureHomepageCoursePromoTextAdsContainer();
+    if (!banner && !textAds) return;
     hideHomepageCoursePromo();
 
     const endpoint = getHomepageCoursePromoEndpoint();
@@ -656,10 +731,11 @@ async function initializeHomepageCoursePromo() {
         if (!response.ok) return;
         const payload = await response.json();
         const config = normalizeHomepageCoursePromoConfig(payload);
+        let textAdsRendered = false;
         if (!homepageLocaleMatchesCoursePromo(config.targetLocales)) {
             return;
         }
-        renderHomepageCoursePromoTextAd(config);
+        textAdsRendered = renderHomepageCoursePromoTextAd(config);
 
         if (config.enabled && isHttpsUrl(config.targetUrl) && (isHttpsUrl(config.imageUrl) || config.title)) {
             const state = await readHomepageCoursePromoState();
@@ -675,7 +751,15 @@ async function initializeHomepageCoursePromo() {
             });
         }
     } catch (error) {
-        hideHomepageCoursePromo();
+        console.warn('Homepage course promo init failed:', error);
+        const promoBanner = document.getElementById('coursePromoBanner');
+        if (promoBanner) {
+            promoBanner.hidden = true;
+            promoBanner.innerHTML = '';
+        }
+        if (!document.getElementById('coursePromoTextAds')?.children?.length) {
+            hideHomepageCoursePromoTextAd();
+        }
     }
 }
 
@@ -1515,7 +1599,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     perfMark('non_critical_init_start');
     void Promise.allSettled([
         measureAsyncStep('agent_catalog_ready_init', () => ensureHomepageAgentCatalogReady()),
-        measureAsyncStep('pin_guide_init', () => checkAndShowPinGuide()),
         measureAsyncStep('query_suggestions_init', () => initializeQuerySuggestions()),
         measureAsyncStep('sites_list_init', () => initializeSitesList()),
         measureAsyncStep('agents_list_init', () => initializeAgentsList()),
@@ -1629,38 +1712,79 @@ function initializeI18n() {
 // 初始化查询建议
 async function initializeQuerySuggestions() {
     const searchInput = document.getElementById('searchInput');
-    if (!searchInput) return;
-    
-    // 添加输入监听器，当searchInput有内容时显示建议
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.trim();
-        showQuerySuggestions(query);
-    });
-    
-    // 添加焦点事件监听器
-    searchInput.addEventListener('focus', (e) => {
-        const query = e.target.value.trim();
-        showQuerySuggestions(query);
-    });
-    
-    // 失焦时隐藏建议
-    searchInput.addEventListener('blur', () => {
-        setTimeout(() => {
-            const querySuggestions = document.getElementById('querySuggestions');
-            if (querySuggestions) {
-                querySuggestions.style.display = 'none';
+    const querySuggestions = document.getElementById('querySuggestions');
+    const promptTemplateTriggerButton = document.getElementById('promptTemplateTriggerButton');
+    const searchInputContainer = document.querySelector('.search-input-container');
+    if (!searchInput || !querySuggestions || !promptTemplateTriggerButton || !searchInputContainer) {
+        return;
+    }
+
+    if (!homepagePromptTemplatePanelBound) {
+        document.addEventListener('click', (event) => {
+            if (!(event.target instanceof Node)) {
+                return;
             }
-        }, 200);
+            if (querySuggestions.contains(event.target) || promptTemplateTriggerButton.contains(event.target)) {
+                return;
+            }
+            hideQuerySuggestions();
+        });
+        homepagePromptTemplatePanelBound = true;
+    }
+
+    promptTemplateTriggerButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (querySuggestions.style.display && querySuggestions.style.display !== 'none') {
+            hideQuerySuggestions();
+            return;
+        }
+
+        try {
+            await showQuerySuggestions({
+                query: String(searchInput.value || '').trim(),
+                source: 'trigger'
+            });
+        } catch (error) {
+            console.warn('Failed to show homepage prompt templates:', error);
+            hideQuerySuggestions();
+        }
+    });
+
+    querySuggestions.addEventListener('click', (event) => {
+        event.stopPropagation();
     });
 }
 
-// 显示查询建议
-async function showQuerySuggestions(query) {
+function hideQuerySuggestions() {
     const querySuggestions = document.getElementById('querySuggestions');
+    const promptTemplateTriggerButton = document.getElementById('promptTemplateTriggerButton');
+    if (querySuggestions) {
+        querySuggestions.innerHTML = '';
+        querySuggestions.style.display = 'none';
+    }
+    if (promptTemplateTriggerButton) {
+        promptTemplateTriggerButton.setAttribute('aria-expanded', 'false');
+    }
+}
+
+// 显示查询建议
+async function showQuerySuggestions(options = {}) {
+    const {
+        query = '',
+        source = 'trigger'
+    } = typeof options === 'object' && options !== null
+        ? options
+        : { query: String(options || '').trim(), source: 'trigger' };
+    const querySuggestions = document.getElementById('querySuggestions');
+    const promptTemplateTriggerButton = document.getElementById('promptTemplateTriggerButton');
+    if (!querySuggestions || !promptTemplateTriggerButton) {
+        return;
+    }
 
     try {
         await ensureHomepagePromptTemplates();
-        // 从存储中获取提示词模板
         const { promptTemplates = [] } = await chrome.storage.sync.get('promptTemplates');
         const currentType = getHomepagePromptTemplateType();
         const recommendedQueries = window.PromptTemplateUtils?.buildPromptTemplateSuggestions
@@ -1673,65 +1797,72 @@ async function showQuerySuggestions(query) {
             : [];
 
         if (recommendedQueries.length === 0) {
-            querySuggestions.innerHTML = '';
-            querySuggestions.style.display = 'none';
+            hideQuerySuggestions();
             return;
         }
 
-        // 清空之前的内容
         querySuggestions.innerHTML = '';
 
-        // 添加提示文案
+        const header = document.createElement('div');
+        header.classList.add('query-suggestion-header');
+
         const label = document.createElement('div');
         const labelText = t('promptTemplatesLabel', '模板：');
         label.textContent = labelText;
         label.classList.add('query-suggestion-label');
-        querySuggestions.appendChild(label);
+        header.appendChild(label);
 
-        // 创建建议项
-        recommendedQueries.forEach(recommendedQuery => {
-            const suggestionItem = document.createElement('div');
-            suggestionItem.textContent = recommendedQuery.name;
-            suggestionItem.classList.add('query-suggestion-item');
-            suggestionItem.addEventListener('click', () => {
-                document.getElementById('searchInput').value = recommendedQuery.query;
-                querySuggestions.style.display = 'none';
-                // 触发自动调整高度
-                document.getElementById('searchInput').dispatchEvent(new Event('input'));
-            });
-            querySuggestions.appendChild(suggestionItem);
-        });
-        
-        // 添加设置图标到 querySuggestions 区域
+        const settingsButton = document.createElement('button');
+        settingsButton.type = 'button';
+        settingsButton.classList.add('query-suggestion-settings-btn');
+        settingsButton.setAttribute('aria-label', t('editPromptTemplate', 'Edit prompt templates'));
+        settingsButton.title = t('editPromptTemplate', 'Edit prompt templates');
+
         const settingsIcon = document.createElement('img');
         settingsIcon.src = '../icons/edit.svg';
         const editTemplateLabel = t('editPromptTemplate', 'Edit prompt templates');
         settingsIcon.alt = editTemplateLabel;
         settingsIcon.title = editTemplateLabel;
         settingsIcon.classList.add('query-suggestion-settings-icon');
-        settingsIcon.style.cursor = 'pointer';
-        settingsIcon.style.width = '14px';
-        settingsIcon.style.height = '14px';
-        settingsIcon.style.marginLeft = '8px';
-        settingsIcon.style.verticalAlign = 'middle';
 
-        // 点击后在新标签页打开设置页面并跳转到模板编辑区域
-        settingsIcon.addEventListener('click', (e) => {
+        settingsButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            // 埋点：从首页提示词建议区域打开模板设置
             trackEvent('homepage_prompt_templates_settings_click');
             window.open(chrome.runtime.getURL('options/options.html#prompt-templates'), '_blank');
         });
 
-        // 将设置图标添加到 querySuggestions 区域
-        querySuggestions.appendChild(settingsIcon);
+        settingsButton.appendChild(settingsIcon);
+        header.appendChild(settingsButton);
+        querySuggestions.appendChild(header);
 
-        // 显示建议
+        recommendedQueries.forEach(recommendedQuery => {
+            const suggestionItem = document.createElement('button');
+            suggestionItem.type = 'button';
+            suggestionItem.textContent = recommendedQuery.name;
+            suggestionItem.classList.add('query-suggestion-item');
+            suggestionItem.addEventListener('click', () => {
+                const searchInputElement = document.getElementById('searchInput');
+                if (!searchInputElement) {
+                    hideQuerySuggestions();
+                    return;
+                }
+                searchInputElement.value = recommendedQuery.query;
+                hideQuerySuggestions();
+                searchInputElement.dispatchEvent(new Event('input'));
+                searchInputElement.focus({ preventScroll: true });
+            });
+            querySuggestions.appendChild(suggestionItem);
+        });
+
         querySuggestions.style.display = 'flex';
-        
+        promptTemplateTriggerButton.setAttribute('aria-expanded', 'true');
+        trackEvent('homepage_prompt_templates_panel_toggle', {
+            source,
+            templates_count: recommendedQueries.length
+        });
     } catch (error) {
         console.error('加载提示词模板失败:', error);
-        querySuggestions.style.display = 'none';
+        hideQuerySuggestions();
     }
 }
 

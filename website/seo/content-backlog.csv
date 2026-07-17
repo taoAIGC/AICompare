@@ -1,0 +1,16 @@
+priority,status,cluster,locale,page_id,target_url,primary_keyword,search_intent,next_action
+P0,next,AI comparison tool,en,ai-comparison-tool,/en/ai-comparison-tool.html,AI comparison tool,Find a tool to compare AI answers,Draft English guide
+P0,next,AI comparison tool,zh-CN,ai-comparison-tool-zh,/resources/ai-comparison-tool.html,AI 对比工具,Find a Chinese AI comparison tool,Draft Chinese guide
+P0,next,AI Chrome extension,en,ai-chrome-extension,/en/ai-chrome-extension.html,AI Chrome extension,Install a browser extension for AI workflows,Draft install-focused page
+P0,next,GEO,en,geo-overview-en,/en/geo/,what is GEO,Learn generative engine optimization,Localize GEO overview
+P0,next,AI answer comparison,en,compare-ai-answers,/en/compare-ai-answers.html,compare AI answers,Compare outputs across AI models,Draft tutorial
+P1,next,Model comparison,en,chatgpt-claude-gemini,/en/chatgpt-vs-claude-vs-gemini.html,ChatGPT vs Claude vs Gemini,Compare model strengths,Draft comparison page
+P1,next,Model comparison,zh-CN,deepseek-kimi-doubao,/resources/deepseek-kimi-doubao.html,DeepSeek Kimi 豆包 对比,Compare Chinese AI tools,Draft comparison page
+P1,next,Multilingual SEO,en,multilingual-seo-plan-en,/en/multilingual-seo.html,multilingual SEO strategy,Plan international SEO for software products,Localize existing Chinese resource
+P1,next,Localization,zh-TW,home-zh-tw,/zh-TW/,AI 比一比,Localized product homepage,Create homepage
+P1,next,Localization,ko,home-ko,/ko/,AI 비교 도구,Localized product homepage,Create homepage
+P1,next,Localization,fr,home-fr,/fr/,outil de comparaison IA,Localized product homepage,Create homepage
+P2,next,Use case,en,ai-for-research,/en/ai-for-research.html,AI tools for research,Research workflow with multiple AI tools,Draft use-case page
+P2,next,Use case,en,ai-for-writing,/en/ai-for-writing.html,AI writing comparison,Writing workflow with multiple AI tools,Draft use-case page
+P2,next,Use case,en,ai-for-coding,/en/ai-for-coding.html,AI coding assistant comparison,Cross-check coding answers,Draft use-case page
+P2,next,Brand monitoring,en,ai-brand-monitoring,/en/ai-brand-monitoring.html,AI brand monitoring,Monitor brand visibility in AI answers,Localize brand monitoring page

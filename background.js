@@ -436,6 +436,16 @@ function getApiPlanPricingUrl() {
   }
 }
 
+function isOfficialApiQuotaMessage(message = '') {
+  const normalized = String(message || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized.includes('daily api quota')
+    || normalized.includes('free api-powered questions')
+    || normalized.includes('free official api requests')
+    || normalized.includes('api 额度')
+    || normalized.includes('免费额度');
+}
+
 function getFirebaseApiKey() {
   return String(FirebaseConfig?.apiKey || '').trim();
 }
@@ -1567,8 +1577,15 @@ async function parseAgentErrorMessage(response) {
       rt(key, fallbackMessage, substitutions)
     );
 
+    if (status === 402 && (options.isOfficialAgentApi || isOfficialApiQuotaMessage(normalizedMessage))) {
+      return withoutDetails(
+        'aiErrorOfficialBalanceInsufficient',
+        'Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3).',
+        [String(OFFICIAL_AGENT_DAILY_FREE_LIMIT), apiPlanPricingUrl, customApiSettingsUrl]
+      );
+    }
+
     if (
-      status === 402 ||
       lowerMessage.includes('insufficient balance') ||
       lowerMessage.includes('insufficient_balance') ||
       lowerMessage.includes('balance is insufficient') ||
@@ -1589,6 +1606,7 @@ async function parseAgentErrorMessage(response) {
     }
 
     if (
+      isOfficialApiQuotaMessage(normalizedMessage) ||
       lowerMessage.includes('free official api requests') ||
       lowerMessage.includes('free ai usage limit') ||
       lowerMessage.includes('daily free') ||

@@ -84,6 +84,7 @@ FAILURE_LOG_DAILY_UPLOAD_LIMIT=2000
 
 ```bash
 STRIPE_PRICE_SMOKE_TEST=price_live_smoke_test_xxx
+STRIPE_API_PRICE_SMOKE_TEST=price_live_api_smoke_test_xxx
 BILLING_SMOKE_TEST_TOKEN=replace_with_random_long_token
 ```
 
@@ -97,6 +98,12 @@ https://aicompare.club/billing-smoke?token=<BILLING_SMOKE_TEST_TOKEN>&email=<you
 
 ```text
 https://aicompare.club/billing-smoke?token=<BILLING_SMOKE_TEST_TOKEN>&uid=<firebase-uid>
+```
+
+测试 API Plan 小额价格时加上 `planType=api`：
+
+```text
+https://aicompare.club/billing-smoke?planType=api&token=<BILLING_SMOKE_TEST_TOKEN>&email=<your-firebase-login-email>
 ```
 
 这个入口不会出现在扩展前端，也不会通过 `/billingConfig` 返回给普通用户。验证成功后，在 Stripe Live mode 中确认付款、订阅和 webhook delivery，再取消订阅并按需要退款。

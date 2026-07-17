@@ -23,10 +23,6 @@ const SIDEBAR_MARKUP = `
                 <img class="action-link-icon action-link-icon-grayscale" src="../icons/thumbs-up.svg" alt="" aria-hidden="true">
                 <span data-i18n="reviewLink"></span>
             </a>
-            <a id="proLink" class="action-link" href="#">
-                <img class="action-link-icon" src="../icons/user.svg" alt="" aria-hidden="true">
-                <span data-i18n="settingsNavProTitle"></span>
-            </a>
             <a id="coffeeLink" class="action-link" href="#">
                 <img class="action-link-icon" src="../icons/coffee.svg" alt="" aria-hidden="true">
                 <span data-i18n="coffeeLink"></span>
@@ -226,15 +222,6 @@ async function initializeSidebarActionLinks() {
             });
         }
 
-        const proLink = document.getElementById('proLink');
-        if (proLink) {
-            proLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                safeTrackEvent('sidebar_pro_click');
-                window.location.href = chrome.runtime.getURL('options/options.html#membership');
-            });
-        }
-
         const contactLink = document.getElementById('contactLink');
         if (contactLink) {
             contactLink.addEventListener('click', (e) => {
@@ -288,14 +275,6 @@ async function initializeSidebarActionLinks() {
             settingsLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 window.location.href = chrome.runtime.getURL('options/options.html');
-            });
-        }
-
-        const proLink = document.getElementById('proLink');
-        if (proLink) {
-            proLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.location.href = chrome.runtime.getURL('options/options.html#membership');
             });
         }
 

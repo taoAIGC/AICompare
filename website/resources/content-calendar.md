@@ -1,5 +1,15 @@
 # AI比一比 SEO/GEO 30 天执行日历
 
+## Daily Operating Rhythm
+
+每天固定做 5 件小事，不等灵感：
+
+1. 运行 `node scripts/audit-website-seo.js`，确认官网没有基础 SEO 断点。
+2. 从 `website/seo/content-backlog.csv` 选 1 个 `next` 项推进。
+3. 改进 1 个已发布页面：标题、描述、FAQ、内链、CTA 或图片 alt。
+4. 从已有内容拆 1 条分发素材，发到一个外部渠道。
+5. 在 `website/seo/daily-log.csv` 记录今天改了什么、下一个动作是什么。
+
 ## Week 1：基础页与转化路径
 
 - 发布官网首页、GEO 方法页、GEO 自测清单、内容验证页、品牌监测页。

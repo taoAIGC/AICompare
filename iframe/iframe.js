@@ -42,6 +42,7 @@ const LIVE_SUMMARY_AUTO_ANALYSIS_ENABLED_CACHE_KEY = 'aiCompare.liveSummaryAutoA
 const FIREBASE_AUTH_UID_STORAGE_KEY = 'firebase_uid';
 const FIREBASE_AUTH_EMAIL_STORAGE_KEY = 'firebase_email';
 const FIREBASE_AUTH_UPDATED_AT_STORAGE_KEY = 'firebase_auth_updated_at';
+const IFRAME_BLOCKING_OVERLAY_DELAY_MS = 3000;
 const SITE_COMPARE_USAGE_EVENT_PREFIX = 'site_usage';
 let iframeAuthState = {
   initialized: false,
@@ -50,6 +51,11 @@ let iframeAuthState = {
 };
 let iframeAuthStatePromise = null;
 let iframeAuthStorageListenerBound = false;
+let iframeAuthOverlayRequested = false;
+let iframeAuthOverlayTimer = null;
+let iframeAuthOverlayTimerResolve = null;
+let iframeChatPlanQuotaOverlayTimer = null;
+let iframeChatPlanQuotaOverlayTimerResolve = null;
 let suppressNextIframeQuerySuggestions = false;
 
 async function ensureIframeAgentCatalogReady() {
@@ -292,31 +298,96 @@ function createIframeChatPlanQuotaOverlay() {
   return overlay;
 }
 
-function showIframeChatPlanQuotaOverlay() {
-  const container = document.getElementById('iframes-container');
-  if (!container) return;
-  container.querySelector(':scope > .iframe-auth-login-overlay')?.remove();
-  container.querySelector(':scope > .iframe-chat-plan-quota-overlay')?.remove();
-  container.appendChild(createIframeChatPlanQuotaOverlay());
+async function showIframeChatPlanQuotaOverlay() {
+  if (!iframeAuthState.initialized) {
+    await getIframeAuthState();
+  }
+  if (!iframeAuthState.isLoggedIn || document.querySelector('.iframe-auth-login-overlay')) {
+    await requestIframeAuthOverlay();
+    return false;
+  }
+
+  if (iframeChatPlanQuotaOverlayTimer) {
+    clearTimeout(iframeChatPlanQuotaOverlayTimer);
+    iframeChatPlanQuotaOverlayTimer = null;
+    if (typeof iframeChatPlanQuotaOverlayTimerResolve === 'function') {
+      iframeChatPlanQuotaOverlayTimerResolve(false);
+    }
+    iframeChatPlanQuotaOverlayTimerResolve = null;
+  }
+
+  return new Promise((resolve) => {
+    iframeChatPlanQuotaOverlayTimerResolve = resolve;
+    iframeChatPlanQuotaOverlayTimer = setTimeout(() => {
+      iframeChatPlanQuotaOverlayTimer = null;
+      iframeChatPlanQuotaOverlayTimerResolve = null;
+      if (!iframeAuthState.isLoggedIn || document.querySelector('.iframe-auth-login-overlay')) {
+        void requestIframeAuthOverlay();
+        resolve(false);
+        return;
+      }
+      document.querySelectorAll('.iframe-chat-plan-quota-overlay').forEach((overlay) => overlay.remove());
+      document.body.appendChild(createIframeChatPlanQuotaOverlay());
+      resolve(true);
+    }, IFRAME_BLOCKING_OVERLAY_DELAY_MS);
+  });
 }
 
 function renderIframeAuthOverlay() {
   const container = document.getElementById('iframes-container');
   if (!container) return;
-  const existingOverlay = container.querySelector(':scope > .iframe-auth-login-overlay');
   if (!iframeAuthState.initialized) {
     return;
   }
   if (iframeAuthState.isLoggedIn) {
-    existingOverlay?.remove();
+    iframeAuthOverlayRequested = false;
+    if (iframeAuthOverlayTimer) {
+      clearTimeout(iframeAuthOverlayTimer);
+      iframeAuthOverlayTimer = null;
+      if (typeof iframeAuthOverlayTimerResolve === 'function') {
+        iframeAuthOverlayTimerResolve(false);
+      }
+      iframeAuthOverlayTimerResolve = null;
+    }
+    document.querySelectorAll('.iframe-auth-login-overlay').forEach((overlay) => overlay.remove());
     container.classList.remove('requires-extension-login');
+    return;
+  }
+  if (!iframeAuthOverlayRequested) {
     return;
   }
 
   container.classList.add('requires-extension-login');
-  if (!existingOverlay) {
-    container.appendChild(createIframeLoginOverlay());
+  document.querySelectorAll('.iframe-chat-plan-quota-overlay, .iframe-auth-login-overlay').forEach((overlay) => overlay.remove());
+  document.body.appendChild(createIframeLoginOverlay());
+}
+
+async function requestIframeAuthOverlay() {
+  iframeAuthOverlayRequested = true;
+  if (!iframeAuthState.initialized) {
+    await getIframeAuthState();
   }
+  if (iframeAuthState.isLoggedIn) {
+    renderIframeAuthOverlay();
+    return false;
+  }
+  if (iframeAuthOverlayTimer) {
+    clearTimeout(iframeAuthOverlayTimer);
+    iframeAuthOverlayTimer = null;
+    if (typeof iframeAuthOverlayTimerResolve === 'function') {
+      iframeAuthOverlayTimerResolve(false);
+    }
+    iframeAuthOverlayTimerResolve = null;
+  }
+  return new Promise((resolve) => {
+    iframeAuthOverlayTimerResolve = resolve;
+    iframeAuthOverlayTimer = setTimeout(() => {
+      iframeAuthOverlayTimer = null;
+      iframeAuthOverlayTimerResolve = null;
+      renderIframeAuthOverlay();
+      resolve(!iframeAuthState.isLoggedIn);
+    }, IFRAME_BLOCKING_OVERLAY_DELAY_MS);
+  });
 }
 
 async function refreshIframeAuthOverlays() {
@@ -357,8 +428,8 @@ function ensureIframeAuthOverlayTracking() {
     };
     renderIframeAuthOverlay();
   });
-  refreshIframeAuthOverlays().catch((error) => {
-    console.warn('初始化 iframe 登录蒙层失败:', error);
+  getIframeAuthState().catch((error) => {
+    console.warn('初始化 iframe 登录状态失败:', error);
   });
 }
 
@@ -1105,24 +1176,32 @@ async function handleRatingPromptLater() {
   }
 }
 
+function isIframeBlockingOverlayVisible() {
+  return Boolean(document.querySelector('.iframe-auth-login-overlay, .iframe-chat-plan-quota-overlay'));
+}
+
 async function showRatingPromptOnce(kind) {
   if (ratingPromptState.shown) return;
+  if (isIframeBlockingOverlayVisible()) return;
   ratingPromptState.shown = true;
-
-  try {
-    if (kind === 'reminder') {
-      await chrome.storage.local.set({ ratingPromptReminderShown: true });
-    } else {
-      await chrome.storage.local.set({ ratingPromptInitialShown: true });
-    }
-  } catch (error) {
-    console.warn('保存评分提示状态失败:', error);
-  }
 
   const overlay = ensureRatingModal();
   if (overlay) {
-    setTimeout(() => {
+    setTimeout(async () => {
       if (ratingPromptState.shown) {
+        if (isIframeBlockingOverlayVisible()) {
+          ratingPromptState.shown = false;
+          return;
+        }
+        try {
+          if (kind === 'reminder') {
+            await chrome.storage.local.set({ ratingPromptReminderShown: true });
+          } else {
+            await chrome.storage.local.set({ ratingPromptInitialShown: true });
+          }
+        } catch (error) {
+          console.warn('保存评分提示状态失败:', error);
+        }
         const activeElement = document.activeElement;
         ratingPromptState.previousFocus = activeElement instanceof HTMLElement ? activeElement : null;
         overlay.setAttribute('aria-hidden', 'false');
@@ -2576,23 +2655,80 @@ function renderUserFacingErrorHtml(message = '') {
     return '';
   }
   const urlPattern = /(https?:\/\/[^\s<>"']+|chrome-extension:\/\/[^\s<>"']+)/g;
+  const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
+
+  function renderPlainErrorText(text = '') {
+    return escapeLiveSummaryHtml(text).replace(urlPattern, (url) => {
+      const safeUrl = String(url || '').replace(/[).,;:!?]+$/, '');
+      const trailing = String(url || '').slice(safeUrl.length);
+      if (!isSafeUserFacingLinkUrl(safeUrl)) {
+        return `${escapeLiveSummaryHtml(safeUrl)}${escapeLiveSummaryHtml(trailing)}`;
+      }
+      const escapedUrl = escapeLiveSummaryHtml(safeUrl);
+      return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapedUrl}</a>${escapeLiveSummaryHtml(trailing)}`;
+    });
+  }
+
+  function renderErrorLine(line = '') {
+    const source = String(line || '');
+    let html = '';
+    let lastIndex = 0;
+    source.replace(markdownLinkPattern, (match, label, rawUrl, offset) => {
+      html += renderPlainErrorText(source.slice(lastIndex, offset));
+      const safeUrl = String(rawUrl || '').trim();
+      if (isSafeUserFacingLinkUrl(safeUrl)) {
+        const escapedUrl = escapeLiveSummaryHtml(safeUrl);
+        html += `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapeLiveSummaryHtml(label)}</a>`;
+      } else {
+        html += escapeLiveSummaryHtml(match);
+      }
+      lastIndex = offset + match.length;
+      return match;
+    });
+    html += renderPlainErrorText(source.slice(lastIndex));
+    return html;
+  }
+
   return normalized
     .split(/\n{2,}/)
     .map((paragraph) => {
-      const lines = paragraph.split('\n').map((line) => (
-        escapeLiveSummaryHtml(line).replace(urlPattern, (url) => {
-          const safeUrl = String(url || '').replace(/[).,;:!?]+$/, '');
-          const trailing = String(url || '').slice(safeUrl.length);
-          if (!isSafeUserFacingLinkUrl(safeUrl)) {
-            return `${escapeLiveSummaryHtml(safeUrl)}${escapeLiveSummaryHtml(trailing)}`;
-          }
-          const escapedUrl = escapeLiveSummaryHtml(safeUrl);
-          return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapedUrl}</a>${escapeLiveSummaryHtml(trailing)}`;
-        })
-      ));
+      const lines = paragraph.split('\n').map((line) => renderErrorLine(line));
       return `<p>${lines.join('<br>')}</p>`;
     })
     .join('');
+}
+
+function isOfficialApiQuotaErrorMessage(message = '') {
+  const normalized = String(message || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized.includes('daily api quota')
+    || normalized.includes('free api-powered questions')
+    || normalized.includes('free official api requests')
+    || normalized.includes('api 额度')
+    || normalized.includes('免费额度')
+    || (normalized.includes('api plan') && normalized.includes('custom api'));
+}
+
+function trackOfficialApiQuotaReached(surface = 'iframe', metadata = {}) {
+  trackEvent('official_api_quota_reached', {
+    kind: 'subscription',
+    surface,
+    trigger: metadata.trigger || '',
+    query_length: Math.max(0, Number(metadata.queryLength) || 0),
+    agent_id: metadata.agentId || '',
+    entry_key: metadata.entryKey || '',
+    source: metadata.source || surface
+  });
+}
+
+function getLatestUserMessageContent(messages = []) {
+  if (!Array.isArray(messages)) return '';
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === 'user') {
+      return String(messages[index]?.content || '');
+    }
+  }
+  return '';
 }
 
 function renderLiveSummaryEmptyStateHtml(options = {}) {
@@ -3856,6 +3992,14 @@ async function refreshLiveSummaryForCurrentQuery(options = {}) {
       return;
     }
     const summaryError = String(error?.message || '').trim() || t('agentRequestFailed', 'Skill request failed');
+    if (isOfficialApiQuotaErrorMessage(summaryError)) {
+      trackOfficialApiQuotaReached('summary', {
+        entryKey,
+        queryLength: query.length,
+        trigger: requestSource || 'live_summary',
+        source: 'live_summary'
+      });
+    }
     console.warn('自动总结分析请求失败:', error);
     setLiveSummaryRecord(query, {
       status: 'error',
@@ -8293,10 +8437,18 @@ function initializeAgentRuntimeMessageBridge() {
 
     if (message.event === 'error') {
       closeAgentRuntimeKeepalivePort(agentId);
-      updateAgentLoadingState(agentId, false, message.error || '');
+      const agentErrorMessage = message.error || '';
+      if (isOfficialApiQuotaErrorMessage(agentErrorMessage)) {
+        trackOfficialApiQuotaReached('skill_panel', {
+          agentId,
+          queryLength: getLatestUserMessageContent(currentState?.messages).length,
+          source: 'agent_runtime'
+        });
+      }
+      updateAgentLoadingState(agentId, false, agentErrorMessage);
       appendAgentMessage(agentId, {
         role: 'assistant',
-        content: message.error || t('agentRequestFailed', 'Skill request failed'),
+        content: agentErrorMessage || t('agentRequestFailed', 'Skill request failed'),
         isError: true
       });
       scheduleLiveSummaryRefresh(250);
@@ -8434,10 +8586,18 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
     forgetAgentAttachmentSources(agentId, normalizedAttachments);
   } catch (error) {
     closeAgentRuntimeKeepalivePort(agentId);
-    updateAgentLoadingState(agentId, false, error?.message || t('agentRequestFailed', 'Skill request failed'));
+    const agentErrorMessage = error?.message || t('agentRequestFailed', 'Skill request failed');
+    if (isOfficialApiQuotaErrorMessage(agentErrorMessage)) {
+      trackOfficialApiQuotaReached('skill_panel', {
+        agentId,
+        queryLength: normalizedContent.length,
+        source: 'agent_submit'
+      });
+    }
+    updateAgentLoadingState(agentId, false, agentErrorMessage);
     appendAgentMessage(agentId, {
       role: 'assistant',
-      content: error?.message || t('agentRequestFailed', 'Skill request failed'),
+      content: agentErrorMessage,
       isError: true
     });
     return false;
@@ -11003,6 +11163,13 @@ async function createIframes(query, sites, customSites = [], agents = []) {
   });
 
   const ratingBatchId = hasQuery ? await startRatingPromptBatch(enabledSites.length) : null;
+  if (hasQuery && !window._openedFromHistory) {
+    void requestIframeAuthOverlay();
+    triggerChatPlanUsageCheckForIframeQuery(query, {
+      source: 'iframe-initial-query',
+      activeSitePanelCount: enabledSites.length + normalizedCustomSites.length
+    });
+  }
 
   try {
     resetLiveSummarySubmittedEntries();
@@ -11011,10 +11178,6 @@ async function createIframes(query, sites, customSites = [], agents = []) {
       // 如果有查询词,清空容器内容
       container.innerHTML = '';
       console.log('清空iframe');
-    }
-
-    if (hasQuery && !window._openedFromHistory) {
-      triggerChatPlanUsageCheckForIframeQuery(query, { source: 'iframe-initial-query' });
     }
 
     if (hasQuery) {
@@ -11617,7 +11780,6 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
   iframeContainer.appendChild(iframe);
   iframeContainer.appendChild(createInjectProgressOverlay(siteName));
   container.appendChild(iframeContainer);
-  renderIframeAuthOverlay();
   scheduleIframeHeaderStatus(iframeContainer, t('iframeStatusPageLoading', '页面加载中...'), 700);
   
   // 添加按钮事件处理
@@ -12427,6 +12589,7 @@ async function runIframeSearchQuery(query, options = {}) {
     trigger
   });
 
+  void requestIframeAuthOverlay();
   shanshuo();
   const sent = await iframeFresh(normalizedQuery, {
     persistHistory: options.persistHistory,
@@ -12540,17 +12703,23 @@ async function consumeChatPlanUsageForIframeQuery(query = '') {
 function triggerChatPlanUsageCheckForIframeQuery(query = '', metadata = {}) {
   const normalizedQuery = String(query || '').trim();
   if (!normalizedQuery) return;
+  const activeSitePanelCount = Math.max(0, Number(metadata.activeSitePanelCount) || 0);
+  if (activeSitePanelCount <= 0) return;
 
-  consumeChatPlanUsageForIframeQuery(normalizedQuery).catch((error) => {
+  consumeChatPlanUsageForIframeQuery(normalizedQuery).catch(async (error) => {
     if (error?.code === 'CHAT_PLAN_LIMIT_REACHED') {
-      showIframeChatPlanQuotaOverlay();
+      const overlayShown = await showIframeChatPlanQuotaOverlay();
+      if (!overlayShown) {
+        return;
+      }
       trackEvent('iframe_search_chat_plan_quota_overlay_shown', {
         kind: 'subscription',
         surface: 'iframe',
         query_length: normalizedQuery.length,
         result_state: 'overlay_shown',
         limit: error.limit || null,
-        source: metadata.source || 'iframe'
+        source: metadata.source || 'iframe',
+        active_site_panels_count: activeSitePanelCount
       });
       return;
     }
@@ -12570,8 +12739,6 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
         ? new Set(targetSiteNames.map((name) => String(name || '').trim()).filter(Boolean))
         : null;
       const hasAgentPanels = getAgentPanelFrames().length > 0;
-
-      triggerChatPlanUsageCheckForIframeQuery(query, { source: 'iframe-existing-panels' });
 
       let historyId = providedHistoryId || window._currentHistoryId || null;
       if (persistHistory) {
@@ -12601,6 +12768,12 @@ async function runQueryAcrossOpenIframes(query, options = {}) {
 	            return targetSiteNameSet.has(siteName) || targetSiteNameSet.has(agentId);
 	          })
 	        : agentIframes;
+	      if (activeSiteFrames.length > 0) {
+	        triggerChatPlanUsageCheckForIframeQuery(query, {
+	          source: 'iframe-existing-panels',
+	          activeSitePanelCount: activeSiteFrames.length
+	        });
+	      }
 	      const activeOfficialSiteNames = activeSiteFrames
 	        .filter((iframe) => iframe.dataset.customSite !== 'true')
 	        .map((iframe) => iframe.getAttribute('data-site'));

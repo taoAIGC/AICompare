@@ -5394,7 +5394,7 @@ async function initializeMembership() {
     }
 
     if (!Array.isArray(invoices) || invoices.length === 0) {
-      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesEmpty', 'No invoices yet.'));
+      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesEmpty', 'No bills yet.'));
       return;
     }
 
@@ -5427,21 +5427,21 @@ async function initializeMembership() {
 
   async function loadInvoices(uid) {
     if (!uid) {
-      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view invoices.'));
+      renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view bills.'));
       return;
     }
 
     setInvoicesLoading(true);
     try {
       if (typeof window.listInvoices !== 'function') {
-        renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesUnavailable', 'Invoice records are not available yet.'));
+        renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesUnavailable', 'Billing records are not available yet.'));
         return;
       }
       const response = await window.listInvoices();
       renderInvoicesTable(Array.isArray(response?.invoices) ? response.invoices : []);
     } catch (error) {
       console.warn('Failed to load invoices:', error);
-      renderInvoicesEmpty(error?.message || getMessageWithFallback('membershipInvoicesLoadFailed', 'Failed to load invoice records.'));
+      renderInvoicesEmpty(error?.message || getMessageWithFallback('membershipInvoicesLoadFailed', 'Failed to load billing records.'));
     } finally {
       setInvoicesLoading(false);
     }
@@ -5959,7 +5959,7 @@ async function initializeMembership() {
     if (plansEl) plansEl.style.display = 'grid';
     renderMembershipPlan({ plan: 'free', apiPlan: 'free' });
     setLoading(false);
-    renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view invoices.'));
+    renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view bills.'));
     return;
   }
 

@@ -5,6 +5,10 @@ AI比一比是一款浏览器插件，用于多 AI 答案对比、GEO 诊断、�
 ## Canonical pages
 
 - Home: https://aicompare.club/
+- English home: https://aicompare.club/en/
+- Japanese home: https://aicompare.club/ja/
+- German home: https://aicompare.club/de/
+- Spanish home: https://aicompare.club/es/
 - GEO method: https://aicompare.club/geo/
 - GEO checklist: https://aicompare.club/geo-checklist/
 - Brand answer monitoring: https://aicompare.club/use-cases/brand-monitoring/
@@ -13,4 +17,4 @@ AI比一比是一款浏览器插件，用于多 AI 答案对比、GEO 诊断、�
 
 ## Core positioning
 
-AI比一比帮助内容创作者、SEO、品牌运营和独立开发者检查内容与品牌在 AI 答案中的可见度、准确性和稳定性。
+AI比一比 / AI Compare 的主定位是多 AI 回答对比浏览器插件：一次提问，同时比较多个 AI 的回答。GEO 诊断、内容发布前验证和品牌答案监测是建立在多 AI 对比能力之上的高级场景。

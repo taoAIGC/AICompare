@@ -163,7 +163,7 @@
     "message": "زبان"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "حساب"
   },
   "languageSettingsTitle": {
     "message": "تنظیمات زبان"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "سهمیه رایگان روزانه $1 بار شما تمام شده است. می‌توانید به [API Plan]($2) ارتقا دهید یا از [API سفارشی]($3) استفاده کنید."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "صورت‌حساب‌ها"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "تاریخچه صورت‌حساب"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "سوابق اخیر صورت‌حساب این حساب را ببینید."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "در حال بارگذاری صورت‌حساب‌ها…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "هنوز صورت‌حسابی وجود ندارد."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "برای مشاهده صورت‌حساب‌ها وارد شوید.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "سوابق صورت‌حساب هنوز در دسترس نیست."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "بارگذاری سوابق صورت‌حساب ناموفق بود."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "شماره صورت‌حساب"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "سهمیه رایگان روزانه $1 بار شما تمام شده است. می‌توانید به [API Plan]($2) ارتقا دهید یا از [API سفارشی]($3) استفاده کنید."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "سهمیه رایگان روزانه $1 بار شما تمام شده است. می‌توانید به [API Plan]($2) ارتقا دهید یا از [API سفارشی]($3) استفاده کنید."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

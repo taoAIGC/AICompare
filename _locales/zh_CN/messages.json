@@ -158,7 +158,7 @@
     "message": "语言"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "账户"
   },
   "languageSettingsTitle": {
     "message": "语言设置"
@@ -257,7 +257,7 @@
     "message": "当前套餐：PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "每日 API 额度 $1 次，API 已经用完，您可以购买 [API Plan]($2) 或者使用 [自定义 API]($3)。"
+    "message": "每天 $1 次免费额度，已经用完。你可以升级 [API Plan]($2) 或者使用 [自定义 API]($3)。"
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "请先配置自定义 API"
@@ -1512,7 +1512,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "发票"
+    "message": "账单"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1560,32 +1560,32 @@
     "message": "订阅 API Plan"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice 记录"
+    "message": "账单记录"
   },
   "membershipInvoicesDescription": {
     "message": "查看当前账号最近的账单记录。"
   },
   "membershipInvoicesLoading": {
-    "message": "正在加载发票记录…"
+    "message": "正在加载账单记录…"
   },
   "membershipInvoicesEmpty": {
-    "message": "暂无发票记录。"
+    "message": "暂无账单记录。"
   },
   "membershipInvoicesLoginHint": {
-    "message": "登录后查看发票记录。",
+    "message": "登录后查看账单记录。",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "暂时无法获取发票记录。"
+    "message": "暂时无法获取账单记录。"
   },
   "membershipInvoicesLoadFailed": {
-    "message": "发票记录加载失败。"
+    "message": "账单记录加载失败。"
   },
   "membershipInvoiceDateHeader": {
     "message": "日期"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "发票号"
+    "message": "账单号"
   },
   "membershipInvoiceAmountHeader": {
     "message": "金额"
@@ -3010,13 +3010,13 @@
     "message": "Tiếng Việt"
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "每日 API 额度 $1 次，API 已经用完，您可以购买 [API Plan]($2) 或者使用 [自定义 API]($3)。"
+    "message": "每天 $1 次免费额度，已经用完。你可以升级 [API Plan]($2) 或者使用 [自定义 API]($3)。"
   },
   "aiErrorBalanceInsufficient": {
     "message": "AI 服务余额不足，暂时无法生成结果。请联系管理员充值或更换 API Key。"
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "每日 API 额度 $1 次，API 已经用完，您可以购买 [API Plan]($2) 或者使用 [自定义 API]($3)。"
+    "message": "每天 $1 次免费额度，已经用完。你可以升级 [API Plan]($2) 或者使用 [自定义 API]($3)。"
   },
   "aiErrorApiNotConfigured": {
     "message": "AI 服务暂未配置完成，请稍后再试或联系管理员。"

@@ -163,7 +163,7 @@
     "message": "Bahasa"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "Akun"
   },
   "languageSettingsTitle": {
     "message": "Pengaturan bahasa"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Kuota gratis harian Anda sebanyak $1 kali telah habis. Anda dapat meningkatkan ke [API Plan]($2) atau menggunakan [API kustom]($3)."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "Tagihan"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "Riwayat tagihan"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "Lihat catatan tagihan terbaru untuk akun ini."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "Memuat tagihan…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "Belum ada tagihan."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "Masuk untuk melihat tagihan.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "Catatan tagihan belum tersedia."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "Gagal memuat catatan tagihan."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "Nomor tagihan"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Kuota gratis harian Anda sebanyak $1 kali telah habis. Anda dapat meningkatkan ke [API Plan]($2) atau menggunakan [API kustom]($3)."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Kuota gratis harian Anda sebanyak $1 kali telah habis. Anda dapat meningkatkan ke [API Plan]($2) atau menggunakan [API kustom]($3)."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

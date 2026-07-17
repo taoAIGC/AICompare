@@ -160,7 +160,7 @@
     "message": "Synchronisierung"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "Konto"
   },
   "agentEngineCardTitle": {
     "message": "Custom API"
@@ -187,7 +187,7 @@
     "message": "Verwenden Sie die integrierte API, $1-mal pro Tag kostenlos."
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Dein tägliches Gratis-Kontingent von $1 Nutzungen ist aufgebraucht. Du kannst auf den [API Plan]($2) upgraden oder eine [eigene API]($3) verwenden."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -2729,7 +2729,7 @@
     "message": "Datum"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Rechnung"
+    "message": "Abrechnungsnummer"
   },
   "membershipInvoiceStatusDraft": {
     "message": "Entwurf"
@@ -2753,29 +2753,29 @@
     "message": "Ansehen"
   },
   "membershipInvoicesDescription": {
-    "message": "Prüfe aktuelle Abrechnungsdatensätze deines Kontos."
+    "message": "Sieh dir die letzten Abrechnungsdatensätze für dieses Konto an."
   },
   "membershipInvoicesEmpty": {
-    "message": "Noch keine Rechnungen."
+    "message": "Noch keine Abrechnungen."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Rechnungen konnten nicht geladen werden."
+    "message": "Abrechnungsdatensätze konnten nicht geladen werden."
   },
   "membershipInvoicesLoading": {
-    "message": "Rechnungen werden geladen…"
+    "message": "Abrechnungen werden geladen…"
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "Melde dich an, um Abrechnungen anzuzeigen.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesTab": {
-    "message": "Rechnungen"
+    "message": "Abrechnung"
   },
   "membershipInvoicesTitle": {
-    "message": "Rechnungsverlauf"
+    "message": "Abrechnungsverlauf"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Rechnungen sind noch nicht verfügbar."
+    "message": "Abrechnungsdatensätze sind noch nicht verfügbar."
   },
   "membershipOverviewTab": {
     "message": "Plans"
@@ -2997,13 +2997,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Dein tägliches Gratis-Kontingent von $1 Nutzungen ist aufgebraucht. Du kannst auf den [API Plan]($2) upgraden oder eine [eigene API]($3) verwenden."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Dein tägliches Gratis-Kontingent von $1 Nutzungen ist aufgebraucht. Du kannst auf den [API Plan]($2) upgraden oder eine [eigene API]($3) verwenden."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

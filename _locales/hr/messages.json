@@ -163,7 +163,7 @@
     "message": "Jezik"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "Račun"
   },
   "languageSettingsTitle": {
     "message": "Postavke jezika"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Vaša dnevna besplatna kvota od $1 korištenja je potrošena. Možete nadograditi na [API Plan]($2) ili koristiti [prilagođeni API]($3)."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "Računi"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "Povijest računa"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "Pogledajte nedavne zapise naplate za ovaj račun."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "Učitavanje računa…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "Još nema računa."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "Prijavite se za prikaz računa.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "Zapisi naplate još nisu dostupni."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "Učitavanje zapisa naplate nije uspjelo."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "Broj računa"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Vaša dnevna besplatna kvota od $1 korištenja je potrošena. Možete nadograditi na [API Plan]($2) ili koristiti [prilagođeni API]($3)."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "Vaša dnevna besplatna kvota od $1 korištenja je potrošena. Možete nadograditi na [API Plan]($2) ili koristiti [prilagođeni API]($3)."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."

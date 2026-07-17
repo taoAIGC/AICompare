@@ -664,7 +664,7 @@ function openUsageDetailDrawer(index) {
   const target = (item.siteNames || []).join(', ') || (item.skillNames || []).join(', ') || item.target || '-';
   body.innerHTML = ''
     + renderUsageDetailField('时间', formatDate(item.createdAt))
-    + renderUsageDetailField('类型', item.usageType || (item.kind === 'api' ? '官方 API' : '站点'))
+    + renderUsageDetailField('类型', item.usageType || getUsageSourceLabel(item.kind))
     + renderUsageDetailField('同类次数', formatRepeatCountLabel(item))
     + renderUsageDetailField('用户', userLabel)
     + renderUsageDetailField('UID', item.uid || '-')
@@ -715,10 +715,20 @@ function getUsageRecentSearchText(item) {
   ].map((value) => String(value || '').toLowerCase()).join(' ');
 }
 
+function getUsageSourceLabel(kind = '') {
+  if (kind === 'api') return 'API';
+  if (kind === 'site') return '站点';
+  if (kind === 'feature') return '功能';
+  if (kind === 'activation') return '激活';
+  if (kind === 'subscription') return '订阅';
+  return '事件';
+}
+
 function getUsageRecentFilterValues() {
   return {
     date: String(document.getElementById('usageRecentDateFilter')?.value || '').trim().toLowerCase(),
-    type: String(document.getElementById('usageRecentTypeFilter')?.value || '').trim(),
+    source: String(document.getElementById('usageRecentSourceFilter')?.value || '').trim(),
+    action: String(document.getElementById('usageRecentActionFilter')?.value || '').trim(),
     user: String(document.getElementById('usageRecentUserFilter')?.value || '').trim().toLowerCase(),
     device: String(document.getElementById('usageRecentLocaleFilter')?.value || '').trim().toLowerCase(),
     target: String(document.getElementById('usageRecentTargetFilter')?.value || '').trim().toLowerCase(),
@@ -728,10 +738,13 @@ function getUsageRecentFilterValues() {
 }
 
 function usageRecentMatchesFilters(item, filters) {
-  const usageType = item.usageType || (item.kind === 'api' ? '官方 API' : '站点');
-  if (filters.type === 'api' && item.kind !== 'api') return false;
-  if (filters.type === 'site' && item.kind !== 'site') return false;
-  if (filters.type && !['api', 'site'].includes(filters.type) && usageType !== filters.type) return false;
+  const usageType = item.usageType || (item.kind === 'api' ? '官方 API' : (item.kind === 'feature' ? '功能' : '站点'));
+  if (filters.source === 'api' && item.kind !== 'api') return false;
+  if (filters.source === 'site' && item.kind !== 'site') return false;
+  if (filters.source === 'feature' && item.kind !== 'feature') return false;
+  if (filters.source === 'activation' && item.kind !== 'activation') return false;
+  if (filters.source === 'subscription' && item.kind !== 'subscription') return false;
+  if (filters.action && usageType !== filters.action) return false;
   if (filters.date && !formatDate(item.createdAt).toLowerCase().includes(filters.date)) return false;
   const userText = [item.email, item.uid, item.userType].map((value) => String(value || '').toLowerCase()).join(' ');
   if (filters.user && !userText.includes(filters.user)) return false;
@@ -768,7 +781,8 @@ function renderUsageRecentRows() {
       return (
       '<tr class="usage-recent-row" data-index="' + index + '" tabindex="0" role="button" aria-label="查看使用详情">'
         + '<td>' + escapeHtml(formatDate(item.createdAt)) + '</td>'
-        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(usageType, 8)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(item.kind === 'api' ? 'API' : '站点') + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(getUsageSourceLabel(item.kind)) + '</div></td>'
+        + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(usageType, 8)) + '</div></td>'
         + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(userLabel, 14)) + '</div><div class="muted-cell clamp-cell">' + escapeHtml(truncateText(item.uid || item.userType || '-', 10)) + '</div></td>'
         + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(regionLabel, 14)) + '</div><div class="muted-cell clamp-cell mono-cell">' + escapeHtml(truncateText(localeLabel, 12)) + '</div></td>'
         + '<td><div class="strong-cell clamp-cell">' + escapeHtml(truncateText(target, 18)) + '</div></td>'
@@ -777,7 +791,7 @@ function renderUsageRecentRows() {
       + '</tr>'
       );
     }).join('')
-    : renderEmptyRow(hasFilters ? '没有符合筛选条件的最近使用记录' : '暂无最近使用记录', 7);
+    : renderEmptyRow(hasFilters ? '没有符合筛选条件的最近使用记录' : '暂无最近使用记录', 8);
   document.querySelectorAll('.usage-recent-row').forEach((row) => {
     row.addEventListener('click', () => openUsageDetailDrawer(row.dataset.index));
     row.addEventListener('keydown', (event) => {
@@ -795,14 +809,17 @@ function setupUsageRecentFilters() {
   ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentLocaleFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', renderUsageRecentRows);
   });
-  document.getElementById('usageRecentTypeFilter')?.addEventListener('change', renderUsageRecentRows);
+  document.getElementById('usageRecentSourceFilter')?.addEventListener('change', renderUsageRecentRows);
+  document.getElementById('usageRecentActionFilter')?.addEventListener('change', renderUsageRecentRows);
   document.getElementById('usageRecentClearFilters')?.addEventListener('click', () => {
     ['usageRecentDateFilter', 'usageRecentUserFilter', 'usageRecentLocaleFilter', 'usageRecentTargetFilter', 'usageRecentVersionFilter', 'usageRecentQueryFilter'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
-    const typeFilter = document.getElementById('usageRecentTypeFilter');
-    if (typeFilter) typeFilter.value = '';
+    const sourceFilter = document.getElementById('usageRecentSourceFilter');
+    if (sourceFilter) sourceFilter.value = '';
+    const actionFilter = document.getElementById('usageRecentActionFilter');
+    if (actionFilter) actionFilter.value = '';
     renderUsageRecentRows();
   });
 }
@@ -1481,6 +1498,164 @@ async function loadBusinessPage() {
   ].join('');
 }
 
+async function loadBehaviorPage() {
+  setupAdminTabs('behaviorTabs');
+  const payload = await fetchAdminJson('/api/admin/behavior/summary');
+  const summary = payload.summary || {};
+  document.getElementById('behaviorCards').innerHTML = renderCards([
+    { label: '激活事件', value: formatNumber(summary.activationEvents) },
+    { label: '最常用站点', value: summary.topSite || '暂无', note: summary.topSiteNote || '' },
+    { label: '失败高发阶段', value: summary.topFailurePhase || '暂无', note: summary.topFailureTarget || '' },
+    { label: '功能事件', value: formatNumber(summary.featureEvents) },
+    { label: '订阅漏斗', value: formatNumber(summary.subscriptionEvents) },
+    { label: '近 7 天成本', value: formatCost(summary.estimatedCost, summary.costCurrency), note: formatNumber(summary.totalTokens) + ' tokens' }
+  ]);
+
+  const activationRows = Array.isArray(payload.activationEvents) ? payload.activationEvents : [];
+  document.getElementById('behaviorActivationBody').innerHTML = activationRows.length
+    ? activationRows.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.eventName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.topSource || '-') + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.latestAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无激活事件', 6);
+
+  const siteRows = Array.isArray(payload.siteRanks) ? payload.siteRanks : [];
+  document.getElementById('behaviorSitesBody').innerHTML = siteRows.length
+    ? siteRows.map((item, index) => (
+      '<tr>'
+        + '<td>' + escapeHtml(formatNumber(index + 1)) + '</td>'
+        + '<td>' + escapeHtml(item.siteName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.launches || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.events || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.withQueryEvents || 0)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无站点排行', 7);
+
+  const failureTargets = Array.isArray(payload.failureTargets) ? payload.failureTargets : [];
+  document.getElementById('behaviorFailuresBody').innerHTML = failureTargets.length
+    ? failureTargets.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.category === 'api' ? 'API' : '站点') + '</td>'
+        + '<td>' + escapeHtml(item.target || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.failures || 0)) + '</td>'
+        + '<td>' + escapeHtml(item.topPhase || '-') + '</td>'
+        + '<td>' + escapeHtml(item.latestError || '-') + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无失败目标', 5);
+
+  const featureRows = Array.isArray(payload.featureEvents) ? payload.featureEvents : [];
+  document.getElementById('behaviorFeaturesBody').innerHTML = featureRows.length
+    ? featureRows.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.eventName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.topSource || '-') + '</td>'
+        + '<td>' + escapeHtml(item.topVersion || '-') + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无功能事件', 6);
+
+  const funnelRows = Array.isArray(payload.subscriptionEvents) ? payload.subscriptionEvents : [];
+  document.getElementById('behaviorSubscriptionBody').innerHTML = funnelRows.length
+    ? funnelRows.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.eventName || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.count)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeUsers)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.activeAnonymousClients)) + '</td>'
+        + '<td>' + escapeHtml(item.topSource || '-') + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.latestAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无订阅漏斗事件', 6);
+
+  const tokenRows = payload.tokenDistribution || {};
+  const costRows = payload.costDistribution || {};
+  document.getElementById('behaviorCostBody').innerHTML = [
+    '<tr><td>Tokens</td><td>' + escapeHtml(formatNumber(tokenRows.p50)) + '</td><td>' + escapeHtml(formatNumber(tokenRows.p90)) + '</td><td>' + escapeHtml(formatNumber(tokenRows.p99)) + '</td></tr>',
+    '<tr><td>成本</td><td>' + escapeHtml(formatCost(costRows.p50, summary.costCurrency)) + '</td><td>' + escapeHtml(formatCost(costRows.p90, summary.costCurrency)) + '</td><td>' + escapeHtml(formatCost(costRows.p99, summary.costCurrency)) + '</td></tr>'
+  ].join('');
+
+  document.getElementById('behaviorNote').textContent = payload.note || '';
+}
+
+async function loadBehaviorDailyPage() {
+  setupAdminTabs('behaviorDailyTabs');
+  const payload = await fetchAdminJson('/api/admin/behavior-daily/list?days=14');
+  const summary = payload.summary || {};
+  document.getElementById('behaviorDailyCards').innerHTML = renderCards([
+    { label: '已统计天数', value: formatNumber(summary.statDays || 0) },
+    { label: '最新日期', value: summary.latestDate || '暂无' },
+    { label: '最新日期行为数', value: formatNumber(summary.latestBehaviorCount || 0) },
+    { label: '最新日期总次数', value: formatNumber(summary.latestTotalCount || 0) },
+    { label: '最新日期设备数', value: formatNumber(summary.latestDeviceCount || 0), note: '按设备 ID，缺失时按登录身份去重' },
+    { label: '最新生成时间', value: formatDate(summary.latestGeneratedAt) }
+  ]);
+
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+  document.getElementById('behaviorDailyRowsBody').innerHTML = rows.length
+    ? rows.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.dateKey || '-') + '</td>'
+        + '<td>' + escapeHtml(item.source || '-') + '</td>'
+        + '<td><div class="strong-cell clamp-cell" title="' + escapeHtml(item.behavior || '-') + '">' + escapeHtml(item.behavior || '-') + '</div></td>'
+        + '<td><div class="muted-cell clamp-cell" title="' + escapeHtml(item.eventName || '-') + '">' + escapeHtml(truncateText(item.eventName || '-', 28)) + '</div></td>'
+        + '<td>' + escapeHtml(formatNumber(item.count || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.deviceCount || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.avgPerDevice || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.userCount || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.anonymousDeviceCount || 0)) + '</td>'
+        + '<td><div class="clamp-cell" title="' + escapeHtml(item.topVersion || '-') + '">' + escapeHtml(truncateText(item.topVersion || '-', 16)) + '</div></td>'
+        + '<td>' + escapeHtml(formatDate(item.latestAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无行为日报。可以点击“补算最近 7 天”生成离线统计。', 11);
+
+  const days = Array.isArray(payload.days) ? payload.days : [];
+  document.getElementById('behaviorDailyDaysBody').innerHTML = days.length
+    ? days.map((item) => (
+      '<tr>'
+        + '<td>' + escapeHtml(item.dateKey || '-') + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalCount || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.totalDeviceCount || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatNumber(item.behaviorCount || 0)) + '</td>'
+        + '<td>' + escapeHtml(formatDate(item.generatedAt)) + '</td>'
+      + '</tr>'
+    )).join('')
+    : renderEmptyRow('暂无已生成日期', 5);
+
+  const backfillButton = document.getElementById('behaviorDailyBackfillButton');
+  if (backfillButton && backfillButton.dataset.bound !== 'true') {
+    backfillButton.dataset.bound = 'true';
+    backfillButton.addEventListener('click', async () => {
+      const statusEl = document.getElementById('behaviorDailyStatus');
+      backfillButton.disabled = true;
+      if (statusEl) statusEl.textContent = '正在补算最近 7 天...';
+      try {
+        const result = await fetchAdminJson('/api/admin/behavior-daily/backfill?days=7', { method: 'POST' });
+        if (statusEl) statusEl.textContent = '补算完成：' + formatNumber(result.generated || 0) + ' 天。';
+        await loadBehaviorDailyPage();
+      } catch (error) {
+        if (statusEl) statusEl.textContent = error.message || String(error);
+      } finally {
+        backfillButton.disabled = false;
+      }
+    });
+  }
+}
+
 async function loadApiCostPage() {
   setupAdminTabs('apiCostTabs');
   const [summary, trendPayload, modelsPayload] = await Promise.all([
@@ -1592,7 +1767,27 @@ function normalizeCoursePromoLocalesValue(value) {
   return locales.length ? locales.join(', ') : 'zh_CN, zh_TW, zh';
 }
 
+function getCoursePromoTextAdSlots() {
+  return [
+    { enabledId: 'coursePromoTextAdEnabled', textId: 'coursePromoTextAdText', urlId: 'coursePromoTextAdUrl' },
+    { enabledId: 'coursePromoTextAd2Enabled', textId: 'coursePromoTextAd2Text', urlId: 'coursePromoTextAd2Url' },
+    { enabledId: 'coursePromoTextAd3Enabled', textId: 'coursePromoTextAd3Text', urlId: 'coursePromoTextAd3Url' }
+  ];
+}
+
+function readCoursePromoTextAdsFromForm() {
+  return getCoursePromoTextAdSlots()
+    .map((slot) => ({
+      enabled: document.getElementById(slot.enabledId)?.value === 'true',
+      text: document.getElementById(slot.textId)?.value.trim() || '',
+      url: document.getElementById(slot.urlId)?.value.trim() || ''
+    }))
+    .filter((item) => item.enabled || item.text || item.url);
+}
+
 function readCoursePromoForm() {
+  const textAds = readCoursePromoTextAdsFromForm();
+  const primaryTextAd = textAds[0] || {};
   return {
     enabled: document.getElementById('coursePromoEnabled')?.value === 'true',
     imageUrl: document.getElementById('coursePromoImageUrl')?.value.trim() || '',
@@ -1600,9 +1795,10 @@ function readCoursePromoForm() {
     title: document.getElementById('coursePromoTitle')?.value.trim() || '',
     subtitle: document.getElementById('coursePromoSubtitle')?.value.trim() || '',
     ctaText: document.getElementById('coursePromoCtaText')?.value.trim() || '',
-    textAdEnabled: document.getElementById('coursePromoTextAdEnabled')?.value === 'true',
-    textAdText: document.getElementById('coursePromoTextAdText')?.value.trim() || '',
-    textAdUrl: document.getElementById('coursePromoTextAdUrl')?.value.trim() || '',
+    textAdEnabled: primaryTextAd.enabled === true,
+    textAdText: primaryTextAd.text || '',
+    textAdUrl: primaryTextAd.url || '',
+    textAds,
     targetLocales: normalizeCoursePromoLocalesValue(document.getElementById('coursePromoTargetLocales')?.value || ''),
     dismissDays: document.getElementById('coursePromoDismissDays')?.value || '',
     maxImpressionsPerDay: document.getElementById('coursePromoMaxImpressionsPerDay')?.value || ''
@@ -1632,9 +1828,21 @@ function applyCoursePromoPreview(config = {}) {
     link.textContent = config.ctaText || '打开链接';
   }
   if (textAdPreview) {
-    textAdPreview.hidden = !config.textAdText;
-    textAdPreview.href = config.textAdUrl || '#';
-    textAdPreview.textContent = config.textAdText || '';
+    const textAds = Array.isArray(config.textAds) && config.textAds.length
+      ? config.textAds
+      : [{ enabled: config.textAdEnabled, text: config.textAdText, url: config.textAdUrl }];
+    const previewAds = textAds.filter((item) => item && (item.enabled || item.text || item.url));
+    textAdPreview.hidden = !previewAds.length;
+    textAdPreview.innerHTML = '';
+    previewAds.forEach((item, index) => {
+      const anchor = document.createElement('a');
+      anchor.className = 'course-promo-preview-link';
+      anchor.href = item.url || '#';
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.textContent = item.text || ('文字广告 ' + String(index + 1));
+      textAdPreview.appendChild(anchor);
+    });
   }
   if (meta) {
     meta.textContent = [
@@ -1654,9 +1862,6 @@ function fillCoursePromoForm(config = {}) {
   const title = document.getElementById('coursePromoTitle');
   const subtitle = document.getElementById('coursePromoSubtitle');
   const ctaText = document.getElementById('coursePromoCtaText');
-  const textAdEnabled = document.getElementById('coursePromoTextAdEnabled');
-  const textAdText = document.getElementById('coursePromoTextAdText');
-  const textAdUrl = document.getElementById('coursePromoTextAdUrl');
   const targetLocales = document.getElementById('coursePromoTargetLocales');
   const dismissDays = document.getElementById('coursePromoDismissDays');
   const maxImpressionsPerDay = document.getElementById('coursePromoMaxImpressionsPerDay');
@@ -1667,9 +1872,18 @@ function fillCoursePromoForm(config = {}) {
   if (title) title.value = config.title || '';
   if (subtitle) subtitle.value = config.subtitle || '';
   if (ctaText) ctaText.value = config.ctaText || '';
-  if (textAdEnabled) textAdEnabled.value = config.textAdEnabled ? 'true' : 'false';
-  if (textAdText) textAdText.value = config.textAdText || '';
-  if (textAdUrl) textAdUrl.value = config.textAdUrl || '';
+  const textAds = Array.isArray(config.textAds) && config.textAds.length
+    ? config.textAds
+    : [{ enabled: config.textAdEnabled, text: config.textAdText, url: config.textAdUrl }];
+  getCoursePromoTextAdSlots().forEach((slot, index) => {
+    const item = textAds[index] || {};
+    const enabledEl = document.getElementById(slot.enabledId);
+    const textEl = document.getElementById(slot.textId);
+    const urlEl = document.getElementById(slot.urlId);
+    if (enabledEl) enabledEl.value = item.enabled ? 'true' : 'false';
+    if (textEl) textEl.value = item.text || '';
+    if (urlEl) urlEl.value = item.url || '';
+  });
   if (targetLocales) targetLocales.value = Array.isArray(config.targetLocales) ? config.targetLocales.join(', ') : normalizeCoursePromoLocalesValue(config.targetLocales);
   if (dismissDays) dismissDays.value = String(config.dismissDays || 7);
   if (maxImpressionsPerDay) maxImpressionsPerDay.value = String(config.maxImpressionsPerDay || 3);
@@ -1720,7 +1934,7 @@ async function loadCoursePromoPage() {
       });
     });
   }
-  ['coursePromoEnabled', 'coursePromoImageUrl', 'coursePromoTargetUrl', 'coursePromoTitle', 'coursePromoSubtitle', 'coursePromoCtaText', 'coursePromoTextAdEnabled', 'coursePromoTextAdText', 'coursePromoTextAdUrl', 'coursePromoTargetLocales', 'coursePromoDismissDays', 'coursePromoMaxImpressionsPerDay']
+  ['coursePromoEnabled', 'coursePromoImageUrl', 'coursePromoTargetUrl', 'coursePromoTitle', 'coursePromoSubtitle', 'coursePromoCtaText', ...getCoursePromoTextAdSlots().flatMap((slot) => [slot.enabledId, slot.textId, slot.urlId]), 'coursePromoTargetLocales', 'coursePromoDismissDays', 'coursePromoMaxImpressionsPerDay']
     .forEach((id) => {
       const element = document.getElementById(id);
       if (!element || element.dataset.bound === 'true') return;
@@ -1775,6 +1989,8 @@ async function bootAdminPage(pageName) {
     if (pageName === 'overview') await loadOverview();
     if (pageName === 'orders') await loadOrdersPage();
     if (pageName === 'users') await loadUsersPage();
+    if (pageName === 'behavior') await loadBehaviorPage();
+    if (pageName === 'behaviorDaily') await loadBehaviorDailyPage();
     if (pageName === 'redeemCodes') await loadRedeemCodesPage();
     if (pageName === 'apiUsage') await loadApiUsagePage();
     if (pageName === 'siteUsage') await loadSiteUsagePage();
@@ -2105,6 +2321,26 @@ const ADMIN_STYLES = `
     margin: 0 0 12px;
     font-size: 16px;
   }
+  .course-promo-text-ad-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .course-promo-text-ad-slot {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+  }
+  .course-promo-text-ad-slot strong {
+    color: var(--text);
+    font-size: 14px;
+  }
+  .course-promo-text-ad-slot .field {
+    gap: 6px;
+  }
   .course-promo-actions {
     display: flex;
     gap: 10px;
@@ -2168,8 +2404,14 @@ const ADMIN_STYLES = `
     color: var(--accent);
     font-weight: 700;
   }
+  .course-promo-text-ad-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+  }
   @media (max-width: 900px) {
     .course-promo-grid,
+    .course-promo-text-ad-slots,
     .course-promo-preview {
       grid-template-columns: 1fr;
     }
@@ -3998,6 +4240,7 @@ function getDefaultCoursePromoConfig() {
     textAdEnabled: false,
     textAdText: '',
     textAdUrl: '',
+    textAds: [],
     targetLocales: ['zh_CN', 'zh_TW', 'zh'],
     dismissDays: 7,
     maxImpressionsPerDay: 3,
@@ -4013,7 +4256,33 @@ function normalizeCoursePromoText(value, limit, fallback = '') {
 
 function normalizeCoursePromoUrl(value) {
   const url = safeLogString(value, 1000);
-  return /^https:\/\/\S+/i.test(url) ? url : '';
+  if (!/^https:\/\/\S+/i.test(url)) return '';
+  try {
+    const parsed = new URL(url);
+    const hostname = String(parsed.hostname || '').trim();
+    if (parsed.protocol !== 'https:' || !hostname || !hostname.replace(/\./g, '')) return '';
+    return url;
+  } catch (_) {
+    return '';
+  }
+}
+
+function normalizeCoursePromoTextAds(raw = {}) {
+  const source = Array.isArray(raw.textAds) && raw.textAds.length
+    ? raw.textAds
+    : [{
+      enabled: raw.textAdEnabled === true,
+      text: raw.textAdText,
+      url: raw.textAdUrl
+    }];
+  return source
+    .slice(0, 3)
+    .map((item = {}) => ({
+      enabled: item.enabled === true,
+      text: normalizeCoursePromoText(item.text, 80, ''),
+      url: normalizeCoursePromoUrl(item.url)
+    }))
+    .filter((item) => item.enabled || item.text || item.url);
 }
 
 function normalizeCoursePromoLocales(value) {
@@ -4061,6 +4330,8 @@ function normalizeCoursePromoUpdatedAt(value) {
 
 function normalizeCoursePromoConfig(raw = {}) {
   const defaults = getDefaultCoursePromoConfig();
+  const textAds = normalizeCoursePromoTextAds(raw);
+  const primaryTextAd = textAds[0] || {};
   return {
     enabled: raw.enabled === true,
     imageUrl: normalizeCoursePromoUrl(raw.imageUrl),
@@ -4068,9 +4339,10 @@ function normalizeCoursePromoConfig(raw = {}) {
     title: normalizeCoursePromoText(raw.title, 80, defaults.title),
     subtitle: normalizeCoursePromoText(raw.subtitle, 160, defaults.subtitle),
     ctaText: normalizeCoursePromoText(raw.ctaText, 24, defaults.ctaText),
-    textAdEnabled: raw.textAdEnabled === true,
-    textAdText: normalizeCoursePromoText(raw.textAdText, 80, ''),
-    textAdUrl: normalizeCoursePromoUrl(raw.textAdUrl),
+    textAdEnabled: primaryTextAd.enabled === true,
+    textAdText: primaryTextAd.text || '',
+    textAdUrl: primaryTextAd.url || '',
+    textAds,
     targetLocales: normalizeCoursePromoLocales(raw.targetLocales),
     dismissDays: normalizePositiveInteger(raw.dismissDays, defaults.dismissDays, 1, 365),
     maxImpressionsPerDay: normalizePositiveInteger(raw.maxImpressionsPerDay, defaults.maxImpressionsPerDay, 1, 20),
@@ -4113,12 +4385,16 @@ function validateCoursePromoConfigInput(input = {}) {
   if (input.targetUrl && !input.targetUrl.startsWith('https://')) {
     errors.push('点击链接必须以 https:// 开头');
   }
-  if (input.textAdEnabled === true) {
-    if (!input.textAdText) errors.push('文字广告文案不能为空');
-    if (!input.textAdUrl) errors.push('文字广告跳转链接必须以 https:// 开头');
-  }
-  if (input.textAdUrl && !input.textAdUrl.startsWith('https://')) {
-    errors.push('文字广告跳转链接必须以 https:// 开头');
+  if (Array.isArray(input.textAds)) {
+    input.textAds.forEach((item, index) => {
+      const label = '文字广告 ' + String(index + 1);
+      if (item.enabled === true) {
+        if (!item.text) errors.push(label + ' 文案不能为空');
+      }
+      if (item.url && !item.url.startsWith('https://')) {
+        errors.push(label + ' 跳转链接必须以 https:// 开头');
+      }
+    });
   }
   return errors;
 }
@@ -4135,6 +4411,7 @@ function sanitizeCoursePromoOutput(config = {}) {
     textAdEnabled: normalized.textAdEnabled,
     textAdText: normalized.textAdText,
     textAdUrl: normalized.textAdUrl,
+    textAds: normalized.textAds,
     targetLocales: normalized.targetLocales,
     dismissDays: normalized.dismissDays,
     maxImpressionsPerDay: normalized.maxImpressionsPerDay,
@@ -4145,6 +4422,8 @@ function sanitizeCoursePromoOutput(config = {}) {
 
 function sanitizeCoursePromoPublicOutput(config = {}) {
   const normalized = sanitizeCoursePromoOutput(config);
+  const publicTextAds = normalized.textAds.filter((item) => item.enabled && item.text);
+  const linkedTextAd = publicTextAds.find((item) => item.url) || {};
   return {
     enabled: normalized.enabled,
     imageUrl: normalized.imageUrl,
@@ -4152,9 +4431,12 @@ function sanitizeCoursePromoPublicOutput(config = {}) {
     title: normalized.title,
     subtitle: normalized.subtitle,
     ctaText: normalized.ctaText,
-    textAdEnabled: normalized.textAdEnabled,
-    textAdText: normalized.textAdText,
-    textAdUrl: normalized.textAdUrl,
+    textAdEnabled: publicTextAds.length > 0,
+    textAdText: publicTextAds.length > 1
+      ? publicTextAds.map((item) => item.text).join('    ')
+      : normalized.textAdText,
+    textAdUrl: linkedTextAd.url || normalized.textAdUrl,
+    textAds: publicTextAds,
     targetLocales: normalized.targetLocales,
     dismissDays: normalized.dismissDays,
     maxImpressionsPerDay: normalized.maxImpressionsPerDay,
@@ -4598,9 +4880,21 @@ function getStripeAllowedPriceIds() {
   ].filter(Boolean));
 }
 
-function getStripeSmokeTestConfig() {
+function normalizeStripeSmokeTestPlanType(value = '') {
+  return String(value || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
+}
+
+function getStripeSmokeTestConfig(planType = 'chat') {
+  const normalizedPlanType = normalizeStripeSmokeTestPlanType(planType);
+  const chatPriceId = String(
+    process.env.STRIPE_CHAT_PRICE_SMOKE_TEST
+    || process.env.STRIPE_PRICE_SMOKE_TEST
+    || ''
+  ).trim();
+  const apiPriceId = String(process.env.STRIPE_API_PRICE_SMOKE_TEST || '').trim();
   return {
-    priceId: String(process.env.STRIPE_PRICE_SMOKE_TEST || '').trim(),
+    planType: normalizedPlanType,
+    priceId: normalizedPlanType === 'api' ? apiPriceId : chatPriceId,
     token: String(process.env.BILLING_SMOKE_TEST_TOKEN || '').trim()
   };
 }
@@ -4683,7 +4977,7 @@ async function getOrCreateFirebaseUserForStripeEmail(email, metadata = {}) {
 }
 
 function assertBillingSmokeTestAccess(req) {
-  const config = getStripeSmokeTestConfig();
+  const config = getStripeSmokeTestConfig(req.query?.planType || req.query?.plan || '');
   if (!config.priceId || !config.token) {
     const error = new Error('Not found');
     error.status = 404;
@@ -5842,6 +6136,8 @@ function createAdminPage({ pageName, title, description, content }) {
     orders: pageName === 'orders' ? 'active' : '',
     users: pageName === 'users' ? 'active' : '',
     redeemCodes: pageName === 'redeemCodes' ? 'active' : '',
+    behavior: pageName === 'behavior' ? 'active' : '',
+    behaviorDaily: pageName === 'behaviorDaily' ? 'active' : '',
     apiUsage: pageName === 'apiUsage' ? 'active' : '',
     failureLogs: pageName === 'failureLogs' ? 'active' : '',
     finalFailures: pageName === 'finalFailures' ? 'active' : '',
@@ -5870,6 +6166,8 @@ function createAdminPage({ pageName, title, description, content }) {
           <a class="nav-link ${active.overview}" href="/admin">总览</a>
           <a class="nav-link ${active.orders}" href="/admin/orders">会员订单</a>
           <a class="nav-link ${active.users}" href="/admin/users">用户列表</a>
+          <a class="nav-link ${active.behavior}" href="/admin/behavior">行为洞察</a>
+          <a class="nav-link ${active.behaviorDaily}" href="/admin/behavior-daily">行为日报</a>
           <a class="nav-link ${active.redeemCodes}" href="/admin/redeem-codes">兑换码</a>
           <a class="nav-link ${active.apiUsage}" href="/admin/api-usage">使用统计</a>
           <a class="nav-link ${active.failureLogs}" href="/admin/failure-logs">失败日志</a>
@@ -6088,6 +6386,115 @@ function getUsersPageHtml() {
           <tbody id="usersTableBody">
             <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
           </tbody>
+        </table>
+      </section>
+    `
+  });
+}
+
+function getBehaviorPageHtml() {
+  return createAdminPage({
+    pageName: 'behavior',
+    title: '行为洞察',
+    description: '把第一优先的激活/站点偏好/失败后可观测行为，和第二优先的功能/订阅/成本放在一个页面里。',
+    content: `
+      <h2 class="section-title">行为总览</h2>
+      <section id="behaviorCards" class="grid"></section>
+      <nav id="behaviorTabs" class="admin-tabs" role="tablist" aria-label="行为洞察统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="priority1">第一优先</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="priority2">第二优先</button>
+      </nav>
+      <section class="card panel" data-tab-panel="priority1">
+        <h3>第一优先：激活、站点偏好、失败后可观测行为</h3>
+        <div class="insight-grid">
+          <div>
+            <h4>激活事件</h4>
+            <table>
+              <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>最近时间</th></tr></thead>
+              <tbody id="behaviorActivationBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>站点偏好排行</h4>
+            <table>
+              <thead><tr><th>排名</th><th>站点</th><th>打开次数</th><th>对比次数</th><th>活跃用户</th><th>匿名设备</th><th>带 Query</th></tr></thead>
+              <tbody id="behaviorSitesBody"><tr><td colspan="7" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>失败目标</h4>
+            <table>
+              <thead><tr><th>类型</th><th>目标</th><th>失败数</th><th>主要阶段</th><th>最近错误</th></tr></thead>
+              <tbody id="behaviorFailuresBody"><tr><td colspan="5" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+            <p class="footer-note">当前只统计现有失败日志中的真实失败阶段；“失败后是否重试/是否切站”需要后续补路径埋点才能完整看见。</p>
+          </div>
+        </div>
+      </section>
+      <section class="card panel" data-tab-panel="priority2">
+        <h3>第二优先：功能、订阅、成本</h3>
+        <div class="insight-grid">
+          <div>
+            <h4>功能事件</h4>
+            <table>
+              <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>主版本</th></tr></thead>
+              <tbody id="behaviorFeaturesBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>订阅漏斗</h4>
+            <table>
+              <thead><tr><th>事件</th><th>次数</th><th>活跃登录用户</th><th>活跃匿名设备</th><th>主要来源</th><th>最近时间</th></tr></thead>
+              <tbody id="behaviorSubscriptionBody"><tr><td colspan="6" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>用户成本分布</h4>
+            <table>
+              <thead><tr><th>指标</th><th>P50</th><th>P90</th><th>P99</th></tr></thead>
+              <tbody id="behaviorCostBody"><tr><td colspan="4" class="empty-cell">等待加载...</td></tr></tbody>
+            </table>
+            <p class="footer-note" id="behaviorNote"></p>
+          </div>
+        </div>
+      </section>
+    `
+  });
+}
+
+function getBehaviorDailyPageHtml() {
+  return createAdminPage({
+    pageName: 'behaviorDaily',
+    title: '行为日报',
+    description: '每日离线统计每个真实行为的使用次数、设备数和每设备平均次数；默认由服务端在北京时间跨日后写入 Firestore。',
+    content: `
+      <h2 class="section-title">行为日报</h2>
+      <section id="behaviorDailyCards" class="grid"></section>
+      <nav id="behaviorDailyTabs" class="admin-tabs" role="tablist" aria-label="行为日报统计分类">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab-target="behaviorDailyRows">行为明细</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="behaviorDailyDays">日期汇总</button>
+      </nav>
+      <section class="card panel" data-tab-panel="behaviorDailyRows">
+        <div class="panel-heading-row">
+          <div>
+            <h3>每日行为明细</h3>
+            <p class="footer-note">按日期倒序、同日按使用次数倒序。这里读取已生成的日报，不实时扫描原始事件。</p>
+          </div>
+          <div class="button-row">
+            <button id="behaviorDailyBackfillButton" type="button">补算最近 7 天</button>
+          </div>
+        </div>
+        <div class="status" id="behaviorDailyStatus"></div>
+        <table>
+          <thead><tr><th>日期</th><th>来源</th><th>行为</th><th>事件名</th><th>使用次数</th><th>设备数</th><th>每设备平均</th><th>登录用户</th><th>匿名设备</th><th>主版本</th><th>最近时间</th></tr></thead>
+          <tbody id="behaviorDailyRowsBody"><tr><td colspan="11" class="empty-cell">等待加载...</td></tr></tbody>
+        </table>
+      </section>
+      <section class="card panel" data-tab-panel="behaviorDailyDays">
+        <h3>日期汇总</h3>
+        <table>
+          <thead><tr><th>日期</th><th>总次数</th><th>设备数</th><th>行为种类</th><th>生成时间</th></tr></thead>
+          <tbody id="behaviorDailyDaysBody"><tr><td colspan="5" class="empty-cell">等待加载...</td></tr></tbody>
         </table>
       </section>
     `
@@ -6325,7 +6732,8 @@ function getApiUsagePageHtml() {
           <thead>
             <tr>
               <th>时间</th>
-              <th>类型</th>
+              <th>来源</th>
+              <th>行为</th>
               <th>用户</th>
               <th>地区/设备语言</th>
               <th>模型 / 站点</th>
@@ -6335,15 +6743,69 @@ function getApiUsagePageHtml() {
             <tr class="usage-filter-row">
               <th><input id="usageRecentDateFilter" class="usage-filter-input" type="search" placeholder="日期/时间"></th>
               <th>
-                <select id="usageRecentTypeFilter" class="usage-filter-input">
+                <select id="usageRecentSourceFilter" class="usage-filter-input">
                   <option value="">全部</option>
                   <option value="api">API</option>
                   <option value="site">站点</option>
+                  <option value="feature">功能</option>
+                  <option value="activation">激活</option>
+                  <option value="subscription">订阅</option>
+                </select>
+              </th>
+              <th>
+                <select id="usageRecentActionFilter" class="usage-filter-input">
+                  <option value="">全部</option>
+                  <option value="API调用">API调用</option>
                   <option value="对比">对比</option>
-                  <option value="总结">总结</option>
-                  <option value="问答">问答</option>
                   <option value="打开">打开</option>
                   <option value="技能">技能</option>
+                  <option value="使用提示词模板">使用提示词模板</option>
+                  <option value="收藏记录">收藏记录</option>
+                  <option value="下载Markdown">下载Markdown</option>
+                  <option value="分享URL">分享URL</option>
+                  <option value="复制汇总答案">复制汇总答案</option>
+                  <option value="进入设置">进入设置</option>
+                  <option value="修改设置">修改设置</option>
+                  <option value="修改分析提示词">修改分析提示词</option>
+                  <option value="修改总结提示词">修改总结提示词</option>
+                  <option value="休怪模板">休怪模板</option>
+                  <option value="关闭总结">关闭总结</option>
+                  <option value="进入历史">进入历史</option>
+                  <option value="首页站点选择">首页站点选择</option>
+                  <option value="首页提交搜索">首页提交搜索</option>
+                  <option value="对比页提交搜索">对比页提交搜索</option>
+                  <option value="查询结果加载">查询结果加载</option>
+                  <option value="首页Agent选择">首页Agent选择</option>
+                  <option value="上传文件">上传文件</option>
+                  <option value="保存常用站点">保存常用站点</option>
+                  <option value="进入账号">进入账号</option>
+                  <option value="登录点击">登录点击</option>
+                  <option value="联系点击">联系点击</option>
+                  <option value="评价点击">评价点击</option>
+                  <option value="时间线滚动">时间线滚动</option>
+                  <option value="批量提交">批量提交</option>
+                  <option value="清空Agent">清空Agent</option>
+                  <option value="全选Agent">全选Agent</option>
+                  <option value="首次打开应用">首次打开应用</option>
+                  <option value="首次打开对比页">首次打开对比页</option>
+                  <option value="首次选择站点">首次选择站点</option>
+                  <option value="首次提交问题">首次提交问题</option>
+                  <option value="首次看到结果">首次看到结果</option>
+                  <option value="官方API额度触达">官方API额度触达</option>
+                  <option value="匿名官方API额度触达">匿名官方API额度触达</option>
+                  <option value="Chat额度触达">Chat额度触达</option>
+                  <option value="匿名Chat额度触达">匿名Chat额度触达</option>
+                  <option value="进入会员">进入会员</option>
+                  <option value="进入Pro">进入Pro</option>
+                  <option value="发起支付">发起支付</option>
+                  <option value="支付成功">支付成功</option>
+                  <option value="订阅取消">订阅取消</option>
+                  <option value="订阅更新">订阅更新</option>
+                  <option value="评分弹窗展示">评分弹窗展示</option>
+                  <option value="评分稍后">评分稍后</option>
+                  <option value="评分点击">评分点击</option>
+                  <option value="课程广告曝光">课程广告曝光</option>
+                  <option value="课程广告点击">课程广告点击</option>
                 </select>
               </th>
               <th><input id="usageRecentUserFilter" class="usage-filter-input" type="search" placeholder="用户"></th>
@@ -6359,7 +6821,7 @@ function getApiUsagePageHtml() {
             </tr>
           </thead>
           <tbody id="usageRecentBody">
-            <tr><td colspan="7" class="empty-cell">等待加载...</td></tr>
+            <tr><td colspan="8" class="empty-cell">等待加载...</td></tr>
           </tbody>
         </table>
       </section>
@@ -6882,22 +7344,61 @@ function getCoursePromoPageHtml() {
         </div>
         <div class="course-promo-subsection">
           <h3>搜索框文字广告</h3>
-          <div class="course-promo-grid">
-            <label class="field">
-              <span>文字广告开关</span>
-              <select id="coursePromoTextAdEnabled">
-                <option value="false">关闭</option>
-                <option value="true">开启</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>文字广告文案</span>
-              <input id="coursePromoTextAdText" type="text" maxlength="80" placeholder="例如：系统学习 Codex 编程课，点这里" />
-            </label>
-            <label class="field course-promo-field-wide">
-              <span>文字广告跳转链接</span>
-              <input id="coursePromoTextAdUrl" type="url" placeholder="https://..." />
-            </label>
+          <div class="course-promo-text-ad-slots">
+            <div class="course-promo-text-ad-slot">
+              <strong>文字广告 1</strong>
+              <label class="field">
+                <span>开关</span>
+                <select id="coursePromoTextAdEnabled">
+                  <option value="false">关闭</option>
+                  <option value="true">开启</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>文案</span>
+                <input id="coursePromoTextAdText" type="text" maxlength="80" placeholder="例如：系统学习 Codex 编程课，点这里" />
+              </label>
+              <label class="field">
+                <span>跳转链接</span>
+                <input id="coursePromoTextAdUrl" type="url" placeholder="https://..." />
+              </label>
+            </div>
+            <div class="course-promo-text-ad-slot">
+              <strong>文字广告 2</strong>
+              <label class="field">
+                <span>开关</span>
+                <select id="coursePromoTextAd2Enabled">
+                  <option value="false">关闭</option>
+                  <option value="true">开启</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>文案</span>
+                <input id="coursePromoTextAd2Text" type="text" maxlength="80" placeholder="例如：加入 Codex 实战营" />
+              </label>
+              <label class="field">
+                <span>跳转链接</span>
+                <input id="coursePromoTextAd2Url" type="url" placeholder="https://..." />
+              </label>
+            </div>
+            <div class="course-promo-text-ad-slot">
+              <strong>文字广告 3</strong>
+              <label class="field">
+                <span>开关</span>
+                <select id="coursePromoTextAd3Enabled">
+                  <option value="false">关闭</option>
+                  <option value="true">开启</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>文案</span>
+                <input id="coursePromoTextAd3Text" type="text" maxlength="80" placeholder="例如：领取 Codex 学习资料" />
+              </label>
+              <label class="field">
+                <span>跳转链接</span>
+                <input id="coursePromoTextAd3Url" type="url" placeholder="https://..." />
+              </label>
+            </div>
           </div>
         </div>
         <div class="course-promo-actions">
@@ -6914,7 +7415,7 @@ function getCoursePromoPageHtml() {
             <div id="coursePromoPreviewTitle" class="course-promo-preview-title"></div>
             <div id="coursePromoPreviewSubtitle" class="course-promo-preview-subtitle"></div>
             <a id="coursePromoPreviewLink" class="course-promo-preview-link" href="#" target="_blank" rel="noopener noreferrer">打开链接</a>
-            <a id="coursePromoTextAdPreview" class="course-promo-preview-link" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
+            <div id="coursePromoTextAdPreview" class="course-promo-text-ad-preview" hidden></div>
           </div>
         </div>
       </section>
@@ -8218,13 +8719,95 @@ function dedupeRecentUsageEvents(events = []) {
   return merged;
 }
 
+function getFeatureUsageType(row = {}) {
+  const eventName = String(row.eventName || '').trim().toLowerCase();
+  const exactLabels = {
+    homepage_site_toggle: '首页站点选择',
+    iframe_search_submit: '对比页提交搜索',
+    query_result_loaded: '查询结果加载',
+    homepage_search_submit: '首页提交搜索',
+    homepage_agent_toggle: '首页Agent选择',
+    iframe_upload_click: '上传文件',
+    homepage_upload_click: '上传文件',
+    sidebar_settings_click: '进入设置',
+    homepage_save_favorite_sites: '保存常用站点',
+    sidebar_history_click: '进入历史',
+    sidebar_account_click: '进入账号',
+    iframe_timeline_scroll: '时间线滚动',
+    homepage_agents_clear_all: '清空Agent',
+    homepage_batch_submit: '批量提交',
+    sidebar_login_click: '登录点击',
+    homepage_agents_select_all: '全选Agent',
+    sidebar_contact_click: '联系点击',
+    sidebar_review_click: '评价点击',
+    activation_first_compare_opened: '首次打开对比页',
+    app_first_open: '首次打开应用',
+    activation_site_selected: '首次选择站点',
+    activation_first_query_submitted: '首次提交问题',
+    activation_first_result_seen: '首次看到结果',
+    anonymous_official_api_limit_reached: '匿名官方API额度触达',
+    official_api_limit_reached: '官方API额度触达',
+    official_api_quota_reached: '官方API额度触达',
+    chat_plan_limit_reached: 'Chat额度触达',
+    anonymous_chat_plan_limit_reached: '匿名Chat额度触达',
+    sidebar_membership_click: '进入会员',
+    sidebar_pro_click: '进入Pro',
+    checkout_started: '发起支付',
+    checkout_success: '支付成功',
+    subscription_canceled: '订阅取消',
+    customer_subscription_updated: '订阅更新',
+    rating_prompt_shown: '评分弹窗展示',
+    rating_prompt_reminder_shown: '评分弹窗展示',
+    rating_prompt_later: '评分稍后',
+    rating_prompt_clicked: '评分点击',
+    course_promo_text_ad_impression: '课程广告曝光',
+    course_promo_text_ad_click: '课程广告点击',
+    iframe_search_chat_plan_quota_overlay_shown: 'Chat额度触达',
+    homepage_prompt_templates_settings_click: '进入设置'
+  };
+  if (exactLabels[eventName]) return exactLabels[eventName];
+  if (/(prompt_template|prompt.*template|template.*use|template.*select|context_menu.*template)/i.test(eventName)) return '使用提示词模板';
+  if (/(favorite|favourite|收藏)/i.test(eventName)) return '收藏记录';
+  if (/(download.*markdown|markdown.*download|export.*markdown|markdown_export)/i.test(eventName)) return '下载Markdown';
+  if (/(share|shared|share_url|url_share|timeline_share)/i.test(eventName)) return '分享URL';
+  if (/(copy.*summary|summary.*copy|timeline_copy|copy_summary|复制.*汇总)/i.test(eventName)) return '复制汇总答案';
+  if (/(settings.*click|open_settings|settings_open|sidebar_settings_click)/i.test(eventName)) return '进入设置';
+  if (/(settings.*save|settings.*change|setting.*updated|config.*save|option.*save)/i.test(eventName)) return '修改设置';
+  if (/(analysis.*prompt.*save|analysis.*prompt.*change|analysisprompt|analysis_prompt_template)/i.test(eventName)) return '修改分析提示词';
+  if (/(summary.*prompt.*save|summary.*prompt.*change|summaryprompt|summary_prompt_template)/i.test(eventName)) return '修改总结提示词';
+  if (/(template.*reset|reset.*template|restore.*template|template.*restore)/i.test(eventName)) return '休怪模板';
+  if (/(summary.*close|close.*summary|summary.*disable|disable.*summary|summary_off)/i.test(eventName)) return '关闭总结';
+  if (/(history.*click|history_open|open_history|sidebar_history_click)/i.test(eventName)) return '进入历史';
+  return row.eventName || '功能事件';
+}
+
+function getSiteUsageType(row = {}) {
+  const siteCount = Math.max(0, Number(row.siteCount) || 0);
+  const agentCount = Math.max(0, Number(row.agentCount) || 0);
+  if (agentCount > 0 && siteCount === 0) return '技能';
+  if (siteCount + agentCount > 1) return '对比';
+  return '打开';
+}
+
+function getAnalyticsSourceLabel(kind = '') {
+  if (kind === 'api') return 'API';
+  if (kind === 'site') return '站点';
+  if (kind === 'feature') return '功能';
+  if (kind === 'activation') return '激活';
+  if (kind === 'subscription') return '订阅';
+  return '事件';
+}
+
 async function getCombinedUsageRecentData(req) {
   const days = clamp(parseInteger(req.query?.days, 7), 1, 7);
   const limit = clamp(parseInteger(req.query?.limit, 100), 1, 200);
   const dateKeys = getRecentDateKeys(days);
-  const [apiRows, siteRows, userDirectory] = await Promise.all([
+  const [apiRows, siteRows, featureRows, activationRows, subscriptionRows, userDirectory] = await Promise.all([
     listOfficialApiEvents(dateKeys),
     listSiteCompareEvents(dateKeys),
+    listAnalyticsEvents('feature', dateKeys),
+    listAnalyticsEvents('activation', dateKeys),
+    listAnalyticsEvents('subscription', dateKeys),
     getUserDirectory()
   ]);
   const getUserInfo = (uid = '') => {
@@ -8234,28 +8817,40 @@ async function getCombinedUsageRecentData(req) {
       email: String(user?.email || '')
     };
   };
-  const getSiteUsageType = (row) => {
-    if (row.agentCount > 0 && row.siteCount === 0) return '技能';
-    if (row.siteCount + row.agentCount > 1) return '对比';
-    if (row.hasQuery) return '单站查询';
-    return '打开';
-  };
-  const inferApiUsageType = (row) => {
-    const text = String(row.queryPreview || '').toLowerCase();
-    if (/(总结|概括|归纳|提炼|汇总|summary|summari[sz]e|recap|brief)/i.test(text)) return '总结';
-    if (/(翻译|translate|translation|译成|英译|中译)/i.test(text)) return '翻译';
-    if (/(写|改写|润色|文案|邮件|标题|copywrite|rewrite|polish|email|title)/i.test(text)) return '写作';
-    if (/(代码|编程|函数|脚本|bug|报错|debug|code|program|function|script)/i.test(text)) return '代码';
-    if (/(分析|对比|比较|评估|analysis|compare|versus|evaluate)/i.test(text)) return '分析';
-    if (/(生成|制作|创建|generate|create|make)/i.test(text)) return '生成';
-    return '问答';
+  const serializeAnalyticsUsageEvent = (row, kind) => {
+    const user = getUserInfo(row.uid);
+    const usageType = getFeatureUsageType(row);
+    return {
+      kind,
+      usageType,
+      createdAt: row.createdAt || row.updatedAt,
+      target: row.eventName || usageType || '埋点事件',
+      siteNames: [],
+      skillNames: [],
+      userType: row.uploaderType === 'anonymous' ? '匿名' : '登录用户',
+      uid: user.uid,
+      email: user.email,
+      deviceId: row.clientHash || '',
+      requestIp: '',
+      requestRegion: '',
+      locale: row.locale || '',
+      queryPreview: '',
+      queryText: '',
+      queryHash: '',
+      detail: [
+        row.source || '',
+        row.hasQuery ? '带 query' : '',
+        row.extensionVersion || ''
+      ].filter(Boolean).join(' · '),
+      extensionVersion: row.extensionVersion || ''
+    };
   };
   const events = [
     ...apiRows.map((row) => {
       const user = getUserInfo(row.uid);
       return {
         kind: 'api',
-        usageType: inferApiUsageType(row),
+        usageType: 'API调用',
         createdAt: row.createdAt,
         target: row.model || 'official API',
         siteNames: [],
@@ -8304,7 +8899,10 @@ async function getCombinedUsageRecentData(req) {
         ].filter(Boolean).join(' · '),
         extensionVersion: row.extensionVersion || ''
       };
-    })
+    }),
+    ...featureRows.map((row) => serializeAnalyticsUsageEvent(row, 'feature')),
+    ...activationRows.map((row) => serializeAnalyticsUsageEvent(row, 'activation')),
+    ...subscriptionRows.map((row) => serializeAnalyticsUsageEvent(row, 'subscription'))
   ].sort((left, right) => {
     const rightTs = Date.parse(right.createdAt || 0) || 0;
     const leftTs = Date.parse(left.createdAt || 0) || 0;
@@ -8314,6 +8912,333 @@ async function getCombinedUsageRecentData(req) {
   return {
     events: dedupedEvents.slice(0, limit)
   };
+}
+
+function getBeijingDateKey(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
+}
+
+function getPreviousBeijingDateKey(date = new Date()) {
+  const current = new Date(`${getBeijingDateKey(date)}T00:00:00+08:00`);
+  current.setUTCDate(current.getUTCDate() - 1);
+  return getBeijingDateKey(current);
+}
+
+function getBeijingTimeParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Shanghai',
+    hourCycle: 'h23',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    hour: Number(byType.hour || 0),
+    minute: Number(byType.minute || 0)
+  };
+}
+
+function incrementMapValue(map, key, count = 1) {
+  const normalizedKey = String(key || '').trim();
+  if (!normalizedKey) return;
+  map.set(normalizedKey, (map.get(normalizedKey) || 0) + count);
+}
+
+function getTopMapLabel(map) {
+  const top = Array.from(map.entries()).sort((left, right) => {
+    if (right[1] !== left[1]) return right[1] - left[1];
+    return String(left[0]).localeCompare(String(right[0]));
+  })[0];
+  return top ? `${top[0]} (${top[1]})` : '';
+}
+
+function createBehaviorStatsBucket(item = {}) {
+  return {
+    dateKey: item.dateKey || '',
+    kind: item.kind || '',
+    source: item.source || '',
+    behavior: item.behavior || '',
+    eventName: item.eventName || '',
+    count: 0,
+    devices: new Set(),
+    users: new Set(),
+    anonymousDevices: new Set(),
+    versions: new Map(),
+    sources: new Map(),
+    latestAt: ''
+  };
+}
+
+function addBehaviorStatsEvent(bucketMap, item = {}) {
+  const dateKey = String(item.dateKey || '').trim();
+  const kind = String(item.kind || '').trim();
+  const behavior = String(item.behavior || '').trim();
+  if (!dateKey || !kind || !behavior) return;
+  const eventName = String(item.eventName || '').trim();
+  const key = [kind, behavior, eventName].join('|');
+  if (!bucketMap.has(key)) {
+    bucketMap.set(key, createBehaviorStatsBucket({
+      dateKey,
+      kind,
+      source: item.source || getAnalyticsSourceLabel(kind),
+      behavior,
+      eventName
+    }));
+  }
+  const bucket = bucketMap.get(key);
+  bucket.count += Math.max(1, Number(item.count) || 1);
+  const uid = String(item.uid || '').trim();
+  const clientHash = String(item.clientHash || '').trim();
+  if (clientHash) {
+    bucket.devices.add(`client:${clientHash}`);
+    bucket.anonymousDevices.add(clientHash);
+  } else if (uid) {
+    bucket.devices.add(`user:${uid}`);
+  }
+  if (uid) bucket.users.add(uid);
+  incrementMapValue(bucket.versions, normalizeInsightVersion(item.extensionVersion || ''));
+  incrementMapValue(bucket.sources, item.rawSource || item.source || '');
+  const rowTime = item.createdAt || item.updatedAt || '';
+  if ((Date.parse(rowTime) || 0) >= (Date.parse(bucket.latestAt) || 0)) {
+    bucket.latestAt = rowTime;
+  }
+}
+
+function finalizeBehaviorStatsBucket(bucket) {
+  const deviceCount = bucket.devices.size;
+  return {
+    dateKey: bucket.dateKey,
+    kind: bucket.kind,
+    source: bucket.source,
+    behavior: bucket.behavior,
+    eventName: bucket.eventName,
+    count: bucket.count,
+    deviceCount,
+    avgPerDevice: Number((bucket.count / Math.max(1, deviceCount)).toFixed(2)),
+    userCount: bucket.users.size,
+    anonymousDeviceCount: bucket.anonymousDevices.size,
+    topVersion: getTopMapLabel(bucket.versions),
+    topSource: getTopMapLabel(bucket.sources),
+    latestAt: bucket.latestAt
+  };
+}
+
+async function buildBehaviorDailyStats(dateKey) {
+  requireFirebaseAdmin();
+  const safeDateKey = String(dateKey || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(safeDateKey)) {
+    const error = new Error('dateKey must be YYYY-MM-DD');
+    error.status = 400;
+    throw error;
+  }
+  const [apiRows, siteRows, featureRows, activationRows, subscriptionRows] = await Promise.all([
+    listOfficialApiEvents([safeDateKey]),
+    listSiteCompareEvents([safeDateKey]),
+    listAnalyticsEvents('feature', [safeDateKey]),
+    listAnalyticsEvents('activation', [safeDateKey]),
+    listAnalyticsEvents('subscription', [safeDateKey])
+  ]);
+  const buckets = new Map();
+  apiRows.forEach((row) => addBehaviorStatsEvent(buckets, {
+    dateKey: safeDateKey,
+    kind: 'api',
+    source: 'API',
+    behavior: 'API调用',
+    eventName: row.model || 'official_api',
+    uid: row.uid,
+    clientHash: row.clientHash,
+    extensionVersion: row.extensionVersion,
+    rawSource: row.model || 'official_api',
+    createdAt: row.createdAt
+  }));
+  siteRows.forEach((row) => addBehaviorStatsEvent(buckets, {
+    dateKey: safeDateKey,
+    kind: 'site',
+    source: '站点',
+    behavior: getSiteUsageType(row),
+    eventName: row.source || row.workflowMode || 'site_compare',
+    uid: row.uid,
+    clientHash: row.clientHash,
+    extensionVersion: row.extensionVersion,
+    rawSource: row.source || row.workflowMode || 'site_compare',
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  }));
+  const addAnalyticsRows = (rows, kind) => {
+    rows.forEach((row) => addBehaviorStatsEvent(buckets, {
+      dateKey: safeDateKey,
+      kind,
+      source: getAnalyticsSourceLabel(kind),
+      behavior: getFeatureUsageType(row),
+      eventName: row.eventName || 'unknown',
+      uid: row.uid,
+      clientHash: row.clientHash,
+      extensionVersion: row.extensionVersion,
+      rawSource: row.source || row.eventName || '',
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    }));
+  };
+  addAnalyticsRows(featureRows, 'feature');
+  addAnalyticsRows(activationRows, 'activation');
+  addAnalyticsRows(subscriptionRows, 'subscription');
+  const rows = Array.from(buckets.values())
+    .map(finalizeBehaviorStatsBucket)
+    .sort((left, right) => {
+      if (right.count !== left.count) return right.count - left.count;
+      return String(left.behavior).localeCompare(String(right.behavior), 'zh-Hans-CN');
+    });
+  const totalDevices = new Set();
+  buckets.forEach((bucket) => {
+    bucket.devices.forEach((device) => totalDevices.add(device));
+  });
+  return {
+    dateKey: safeDateKey,
+    rows,
+    totalCount: rows.reduce((sum, row) => sum + row.count, 0),
+    totalDeviceCount: totalDevices.size,
+    behaviorCount: rows.length
+  };
+}
+
+async function saveBehaviorDailyStats(dateKey, options = {}) {
+  const stats = await buildBehaviorDailyStats(dateKey);
+  const docRef = db.collection('behaviorDailyStats').doc(stats.dateKey);
+  if (!options.force) {
+    const existing = await docRef.get();
+    if (existing.exists) {
+      return { ...existing.data(), dateKey: stats.dateKey, skipped: true };
+    }
+  }
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  await docRef.set({
+    ...stats,
+    generatedAt: now,
+    updatedAt: now
+  }, { merge: true });
+  return { ...stats, skipped: false };
+}
+
+async function getBehaviorDailyListData(req) {
+  requireFirebaseAdmin();
+  const days = clamp(parseInteger(req.query?.days, 14), 1, 90);
+  const dateKeys = getRecentDateKeys(days);
+  const snapshot = await db.collection('behaviorDailyStats')
+    .where('dateKey', '>=', dateKeys[0])
+    .where('dateKey', '<=', dateKeys[dateKeys.length - 1])
+    .get();
+  const docs = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data() || {};
+    docs.push({
+      dateKey: String(data.dateKey || doc.id),
+      rows: Array.isArray(data.rows) ? data.rows : [],
+      totalCount: Math.max(0, Number(data.totalCount) || 0),
+      totalDeviceCount: Math.max(0, Number(data.totalDeviceCount) || 0),
+      behaviorCount: Math.max(0, Number(data.behaviorCount) || 0),
+      generatedAt: timestampToIso(data.generatedAt),
+      updatedAt: timestampToIso(data.updatedAt)
+    });
+  });
+  const sortedDays = sortDateRowsDescending(docs, 'dateKey');
+  const rows = sortedDays.flatMap((day) => day.rows.map((row) => ({
+    dateKey: day.dateKey,
+    kind: String(row.kind || ''),
+    source: String(row.source || ''),
+    behavior: String(row.behavior || ''),
+    eventName: String(row.eventName || ''),
+    count: Math.max(0, Number(row.count) || 0),
+    deviceCount: Math.max(0, Number(row.deviceCount) || 0),
+    avgPerDevice: Number(row.avgPerDevice || 0),
+    userCount: Math.max(0, Number(row.userCount) || 0),
+    anonymousDeviceCount: Math.max(0, Number(row.anonymousDeviceCount) || 0),
+    topVersion: String(row.topVersion || ''),
+    topSource: String(row.topSource || ''),
+    latestAt: String(row.latestAt || '')
+  }))).sort((left, right) => {
+    const dateCompare = String(right.dateKey).localeCompare(String(left.dateKey));
+    if (dateCompare !== 0) return dateCompare;
+    return right.count - left.count;
+  });
+  const latest = sortedDays[0] || {};
+  return {
+    days: sortedDays,
+    rows,
+    summary: {
+      statDays: sortedDays.length,
+      latestDate: latest.dateKey || '',
+      latestTotalCount: latest.totalCount || 0,
+      latestDeviceCount: latest.totalDeviceCount || 0,
+      latestBehaviorCount: latest.behaviorCount || 0,
+      latestGeneratedAt: latest.generatedAt || ''
+    }
+  };
+}
+
+async function backfillBehaviorDailyStats(req) {
+  const days = clamp(parseInteger(req.query?.days ?? req.body?.days, 7), 1, 90);
+  const dateKey = String(req.query?.dateKey || req.body?.dateKey || '').trim();
+  const dateKeys = dateKey ? [dateKey] : getRecentDateKeys(days);
+  const results = [];
+  for (const key of dateKeys) {
+    results.push(await saveBehaviorDailyStats(key, { force: true }));
+  }
+  return {
+    ok: true,
+    generated: results.length,
+    dateKeys,
+    results: results.map((item) => ({
+      dateKey: item.dateKey,
+      totalCount: item.totalCount || 0,
+      totalDeviceCount: item.totalDeviceCount || 0,
+      behaviorCount: item.behaviorCount || 0,
+      skipped: item.skipped === true
+    }))
+  };
+}
+
+let behaviorDailyStatsSchedulerStarted = false;
+let behaviorDailyStatsSchedulerRunning = false;
+
+async function runBehaviorDailyStatsIfDue() {
+  if (behaviorDailyStatsSchedulerRunning) return;
+  const timeParts = getBeijingTimeParts();
+  if (timeParts.hour !== 0 || timeParts.minute < 5) return;
+  behaviorDailyStatsSchedulerRunning = true;
+  try {
+    requireFirebaseAdmin();
+    const targetDateKey = getPreviousBeijingDateKey();
+    const jobRef = db.collection('systemJobs').doc('behaviorDailyStats');
+    const jobSnapshot = await jobRef.get();
+    const lastRunDateKey = String(jobSnapshot.data()?.lastRunDateKey || '');
+    if (lastRunDateKey === targetDateKey) return;
+    const stats = await saveBehaviorDailyStats(targetDateKey, { force: true });
+    await jobRef.set({
+      lastRunDateKey: targetDateKey,
+      lastRunAt: admin.firestore.FieldValue.serverTimestamp(),
+      totalCount: stats.totalCount || 0,
+      totalDeviceCount: stats.totalDeviceCount || 0,
+      behaviorCount: stats.behaviorCount || 0,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    console.error('[behavior-daily] scheduled aggregation failed:', error);
+  } finally {
+    behaviorDailyStatsSchedulerRunning = false;
+  }
+}
+
+function startBehaviorDailyStatsScheduler() {
+  if (behaviorDailyStatsSchedulerStarted) return;
+  behaviorDailyStatsSchedulerStarted = true;
+  runBehaviorDailyStatsIfDue();
+  setInterval(runBehaviorDailyStatsIfDue, 30 * 60 * 1000);
 }
 
 const queryInsightTypeLabels = {
@@ -9168,6 +10093,43 @@ async function getBusinessCostSummaryData() {
   };
 }
 
+async function getBehaviorSummaryData() {
+  const [growthSummary, businessSummary, experienceSummary, siteTop] = await Promise.all([
+    getGrowthSummaryData(),
+    getBusinessCostSummaryData(),
+    getExperienceQualitySummaryData(),
+    getSiteUsageTopSitesData({ query: { days: 7, limit: 20, includeAgents: 'false' } })
+  ]);
+  const topSite = siteTop.sites?.[0] || null;
+  const topFailureTarget = experienceSummary.priorityTargets?.[0] || null;
+  const topFailurePhase = experienceSummary.topPhases?.[0] || null;
+  const subscriptionEvents = Array.isArray(businessSummary.funnelEvents) ? businessSummary.funnelEvents : [];
+  return {
+    summary: {
+      activationEvents: growthSummary.summary.activationEvents,
+      featureEvents: growthSummary.summary.featureEvents,
+      subscriptionEvents: businessSummary.summary.checkoutStarted + businessSummary.summary.checkoutSuccess + businessSummary.summary.limitReached,
+      topSite: topSite?.siteName || growthSummary.summary.topSiteCombination || '暂无',
+      topSiteNote: topSite ? `${Math.max(0, Number(topSite.launches) || 0)} 次 / ${Math.max(0, Number(topSite.events) || 0)} 条记录` : '暂无站点排行',
+      topFailurePhase: topFailurePhase ? topFailurePhase.phase || '暂无' : '暂无',
+      topFailureTarget: topFailureTarget ? `${topFailureTarget.target || '未知目标'} · ${Math.max(0, Number(topFailureTarget.failures) || 0)} 次` : '暂无',
+      estimatedCost: businessSummary.summary.estimatedCost,
+      costCurrency: businessSummary.summary.costCurrency,
+      totalTokens: businessSummary.summary.totalTokens,
+      topActivation: growthSummary.summary.topActivation || '',
+      note: '第一优先建议优先盯激活、站点偏好和失败阶段；第二优先建议盯功能渗透、订阅漏斗和成本分布。'
+    },
+    activationEvents: growthSummary.activationEvents,
+    siteRanks: siteTop.sites || [],
+    failureTargets: experienceSummary.priorityTargets || [],
+    featureEvents: growthSummary.featureEvents,
+    subscriptionEvents,
+    tokenDistribution: businessSummary.tokenDistribution,
+    costDistribution: businessSummary.costDistribution,
+    note: `${growthSummary.note || ''}${experienceSummary.summary?.failureRate ? `；近 7 天失败率约 ${experienceSummary.summary.failureRate}%` : ''}`
+  };
+}
+
 function normalizeShareSiteNames(payload = {}) {
   const compareSites = Array.isArray(payload.compareSites) ? payload.compareSites : [];
   const responseSites = Array.isArray(payload.responses)
@@ -9681,6 +10643,18 @@ app.get('/admin/users', asyncRoute(async (req, res) => {
   res.send(getUsersPageHtml());
 }));
 
+app.get('/admin/behavior', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getBehaviorPageHtml());
+}));
+
+app.get('/admin/behavior-daily', asyncRoute(async (req, res) => {
+  if (!await requireAdminPage(req, res)) return;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getBehaviorDailyPageHtml());
+}));
+
 app.get('/admin/redeem-codes', asyncRoute(async (req, res) => {
   if (!await requireAdminPage(req, res)) return;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -9788,6 +10762,21 @@ app.get('/api/admin/orders/list', asyncRoute(async (req, res) => {
 app.get('/api/admin/users/list', asyncRoute(async (req, res) => {
   await requireAdmin(req);
   res.json(await getAdminUsersListData(req));
+}));
+
+app.get('/api/admin/behavior/summary', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getBehaviorSummaryData());
+}));
+
+app.get('/api/admin/behavior-daily/list', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await getBehaviorDailyListData(req));
+}));
+
+app.post('/api/admin/behavior-daily/backfill', asyncRoute(async (req, res) => {
+  await requireAdmin(req);
+  res.json(await backfillBehaviorDailyStats(req));
 }));
 
 app.get('/api/admin/orders/trend', asyncRoute(async (req, res) => {
@@ -9914,6 +10903,7 @@ app.post('/api/admin/course-promo', asyncRoute(async (req, res) => {
     textAdEnabled: req.body?.textAdEnabled === true || req.body?.textAdEnabled === 'true',
     textAdText: req.body?.textAdText,
     textAdUrl: req.body?.textAdUrl,
+    textAds: Array.isArray(req.body?.textAds) ? req.body.textAds : [],
     targetLocales: req.body?.targetLocales,
     dismissDays: req.body?.dismissDays,
     maxImpressionsPerDay: req.body?.maxImpressionsPerDay
@@ -10153,6 +11143,7 @@ app.get('/billing-smoke', asyncRoute(async (req, res) => {
   const session = await createCheckoutSessionForFirebaseUser({
     firebaseUser,
     priceId: smokeConfig.priceId,
+    planType: smokeConfig.planType,
     smokeTest: true
   });
 
@@ -10505,4 +11496,5 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log(`[ai-compare-backend] listening on ${port}`);
   startQueryInsightAutoAnalysis();
+  startBehaviorDailyStatsScheduler();
 });

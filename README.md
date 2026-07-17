@@ -255,7 +255,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Query insight analysis now supports task, audience, and use-case dimensions in addition to type, domain, role, need, tags, and marketing-case candidates.
 - Course promo note:
   - `/admin/course-promo` controls the Chinese homepage course ad for the Codex programming course.
-  - The config is stored in Firestore at `runtimeConfigs/coursePromo` and supports the display switch, HTTPS image URL, HTTPS target URL, title, subtitle, CTA text, search-box text ad switch/text/link, target locales, dismiss cooldown, and daily impression cap.
+  - The config is stored in Firestore at `runtimeConfigs/coursePromo` and supports the display switch, HTTPS image URL, HTTPS target URL, title, subtitle, CTA text, up to three search-box text ads with independent switch/text/optional HTTPS link, target locales, dismiss cooldown, and daily impression cap.
   - The extension reads only the safe public fields from `/api/public/course-promo`; if the backend or Firestore is unavailable, the homepage keeps the promo hidden and the compare flow is unaffected.
   - The first version uses an external image URL and external video-shop checkout link. It does not upload images or sync video-shop orders back into AI Compare.
 - Failure log note:
@@ -579,9 +579,10 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-15 17:23:41 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-17 14:44:46 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
+- `M` `STRIPE_SETUP.md`
 - `M` `_locales/am/messages.json`
 - `M` `_locales/ar/messages.json`
 - `M` `_locales/bg/messages.json`
@@ -640,30 +641,39 @@ Last auto-update / 最近自动更新：2026-07-15 17:23:41 UTC+08:00
 - `M` `backend/.env.example`
 - `M` `backend/server.js`
 - `M` `background.js`
-- `M` `docs/edge-store-full-descriptions-translated-structured.md`
-- `A` `docs/edge-store-placeholder-fixed-21-languages.md`
-- `M` `firebase/firebase-auth.js`
 - `M` `homepage/homepage.css`
 - `M` `homepage/homepage.html`
 - `M` `homepage/homepage.js`
-- `M` `iframe/agent-panel.js`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
-- `M` `options/account-login-verify.html`
-- `M` `options/account-login-verify.js`
-- `M` `options/account-login.js`
-- `M` `options/membership-pricing.js`
-- `M` `options/options.css`
-- `M` `options/options.html`
 - `M` `options/options.js`
+- `A` `scripts/audit-website-seo.js`
 - `M` `shared/sidebar.js`
+- `M` `website/README.md`
+- `A` `website/de/index.html`
+- `A` `website/en/index.html`
+- `A` `website/es/index.html`
+- `M` `website/index.html`
+- `A` `website/ja/index.html`
+- `M` `website/llms.txt`
+- `M` `website/resources/content-calendar.md`
+- `A` `website/seo/content-backlog.csv`
+- `A` `website/seo/daily-log.csv`
+- `M` `website/seo/keyword-matrix.csv`
+- `M` `website/seo/locales.json`
+- `A` `website/seo/operating-plan.md`
+- `M` `website/seo/pages.json`
+- `A` `website/seo/seo-dashboard-template.csv`
+- `M` `website/sitemap.xml`
 
 ### Recent commits / 最近提交
+- `0649136` 2026-07-15 V4.4.1 修复一些提示文案和交互
 - `56a657f` 2026-07-14 V4.4.0 增加付费流程
 - `da28c7c` 2026-07-10 V4.3.4修复权限bug
 - `61a8efb` 2026-07-09 V4.3.4 修复bug
 - `57b5d1e` 2026-07-07 V4.3.3 修复bug
-- `7d51181` 2026-07-07 V 4.3.2 markdown方案采用开源解析方案
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

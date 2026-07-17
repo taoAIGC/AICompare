@@ -163,7 +163,7 @@
     "message": "ભાષા"
   },
   "settingsNavProTitle": {
-    "message": "Account"
+    "message": "એકાઉન્ટ"
   },
   "languageSettingsTitle": {
     "message": "ભાષા સેટિંગ્સ"
@@ -262,7 +262,7 @@
     "message": "Current plan: PRO"
   },
   "agentEngineOfficialQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "તમારો દરરોજનો $1 મફત ક્વોટા પૂરો થઈ ગયો છે. તમે [API Plan]($2) પર અપગ્રેડ કરી શકો છો અથવા [કસ્ટમ API]($3) નો ઉપયોગ કરી શકો છો."
   },
   "agentEngineCustomSelectRequiresConfig": {
     "message": "Configure your custom API first"
@@ -1502,7 +1502,7 @@
     "message": "Plans"
   },
   "membershipInvoicesTab": {
-    "message": "Invoices"
+    "message": "બિલ"
   },
   "membershipChatPlanTitle": {
     "message": "Chat Plan"
@@ -1550,32 +1550,32 @@
     "message": "Coming Soon"
   },
   "membershipInvoicesTitle": {
-    "message": "Invoice history"
+    "message": "બિલિંગ ઇતિહાસ"
   },
   "membershipInvoicesDescription": {
-    "message": "Review recent billing records for your current account."
+    "message": "આ ખાતાના તાજેતરના બિલિંગ રેકોર્ડ જુઓ."
   },
   "membershipInvoicesLoading": {
-    "message": "Loading invoices…"
+    "message": "બિલ લોડ થઈ રહ્યા છે…"
   },
   "membershipInvoicesEmpty": {
-    "message": "No invoices yet."
+    "message": "હજુ કોઈ બિલ નથી."
   },
   "membershipInvoicesLoginHint": {
-    "message": "Log in to view invoices.",
+    "message": "બિલ જોવા માટે લૉગ ઇન કરો.",
     "description": "Empty state on invoices tab when signed out"
   },
   "membershipInvoicesUnavailable": {
-    "message": "Invoice records are not available yet."
+    "message": "બિલિંગ રેકોર્ડ હજુ ઉપલબ્ધ નથી."
   },
   "membershipInvoicesLoadFailed": {
-    "message": "Failed to load invoice records."
+    "message": "બિલિંગ રેકોર્ડ લોડ કરવામાં નિષ્ફળ."
   },
   "membershipInvoiceDateHeader": {
     "message": "Date"
   },
   "membershipInvoiceNumberHeader": {
-    "message": "Invoice"
+    "message": "બિલ નંબર"
   },
   "membershipInvoiceAmountHeader": {
     "message": "Amount"
@@ -3000,13 +3000,13 @@
     "message": "Auto summary is off. Click \"Analyze\" to summarize the current answers manually."
   },
   "aiErrorOfficialBalanceInsufficient": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "તમારો દરરોજનો $1 મફત ક્વોટા પૂરો થઈ ગયો છે. તમે [API Plan]($2) પર અપગ્રેડ કરી શકો છો અથવા [કસ્ટમ API]($3) નો ઉપયોગ કરી શકો છો."
   },
   "aiErrorBalanceInsufficient": {
     "message": "The AI service balance is insufficient, so a result cannot be generated right now. Please contact the administrator to top up the account or update the API key."
   },
   "aiErrorFreeQuotaExceeded": {
-    "message": "Daily API quota is $1 uses. The API quota has been used up. You can buy [API Plan]($2) or use [Custom API]($3)."
+    "message": "તમારો દરરોજનો $1 મફત ક્વોટા પૂરો થઈ ગયો છે. તમે [API Plan]($2) પર અપગ્રેડ કરી શકો છો અથવા [કસ્ટમ API]($3) નો ઉપયોગ કરી શકો છો."
   },
   "aiErrorApiNotConfigured": {
     "message": "The AI service is not fully configured yet. Please try again later or contact the administrator."
