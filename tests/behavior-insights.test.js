@@ -65,3 +65,34 @@ test('inferUserMaturity classifies workflow and pro behavior', () => {
   assert.equal(insights.inferUserMaturity({ featureEvents: 6, hasWorkflowFeature: true }), 'power');
   assert.equal(insights.inferUserMaturity({ subscriptionEvents: 1 }), 'pro');
 });
+
+test('getPlanScopedSubscriptionEventName splits paid funnel events by plan', () => {
+  assert.equal(
+    insights.getPlanScopedSubscriptionEventName({
+      eventName: 'checkout_success',
+      metadata: { planType: 'chat' }
+    }),
+    'chat_checkout_success'
+  );
+  assert.equal(
+    insights.getPlanScopedSubscriptionEventName({
+      eventName: 'pricing_plan_selected',
+      metadata: { plan_type: 'api' }
+    }),
+    'api_pricing_plan_selected'
+  );
+  assert.equal(
+    insights.getPlanScopedSubscriptionEventName({
+      eventName: 'checkout_success',
+      metadata: { planType: 'enterprise' }
+    }),
+    'checkout_success'
+  );
+  assert.equal(
+    insights.getPlanScopedSubscriptionEventName({
+      eventName: 'membership_page_viewed',
+      metadata: { planType: 'chat' }
+    }),
+    'membership_page_viewed'
+  );
+});

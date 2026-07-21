@@ -33,6 +33,7 @@ const SYNC_KEYS = [
 ];
 const RuntimeI18n = window.RuntimeI18n || null;
 const UI_LANGUAGE_STORAGE_KEY = RuntimeI18n?.STORAGE_KEY || 'uiLanguage';
+let membershipPageViewTracked = false;
 
 async function ensureOptionsAgentCatalogReady() {
   if (typeof window.hydrateBundledAgentCatalogIfNeeded === 'function') {
@@ -69,7 +70,7 @@ function getMessageWithFallback(key, fallback = '', substitutions = null) {
   return getMessage(key, substitutions) || fallback;
 }
 
-function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '') {
+function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '', source = '') {
   const baseUrl = typeof window.FirebaseConfig?.getCloudFunctionsBaseUrl === 'function'
     ? window.FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/+$/, '')
     : 'https://aicompare.club';
@@ -85,6 +86,10 @@ function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '') {
   const normalizedEmail = String(prefillEmail || '').trim();
   if (normalizedEmail) {
     url.searchParams.set('prefillEmail', normalizedEmail);
+  }
+  const normalizedSource = String(source || '').trim();
+  if (normalizedSource) {
+    url.searchParams.set('source', normalizedSource);
   }
   return url.toString();
 }
@@ -110,9 +115,37 @@ async function getMembershipPricingPrefillEmail() {
   }
 }
 
-async function openHostedMembershipPricingPage(planType = 'chat') {
+function trackMembershipFunnelEvent(eventName, metadata = {}) {
+  try {
+    chrome.runtime.sendMessage({
+      action: 'recordAnalyticsEvent',
+      payload: {
+        eventName,
+        kind: 'subscription',
+        source: 'options',
+        metadata: {
+          surface: 'membership',
+          ...metadata
+        }
+      }
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Analytics must never block billing navigation.
+      }
+    });
+  } catch (_) {
+    // Ignore analytics upload failures.
+  }
+}
+
+async function openHostedMembershipPricingPage(planType = 'chat', source = 'membership_plan_button') {
   const prefillEmail = await getMembershipPricingPrefillEmail();
-  const url = getHostedMembershipPricingUrl(planType, prefillEmail);
+  const normalizedPlanType = String(planType || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
+  const url = getHostedMembershipPricingUrl(planType, prefillEmail, source);
+  trackMembershipFunnelEvent('plan_upgrade_entry_clicked', {
+    planType: normalizedPlanType,
+    trigger: source
+  });
   if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
     await chrome.tabs.create({ url });
     return;
@@ -5177,6 +5210,13 @@ async function submitMembershipRedeemCode() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function initializeMembership() {
+  if (!membershipPageViewTracked) {
+    membershipPageViewTracked = true;
+    trackMembershipFunnelEvent('membership_page_viewed', {
+      planType: 'all',
+      trigger: 'options_membership_section'
+    });
+  }
   const redeemSubmitBtn = document.getElementById('submitMembershipRedeemCode');
   const redeemInput = document.getElementById('membershipRedeemCodeInput');
   const loadingEl = document.getElementById('membershipLoadingMsg');
@@ -5905,7 +5945,7 @@ async function initializeMembership() {
     btnSubscribe.addEventListener('click', async () => {
       btnSubscribe.disabled = true;
       try {
-        await openHostedMembershipPricingPage('chat');
+        await openHostedMembershipPricingPage('chat', 'membership_chat_plan_button');
       } catch (error) {
         showToast(error?.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
       } finally {
@@ -5918,7 +5958,7 @@ async function initializeMembership() {
     btnApiSubscribe.addEventListener('click', async () => {
       btnApiSubscribe.disabled = true;
       try {
-        await openHostedMembershipPricingPage('api');
+        await openHostedMembershipPricingPage('api', 'membership_api_plan_button');
       } catch (error) {
         showToast(error?.message || getMessageWithFallback('stripeCheckoutOpenFailed', 'Failed to open the checkout page.'), 3000);
       } finally {

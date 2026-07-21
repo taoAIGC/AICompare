@@ -90,6 +90,31 @@
     return RESULT_STATES.has(state) ? state : '';
   }
 
+  function normalizeAnalyticsPlanType(value = '') {
+    const planType = normalizeString(value, 40).toLowerCase();
+    if (planType === 'api') return 'api';
+    if (planType === 'chat') return 'chat';
+    return '';
+  }
+
+  function getPlanScopedSubscriptionEventName(row = {}) {
+    const eventName = normalizeString(row.eventName, 120);
+    const planType = normalizeAnalyticsPlanType(row.metadata?.planType || row.metadata?.plan_type || '');
+    if (!eventName || !planType) return eventName;
+    const scopedEvents = new Set([
+      'checkout_started',
+      'checkout_success',
+      'pricing_page_opened',
+      'pricing_plan_selected',
+      'plan_upgrade_entry_clicked',
+      'checkout_open_failed',
+      'subscription_canceled',
+      'customer_subscription_updated',
+      'invoice_payment_succeeded'
+    ]);
+    return scopedEvents.has(eventName) ? `${planType}_${eventName}` : eventName;
+  }
+
   function safeMetadata(metadata = {}, limit = 30) {
     if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
     const result = {};
@@ -192,9 +217,11 @@
     buildSiteUsagePayload,
     createSiteCombinationKey,
     getIdentityKey,
+    getPlanScopedSubscriptionEventName,
     inferEventKind,
     inferUserMaturity,
     inferWorkflowMode,
+    normalizeAnalyticsPlanType,
     normalizeNameList,
     normalizeResultState,
     normalizeString,

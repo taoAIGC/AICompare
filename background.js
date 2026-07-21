@@ -427,12 +427,13 @@ function getApiPlanPricingUrl() {
     const baseUrl = getCloudFunctionsBaseUrl();
     const url = new URL(`${baseUrl}/membership-pricing`);
     url.searchParams.set('planType', 'api');
+    url.searchParams.set('source', 'official_api_quota_error');
     if (url.pathname.startsWith('/test-api/')) {
       url.searchParams.set('billingMode', 'test');
     }
     return url.toString();
   } catch (_) {
-    return `${fallbackBaseUrl}/membership-pricing?planType=api`;
+    return `${fallbackBaseUrl}/membership-pricing?planType=api&source=official_api_quota_error`;
   }
 }
 

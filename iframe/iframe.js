@@ -219,6 +219,7 @@ async function getChatPlanPricingPageUrl() {
     if (isTestBilling) {
       url.searchParams.set('billingMode', 'test');
     }
+    url.searchParams.set('source', 'chat_plan_quota_overlay');
     const prefillEmail = await getIframeMembershipPricingPrefillEmail();
     if (prefillEmail) {
       url.searchParams.set('prefillEmail', prefillEmail);
@@ -231,6 +232,12 @@ async function getChatPlanPricingPageUrl() {
 
 async function openChatPlanPricingPage() {
   const url = await getChatPlanPricingPageUrl();
+  trackEvent('plan_upgrade_entry_clicked', {
+    kind: 'subscription',
+    planType: 'chat',
+    surface: 'iframe',
+    trigger: 'chat_plan_quota_overlay'
+  });
   try {
     chrome.tabs.create({ url });
   } catch (_) {
@@ -291,6 +298,12 @@ function createIframeChatPlanQuotaOverlay() {
   upgradeButton?.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    trackEvent('chat_plan_quota_upgrade_clicked', {
+      kind: 'subscription',
+      planType: 'chat',
+      surface: 'iframe',
+      trigger: 'chat_plan_quota_overlay'
+    });
     openChatPlanPricingPage().catch((error) => {
       console.warn('打开 Chat Plan 商品页失败:', error);
     });

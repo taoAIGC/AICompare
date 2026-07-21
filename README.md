@@ -579,101 +579,24 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-17 14:44:46 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-22 00:12:57 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `STRIPE_SETUP.md`
-- `M` `_locales/am/messages.json`
-- `M` `_locales/ar/messages.json`
-- `M` `_locales/bg/messages.json`
-- `M` `_locales/bn/messages.json`
-- `M` `_locales/ca/messages.json`
-- `M` `_locales/cs/messages.json`
-- `M` `_locales/da/messages.json`
-- `M` `_locales/de/messages.json`
-- `M` `_locales/el/messages.json`
-- `M` `_locales/en/messages.json`
-- `M` `_locales/en_AU/messages.json`
-- `M` `_locales/en_GB/messages.json`
-- `M` `_locales/en_US/messages.json`
-- `M` `_locales/es/messages.json`
-- `M` `_locales/es_419/messages.json`
-- `M` `_locales/et/messages.json`
-- `M` `_locales/fa/messages.json`
-- `M` `_locales/fi/messages.json`
-- `M` `_locales/fil/messages.json`
-- `M` `_locales/fr/messages.json`
-- `M` `_locales/gu/messages.json`
-- `M` `_locales/he/messages.json`
-- `M` `_locales/hi/messages.json`
-- `M` `_locales/hr/messages.json`
-- `M` `_locales/hu/messages.json`
-- `M` `_locales/id/messages.json`
-- `M` `_locales/it/messages.json`
-- `M` `_locales/ja/messages.json`
-- `M` `_locales/kn/messages.json`
-- `M` `_locales/ko/messages.json`
-- `M` `_locales/lt/messages.json`
-- `M` `_locales/lv/messages.json`
-- `M` `_locales/ml/messages.json`
-- `M` `_locales/mr/messages.json`
-- `M` `_locales/ms/messages.json`
-- `M` `_locales/nl/messages.json`
-- `M` `_locales/no/messages.json`
-- `M` `_locales/pl/messages.json`
-- `M` `_locales/pt_BR/messages.json`
-- `M` `_locales/pt_PT/messages.json`
-- `M` `_locales/ro/messages.json`
-- `M` `_locales/ru/messages.json`
-- `M` `_locales/sk/messages.json`
-- `M` `_locales/sl/messages.json`
-- `M` `_locales/sr/messages.json`
-- `M` `_locales/sv/messages.json`
-- `M` `_locales/sw/messages.json`
-- `M` `_locales/ta/messages.json`
-- `M` `_locales/te/messages.json`
-- `M` `_locales/th/messages.json`
-- `M` `_locales/tr/messages.json`
-- `M` `_locales/uk/messages.json`
-- `M` `_locales/vi/messages.json`
-- `M` `_locales/zh_CN/messages.json`
-- `M` `_locales/zh_TW/messages.json`
-- `M` `backend/.env.example`
+- `M` `backend/behavior-insights.js`
 - `M` `backend/server.js`
 - `M` `background.js`
-- `M` `homepage/homepage.css`
-- `M` `homepage/homepage.html`
-- `M` `homepage/homepage.js`
-- `M` `iframe/iframe.css`
-- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
 - `M` `options/options.js`
-- `A` `scripts/audit-website-seo.js`
-- `M` `shared/sidebar.js`
-- `M` `website/README.md`
-- `A` `website/de/index.html`
-- `A` `website/en/index.html`
-- `A` `website/es/index.html`
-- `M` `website/index.html`
-- `A` `website/ja/index.html`
-- `M` `website/llms.txt`
-- `M` `website/resources/content-calendar.md`
-- `A` `website/seo/content-backlog.csv`
-- `A` `website/seo/daily-log.csv`
-- `M` `website/seo/keyword-matrix.csv`
-- `M` `website/seo/locales.json`
-- `A` `website/seo/operating-plan.md`
-- `M` `website/seo/pages.json`
-- `A` `website/seo/seo-dashboard-template.csv`
-- `M` `website/sitemap.xml`
+- `M` `shared/behavior-insights.js`
+- `M` `tests/behavior-insights.test.js`
 
 ### Recent commits / 最近提交
+- `1d2eac4` 2026-07-17 V4.4.5 修复交互
 - `0649136` 2026-07-15 V4.4.1 修复一些提示文案和交互
 - `56a657f` 2026-07-14 V4.4.0 增加付费流程
 - `da28c7c` 2026-07-10 V4.3.4修复权限bug
 - `61a8efb` 2026-07-09 V4.3.4 修复bug
-- `57b5d1e` 2026-07-07 V4.3.3 修复bug
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->

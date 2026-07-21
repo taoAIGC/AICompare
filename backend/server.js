@@ -5490,7 +5490,54 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         : '';
       const pageParams = new URLSearchParams(window.location.search);
       const prefillEmail = String(pageParams.get('prefillEmail') || pageParams.get('email') || '').trim();
+      const analyticsClientIdKey = 'ai_compare_pricing_client_id';
       let billingConfig = null;
+
+      function getAnalyticsClientId() {
+        try {
+          const existing = localStorage.getItem(analyticsClientIdKey);
+          if (existing) return existing;
+          const nextId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+            ? crypto.randomUUID()
+            : 'pricing_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+          localStorage.setItem(analyticsClientIdKey, nextId);
+          return nextId;
+        } catch (_) {
+          return 'pricing_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+        }
+      }
+
+      function createAnalyticsEventId(eventName, suffix) {
+        return [eventName, planType, suffix || '', Date.now(), Math.random().toString(36).slice(2, 8)].join('_');
+      }
+
+      function trackPricingEvent(eventName, metadata) {
+        try {
+          fetch(apiBasePath + '/api/subscription-funnel-events', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'X-AI-Compare-Client-Id': getAnalyticsClientId()
+            },
+            body: JSON.stringify({
+              clientEventId: createAnalyticsEventId(eventName, metadata && metadata.cycle),
+              eventName,
+              kind: 'subscription',
+              source: 'membership_pricing',
+              metadata: {
+                surface: 'membership_pricing',
+                planType,
+                billingMode: billingConfig?.mode || '',
+                ...(metadata || {})
+              }
+            }),
+            keepalive: true
+          }).catch(() => null);
+        } catch (_) {
+          // Analytics must never block checkout.
+        }
+      }
 
       function showToast(message) {
         toast.textContent = message;
@@ -5565,6 +5612,7 @@ function getMembershipPricingPageHtml(planType = 'chat') {
       }
 
       async function startCheckout(cycle) {
+        trackPricingEvent('pricing_plan_selected', { cycle });
         try {
           const detail = billingConfig?.priceDetails?.[planType]?.[cycle];
           const priceId = detail?.priceId || billingConfig?.prices?.[planType]?.[cycle];
@@ -5589,6 +5637,10 @@ function getMembershipPricingPageHtml(planType = 'chat') {
           }
           window.location.href = data.url;
         } catch (error) {
+          trackPricingEvent('checkout_open_failed', {
+            cycle,
+            reason: String(error?.message || 'unknown').slice(0, 120)
+          });
           showToast(error?.message || 'Failed to open checkout.');
           applyBillingData();
         }
@@ -5598,6 +5650,9 @@ function getMembershipPricingPageHtml(planType = 'chat') {
       yearlyButton.addEventListener('click', () => startCheckout('yearly'));
 
       updateCheckoutUi();
+      trackPricingEvent('pricing_page_opened', {
+        trigger: String(pageParams.get('utm_source') || pageParams.get('source') || '').slice(0, 80)
+      });
       loadBillingConfig();
     })();
   </script>
@@ -8751,11 +8806,35 @@ function getFeatureUsageType(row = {}) {
     chat_plan_limit_reached: 'Chat额度触达',
     anonymous_chat_plan_limit_reached: '匿名Chat额度触达',
     sidebar_membership_click: '进入会员',
+    membership_page_viewed: '会员页曝光',
     sidebar_pro_click: '进入Pro',
     checkout_started: '发起支付',
     checkout_success: '支付成功',
+    chat_checkout_started: 'Chat发起支付',
+    api_checkout_started: 'API发起支付',
+    chat_checkout_success: 'Chat支付成功',
+    api_checkout_success: 'API支付成功',
+    pricing_page_opened: '打开定价页',
+    chat_pricing_page_opened: '打开Chat定价页',
+    api_pricing_page_opened: '打开API定价页',
+    pricing_plan_selected: '选择付费方案',
+    chat_pricing_plan_selected: '选择Chat方案',
+    api_pricing_plan_selected: '选择API方案',
+    plan_upgrade_entry_clicked: '点击升级入口',
+    chat_plan_upgrade_entry_clicked: '点击Chat升级入口',
+    api_plan_upgrade_entry_clicked: '点击API升级入口',
+    chat_plan_quota_upgrade_clicked: 'Chat额度弹窗升级点击',
+    checkout_open_failed: '打开支付失败',
+    chat_checkout_open_failed: 'Chat打开支付失败',
+    api_checkout_open_failed: 'API打开支付失败',
     subscription_canceled: '订阅取消',
     customer_subscription_updated: '订阅更新',
+    chat_subscription_canceled: 'Chat订阅取消',
+    api_subscription_canceled: 'API订阅取消',
+    chat_customer_subscription_updated: 'Chat订阅更新',
+    api_customer_subscription_updated: 'API订阅更新',
+    chat_invoice_payment_succeeded: 'Chat发票支付成功',
+    api_invoice_payment_succeeded: 'API发票支付成功',
     rating_prompt_shown: '评分弹窗展示',
     rating_prompt_reminder_shown: '评分弹窗展示',
     rating_prompt_later: '评分稍后',
@@ -8779,6 +8858,37 @@ function getFeatureUsageType(row = {}) {
   if (/(summary.*close|close.*summary|summary.*disable|disable.*summary|summary_off)/i.test(eventName)) return '关闭总结';
   if (/(history.*click|history_open|open_history|sidebar_history_click)/i.test(eventName)) return '进入历史';
   return row.eventName || '功能事件';
+}
+
+function normalizeAnalyticsPlanType(value = '') {
+  if (typeof BehaviorInsights.normalizeAnalyticsPlanType === 'function') {
+    return BehaviorInsights.normalizeAnalyticsPlanType(value);
+  }
+  return String(value || '').trim().toLowerCase() === 'api'
+    ? 'api'
+    : (String(value || '').trim().toLowerCase() === 'chat' ? 'chat' : '');
+}
+
+function getPlanScopedSubscriptionEventName(row = {}) {
+  if (typeof BehaviorInsights.getPlanScopedSubscriptionEventName === 'function') {
+    return BehaviorInsights.getPlanScopedSubscriptionEventName(row);
+  }
+  const eventName = String(row.eventName || '').trim();
+  const planType = normalizeAnalyticsPlanType(row.metadata?.planType || row.metadata?.plan_type || '');
+  if (!eventName || !planType) return eventName;
+  const scopedEvents = new Set([
+    'checkout_started',
+    'checkout_success',
+    'pricing_page_opened',
+    'pricing_plan_selected',
+    'plan_upgrade_entry_clicked',
+    'checkout_open_failed',
+    'subscription_canceled',
+    'customer_subscription_updated',
+    'invoice_payment_succeeded'
+  ]);
+  if (!scopedEvents.has(eventName)) return eventName;
+  return `${planType}_${eventName}`;
 }
 
 function getSiteUsageType(row = {}) {
@@ -9071,19 +9181,23 @@ async function buildBehaviorDailyStats(dateKey) {
     updatedAt: row.updatedAt
   }));
   const addAnalyticsRows = (rows, kind) => {
-    rows.forEach((row) => addBehaviorStatsEvent(buckets, {
-      dateKey: safeDateKey,
-      kind,
-      source: getAnalyticsSourceLabel(kind),
-      behavior: getFeatureUsageType(row),
-      eventName: row.eventName || 'unknown',
-      uid: row.uid,
-      clientHash: row.clientHash,
-      extensionVersion: row.extensionVersion,
-      rawSource: row.source || row.eventName || '',
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt
-    }));
+    const isSubscription = kind === 'subscription';
+    rows.forEach((row) => {
+      const eventName = isSubscription ? (getPlanScopedSubscriptionEventName(row) || 'unknown') : (row.eventName || 'unknown');
+      addBehaviorStatsEvent(buckets, {
+        dateKey: safeDateKey,
+        kind,
+        source: getAnalyticsSourceLabel(kind),
+        behavior: getFeatureUsageType({ ...row, eventName }),
+        eventName,
+        uid: row.uid,
+        clientHash: row.clientHash,
+        extensionVersion: row.extensionVersion,
+        rawSource: row.source || eventName || '',
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      });
+    });
   };
   addAnalyticsRows(featureRows, 'feature');
   addAnalyticsRows(activationRows, 'activation');
@@ -10063,11 +10177,17 @@ async function getBusinessCostSummaryData() {
   });
   const tokenValues = Array.from(tokenByIdentity.values());
   const costValues = Array.from(costByIdentity.values());
+  const normalizedSubscriptionRows = subscriptionRows.map((row) => ({
+    ...row,
+    eventName: getPlanScopedSubscriptionEventName(row) || row.eventName || 'unknown'
+  }));
+  const isAnyCheckoutStarted = (eventName = '') => eventName === 'checkout_started' || eventName.endsWith('_checkout_started');
+  const isAnyCheckoutSuccess = (eventName = '') => eventName === 'checkout_success' || eventName.endsWith('_checkout_success');
   return {
     summary: {
-      limitReached: subscriptionRows.filter((row) => row.eventName.includes('limit_reached')).length,
-      checkoutStarted: subscriptionRows.filter((row) => row.eventName === 'checkout_started').length,
-      checkoutSuccess: subscriptionRows.filter((row) => row.eventName === 'checkout_success').length,
+      limitReached: normalizedSubscriptionRows.filter((row) => row.eventName.includes('limit_reached')).length,
+      checkoutStarted: normalizedSubscriptionRows.filter((row) => isAnyCheckoutStarted(row.eventName)).length,
+      checkoutSuccess: normalizedSubscriptionRows.filter((row) => isAnyCheckoutSuccess(row.eventName)).length,
       activeProUsers: orderSummary.activeProUsers,
       revenue7d: orderSummary.revenue7d,
       revenue30d: orderSummary.revenue30d,
@@ -10088,8 +10208,8 @@ async function getBusinessCostSummaryData() {
       p90: roundCost(percentile(costValues, 0.9)),
       p99: roundCost(percentile(costValues, 0.99))
     },
-    funnelEvents: rankAnalyticsEvents(subscriptionRows, 20),
-    recentFunnelEvents: subscriptionRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50)
+    funnelEvents: rankAnalyticsEvents(normalizedSubscriptionRows, 20),
+    recentFunnelEvents: normalizedSubscriptionRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50)
   };
 }
 
@@ -11299,6 +11419,7 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
           customer: session.customer || '',
           subscription: session.subscription || '',
           stripeCustomerEmail: sessionEmail,
+          planType: String(session.metadata?.planType || '').trim(),
           amountTotal: session.amount_total || 0,
           currency: session.currency || '',
           billingMode
@@ -11324,6 +11445,11 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const updateResult = await updateUserFromSubscription(subscription);
       const uid = String(updateResult?.uid || subscription.metadata?.firebaseUid || '').trim();
+      const item = subscription.items?.data?.[0];
+      const priceId = String(item?.price?.id || '').trim();
+      const planType = String(subscription.metadata?.planType || getStripePlanTypeForPrice(priceId)).trim() === 'api'
+        ? 'api'
+        : 'chat';
       if (uid) {
         recordInternalAnalyticsEvent({
           kind: 'subscription',
@@ -11334,6 +11460,7 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
           source: 'stripe_webhook',
           metadata: {
             subscription: subscription.id,
+            planType,
             status: subscription.status,
             customer: subscription.customer || '',
             stripeCustomerEmail: updateResult?.customerEmail || '',
