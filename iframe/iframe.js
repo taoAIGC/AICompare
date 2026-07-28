@@ -43,6 +43,8 @@ const FIREBASE_AUTH_UID_STORAGE_KEY = 'firebase_uid';
 const FIREBASE_AUTH_EMAIL_STORAGE_KEY = 'firebase_email';
 const FIREBASE_AUTH_UPDATED_AT_STORAGE_KEY = 'firebase_auth_updated_at';
 const IFRAME_BLOCKING_OVERLAY_DELAY_MS = 3000;
+const IFRAME_LOGIN_OVERLAY_DISMISSED_DATE_KEY = 'iframe_login_overlay_dismissed_date';
+const IFRAME_CHAT_PLAN_OVERLAY_DISMISSED_DATE_KEY = 'iframe_chat_plan_overlay_dismissed_date';
 const SITE_COMPARE_USAGE_EVENT_PREFIX = 'site_usage';
 let iframeAuthState = {
   initialized: false,
@@ -56,6 +58,18 @@ let iframeAuthOverlayTimer = null;
 let iframeAuthOverlayTimerResolve = null;
 let iframeChatPlanQuotaOverlayTimer = null;
 let iframeChatPlanQuotaOverlayTimerResolve = null;
+
+async function isIframeOverlayDismissedToday(key) {
+  try {
+    return Boolean(await globalThis.DailyDismissal?.isDismissedToday(key, chrome.storage.local));
+  } catch (_) {
+    return false;
+  }
+}
+
+function dismissIframeOverlayForToday(key) {
+  globalThis.DailyDismissal?.dismissForToday(key, chrome.storage.local).catch(() => null);
+}
 let suppressNextIframeQuerySuggestions = false;
 
 async function ensureIframeAgentCatalogReady() {
@@ -166,22 +180,6 @@ async function getIframeAuthState() {
   return iframeAuthStatePromise;
 }
 
-function getIframeLoginPageUrl() {
-  const pageUrl = new URL(chrome.runtime.getURL('options/account-login.html'));
-  pageUrl.searchParams.set('returnTo', `${chrome.runtime.getURL('options/options.html')}#membership`);
-  pageUrl.searchParams.set('closeOnSuccess', '1');
-  return pageUrl.toString();
-}
-
-function openIframeLoginPage() {
-  const url = getIframeLoginPageUrl();
-  try {
-    chrome.tabs.create({ url });
-  } catch (_) {
-    window.open(url, '_blank', 'noopener');
-  }
-}
-
 async function getIframeMembershipPricingPrefillEmail() {
   try {
     const authState = await getIframeAuthState();
@@ -248,28 +246,181 @@ async function openChatPlanPricingPage() {
 function createIframeLoginOverlay() {
   const overlay = document.createElement('div');
   const title = escapeHtml(t('iframeLoginOverlayTitle', 'Login to AI Compare'));
-  const description = escapeHtml(t('iframeLoginOverlayDescription', 'Log in to continue using the comparison workspace.'));
-  const buttonLabel = escapeHtml(t('iframeLoginOverlayButton', 'Log In Now'));
-  const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
+  const closeLabel = escapeHtml(t('closeButton', 'Close'));
+  const googleLabel = escapeHtml(t('membershipGoogleLoginButton', 'Continue with Google'));
+  const orLabel = escapeHtml(t('membershipAuthOr', 'or'));
+  const emailLabel = escapeHtml(t('membershipEmailLabel', 'Email'));
+  const emailPlaceholder = escapeHtml(t('membershipEmailPlaceholder', 'you@example.com'));
+  const emailButtonLabel = escapeHtml(t('membershipEmailLoginButton', 'Continue with email'));
+  const verifyTitle = escapeHtml(t('membershipEmailVerifyTitle', 'Check your inbox'));
+  const codeLabel = escapeHtml(t('membershipEmailVerifyCodeLabel', 'Code'));
+  const codePlaceholder = escapeHtml(t('membershipEmailVerifyPlaceholder', 'Enter the verification code'));
+  const verifyButtonLabel = escapeHtml(t('membershipEmailVerifyButton', 'Continue'));
+  const resendButtonLabel = escapeHtml(t('membershipEmailVerifyResendButton', 'Resend email'));
+  const backLabel = escapeHtml(t('membershipAuthBackButton', 'Back'));
   overlay.className = 'iframe-login-overlay iframe-auth-login-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', title);
   overlay.innerHTML = `
     <div class="iframe-login-overlay-card">
+      <button class="iframe-login-overlay-close" type="button" aria-label="${closeLabel}" title="${closeLabel}">&times;</button>
       <div class="iframe-login-overlay-heading">
-        <img class="iframe-login-overlay-logo" src="${iconUrl}" alt="" aria-hidden="true">
         <span>${title}</span>
       </div>
-      <p class="iframe-login-overlay-copy">${description}</p>
-      <button class="iframe-login-overlay-button" type="button">${buttonLabel}</button>
+      <div class="iframe-login-auth-step iframe-login-auth-entry">
+        <button class="iframe-login-auth-google" type="button">
+          <span class="iframe-login-auth-google-icon" aria-hidden="true"></span>
+          <span>${googleLabel}</span>
+        </button>
+        <div class="iframe-login-auth-divider"><span>${orLabel}</span></div>
+        <label class="iframe-login-auth-field">
+          <span>${emailLabel}</span>
+          <input class="iframe-login-auth-email" type="email" autocomplete="email" spellcheck="false" placeholder="${emailPlaceholder}">
+        </label>
+        <button class="iframe-login-auth-primary iframe-login-auth-send" type="button">${emailButtonLabel}</button>
+      </div>
+      <div class="iframe-login-auth-step iframe-login-auth-verify" hidden>
+        <button class="iframe-login-auth-back" type="button" aria-label="${backLabel}">&larr; ${backLabel}</button>
+        <h2>${verifyTitle}</h2>
+        <p class="iframe-login-auth-verify-copy"></p>
+        <label class="iframe-login-auth-field">
+          <span>${codeLabel}</span>
+          <input class="iframe-login-auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="${codePlaceholder}">
+        </label>
+        <button class="iframe-login-auth-primary iframe-login-auth-confirm" type="button">${verifyButtonLabel}</button>
+        <button class="iframe-login-auth-resend" type="button">${resendButtonLabel}</button>
+      </div>
+      <div class="iframe-login-auth-status" role="status" aria-live="polite" hidden></div>
     </div>
   `;
-  const loginButton = overlay.querySelector('.iframe-login-overlay-button');
-  loginButton?.addEventListener('click', (event) => {
+  const entryStep = overlay.querySelector('.iframe-login-auth-entry');
+  const verifyStep = overlay.querySelector('.iframe-login-auth-verify');
+  const overlayHeading = overlay.querySelector('.iframe-login-overlay-heading');
+  const closeButton = overlay.querySelector('.iframe-login-overlay-close');
+  const emailInput = overlay.querySelector('.iframe-login-auth-email');
+  const codeInput = overlay.querySelector('.iframe-login-auth-code');
+  const sendButton = overlay.querySelector('.iframe-login-auth-send');
+  const confirmButton = overlay.querySelector('.iframe-login-auth-confirm');
+  const resendButton = overlay.querySelector('.iframe-login-auth-resend');
+  const googleButton = overlay.querySelector('.iframe-login-auth-google');
+  const status = overlay.querySelector('.iframe-login-auth-status');
+  const verifyCopy = overlay.querySelector('.iframe-login-auth-verify-copy');
+  let activeEmail = '';
+
+  const setStatus = (message = '', kind = '') => {
+    if (!status) return;
+    status.textContent = String(message || '');
+    status.hidden = !message;
+    status.classList.toggle('is-error', kind === 'error');
+    status.classList.toggle('is-success', kind === 'success');
+  };
+  const setBusy = (button, busy) => {
+    if (!button) return;
+    button.disabled = Boolean(busy);
+    button.toggleAttribute('aria-busy', Boolean(busy));
+  };
+  const getValidatedEmail = () => {
+    const email = String(emailInput?.value || '').trim();
+    if (!email) throw new Error(t('membershipEmailRequired', 'Please enter your email address.'));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      emailInput?.focus();
+      throw new Error(t('firebaseAuthInvalidEmail', 'Please enter a valid email address.'));
+    }
+    return email;
+  };
+  const showVerifyStep = (email) => {
+    activeEmail = String(email || '').trim();
+    entryStep.hidden = true;
+    verifyStep.hidden = false;
+    overlayHeading.hidden = true;
+    closeButton.hidden = true;
+    verifyCopy.textContent = t('membershipEmailVerifyDescription', 'Enter the verification code we sent to $1.', [activeEmail]);
+    codeInput?.focus();
+  };
+  const runSendCode = async (button) => {
+    try {
+      const email = getValidatedEmail();
+      setStatus();
+      setBusy(button, true);
+      if (typeof window.firebaseSendEmailSignInLink !== 'function') {
+        throw new Error(t('membershipEmailLoginUnavailable', 'Email verification sign-in is unavailable right now.'));
+      }
+      await window.firebaseSendEmailSignInLink(email);
+      showVerifyStep(email);
+      setStatus();
+    } catch (error) {
+      setStatus(error?.message || t('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 'error');
+    } finally {
+      setBusy(button, false);
+    }
+  };
+  closeButton?.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
-    openIframeLoginPage();
+    dismissIframeOverlayForToday(IFRAME_LOGIN_OVERLAY_DISMISSED_DATE_KEY);
+    iframeAuthOverlayRequested = false;
+    document.getElementById('iframes-container')?.classList.remove('requires-extension-login');
+    overlay.remove();
+  });
+  overlay.querySelector('.iframe-login-auth-back')?.addEventListener('click', () => {
+    verifyStep.hidden = true;
+    entryStep.hidden = false;
+    overlayHeading.hidden = false;
+    closeButton.hidden = false;
+    setStatus();
+    emailInput?.focus();
+  });
+  sendButton?.addEventListener('click', () => void runSendCode(sendButton));
+  resendButton?.addEventListener('click', () => void runSendCode(resendButton));
+  emailInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      sendButton?.click();
+    }
+  });
+  codeInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      confirmButton?.click();
+    }
+  });
+  confirmButton?.addEventListener('click', async () => {
+    const code = String(codeInput?.value || '').trim();
+    if (!code) {
+      setStatus(t('membershipEmailVerifyHelper', 'Enter the verification code from the email you received.'), 'error');
+      codeInput?.focus();
+      return;
+    }
+    setStatus();
+    setBusy(confirmButton, true);
+    try {
+      if (typeof window.firebaseSignInWithEmailLink !== 'function') {
+        throw new Error(t('membershipEmailLoginUnavailable', 'Email verification sign-in is unavailable right now.'));
+      }
+      await window.firebaseSignInWithEmailLink(activeEmail, code);
+      setStatus(t('membershipEmailSignupSuccess', 'Signed in successfully.'), 'success');
+      await refreshIframeAuthOverlays();
+    } catch (error) {
+      setStatus(error?.message || t('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 'error');
+    } finally {
+      setBusy(confirmButton, false);
+    }
+  });
+  googleButton?.addEventListener('click', async () => {
+    setStatus();
+    setBusy(googleButton, true);
+    try {
+      if (typeof window.firebaseSignInWithGoogle !== 'function') {
+        throw new Error(t('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
+      }
+      await window.firebaseSignInWithGoogle();
+      await refreshIframeAuthOverlays();
+    } catch (error) {
+      setStatus(error?.message || t('membershipGoogleLoginFailed', 'Failed to sign in with Google.'), 'error');
+    } finally {
+      setBusy(googleButton, false);
+    }
   });
   return overlay;
 }
@@ -279,6 +430,7 @@ function createIframeChatPlanQuotaOverlay() {
   const title = escapeHtml(t('chatPlanQuotaOverlayTitle', 'Free quota used up'));
   const description = escapeHtml(t('chatPlanQuotaOverlayDescription', 'You have used today’s free AI comparison questions. Upgrade to Chat Plan to continue with unlimited questions.'));
   const buttonLabel = escapeHtml(t('chatPlanQuotaOverlayButton', 'Upgrade Chat Plan'));
+  const closeLabel = escapeHtml(t('closeButton', 'Close'));
   const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
   overlay.className = 'iframe-login-overlay iframe-chat-plan-quota-overlay';
   overlay.setAttribute('role', 'dialog');
@@ -286,6 +438,7 @@ function createIframeChatPlanQuotaOverlay() {
   overlay.setAttribute('aria-label', title);
   overlay.innerHTML = `
     <div class="iframe-login-overlay-card">
+      <button class="iframe-login-overlay-close" type="button" aria-label="${closeLabel}" title="${closeLabel}">&times;</button>
       <div class="iframe-login-overlay-heading">
         <img class="iframe-login-overlay-logo" src="${iconUrl}" alt="" aria-hidden="true">
         <span>${title}</span>
@@ -294,6 +447,13 @@ function createIframeChatPlanQuotaOverlay() {
       <button class="iframe-login-overlay-button" type="button">${buttonLabel}</button>
     </div>
   `;
+  const closeButton = overlay.querySelector('.iframe-login-overlay-close');
+  closeButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dismissIframeOverlayForToday(IFRAME_CHAT_PLAN_OVERLAY_DISMISSED_DATE_KEY);
+    overlay.remove();
+  });
   const upgradeButton = overlay.querySelector('.iframe-login-overlay-button');
   upgradeButton?.addEventListener('click', (event) => {
     event.preventDefault();
@@ -317,6 +477,9 @@ async function showIframeChatPlanQuotaOverlay() {
   }
   if (!iframeAuthState.isLoggedIn || document.querySelector('.iframe-auth-login-overlay')) {
     await requestIframeAuthOverlay();
+    return false;
+  }
+  if (await isIframeOverlayDismissedToday(IFRAME_CHAT_PLAN_OVERLAY_DISMISSED_DATE_KEY)) {
     return false;
   }
 
@@ -376,6 +539,12 @@ function renderIframeAuthOverlay() {
 }
 
 async function requestIframeAuthOverlay() {
+  if (await isIframeOverlayDismissedToday(IFRAME_LOGIN_OVERLAY_DISMISSED_DATE_KEY)) {
+    iframeAuthOverlayRequested = false;
+    document.querySelectorAll('.iframe-auth-login-overlay').forEach((overlay) => overlay.remove());
+    document.getElementById('iframes-container')?.classList.remove('requires-extension-login');
+    return false;
+  }
   iframeAuthOverlayRequested = true;
   if (!iframeAuthState.initialized) {
     await getIframeAuthState();

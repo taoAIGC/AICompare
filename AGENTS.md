@@ -97,6 +97,7 @@ No build, test, or lint commands are available - this is a standard Chrome exten
 
 ## Localization Rules
 
+- 每次修改任何用户可见文案，都必须同步修改所有支持的国际化语言包；不得只更新当前语言或单一 locale。
 - Any new user-facing copy must be internationalized before it ships. Do not hardcode new UI text, toast text, modal text, button labels, status text, or completion messages directly in JavaScript/HTML/CSS if they can be shown to users.
 - Add a `chrome.i18n` message key first, wire the UI to that key, and only use a literal fallback string as a defensive fallback.
 - When updating an existing user-facing message, update the corresponding entries under `_locales/` in the same change. Do not leave new keys only in code.

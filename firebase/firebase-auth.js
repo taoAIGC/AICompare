@@ -19,6 +19,13 @@ const FIREBASE_AUTH_RATE_LIMIT_PATTERNS = [
   /resource[_\s-]*exhausted/i,
   /quota exceeded/i,
 ];
+const FIREBASE_AUTH_NETWORK_ERROR_PATTERNS = [
+  /failed to fetch/i,
+  /network(?:error| request| connection)?/i,
+  /load failed/i,
+  /timed?\s*out/i,
+  /request aborted/i,
+];
 
 async function ensureFirebaseAuthI18nReady() {
   try {
@@ -52,7 +59,16 @@ function isFirebaseAuthRateLimited(message = '') {
   return FIREBASE_AUTH_RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-async function normalizeFirebaseAuthError(error, fallback = 'Authentication failed') {
+function isFirebaseAuthNetworkError(error, message = '') {
+  const name = String(error?.name || '').trim();
+  const code = String(error?.code || '').trim();
+  const text = String(message || error?.message || error || '').trim();
+  return name === 'AbortError'
+    || code === 'AUTH_NETWORK_FAILED'
+    || FIREBASE_AUTH_NETWORK_ERROR_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+async function normalizeFirebaseAuthError(error, fallback = 'Authentication failed', genericMessageKey = 'membershipEmailAuthFailed') {
   const rawMessage = String(error?.message || error || '').trim();
   const rawCode = String(error?.code || '').trim();
   if (rawCode) {
@@ -71,6 +87,15 @@ async function normalizeFirebaseAuthError(error, fallback = 'Authentication fail
       return new Error(codeMessages[rawCode]);
     }
   }
+  if (isFirebaseAuthNetworkError(error, rawMessage)) {
+    await ensureFirebaseAuthI18nReady();
+    return new Error(
+      getFirebaseAuthMessage(
+        'aiErrorNetworkFailed',
+        'Network connection failed. Please try again later.'
+      )
+    );
+  }
   if (isFirebaseAuthRateLimited(rawMessage)) {
     await ensureFirebaseAuthI18nReady();
     return new Error(
@@ -80,10 +105,13 @@ async function normalizeFirebaseAuthError(error, fallback = 'Authentication fail
       )
     );
   }
-  if (error instanceof Error) {
-    return error;
-  }
-  return new Error(rawMessage || fallback);
+  await ensureFirebaseAuthI18nReady();
+  return new Error(
+    getFirebaseAuthMessage(
+      genericMessageKey,
+      fallback || 'Authentication failed. Please try again.'
+    )
+  );
 }
 
 async function createFirebaseApiError(data, fallback = 'Authentication failed') {
@@ -204,6 +232,16 @@ function getFirebaseAuthBackendBaseUrl() {
   return '';
 }
 
+async function fetchFirebaseAuthWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function fetchFirebaseAuthBackendJson(path, body = {}) {
   const baseUrl = getFirebaseAuthBackendBaseUrl();
   if (!baseUrl) {
@@ -214,11 +252,16 @@ async function fetchFirebaseAuthBackendJson(path, body = {}) {
       )
     );
   }
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body || {})
-  });
+  let response;
+  try {
+    response = await fetchFirebaseAuthWithTimeout(`${baseUrl}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+  } catch (error) {
+    throw await normalizeFirebaseAuthError(error, 'Authentication failed. Please try again.');
+  }
   const rawText = await response.text().catch(() => '');
   let data = null;
   try {
@@ -231,6 +274,8 @@ async function fetchFirebaseAuthBackendJson(path, body = {}) {
     const error = new Error(message || `HTTP ${response.status}`);
     if (data?.code) {
       error.code = String(data.code);
+    } else if (response.status >= 500) {
+      error.code = 'AUTH_NETWORK_FAILED';
     }
     throw await normalizeFirebaseAuthError(error, 'Authentication failed');
   }
@@ -243,7 +288,7 @@ async function fetchFirebaseAuthBackendStatus(path) {
     return { enabled: false };
   }
   try {
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchFirebaseAuthWithTimeout(`${baseUrl}${path}`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
       cache: 'no-store'
@@ -341,22 +386,28 @@ async function getIdToken() {
     return auth.idToken;
   }
 
-  const url = `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(config.apiKey)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: auth.refreshToken,
-    }),
-  });
-  if (!res.ok) {
+  let data;
+  try {
+    data = await fetchFirebaseAuthBackendJson('/auth/firebase-token/refresh', {
+      refreshToken: auth.refreshToken
+    });
+  } catch (_) {
     await clearStoredAuth();
     return null;
   }
-  const data = await res.json();
-  await setStoredAuth(auth.uid, data.id_token, data.refresh_token || auth.refreshToken, 3600, auth.email);
-  return data.id_token;
+  const idToken = String(data.idToken || '').trim();
+  if (!idToken) {
+    await clearStoredAuth();
+    return null;
+  }
+  await setStoredAuth(
+    auth.uid,
+    idToken,
+    data.refreshToken || auth.refreshToken,
+    parseInt(data.expiresIn, 10) || 3600,
+    auth.email
+  );
+  return idToken;
 }
 
 async function hydrateStoredProfile() {
@@ -536,19 +587,9 @@ async function firebaseSignInWithCustomToken(customToken, fallbackEmail = '', fa
   if (!token) {
     throw new Error(getFirebaseAuthMessage('membershipEmailAuthFailed', 'Authentication failed. Please try again.'));
   }
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${encodeURIComponent(config.apiKey)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      token,
-      returnSecureToken: true,
-    }),
+  const data = await fetchFirebaseAuthBackendJson('/auth/firebase-token/exchange', {
+    customToken: token
   });
-  const data = await res.json();
-  if (data.error) {
-    throw await createFirebaseApiError(data, 'Email sign-in failed');
-  }
   const resolvedUid = String(data.localId || fallbackUid || '').trim();
   if (!resolvedUid || !data.idToken || !data.refreshToken) {
     throw new Error(getFirebaseAuthMessage('membershipEmailAuthFailed', 'Authentication failed. Please try again.'));
@@ -617,10 +658,10 @@ async function firebaseSignInWithGoogle() {
   }
   const clientId = config.googleClientId;
   if (!clientId || clientId.includes('xxxxxxxxxx')) {
-    throw new Error('请先在 firebaseConfig.js 中填写正确的 googleClientId（Firebase 控制台 → Google 登录 → Web 客户端 ID）');
+    throw new Error(getFirebaseAuthMessage('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
   }
   if (typeof chrome === 'undefined' || !chrome.identity || !chrome.identity.launchWebAuthFlow) {
-    throw new Error('当前环境不支持谷歌登录，请在扩展选项页中操作');
+    throw new Error(getFirebaseAuthMessage('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
   }
   const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
   const scope = encodeURIComponent('openid email profile');
@@ -628,36 +669,45 @@ async function firebaseSignInWithGoogle() {
   let callbackUrl;
   try {
     callbackUrl = await new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Google sign-in timed out'));
+      }, 8000);
       chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (url) => {
+        clearTimeout(timeoutId);
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message || '用户取消或登录失败'));
+          reject(new Error(chrome.runtime.lastError.message || 'Google sign-in failed'));
           return;
         }
         resolve(url || '');
       });
     });
   } catch (e) {
-    throw await normalizeFirebaseAuthError(e, '谷歌登录失败');
+    throw await normalizeFirebaseAuthError(e, 'Google sign-in failed', 'membershipGoogleLoginFailed');
   }
   if (!callbackUrl || !callbackUrl.startsWith(redirectUri)) {
-    throw new Error('谷歌登录未返回有效结果');
+    throw new Error(getFirebaseAuthMessage('membershipGoogleLoginFailed', 'Google sign-in failed.'));
   }
   const hash = callbackUrl.includes('#') ? callbackUrl.slice(callbackUrl.indexOf('#') + 1) : '';
   const params = new URLSearchParams(hash);
   const accessToken = params.get('access_token');
   if (!accessToken) {
-    throw new Error('未获取到谷歌访问令牌，请重试');
+    throw new Error(getFirebaseAuthMessage('membershipGoogleLoginFailed', 'Google sign-in failed.'));
   }
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${encodeURIComponent(config.apiKey)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requestUri: redirectUri,
-      postBody: `access_token=${encodeURIComponent(accessToken)}&providerId=google.com`,
-      returnSecureToken: true,
-    }),
-  });
+  let res;
+  try {
+    res = await fetchFirebaseAuthWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestUri: redirectUri,
+        postBody: `access_token=${encodeURIComponent(accessToken)}&providerId=google.com`,
+        returnSecureToken: true,
+      }),
+    });
+  } catch (error) {
+    throw await normalizeFirebaseAuthError(error, 'Google sign-in failed', 'membershipGoogleLoginFailed');
+  }
   const data = await res.json();
   if (data.error) {
     throw await createFirebaseApiError(data, 'Firebase 登录失败');

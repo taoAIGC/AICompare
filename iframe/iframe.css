@@ -1130,6 +1130,7 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
 
 .iframe-auth-login-overlay .iframe-login-overlay-card,
 .iframe-chat-plan-quota-overlay .iframe-login-overlay-card {
+  position: relative;
   width: min(560px, 100%);
   padding: 32px 28px;
   box-sizing: border-box;
@@ -1140,9 +1141,236 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
   pointer-events: auto;
 }
 
+.iframe-login-overlay-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.iframe-login-overlay-close[hidden] {
+  display: none;
+}
+
+.iframe-login-overlay-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transform: scale(1.04);
+}
+
+.iframe-login-overlay-close:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 .iframe-auth-login-overlay .iframe-login-overlay-copy,
 .iframe-chat-plan-quota-overlay .iframe-login-overlay-copy {
   max-width: none;
+}
+
+.iframe-auth-login-overlay .iframe-login-overlay-card {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 128px);
+  overflow-y: auto;
+}
+
+.iframe-login-auth-step {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+  text-align: left;
+}
+
+.iframe-login-auth-step[hidden] {
+  display: none;
+}
+
+.iframe-login-auth-google,
+.iframe-login-auth-primary {
+  width: 100%;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-radius: 8px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+}
+
+.iframe-login-auth-google {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.iframe-login-auth-google:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.iframe-login-auth-google-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%2334A853' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.14 7.09-10.22 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%23EA4335' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.iframe-login-auth-google[aria-busy="true"] .iframe-login-auth-google-icon,
+.iframe-login-auth-primary[aria-busy="true"]::before {
+  box-sizing: border-box;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  background: none;
+  animation: iframe-login-auth-spin 720ms linear infinite;
+}
+
+.iframe-login-auth-primary[aria-busy="true"]::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes iframe-login-auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.iframe-login-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+}
+
+.iframe-login-auth-divider::before,
+.iframe-login-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.iframe-login-auth-field {
+  display: grid;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.iframe-login-auth-field input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+}
+
+.iframe-login-auth-field input:focus {
+  border-color: #8ca5ff;
+  box-shadow: 0 0 0 3px rgba(92, 119, 255, 0.22);
+}
+
+.iframe-login-auth-field input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.iframe-login-auth-primary {
+  border: 1px solid #ffffff;
+  background: #f7f7f9;
+  color: #111318;
+}
+
+.iframe-login-auth-primary:hover {
+  background: #ffffff;
+}
+
+.iframe-login-auth-google:disabled,
+.iframe-login-auth-primary:disabled,
+.iframe-login-auth-resend:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.iframe-login-auth-back,
+.iframe-login-auth-resend {
+  width: fit-content;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.76);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.iframe-login-auth-verify h2 {
+  justify-self: center;
+  margin: 2px 0 0;
+  font-size: 22px;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.iframe-login-auth-verify .iframe-login-auth-resend {
+  justify-self: center;
+  text-align: center;
+}
+
+.iframe-login-auth-verify-copy {
+  margin: -4px 0 2px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.iframe-login-auth-status {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.iframe-login-auth-status.is-error {
+  background: rgba(220, 75, 75, 0.14);
+  color: #ffb7b7;
+}
+
+.iframe-login-auth-status.is-success {
+  background: rgba(48, 168, 112, 0.14);
+  color: #a9edc9;
 }
 
 .iframe-auth-login-overlay .iframe-login-overlay-button,
@@ -1167,6 +1395,10 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
   font-size: clamp(24px, 4vw, 38px);
   font-weight: 700;
   line-height: 1.15;
+}
+
+.iframe-login-overlay-heading[hidden] {
+  display: none;
 }
 
 .iframe-login-overlay-logo {
@@ -1231,6 +1463,10 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
   .iframe-chat-plan-quota-overlay .iframe-login-overlay-card {
     padding: 26px 20px;
     border-radius: 24px;
+  }
+
+  .iframe-auth-login-overlay .iframe-login-overlay-card {
+    max-height: calc(100vh - 104px);
   }
 
   .iframe-login-overlay-card {

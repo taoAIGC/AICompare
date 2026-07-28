@@ -5675,6 +5675,27 @@ async function initializeMembership() {
     if (apiPlanStatusTextEl) apiPlanStatusTextEl.textContent = loadingText;
   }
 
+  function renderPlanStatusError(message = '') {
+    const errorText = String(message || getMessageWithFallback(
+      'aiErrorNetworkFailed',
+      'Network connection failed. Please try again later.'
+    )).trim();
+    [chatPlanStatusBadgeEl, apiPlanStatusBadgeEl].forEach((badge) => {
+      if (!badge) return;
+      badge.className = 'membership-plan-status-badge';
+      badge.textContent = errorText;
+    });
+    if (chatPlanStatusTextEl) chatPlanStatusTextEl.textContent = errorText;
+    if (apiPlanStatusTextEl) apiPlanStatusTextEl.textContent = errorText;
+    [btnSubscribe, btnApiSubscribe].forEach((button) => {
+      if (!button) return;
+      button.style.display = '';
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+    });
+    if (plansEl) plansEl.style.display = 'grid';
+  }
+
   function renderMembershipPlan(planInfo = { plan: 'free', planExpiresAt: null }) {
     const isPro = planInfo.plan === 'pro';
     const isApiPro = planInfo.apiPlan === 'pro';
@@ -5751,7 +5772,7 @@ async function initializeMembership() {
       }
       return result;
     } catch (error) {
-      showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+      showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 8000);
       return null;
     } finally {
       if (button) button.disabled = false;
@@ -5872,7 +5893,7 @@ async function initializeMembership() {
       try {
         await sendMembershipEmailCode(authSendCodeBtn);
       } catch (error) {
-        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 8000);
       }
     });
   }
@@ -5883,7 +5904,7 @@ async function initializeMembership() {
       try {
         await sendMembershipEmailCode(authResendBtn);
       } catch (error) {
-        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 8000);
       }
     });
   }
@@ -5894,7 +5915,7 @@ async function initializeMembership() {
       try {
         await completeMembershipEmailSignIn(authVerifyBtn);
       } catch (error) {
-        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 4000);
+        showToast(error?.message || getMessageWithFallback('membershipEmailAuthFailed', 'Authentication failed. Please try again.'), 8000);
       }
     });
   }
@@ -5903,6 +5924,7 @@ async function initializeMembership() {
     authGoogleBtn.dataset.bound = 'true';
     authGoogleBtn.addEventListener('click', async () => {
       authGoogleBtn.disabled = true;
+      authGoogleBtn.setAttribute('aria-busy', 'true');
       try {
         if (typeof window.firebaseSignInWithGoogle !== 'function') {
           throw new Error(getMessageWithFallback('membershipGoogleLoginUnavailable', 'Google sign-in is unavailable right now.'));
@@ -5911,9 +5933,10 @@ async function initializeMembership() {
         closeAuthDialog();
         await initializeMembership();
       } catch (error) {
-        showToast(error.message || getMessageWithFallback('membershipGoogleLoginFailed', 'Failed to sign in with Google.'), 3000);
+        showToast(error.message || getMessageWithFallback('membershipGoogleLoginFailed', 'Failed to sign in with Google.'), 6000);
       } finally {
         authGoogleBtn.disabled = false;
+        authGoogleBtn.removeAttribute('aria-busy');
       }
     });
   }
@@ -5968,14 +5991,11 @@ async function initializeMembership() {
   }
 
   setLoading(true);
-  renderPlanStatusLoading();
 
   // 检查是否已登录
-  const storedAuth = typeof window.firebaseHydrateStoredProfile === 'function'
-    ? await window.firebaseHydrateStoredProfile().catch(() => null)
-    : (typeof window.firebaseGetStoredAuth === 'function'
-      ? await window.firebaseGetStoredAuth().catch(() => null)
-      : null);
+  const storedAuth = typeof window.firebaseGetStoredAuth === 'function'
+    ? await window.firebaseGetStoredAuth().catch(() => null)
+    : null;
   const fallbackStored = storedAuth || await chrome.storage.local.get([
     'firebase_uid',
     'firebase_email',
@@ -6009,9 +6029,18 @@ async function initializeMembership() {
   }
   closeAuthDialog();
   renderAccountCard(auth);
+  renderPlanStatusLoading();
 
   if (typeof window.getUserPlan === 'function') {
-    window.getUserPlan()
+    const planRequest = window.getUserPlan();
+    const guardedPlanRequest = window.AsyncTimeout?.raceWithTimeout
+      ? window.AsyncTimeout.raceWithTimeout(planRequest, 8000, () => {
+          const error = new Error('Membership plan request timed out');
+          error.code = 'AUTH_NETWORK_FAILED';
+          return error;
+        })
+      : planRequest;
+    guardedPlanRequest
       .then((planInfo) => {
         const normalizedPlanInfo = planInfo || { plan: 'free', apiPlan: 'free' };
         renderMembershipPlan(normalizedPlanInfo);
@@ -6019,9 +6048,12 @@ async function initializeMembership() {
       })
       .catch((error) => {
         console.warn('Failed to refresh membership plan:', error);
-        const fallbackPlanInfo = { plan: 'free', apiPlan: 'free' };
-        renderMembershipPlan(fallbackPlanInfo);
-        renderAccountCard(auth, fallbackPlanInfo);
+        const errorMessage = getMessageWithFallback(
+          'aiErrorNetworkFailed',
+          'Network connection failed. Please try again later.'
+        );
+        renderPlanStatusError(errorMessage);
+        showToast(errorMessage, 4000);
       })
       .finally(() => {
         setLoading(false);

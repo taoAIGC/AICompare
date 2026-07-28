@@ -164,7 +164,7 @@
       showToast(
         error?.message
           || getMessage('membershipEmailAuthFailed', null, 'Authentication failed. Please try again.'),
-        4000
+        8000
       );
       return null;
     } finally {
@@ -191,10 +191,10 @@
   }
 
   async function completeEmailVerification() {
-    const codeOrLink = getCodeValue();
     const result = await runAuthAction(
       verifyButton,
       async () => {
+        const codeOrLink = getCodeValue();
         if (typeof window.firebaseSignInWithEmailLink !== 'function') {
           throw new Error(getMessage('membershipEmailLoginUnavailable', null, 'Email verification sign-in is unavailable right now.'));
         }

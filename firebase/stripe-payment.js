@@ -128,12 +128,15 @@ async function getStripeBillingConfig(options = {}) {
  * 获取当前存储的 Firebase ID Token（复用 firebase-auth.js 中的逻辑）
  */
 async function getFirebaseIdToken() {
-  if (typeof window !== 'undefined' && typeof window.firebaseGetIdToken === 'function') {
-    return window.firebaseGetIdToken();
-  }
   const stored = await chrome.storage.local.get(['firebase_idToken', 'firebase_expiresAt']);
   if (stored.firebase_idToken && (stored.firebase_expiresAt || 0) > Date.now() + 60000) {
     return stored.firebase_idToken;
+  }
+  if (typeof window !== 'undefined' && typeof window.firebaseGetIdToken === 'function') {
+    return Promise.race([
+      window.firebaseGetIdToken(),
+      new Promise((resolve) => setTimeout(() => resolve(null), STRIPE_REQUEST_TIMEOUT_MS))
+    ]);
   }
   return null;
 }
@@ -147,6 +150,20 @@ async function getFirebaseUid() {
   }
   const stored = await chrome.storage.local.get('firebase_uid');
   return stored.firebase_uid || null;
+}
+
+async function cacheUserPlan(planInfo) {
+  const cachedPlan = {
+    plan: planInfo?.plan === 'pro' ? 'pro' : 'free',
+    planExpiresAt: planInfo?.planExpiresAt || null,
+    apiPlan: planInfo?.apiPlan === 'pro' ? 'pro' : 'free',
+    apiPlanExpiresAt: planInfo?.apiPlanExpiresAt || null
+  };
+  await chrome.storage.local.set({
+    _planCache: JSON.stringify(cachedPlan),
+    _planCacheAt: Date.now(),
+  });
+  return cachedPlan;
 }
 
 async function getStripeSupportEmail() {
@@ -319,7 +336,7 @@ async function fetchStripeFunctionJson(path, {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 核心：从 Firestore 读取用户 plan（直接使用 REST API，无需 SDK）
+// 核心：读取用户 plan。优先走自有后端，避免大陆网络直连 Firestore 失败。
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -331,49 +348,20 @@ async function getUserPlan() {
     const uid = await getFirebaseUid();
     if (!uid) return { plan: 'free', planExpiresAt: null };
 
-    const config = (typeof window !== 'undefined' && window.FirebaseConfig)
-      || (typeof FirebaseConfig !== 'undefined' && FirebaseConfig)
-      || null;
-    if (!config?.projectId || !config?.apiKey) return { plan: 'free', planExpiresAt: null };
-
     const idToken = await getFirebaseIdToken();
     if (!idToken) return { plan: 'free', planExpiresAt: null };
 
-    const url = `https://firestore.googleapis.com/v1/projects/${config.projectId}/databases/(default)/documents/users/${uid}?key=${config.apiKey}`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    });
-
-    if (!res.ok) return { plan: 'free', planExpiresAt: null };
-
-    const doc = await res.json();
-    const fields = doc.fields || {};
-    const plan = fields.plan?.stringValue || 'free';
-    const apiPlan = fields.apiPlan?.stringValue || 'free';
-
-    let planExpiresAt = null;
-    if (fields.planExpiresAt?.timestampValue) {
-      planExpiresAt = fields.planExpiresAt.timestampValue;
+    try {
+      const planInfo = await fetchStripeFunctionJson('/userPlan', {
+        method: 'GET',
+        idToken,
+        retries: 1
+      });
+      return cacheUserPlan(planInfo);
+    } catch (backendError) {
+      console.warn('[stripe-payment] getUserPlan backend fallback:', backendError);
+      return getCachedPlan();
     }
-    let apiPlanExpiresAt = null;
-    if (fields.apiPlanExpiresAt?.timestampValue) {
-      apiPlanExpiresAt = fields.apiPlanExpiresAt.timestampValue;
-    }
-
-    // 本地验证到期
-    const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
-    const effectivePlan = (plan === 'pro' && !isExpired) ? 'pro' : 'free';
-    const isApiExpired = apiPlanExpiresAt && new Date(apiPlanExpiresAt) < new Date();
-    const effectiveApiPlan = (apiPlan === 'pro' && !isApiExpired) ? 'pro' : 'free';
-
-    // 缓存到 local storage（5 分钟有效）
-    const cachedPlan = { plan: effectivePlan, planExpiresAt, apiPlan: effectiveApiPlan, apiPlanExpiresAt };
-    await chrome.storage.local.set({
-      _planCache: JSON.stringify(cachedPlan),
-      _planCacheAt: Date.now(),
-    });
-
-    return cachedPlan;
   } catch (e) {
     console.warn('[stripe-payment] getUserPlan error:', e);
     // 读取缓存兜底

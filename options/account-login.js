@@ -13,6 +13,7 @@
   let returnToUrl = DEFAULT_RETURN_TO;
   let closeOnSuccess = false;
   let emailLinkAvailable = false;
+  let eventsBound = false;
 
   function getMessage(key, substitutions = null, fallback = '') {
     return RuntimeI18n?.getMessage?.(key, substitutions)
@@ -177,6 +178,7 @@
   async function runAuthAction(button, action) {
     if (button) {
       button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
     }
     try {
       return await action();
@@ -184,23 +186,23 @@
       showToast(
         error?.message
           || getMessage('membershipEmailAuthFailed', null, 'Authentication failed. Please try again.'),
-        4000
+        8000
       );
       return null;
     } finally {
       if (button) {
         button.disabled = false;
+        button.removeAttribute('aria-busy');
       }
     }
   }
 
   async function sendEmailVerification() {
-    if (!emailLinkAvailable) {
-      showToast(getMessage('membershipEmailLoginUnavailable', null, 'Email verification sign-in is unavailable right now.'), 4000);
-      return;
-    }
-    const email = getValidatedEmail();
     const result = await runAuthAction(sendCodeButton, async () => {
+      if (!emailLinkAvailable) {
+        throw new Error(getMessage('membershipEmailLoginUnavailable', null, 'Email verification sign-in is unavailable right now.'));
+      }
+      const email = getValidatedEmail();
       if (typeof window.firebaseSendEmailSignInLink !== 'function') {
         throw new Error(getMessage('membershipEmailLoginUnavailable', null, 'Email verification sign-in is unavailable right now.'));
       }
@@ -232,6 +234,10 @@
   }
 
   function bindEvents() {
+    if (eventsBound) {
+      return;
+    }
+    eventsBound = true;
     if (backLink) {
       backLink.href = returnToUrl;
     }
@@ -259,12 +265,12 @@
   async function bootstrap() {
     returnToUrl = getRequestedReturnToUrl();
     closeOnSuccess = shouldCloseOnSuccess();
+    bindEvents();
     if (typeof RuntimeI18n?.initializeRuntimeI18n === 'function') {
       await RuntimeI18n.initializeRuntimeI18n();
     }
     initializeI18n();
     const emailLinkEnabled = setEmailLoginAvailability(await isEmailLinkSignInEnabled());
-    bindEvents();
 
     const prefilledEmail = getPrefilledEmail();
     if (prefilledEmail && emailInput) {

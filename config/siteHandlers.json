@@ -385,43 +385,66 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "div[contenteditable=\"true\"].tiptap",
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "selector": [
+              "div[contenteditable=\"true\"].tiptap",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "textarea",
+              "div[contenteditable=\"true\"]"
+            ],
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "聚焦输入框",
             "waitForElement": true
           },
           {
             "action": "setValue",
-            "selector": "div[contenteditable=\"true\"].tiptap",
-            "inputType": "contenteditable",
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "selector": [
+              "div[contenteditable=\"true\"].tiptap",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "textarea",
+              "div[contenteditable=\"true\"]"
+            ],
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "设置输入框的值",
             "waitForElement": true
           },
           {
             "action": "triggerEvents",
-            "selector": "div[contenteditable=\"true\"].tiptap",
+            "selector": [
+              "div[contenteditable=\"true\"].tiptap",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "textarea",
+              "div[contenteditable=\"true\"]"
+            ],
             "events": [
               "input"
             ],
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "触发输入事件",
             "waitForElement": true
           },
           {
             "action": "triggerEvents",
-            "selector": "div[contenteditable=\"true\"].tiptap",
+            "selector": [
+              "div[contenteditable=\"true\"].tiptap",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "textarea",
+              "div[contenteditable=\"true\"]"
+            ],
             "events": [
               "input",
               "change",
               "blur",
               "focus"
             ],
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "触发完整的输入事件序列",
             "waitForElement": true
           },
@@ -434,10 +457,16 @@
           },
           {
             "action": "sendKeys",
-            "selector": "div[contenteditable=\"true\"].tiptap",
+            "selector": [
+              "div[contenteditable=\"true\"].tiptap",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "textarea",
+              "div[contenteditable=\"true\"]"
+            ],
             "keys": "Enter",
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "发送回车键",
             "waitForElement": true
           }
@@ -447,10 +476,16 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "div[contenteditable=\"true\"].tiptap",
+            "selector": [
+              "div[contenteditable=\"true\"].tiptap",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "textarea",
+              "div[contenteditable=\"true\"]"
+            ],
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "聚焦Grok输入框准备文件粘贴（支持重试）"
           },
           {
@@ -588,31 +623,46 @@
             "action": "focus",
             "selector": [
               "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.ProseMirror[contenteditable=\"true\"]",
+              "[contenteditable=\"true\"].ProseMirror",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[aria-label*=\"prompt\" i][contenteditable=\"true\"]",
               "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
               "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
             ],
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "聚焦可编辑区域（支持重试）"
           },
           {
             "action": "setValue",
             "selector": [
               "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.ProseMirror[contenteditable=\"true\"]",
+              "[contenteditable=\"true\"].ProseMirror",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[aria-label*=\"prompt\" i][contenteditable=\"true\"]",
               "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
               "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
             ],
             "inputType": "contenteditable",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "设置可编辑区域内容（支持重试）"
           },
           {
             "action": "triggerEvents",
             "selector": [
               "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.ProseMirror[contenteditable=\"true\"]",
+              "[contenteditable=\"true\"].ProseMirror",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[aria-label*=\"prompt\" i][contenteditable=\"true\"]",
               "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
               "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
             ],
@@ -623,8 +673,8 @@
               "focus"
             ],
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "触发输入事件（支持重试）"
           },
           {
@@ -637,7 +687,13 @@
           {
             "action": "click",
             "selector": [
+              "div[data-testid=\"chat-input-grid-container\"] button[data-testid=\"send-message-button\"]",
+              "div[data-testid=\"chat-input-grid-container\"] button[type=\"submit\"]",
               "div[data-testid=\"chat-input-grid-container\"] button[aria-label=\"Send message\"]",
+              "form button[type=\"submit\"]",
+              "button[data-testid=\"send-message-button\"]",
+              "button[data-testid=\"composer-send-button\"]",
+              "button[aria-label*=\"Send\" i]",
               "button[aria-label=\"Send message\"]",
               "button[type=\"button\"][aria-label=\"Send message\"]",
               "button[aria-label=\"Send Message\"]",
@@ -645,8 +701,9 @@
               "button[data-testid=\"send-button\"]"
             ],
             "retryOnDisabled": true,
-            "maxAttempts": 10,
-            "retryInterval": 200,
+            "waitForElement": true,
+            "maxAttempts": 20,
+            "retryInterval": 500,
             "description": "点击Claude发送按钮（支持重试）"
           }
         ]
@@ -657,13 +714,18 @@
             "action": "focus",
             "selector": [
               "div[data-testid=\"chat-input\"][contenteditable=\"true\"]",
+              "div.ProseMirror[contenteditable=\"true\"]",
+              "[contenteditable=\"true\"].ProseMirror",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[aria-label*=\"prompt\" i][contenteditable=\"true\"]",
               "div.tiptap.ProseMirror[data-testid=\"chat-input\"]",
               "[role=\"textbox\"][aria-label=\"Write your prompt to Claude\"]"
             ],
             "description": "聚焦Claude输入框准备文件粘贴",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 20,
+            "retryInterval": 500
           },
           {
             "action": "wait",
@@ -865,23 +927,41 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea",
+            "selector": [
+              "textarea",
+              "textarea[placeholder]",
+              "[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"]"
+            ],
             "description": "聚焦输入框",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 20,
+            "retryInterval": 500
           },
           {
             "action": "setValue",
-            "selector": "textarea",
+            "selector": [
+              "textarea",
+              "textarea[placeholder]",
+              "[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"]"
+            ],
             "description": "设置输入框的值",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 20,
+            "retryInterval": 500
           },
           {
             "action": "triggerEvents",
-            "selector": "textarea",
+            "selector": [
+              "textarea",
+              "textarea[placeholder]",
+              "[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"]"
+            ],
             "events": [
               "input",
               "change",
@@ -890,8 +970,8 @@
             ],
             "description": "触发输入事件",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 20,
+            "retryInterval": 500
           },
           {
             "action": "wait",
@@ -902,12 +982,18 @@
           },
           {
             "action": "sendKeys",
-            "selector": "textarea",
+            "selector": [
+              "textarea",
+              "textarea[placeholder]",
+              "[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"]"
+            ],
             "keys": "Enter",
             "description": "发送回车键",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 20,
+            "retryInterval": 500
           }
         ]
       },
@@ -915,11 +1001,17 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "textarea",
+            "selector": [
+              "textarea",
+              "textarea[placeholder]",
+              "[role=\"textbox\"][contenteditable=\"true\"]",
+              "div[role=\"textbox\"][contenteditable=\"true\"]",
+              "[contenteditable=\"true\"]"
+            ],
             "description": "聚焦输入框准备文件粘贴",
             "waitForElement": true,
-            "maxAttempts": 10,
-            "retryInterval": 200
+            "maxAttempts": 20,
+            "retryInterval": 500
           },
           {
             "action": "wait",

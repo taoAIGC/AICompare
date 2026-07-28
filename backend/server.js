@@ -3097,10 +3097,24 @@ async function verifyEmailLoginCode(req) {
   requireFirebaseAdmin();
   const email = normalizeEmailLoginAddress(req.body?.email);
   const code = String(req.body?.code || '').trim().replace(/\s+/g, '');
+  const emailHash = getEmailLoginCodeDocId(email).slice(0, 12);
+  const requestContext = {
+    emailHash,
+    userAgent: String(req.get?.('user-agent') || '').slice(0, 120),
+    origin: String(req.get?.('origin') || '').slice(0, 120)
+  };
+  console.info('[ai-compare-backend] email login code verify request', JSON.stringify({
+    ...requestContext,
+    codeFormatValid: /^\d{6}$/.test(code)
+  }));
   if (!/^\d{6}$/.test(code)) {
     const error = new Error('Please enter the 6-digit verification code');
     error.status = 400;
     error.code = 'EMAIL_CODE_INVALID_FORMAT';
+    console.info('[ai-compare-backend] email login code verify failed', JSON.stringify({
+      ...requestContext,
+      code: error.code
+    }));
     throw error;
   }
 
@@ -3110,25 +3124,42 @@ async function verifyEmailLoginCode(req) {
     const error = new Error('Verification code not found or expired');
     error.status = 400;
     error.code = 'EMAIL_CODE_EXPIRED';
+    console.info('[ai-compare-backend] email login code verify failed', JSON.stringify({
+      ...requestContext,
+      code: error.code,
+      reason: 'missing_record'
+    }));
     throw error;
   }
 
   const data = snapshot.data() || {};
   const now = Date.now();
+  const attempts = Math.max(0, Number(data.attempts || 0) || 0);
   if (data.consumedAt || getFirestoreMillis(data.expiresAt) <= now) {
     await docRef.delete().catch(() => null);
     const error = new Error('Verification code not found or expired');
     error.status = 400;
     error.code = 'EMAIL_CODE_EXPIRED';
+    console.info('[ai-compare-backend] email login code verify failed', JSON.stringify({
+      ...requestContext,
+      code: error.code,
+      reason: data.consumedAt ? 'already_consumed' : 'expired',
+      attempts
+    }));
     throw error;
   }
 
-  const attempts = Math.max(0, Number(data.attempts || 0) || 0);
   if (attempts >= emailAuthMaxAttempts) {
     await docRef.delete().catch(() => null);
     const error = new Error('Too many verification attempts. Please request a new code');
     error.status = 429;
     error.code = 'EMAIL_CODE_TOO_MANY_ATTEMPTS';
+    console.info('[ai-compare-backend] email login code verify failed', JSON.stringify({
+      ...requestContext,
+      code: error.code,
+      attempts,
+      maxAttempts: emailAuthMaxAttempts
+    }));
     throw error;
   }
 
@@ -3142,24 +3173,139 @@ async function verifyEmailLoginCode(req) {
     const error = new Error('Incorrect verification code');
     error.status = 400;
     error.code = 'EMAIL_CODE_INVALID';
+    console.info('[ai-compare-backend] email login code verify failed', JSON.stringify({
+      ...requestContext,
+      code: error.code,
+      attempts: attempts + 1
+    }));
     throw error;
   }
 
-  const user = await getOrCreateEmailLoginUser(email);
+  let user;
+  try {
+    user = await getOrCreateEmailLoginUser(email);
+  } catch (error) {
+    console.error('[ai-compare-backend] email login code user resolution failed', JSON.stringify({
+      ...requestContext,
+      error: String(error?.message || error),
+      firebaseCode: error?.code || ''
+    }));
+    throw error;
+  }
   await docRef.set({
     consumedAt: admin.firestore.FieldValue.serverTimestamp(),
     attempts: attempts + 1
   }, { merge: true });
 
-  const customToken = await admin.auth().createCustomToken(user.uid, {
-    signInProvider: 'email_code'
-  });
+  let customToken;
+  try {
+    customToken = await admin.auth().createCustomToken(user.uid, {
+      signInProvider: 'email_code'
+    });
+  } catch (error) {
+    console.error('[ai-compare-backend] email login code custom token failed', JSON.stringify({
+      ...requestContext,
+      uid: user.uid,
+      error: String(error?.message || error),
+      firebaseCode: error?.code || ''
+    }));
+    throw error;
+  }
+
+  console.info('[ai-compare-backend] email login code verified', JSON.stringify({
+    ...requestContext,
+    uid: user.uid,
+    attempts: attempts + 1
+  }));
 
   return {
     ok: true,
     customToken,
     email,
     uid: user.uid
+  };
+}
+
+async function exchangeFirebaseCustomToken(req) {
+  const token = String(req.body?.customToken || '').trim();
+  if (!token) {
+    const error = new Error('Custom token is required');
+    error.status = 400;
+    error.code = 'FIREBASE_CUSTOM_TOKEN_MISSING';
+    throw error;
+  }
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex').slice(0, 12);
+  const apiKey = getPublicFirebaseWebConfig().apiKey;
+  console.info('[ai-compare-backend] firebase custom token exchange request', JSON.stringify({ tokenHash }));
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, returnSecureToken: true })
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.error) {
+    const error = new Error(String(data?.error?.message || `Firebase token exchange failed (HTTP ${response.status})`));
+    error.status = response.status >= 400 && response.status < 500 ? 401 : 502;
+    error.code = 'FIREBASE_CUSTOM_TOKEN_EXCHANGE_FAILED';
+    console.error('[ai-compare-backend] firebase custom token exchange failed', JSON.stringify({
+      tokenHash,
+      status: response.status,
+      firebaseError: data?.error?.message || ''
+    }));
+    throw error;
+  }
+  console.info('[ai-compare-backend] firebase custom token exchanged', JSON.stringify({
+    tokenHash,
+    uid: data.localId || ''
+  }));
+  return {
+    ok: true,
+    localId: data.localId || '',
+    email: data.email || '',
+    displayName: data.displayName || '',
+    photoUrl: data.photoUrl || '',
+    idToken: data.idToken || '',
+    refreshToken: data.refreshToken || '',
+    expiresIn: data.expiresIn || '3600'
+  };
+}
+
+async function refreshFirebaseSession(req) {
+  const refreshToken = String(req.body?.refreshToken || '').trim();
+  if (!refreshToken) {
+    const error = new Error('Refresh token is required');
+    error.status = 400;
+    error.code = 'FIREBASE_REFRESH_TOKEN_MISSING';
+    throw error;
+  }
+  const response = await fetch(
+    `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(getPublicFirebaseWebConfig().apiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refreshToken })
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.error) {
+    const error = new Error(String(data?.error?.message || `Firebase token refresh failed (HTTP ${response.status})`));
+    error.status = response.status >= 400 && response.status < 500 ? 401 : 502;
+    error.code = 'FIREBASE_REFRESH_FAILED';
+    console.error('[ai-compare-backend] firebase token refresh failed', JSON.stringify({
+      status: response.status,
+      firebaseError: data?.error?.message || ''
+    }));
+    throw error;
+  }
+  console.info('[ai-compare-backend] firebase token refreshed');
+  return {
+    ok: true,
+    idToken: data.id_token || '',
+    refreshToken: data.refresh_token || '',
+    expiresIn: data.expires_in || '3600'
   };
 }
 
@@ -11171,6 +11317,16 @@ app.post('/auth/email-code/verify', asyncRoute(async (req, res) => {
   res.json(await verifyEmailLoginCode(req));
 }));
 
+app.post('/auth/firebase-token/exchange', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await exchangeFirebaseCustomToken(req));
+}));
+
+app.post('/auth/firebase-token/refresh', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await refreshFirebaseSession(req));
+}));
+
 app.get('/auth/email-code/status', asyncRoute(async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(getEmailAuthStatus());
@@ -11250,6 +11406,18 @@ app.get('/anonymousMembershipStatus', asyncRoute(async (req, res) => {
     apiPlanExpiresAt: null,
     stripeCustomerId: '',
     stripeSubscriptionId: ''
+  });
+}));
+
+app.get('/userPlan', asyncRoute(async (req, res) => {
+  const user = await requireUser(req);
+  const plan = await getUserPlan(user.uid);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    plan: plan.plan,
+    planExpiresAt: timestampToIso(plan.planExpiresAt),
+    apiPlan: plan.apiPlan,
+    apiPlanExpiresAt: timestampToIso(plan.apiPlanExpiresAt)
   });
 }));
 

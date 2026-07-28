@@ -3027,7 +3027,7 @@
     "message": "AI 服務暫時繁忙，請稍後重試。"
   },
   "aiErrorNetworkFailed": {
-    "message": "網路連線異常，暫時無法連接 AI 服務。請檢查網路後重試。"
+    "message": "網路連線失敗，請稍後重試。"
   },
   "aiErrorUnknown": {
     "message": "AI 生成失敗，請稍後重試。如果問題持續出現，請聯絡管理員。"
@@ -3235,7 +3235,7 @@
     "description": "Description on the email verification step; $1 is the email address"
   },
   "membershipEmailVerifyCodeLabel": {
-    "message": "驗證碼",
+    "message": "驗證碼（10分鐘有效）",
     "description": "Label for the verification code input"
   },
   "membershipEmailVerifyPlaceholder": {

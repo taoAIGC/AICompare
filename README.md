@@ -579,24 +579,40 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 <!-- AUTO-README-STATUS:START -->
 ## Development Snapshot / 开发快照
 
-Last auto-update / 最近自动更新：2026-07-22 00:12:57 UTC+08:00
+Last auto-update / 最近自动更新：2026-07-29 00:04:14 UTC+08:00
 
 ### Staged changes for this commit / 本次提交暂存变更
-- `M` `backend/behavior-insights.js`
+- `M` `AGENTS.md`
+- `M` `_locales/zh_CN/messages.json`
+- `M` `_locales/zh_TW/messages.json`
 - `M` `backend/server.js`
-- `M` `background.js`
+- `M` `config/siteHandlers.json`
+- `M` `firebase/firebase-auth.js`
+- `M` `firebase/stripe-payment.js`
+- `M` `iframe/iframe.css`
+- `M` `iframe/iframe.html`
 - `M` `iframe/iframe.js`
 - `M` `manifest.json`
+- `M` `options/account-login-verify.js`
+- `M` `options/account-login.css`
+- `M` `options/account-login.js`
+- `M` `options/options.css`
+- `M` `options/options.html`
 - `M` `options/options.js`
-- `M` `shared/behavior-insights.js`
-- `M` `tests/behavior-insights.test.js`
+- `A` `shared/async-timeout.js`
+- `A` `shared/daily-dismissal.js`
+- `A` `tests/async-timeout.test.js`
+- `A` `tests/auth-error-handling.test.js`
+- `A` `tests/daily-dismissal.test.js`
+- `A` `tests/membership-plan-source.test.js`
+- `A` `tests/site-handler-resilience.test.js`
 
 ### Recent commits / 最近提交
+- `326a328` 2026-07-22 V4.4.6 修复bug
 - `1d2eac4` 2026-07-17 V4.4.5 修复交互
 - `0649136` 2026-07-15 V4.4.1 修复一些提示文案和交互
 - `56a657f` 2026-07-14 V4.4.0 增加付费流程
 - `da28c7c` 2026-07-10 V4.3.4修复权限bug
-- `61a8efb` 2026-07-09 V4.3.4 修复bug
 
 _This section is maintained automatically by `scripts/update-readme.js` via `.githooks/pre-commit`._
 <!-- AUTO-README-STATUS:END -->
