@@ -2619,6 +2619,21 @@
   "homepageBatchFavoriteDeleted": {
     "message": "已刪除這組批量提示詞"
   },
+  "membershipPricingValueSupportSidebar": {
+    "message": "Support sidebar"
+  },
+  "membershipPricingValueDataSync": {
+    "message": "Data sync"
+  },
+  "membershipPricingValuePromptTemplates": {
+    "message": "Prompt templates"
+  },
+  "membershipPricingMoreFeatures": {
+    "message": "More features"
+  },
+  "membershipPricingUpgrade": {
+    "message": "Upgrade"
+  },
   "membershipPricingTitle": {
     "message": "選擇 Pro 付費方案"
   },
@@ -3274,5 +3289,8 @@
   },
   "chatPlanQuotaOverlayButton": {
     "message": "升級 Chat Plan"
+  },
+  "membershipPricingChatTitle": {
+    "message": "解鎖無限次的多AI對比"
   }
 }

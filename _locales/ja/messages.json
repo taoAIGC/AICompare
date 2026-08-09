@@ -2441,6 +2441,21 @@
   "homepageBatchFavoriteDeleted": {
     "message": "バッチのお気に入りを削除しました"
   },
+  "membershipPricingValueSupportSidebar": {
+    "message": "Support sidebar"
+  },
+  "membershipPricingValueDataSync": {
+    "message": "Data sync"
+  },
+  "membershipPricingValuePromptTemplates": {
+    "message": "Prompt templates"
+  },
+  "membershipPricingMoreFeatures": {
+    "message": "More features"
+  },
+  "membershipPricingUpgrade": {
+    "message": "Upgrade"
+  },
   "membershipPricingTitle": {
     "message": "Choose your Pro plan"
   },
@@ -3253,5 +3268,8 @@
   },
   "chatPlanQuotaOverlayButton": {
     "message": "Upgrade Chat Plan"
+  },
+  "membershipPricingChatTitle": {
+    "message": "すべての機能を解放し、無制限の AI 比較を利用できます"
   }
 }

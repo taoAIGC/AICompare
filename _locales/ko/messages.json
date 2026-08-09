@@ -2441,6 +2441,21 @@
   "homepageBatchFavoriteDeleted": {
     "message": "배치 즐겨찾기를 삭제했습니다"
   },
+  "membershipPricingValueSupportSidebar": {
+    "message": "Support sidebar"
+  },
+  "membershipPricingValueDataSync": {
+    "message": "Data sync"
+  },
+  "membershipPricingValuePromptTemplates": {
+    "message": "Prompt templates"
+  },
+  "membershipPricingMoreFeatures": {
+    "message": "More features"
+  },
+  "membershipPricingUpgrade": {
+    "message": "Upgrade"
+  },
   "membershipPricingTitle": {
     "message": "Choose your Pro plan"
   },
@@ -3253,5 +3268,8 @@
   },
   "chatPlanQuotaOverlayButton": {
     "message": "Upgrade Chat Plan"
+  },
+  "membershipPricingChatTitle": {
+    "message": "모든 기능을 잠금 해제하고 무제한 AI 비교를 즐기세요"
   }
 }

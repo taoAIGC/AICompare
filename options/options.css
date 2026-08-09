@@ -1496,6 +1496,70 @@ input:checked + .slider:before {
   margin-bottom: 20px;
 }
 
+.membership-account-pending {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 68px;
+}
+
+.membership-account-card:not([data-auth-state="pending"]) .membership-account-pending {
+  display: none;
+}
+
+.membership-account-pending-avatar,
+.membership-account-pending-line {
+  background: linear-gradient(
+    90deg,
+    var(--ai-surface-soft) 25%,
+    var(--ai-border) 50%,
+    var(--ai-surface-soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: membership-account-pending-shimmer 1.4s ease-in-out infinite;
+}
+
+.membership-account-pending-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.membership-account-pending-copy {
+  display: grid;
+  gap: 10px;
+  width: min(320px, 60%);
+}
+
+.membership-account-pending-line {
+  display: block;
+  height: 16px;
+  border-radius: 999px;
+}
+
+.membership-account-pending-line-primary {
+  width: min(220px, 80%);
+  height: 24px;
+}
+
+.membership-account-pending-line-secondary {
+  width: min(280px, 100%);
+}
+
+.membership-account-card[data-auth-state="pending"] .membership-status-inner {
+  display: none;
+}
+
+@keyframes membership-account-pending-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
 .membership-account-inner {
   justify-content: space-between;
 }

@@ -5,6 +5,3 @@ set -e
 repo_root="$(git rev-parse --show-toplevel)"
 
 cd "$repo_root"
-node scripts/update-readme.js
-git add README.md
-git add "AI Compare PrivacyPolicy.md"

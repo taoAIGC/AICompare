@@ -13,7 +13,7 @@
   const SENSITIVE_KEY_PATTERN = /(token|key|auth|code|secret|password|session|credential|access|refresh|prompt|response|content|body|clipboard|apikey|api_key)/i;
   const SUBSCRIPTION_EVENT_PATTERN = /(membership|pricing|checkout|subscribe|subscription|payment|limit|upgrade|pro)/i;
   const ACTIVATION_EVENT_PATTERN = /(^app_first_open$|^activation_|first_|first_result|first_query)/i;
-  const RESULT_STATES = new Set(['submitted', 'loaded', 'partial', 'failed', 'blocked', 'empty']);
+  const RESULT_STATES = new Set(['submitted', 'loaded', 'partial', 'failed', 'blocked', 'empty', 'navigation_started', 'dispatch_started', 'content_visible']);
 
   function normalizeString(value, limit = 160) {
     if (value == null) return '';

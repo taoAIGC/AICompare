@@ -74,6 +74,7 @@ The extension may collect and process the following categories of data:
 - **Remote Search:** If you enable the phone-to-desktop remote search feature, the extension and companion app exchange encrypted frames through the relay you configure. The relay is designed to keep only pairing/device metadata needed for routing; query text and result payloads are not intended to be stored there in plaintext.
 - **AI websites:** When you use the extension to query AI sites (e.g., ChatGPT, Gemini), your queries are sent directly to those AI providers according to their own privacy policies. For usage analytics and admin diagnostics, our backend may store a length-limited copy of the query text together with `queryPreview` and `queryHash`; failure diagnostic logs remain minimized and do not store full prompts.
 - **Stripe:** If you use in-app payments, payment processing is handled by Stripe. We do not store full payment details. See Stripe's privacy policy for their practices.
+- **PromoteKit:** If you arrive through an affiliate link, PromoteKit may store a referral identifier in a cookie. We pass that identifier to Stripe as checkout metadata so eligible purchases, refunds, and commissions can be attributed to the referring affiliate. Affiliates do not receive your customer email from this integration.
 
 ---
 
@@ -134,6 +135,7 @@ You have the right to:
 - **Google (Firebase, OAuth, Firestore):** For optional cloud sync, sign-in, subscription status, API usage records, and diagnostic log storage. [Google Privacy Policy](https://policies.google.com/privacy)
 - **VPS backend:** For official API proxying, membership/admin operations, API usage statistics, site comparison usage analytics, product analytics, subscription funnel analytics, cost dashboards, and diagnostic log collection.
 - **Stripe:** For payment processing. [Stripe Privacy Policy](https://stripe.com/privacy)
+- **PromoteKit:** For affiliate-link attribution and commission administration. [PromoteKit Privacy Policy](https://promotekit.com/privacy)
 - **AI websites (ChatGPT, Gemini, etc.):** Your queries are sent to these services when you use them. Each has its own privacy policy.
 
 ---

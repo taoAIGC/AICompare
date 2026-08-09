@@ -2,6 +2,7 @@
     const AgentCatalog = window.AICompareAgentCatalog || {};
     const AgentPromptUtils = window.AICompareAgentPromptUtils || {};
     const MarkdownRenderer = window.AICompareMarkdownRenderer || {};
+    const PaymentFunnel = window.AIComparePaymentFunnel || {};
     const state = {
         agentId: '',
         panelId: '',
@@ -117,6 +118,38 @@
                 return `<p>${lines.join('<br>')}</p>`;
             })
             .join('');
+    }
+
+    function isOfficialApiQuotaErrorMessage(message = '') {
+        const normalized = String(message || '').trim().toLowerCase();
+        if (!normalized) return false;
+        return normalized.includes('daily api quota')
+            || normalized.includes('free api-powered questions')
+            || normalized.includes('free official api requests')
+            || normalized.includes('api 额度')
+            || normalized.includes('免费额度')
+            || (normalized.includes('api plan') && normalized.includes('custom api'));
+    }
+
+    function renderApiPlanQuotaUpgradeHtml(funnelId = '') {
+        const randomValue = globalThis.crypto?.randomUUID?.() || '';
+        const normalizedFunnelId = PaymentFunnel.normalizeFunnelId?.(funnelId)
+            || PaymentFunnel.createFunnelId?.(randomValue)
+            || `funnel_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+        const description = t(
+            'apiPlanPricingDescription',
+            'Unlock unlimited summary and skill questions powered by the built-in API.'
+        );
+        const buttonLabel = t('membershipApiPlanButton', 'Subscribe API Plan');
+        return `
+            <p>${escapeHtml(description)}</p>
+            <button
+                type="button"
+                class="agent-api-plan-upgrade"
+                data-action="api-plan-quota-upgrade"
+                data-funnel-id="${escapeHtmlAttribute(normalizedFunnelId)}"
+            >${escapeHtml(buttonLabel)}</button>
+        `;
     }
 
     function renderInlineMarkdown(text) {
@@ -698,6 +731,7 @@
         const attachmentButton = document.getElementById('agentAttachmentButton');
         const attachmentInput = document.getElementById('agentAttachmentInput');
         const pendingContainer = document.getElementById('agentPendingAttachments');
+        const messagesContainer = document.getElementById('agentMessages');
 
         if (sendButton) {
             sendButton.addEventListener('click', submitLocalMessage);
@@ -711,6 +745,19 @@
                 const removeButton = event.target.closest('.agent-pending-attachment-remove');
                 if (!removeButton) return;
                 removePendingAttachment(removeButton.dataset.attachmentId);
+            });
+        }
+        if (messagesContainer) {
+            messagesContainer.addEventListener('click', (event) => {
+                const upgradeButton = event.target.closest('[data-action="api-plan-quota-upgrade"]');
+                if (!upgradeButton) return;
+                event.preventDefault();
+                postToParent({
+                    panelId: state.panelId,
+                    agentId: state.agentId,
+                    event: 'apiPlanUpgradeRequested',
+                    funnelId: upgradeButton.dataset.funnelId || ''
+                });
             });
         }
         if (input) {

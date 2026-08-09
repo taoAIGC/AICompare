@@ -1963,7 +1963,8 @@ function getHomepageSelectionContext() {
 function buildHomepageIframeSearchUrl(query, options = {}) {
     const {
         selectionContext = getHomepageSelectionContext(),
-        includeSidePanelParam = true
+        includeSidePanelParam = true,
+        activationFlowId = ''
     } = options;
     const params = new URLSearchParams();
     const processedQuery = normalizeHomepageQuery(query);
@@ -1985,6 +1986,9 @@ function buildHomepageIframeSearchUrl(query, options = {}) {
     }
     if (includeSidePanelParam && selectionContext.isSidePanel) {
         params.set('side_panel', 'true');
+    }
+    if (activationFlowId) {
+        params.set('activation_flow_id', activationFlowId);
     }
 
     let searchUrl = chrome.runtime.getURL('iframe/iframe.html');
@@ -2507,39 +2511,6 @@ async function handleQuery(query) {
         return;
     }
 
-    void trackEventOnce('activation_site_selected', 'activation_site_selected', {
-        surface: 'homepage',
-        selected_sites_count: selectionContext.selectedSites.length,
-        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
-        agents_count: selectionContext.selectedAgentIds.length,
-        side_panel: selectionContext.isSidePanel
-    });
-    void trackEventOnce('activation_first_query_submitted', 'activation_first_query_submitted', {
-        surface: 'homepage',
-        query_length: processedQuery.length,
-        selected_sites_count: selectionContext.selectedSites.length,
-        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
-        agents_count: selectionContext.selectedAgentIds.length,
-        side_panel: selectionContext.isSidePanel,
-        has_query: Boolean(processedQuery)
-    });
-
-    trackEvent('homepage_search_submit', {
-        query_length: processedQuery.length,
-        selected_sites_count: selectionContext.selectedSites.length,
-        selected_sites: selectionContext.selectedSites,
-        custom_sites_count: selectionContext.selectedCustomSiteIds.length,
-        custom_sites: selectionContext.selectedCustomSiteIds,
-        agents_count: selectionContext.selectedAgentIds.length,
-        agents: selectionContext.selectedAgentIds,
-        iframe_sites_count: selectionContext.iframeSiteNames.length,
-        external_sites_count: selectionContext.externalSiteNames.length,
-        custom_iframe_sites_count: selectionContext.customIframeSiteIds.length,
-        custom_external_sites_count: selectionContext.customExternalSiteIds.length,
-        side_panel: selectionContext.isSidePanel,
-        has_query: Boolean(processedQuery)
-    });
-    
     try {
         if (selectionContext.externalSiteNames.length > 0 || selectionContext.customExternalSiteIds.length > 0) {
             const externalSearchPromise = chrome.runtime.sendMessage({
@@ -2566,9 +2537,32 @@ async function handleQuery(query) {
             if (processedQuery) {
                 void markHomepagePkStarterCompleted();
             }
+            const activationFlowId = processedQuery
+                ? (self.crypto?.randomUUID?.() || `activation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+                : '';
+            const eventMetadata = {
+                surface: 'homepage',
+                activation_flow_id: activationFlowId,
+                query_length: processedQuery.length,
+                selected_sites_count: selectionContext.selectedSites.length,
+                custom_sites_count: selectionContext.selectedCustomSiteIds.length,
+                agents_count: selectionContext.selectedAgentIds.length,
+                iframe_sites_count: selectionContext.iframeSiteNames.length,
+                custom_iframe_sites_count: selectionContext.customIframeSiteIds.length,
+                side_panel: selectionContext.isSidePanel,
+                has_query: Boolean(processedQuery),
+                result_state: 'navigation_started'
+            };
+            // Empty input does not belong to the activation funnel.
+            if (processedQuery) {
+                // This event now means the homepage successfully started the iframe query flow.
+                trackEvent('homepage_search_submit', eventMetadata);
+                void trackEventOnce('activation_first_query_submitted', 'activation_first_query_submitted', eventMetadata);
+            }
             window.location.href = buildHomepageIframeSearchUrl(processedQuery, {
                 selectionContext,
-                includeSidePanelParam: true
+                includeSidePanelParam: true,
+                activationFlowId
             });
         } else if (processedQuery && (selectionContext.externalSiteNames.length > 0 || selectionContext.customExternalSiteIds.length > 0)) {
             void markHomepagePkStarterCompleted();

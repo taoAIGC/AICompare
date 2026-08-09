@@ -746,6 +746,23 @@ html {
   cursor: default;
 }
 
+.api-plan-quota-upgrade {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: #111111;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.api-plan-quota-upgrade:hover:not(:disabled),
+.api-plan-quota-upgrade:focus-visible {
+  background: #2b2b2b;
+  color: #ffffff;
+  outline: 2px solid rgba(17, 17, 17, 0.22);
+  outline-offset: 2px;
+}
+
 .live-summary-card-content.is-error,
 .live-summary-card-content.is-error p {
   color: #a02828;
@@ -2365,9 +2382,10 @@ body.search-bar-bottom #iframes-container {
 .nav-edge-trigger {
     position: fixed;
     left: 0;
-    top: 0;
-    bottom: 0;
+    top: 50%;
     width: 28px;
+    height: 44px;
+    transform: translateY(-50%);
     z-index: 1090;
     background: transparent;
     cursor: pointer;

@@ -2,11 +2,13 @@ const path = require('path');
 require('dotenv').config();
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
+const fs = require('fs');
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const BehaviorInsights = require('./behavior-insights.js');
+const PaymentFunnel = require('../shared/payment-funnel.js');
 let geoip = null;
 try {
   geoip = require('geoip-lite');
@@ -19,6 +21,9 @@ const port = Number(process.env.PORT || 8790);
 const dailyFreeLimit = Math.max(0, Number(process.env.OFFICIAL_API_DAILY_FREE_LIMIT || 10) || 10);
 const chatPlanDailyFreeLimit = Math.max(0, Number(process.env.CHAT_PLAN_DAILY_FREE_LIMIT || 3) || 3);
 const billingMode = String(process.env.BILLING_MODE || 'test').trim() || 'test';
+const promoteKitCampaignId = String(
+  process.env.PROMOTEKIT_CAMPAIGN_ID || 'c5c0c9e3-acc7-4c3f-8612-8e6c3f2d1ac2'
+).trim();
 const billingMeterAllLocales = String(process.env.BILLING_METER_ALL_LOCALES || '').trim().toLowerCase() === 'true';
 const adminSessionOrigin = String(process.env.ADMIN_SESSION_ORIGIN || '').trim();
 const adminSessionSecret = String(process.env.ADMIN_SESSION_SECRET || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
@@ -2962,11 +2967,14 @@ function getFirestoreMillis(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function buildEmailLoginMessage({ code, ttlMinutes }) {
+function buildEmailLoginMessage({ code, ttlMinutes, locale = 'en' }) {
   const safeCode = String(code || '').trim();
   const safeTtl = Math.max(1, Math.round(Number(ttlMinutes) || 10));
+  const localeMessages = getPricingLocaleMessages(locale);
+  const productName = getPricingMessage(localeMessages, 'shortName', 'AI Compare');
+  const codeLabel = getPricingMessage(localeMessages, 'membershipEmailVerifyCodeLabel', 'login code');
   return {
-    subject: 'Your temporary AI Compare verification code',
+    subject: `${safeCode} - ${productName} ${codeLabel}`,
     text: [
       'Enter this temporary verification code to continue:',
       '',
@@ -2997,6 +3005,7 @@ function buildEmailLoginMessage({ code, ttlMinutes }) {
 async function sendEmailLoginCode(req) {
   requireFirebaseAdmin();
   const email = normalizeEmailLoginAddress(req.body?.email);
+  const locale = String(req.body?.locale || req.get?.('accept-language') || 'en').trim();
   console.info('[ai-compare-backend] email login code request', JSON.stringify({
     emailHash: getEmailLoginCodeDocId(email).slice(0, 12),
     userAgent: String(req.get?.('user-agent') || '').slice(0, 120),
@@ -3027,7 +3036,7 @@ async function sendEmailLoginCode(req) {
   const salt = crypto.randomBytes(16).toString('hex');
   const expiresAtMs = now + emailAuthCodeTtlSeconds * 1000;
   const ttlMinutes = Math.ceil(emailAuthCodeTtlSeconds / 60);
-  const mail = buildEmailLoginMessage({ code, ttlMinutes });
+  const mail = buildEmailLoginMessage({ code, ttlMinutes, locale });
 
   await docRef.set({
     email,
@@ -4707,6 +4716,26 @@ function getCancelUrl() {
   return process.env.STRIPE_CANCEL_URL || 'https://example.com/payment-cancel';
 }
 
+function getCheckoutCancelUrl(planType = '', funnelMetadata = {}) {
+  const baseCancelUrl = getCancelUrl();
+  try {
+    const url = new URL(baseCancelUrl);
+    const normalizedPlanType = String(planType || '').trim().toLowerCase();
+    if (normalizedPlanType === 'chat' || normalizedPlanType === 'api') {
+      url.searchParams.set('planType', normalizedPlanType);
+    }
+    const funnelId = PaymentFunnel.normalizeFunnelId(funnelMetadata.funnelId || '');
+    if (funnelId) url.searchParams.set('funnelId', funnelId);
+    const source = safeLogString(funnelMetadata.funnelSource || '', 80);
+    if (source) url.searchParams.set('source', source);
+    const selectionEventId = safeLogString(funnelMetadata.selectionEventId || '', 120);
+    if (selectionEventId) url.searchParams.set('selectionEventId', selectionEventId);
+    return url.toString();
+  } catch (_) {
+    return baseCancelUrl;
+  }
+}
+
 function getStripePrices() {
   return {
     monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
@@ -5057,6 +5086,12 @@ function normalizeBillingEmail(email = '') {
   return String(email || '').trim().toLowerCase();
 }
 
+function normalizePromoteKitReferral(value = '') {
+  const referral = String(value || '').trim();
+  if (!referral || referral.length > 120 || !/^[A-Za-z0-9_-]+$/.test(referral)) return '';
+  return referral;
+}
+
 function extractStripeCustomerId(value) {
   if (!value) return '';
   if (typeof value === 'string') return value;
@@ -5170,6 +5205,8 @@ async function createCheckoutSessionForFirebaseUser({
   firebaseUser,
   priceId,
   planType = getStripePlanTypeForPrice(priceId),
+  promotekitReferral = '',
+  funnelMetadata = {},
   smokeTest = false
 }) {
   const stripe = getStripe();
@@ -5203,6 +5240,8 @@ async function createCheckoutSessionForFirebaseUser({
   const metadata = {
     firebaseUid: firebaseUser.uid,
     planType,
+    ...funnelMetadata,
+    ...(promotekitReferral ? { promotekit_referral: promotekitReferral } : {}),
     ...(smokeTest ? { smokeTest: 'true' } : {})
   };
 
@@ -5211,7 +5250,7 @@ async function createCheckoutSessionForFirebaseUser({
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: getCheckoutSuccessUrl(),
-    cancel_url: getCancelUrl(),
+    cancel_url: getCheckoutCancelUrl(planType, funnelMetadata),
     adaptive_pricing: getStripeAdaptivePricingConfig(),
     metadata,
     subscription_data: {
@@ -5223,12 +5262,16 @@ async function createCheckoutSessionForFirebaseUser({
 async function createCheckoutSessionForAnonymousClient({
   priceId,
   planType = getStripePlanTypeForPrice(priceId),
-  prefillEmail = ''
+  prefillEmail = '',
+  promotekitReferral = '',
+  funnelMetadata = {}
 }) {
   const stripe = getStripe();
   const customerEmail = normalizeBillingEmail(prefillEmail);
   const metadata = {
     planType,
+    ...funnelMetadata,
+    ...(promotekitReferral ? { promotekit_referral: promotekitReferral } : {}),
     ...(customerEmail ? { stripeCustomerEmail: customerEmail } : {})
   };
 
@@ -5236,7 +5279,7 @@ async function createCheckoutSessionForAnonymousClient({
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: getCheckoutSuccessUrl(),
-    cancel_url: getCancelUrl(),
+    cancel_url: getCheckoutCancelUrl(planType, funnelMetadata),
     adaptive_pricing: getStripeAdaptivePricingConfig(),
     metadata,
     subscription_data: {
@@ -5249,6 +5292,45 @@ async function createCheckoutSessionForAnonymousClient({
   }
 
   return stripe.checkout.sessions.create(sessionPayload);
+}
+
+async function verifyPricingSelectionForCheckout({
+  selectionEventId = '',
+  selectionClientEventId = '',
+  funnelId = '',
+  planType = '',
+  uid = '',
+  clientHash = ''
+} = {}) {
+  const normalizedSelectionEventId = safeLogString(selectionEventId, 120);
+  const normalizedFunnelId = PaymentFunnel.normalizeFunnelId(funnelId);
+  if (!normalizedSelectionEventId || !normalizedFunnelId) {
+    return { verified: false, reason: 'missing_selection_reference' };
+  }
+  requireFirebaseAdmin();
+  const snapshot = await db.collection('subscriptionFunnelEvents').doc(normalizedSelectionEventId).get();
+  if (!snapshot.exists) return { verified: false, reason: 'selection_not_found' };
+  const selection = snapshot.data() || {};
+  const metadata = selection.metadata && typeof selection.metadata === 'object' ? selection.metadata : {};
+  if (String(selection.eventName || '') !== 'pricing_plan_selected') {
+    return { verified: false, reason: 'wrong_selection_event' };
+  }
+  if (String(metadata.planType || '').trim() !== planType) {
+    return { verified: false, reason: 'plan_mismatch' };
+  }
+  if (PaymentFunnel.normalizeFunnelId(metadata.funnelId) !== normalizedFunnelId) {
+    return { verified: false, reason: 'funnel_mismatch' };
+  }
+  if (
+    selectionClientEventId
+    && String(selection.clientEventId || '') !== String(selectionClientEventId || '')
+  ) {
+    return { verified: false, reason: 'client_event_mismatch' };
+  }
+  const identityMatches = (uid && String(selection.uid || '') === uid)
+    || (clientHash && String(selection.clientHash || '') === clientHash);
+  if (!identityMatches) return { verified: false, reason: 'identity_mismatch' };
+  return { verified: true, reason: '' };
 }
 
 function getExtensionMembershipUrl() {
@@ -5289,139 +5371,400 @@ function getPublicFirebaseWebConfig() {
   };
 }
 
-function getMembershipPricingPageHtml(planType = 'chat') {
+const pricingLocaleCache = new Map();
+
+function normalizePricingLocale(value = '') {
+  const normalized = String(value || '').trim().replace('-', '_');
+  if (!normalized) return 'en';
+  const localesRoot = path.join(__dirname, '..', '_locales');
+  let available = [];
+  try {
+    available = fs.readdirSync(localesRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch (_) {
+    return 'en';
+  }
+  if (available.includes(normalized)) return normalized;
+  const base = normalized.split('_')[0].toLowerCase();
+  return available.find((locale) => locale.toLowerCase() === base)
+    || available.find((locale) => locale.toLowerCase().startsWith(`${base}_`))
+    || 'en';
+}
+
+function getPricingLocaleMessages(locale = 'en') {
+  const normalizedLocale = normalizePricingLocale(locale);
+  if (pricingLocaleCache.has(normalizedLocale)) return pricingLocaleCache.get(normalizedLocale);
+  const messagesPath = path.join(__dirname, '..', '_locales', normalizedLocale, 'messages.json');
+  let messages = {};
+  try {
+    messages = JSON.parse(fs.readFileSync(messagesPath, 'utf8'));
+  } catch (error) {
+    console.warn(`[ai-compare-backend] failed to load pricing locale ${normalizedLocale}:`, error.message);
+  }
+  pricingLocaleCache.set(normalizedLocale, messages);
+  return messages;
+}
+
+function getPricingMessage(messages, key, fallback = '') {
+  return String(messages?.[key]?.message || fallback).trim();
+}
+
+let pricingAppIconDataUrl = '';
+
+function getPricingAppIconDataUrl() {
+  if (pricingAppIconDataUrl) return pricingAppIconDataUrl;
+  const iconPath = path.join(__dirname, '..', 'icons', 'icon128.png');
+  try {
+    pricingAppIconDataUrl = `data:image/png;base64,${fs.readFileSync(iconPath).toString('base64')}`;
+  } catch (error) {
+    console.warn('[ai-compare-backend] failed to load pricing app icon:', error.message);
+  }
+  return pricingAppIconDataUrl;
+}
+
+let pricingSiteShowcaseCache = null;
+
+function getPricingSiteShowcaseSites() {
+  if (pricingSiteShowcaseCache) return pricingSiteShowcaseCache;
+  const configPath = path.join(__dirname, '..', 'config', 'siteHandlers.json');
+  const iconsRoot = path.join(__dirname, '..', 'siteIcons');
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    pricingSiteShowcaseCache = (Array.isArray(config?.sites) ? config.sites : [])
+      .filter((site) => site && site.hidden !== true && site.name && site.icon)
+      .map((site) => {
+        const iconFilename = path.basename(String(site.icon || ''));
+        const iconPath = path.join(iconsRoot, iconFilename);
+        if (!fs.existsSync(iconPath)) return null;
+        const extension = path.extname(iconFilename).toLowerCase();
+        const mimeType = extension === '.svg'
+          ? 'image/svg+xml'
+          : (extension === '.webp' ? 'image/webp' : 'image/png');
+        return {
+          name: String(site.name || '').trim(),
+          iconDataUrl: `data:${mimeType};base64,${fs.readFileSync(iconPath).toString('base64')}`
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.warn('[ai-compare-backend] failed to build pricing site showcase:', error.message);
+    pricingSiteShowcaseCache = [];
+  }
+  return pricingSiteShowcaseCache;
+}
+
+function getMembershipPricingPageCopy(planType = 'chat', locale = 'en') {
+  const messages = getPricingLocaleMessages(locale);
+  const isApiPlan = String(planType || '').trim().toLowerCase() === 'api';
+  const planLabel = getPricingMessage(
+    messages,
+    isApiPlan ? 'membershipApiPlanTitle' : 'membershipChatPlanTitle',
+    isApiPlan ? 'API Plan' : 'Chat Plan'
+  );
+  return {
+    eyebrow: getPricingMessage(messages, 'membershipPricingEyebrow', 'AI Compare Pro'),
+    brandName: getPricingMessage(messages, 'shortName', 'AI Compare'),
+    title: getPricingMessage(
+      messages,
+      isApiPlan ? 'membershipPricingTitle' : 'membershipPricingChatTitle',
+      isApiPlan ? 'Choose your Pro plan' : 'Unlock unlimited multi-AI comparisons'
+    ),
+    planLabel,
+    freeLabel: getPricingMessage(messages, 'membershipPricingMoreFeatures', 'More features'),
+    proLabel: getPricingMessage(messages, 'membershipPlanPro', 'Pro'),
+    userValueTitle: getPricingMessage(messages, 'searchProviderName', 'AI Compare'),
+    userValueDescription: getPricingMessage(messages, 'searchProviderDescription', 'Compare responses from multiple AI platforms.'),
+    userValueItems: [
+      getPricingMessage(messages, 'membershipPricingValueSupportSidebar', 'Support sidebar'),
+      getPricingMessage(messages, 'selectionCompareButton', 'Selection Compare Button'),
+      getPricingMessage(messages, 'searchEngine', 'Search Engine'),
+      getPricingMessage(messages, 'customSitesTitle', 'Custom sites'),
+      getPricingMessage(messages, 'homepageAgentsTitle', 'AI skills'),
+      getPricingMessage(messages, 'homepageBatchDialogTitle', 'Run comparisons in batch'),
+      getPricingMessage(messages, 'membershipPricingValueDataSync', 'Data sync'),
+      getPricingMessage(messages, 'fileUploadButtonTitle', 'Upload files to AI sites'),
+      getPricingMessage(messages, 'membershipPricingValuePromptTemplates', 'Prompt templates'),
+      getPricingMessage(messages, 'liveSummaryHint', 'Automatic analysis after you ask.'),
+      getPricingMessage(messages, 'historyTitle', 'History'),
+      getPricingMessage(messages, 'favoritesTitle', 'Prompt Favorites'),
+      getPricingMessage(messages, 'exportResponses', 'Export AI Compare Results')
+    ],
+    paidValueTitle: getPricingMessage(messages, 'membershipPlanPro', 'Pro'),
+    paidValueDescription: getPricingMessage(
+      messages,
+      'membershipDescription',
+      'Unlock Chat Plan and enjoy unlimited AI comparison questions.'
+    ),
+    description: getPricingMessage(
+      messages,
+      isApiPlan ? 'membershipApiPlanSubtitle' : 'membershipChatPlanSubtitle',
+      isApiPlan
+        ? 'Unlock unlimited summary and skill questions powered by the built-in API.'
+        : 'View your Chat Plan status and choose how to unlock unlimited questions.'
+    ),
+    signIn: getPricingMessage(messages, 'membershipPricingLoginNote', 'Stripe checkout is handled securely.'),
+    signedIn: getPricingMessage(messages, 'membershipPricingDescription', 'Stripe checkout is handled securely.'),
+    monthlyName: getPricingMessage(messages, 'planMonthlyName', 'Monthly'),
+    yearlyName: getPricingMessage(messages, 'planYearlyName', 'Yearly'),
+    monthlyPrice: 'Loading price…',
+    yearlyPrice: 'Loading price…',
+    monthlyCta: getPricingMessage(messages, 'btnUpgradeMonthly', 'Subscribe Monthly'),
+    yearlyCta: getPricingMessage(messages, 'btnUpgradeYearly', 'Subscribe Yearly'),
+    upgradeCta: getPricingMessage(messages, 'membershipPricingUpgrade', 'Upgrade'),
+    monthlyDesc: getPricingMessage(messages, 'membershipPricingMonthlyDescription', 'Flexible monthly billing.'),
+    yearlyDesc: getPricingMessage(messages, 'membershipPricingYearlyDescription', 'Best value for long-term use.'),
+    yearlySaving: getPricingMessage(messages, 'planYearlySaving', 'Save 33%'),
+    popular: getPricingMessage(messages, 'planPopular', 'Most Popular'),
+    feature1: isApiPlan
+      ? getPricingMessage(messages, 'membershipApiPlanFeature1', 'Unlimited API calls')
+      : getPricingMessage(messages, 'planFeature1', 'Unlimited AI comparisons'),
+    feature2: isApiPlan
+      ? getPricingMessage(messages, 'membershipApiPlanFeature2', 'Cancel anytime')
+      : getPricingMessage(messages, 'planFeature2', 'Priority support'),
+    feature3: isApiPlan
+      ? getPricingMessage(messages, 'membershipApiPlanFeature3', 'Built-in API keys stay securely on the cloud backend')
+      : getPricingMessage(messages, 'planFeature3', 'Cancel anytime'),
+    loginHint: '',
+    loading: getPricingMessage(messages, 'membershipLoading', 'Loading pricing…'),
+    error: getPricingMessage(messages, 'stripeCheckoutOpenFailed', 'Failed to open checkout.'),
+    logout: getPricingMessage(messages, 'membershipLoginButton', 'Switch account')
+  };
+}
+
+function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale = 'en') {
   const resolvedPlanType = String(planType || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
   const isApiPlan = resolvedPlanType === 'api';
   const firebaseConfig = JSON.stringify(getPublicFirebaseWebConfig());
-  const pageCopy = JSON.stringify(isApiPlan ? {
-    eyebrow: 'AI Compare Pro',
-    title: 'Choose your API Plan',
-    description: '',
-    signIn: 'Continue to Stripe',
-    signedIn: 'Stripe will collect your email securely.',
-    monthlyName: 'API Plan · Monthly',
-    yearlyName: 'API Plan · Yearly',
-    monthlyPrice: 'Loading price…',
-    yearlyPrice: 'Loading price…',
-    monthlyCta: 'Subscribe Monthly',
-    yearlyCta: 'Subscribe Yearly',
-    monthlyDesc: 'Unlimited summary and skill questions, billed monthly.',
-    yearlyDesc: 'Unlimited summary and skill questions, billed yearly.',
-    feature1: 'Unlimited summary questions',
-    feature2: 'Unlimited built-in skill questions',
-    feature3: 'Built-in API keys stay securely on the cloud backend',
-    loginHint: '',
-    loading: 'Loading pricing…',
-    error: 'Failed to load pricing.',
-    logout: 'Switch account'
-  } : {
-    eyebrow: 'AI Compare Pro',
-    title: 'Choose your Chat Plan',
-    description: '',
-    signIn: 'Continue to Stripe',
-    signedIn: 'Stripe will collect your email securely.',
-    monthlyName: '',
-    yearlyName: '',
-    monthlyPrice: 'Loading price…',
-    yearlyPrice: 'Loading price…',
-    monthlyCta: 'Subscribe Monthly',
-    yearlyCta: 'Subscribe Yearly',
-    monthlyDesc: 'Flexible monthly billing for trying Pro at your own pace.',
-    yearlyDesc: 'Best value for long-term use, with one yearly payment.',
-    feature1: 'Unlimited AI comparison questions',
-    feature2: 'Switch between supported AI sites',
-    feature3: '',
-    loginHint: '',
-    loading: 'Loading pricing…',
-    error: 'Failed to load pricing.',
-    logout: 'Switch account'
-  });
+  const promoteKitScript = promoteKitCampaignId
+    ? `<script async src="https://cdn.promotekit.com/pk.js" data-promotekit="${escapeHtml(promoteKitCampaignId)}"></script>`
+    : '';
+  const pageCopy = JSON.stringify(getMembershipPricingPageCopy(resolvedPlanType, locale));
+  const initialCopy = getMembershipPricingPageCopy(resolvedPlanType, locale);
+  const appIconDataUrl = getPricingAppIconDataUrl();
+  const pricingSiteShowcaseSites = getPricingSiteShowcaseSites();
+  const siteShowcaseMarkup = pricingSiteShowcaseSites.map((site, index) => `
+    <div class="site-logo-item${pricingSiteShowcaseSites.length % 4 === 1 && index === pricingSiteShowcaseSites.length - 1 ? ' site-logo-item-tail' : ''}" title="${escapeHtml(site.name)}">
+      <span class="site-logo-frame">
+        <img src="${site.iconDataUrl}" alt="${escapeHtml(site.name)}" width="34" height="34" decoding="async">
+      </span>
+      <span class="site-logo-name">${escapeHtml(site.name)}</span>
+    </div>`).join('');
+  const pricingCardsMarkup = isApiPlan ? `
+    <section class="pricing-options" id="pricingOptions" aria-label="${escapeHtml(initialCopy.planLabel)}">
+      <article class="pricing-card">
+        <div class="pricing-card-copy">
+          <div class="pricing-name" id="monthlyName">${escapeHtml(initialCopy.monthlyName)}</div>
+          <div class="pricing-price is-loading" id="monthlyPrice">${escapeHtml(initialCopy.monthlyPrice)}</div>
+          <p class="pricing-desc" id="monthlyDescription">${escapeHtml(initialCopy.monthlyDesc)}</p>
+        </div>
+        <ul class="feature-list">
+          <li id="monthlyFeature1">${escapeHtml(initialCopy.feature1)}</li>
+          <li id="monthlyFeature2">${escapeHtml(initialCopy.feature2)}</li>
+          <li id="monthlyFeature3">${escapeHtml(initialCopy.feature3)}</li>
+        </ul>
+        <button class="plan-btn" id="monthlyButton" type="button" data-cycle="monthly" disabled>${escapeHtml(initialCopy.monthlyCta)}</button>
+      </article>
+
+      <article class="pricing-card featured">
+        <div class="pricing-card-topline">
+          <span class="pricing-badge">${escapeHtml(initialCopy.popular)}</span>
+          ${isApiPlan ? '' : `<span class="saving-badge">${escapeHtml(initialCopy.yearlySaving)}</span>`}
+        </div>
+        <div class="pricing-card-copy">
+          <div class="pricing-name" id="yearlyName">${escapeHtml(initialCopy.yearlyName)}</div>
+          <div class="pricing-price is-loading" id="yearlyPrice">${escapeHtml(initialCopy.yearlyPrice)}</div>
+          <p class="pricing-desc" id="yearlyDescription">${escapeHtml(initialCopy.yearlyDesc)}</p>
+        </div>
+        <ul class="feature-list">
+          <li id="yearlyFeature1">${escapeHtml(initialCopy.feature1)}</li>
+          <li id="yearlyFeature2">${escapeHtml(initialCopy.feature2)}</li>
+          <li id="yearlyFeature3">${escapeHtml(initialCopy.feature3)}</li>
+        </ul>
+        <button class="plan-btn" id="yearlyButton" type="button" data-cycle="yearly" disabled>${escapeHtml(initialCopy.yearlyCta)}</button>
+      </article>
+    </section>` : `
+    <section class="pricing-selector" id="pricingOptions" aria-label="${escapeHtml(initialCopy.planLabel)}">
+      <label class="pricing-option pricing-option-featured">
+        <input type="radio" name="billingCycle" value="yearly" checked>
+        <span class="pricing-option-body">
+          <span class="pricing-option-header">
+            <span class="pricing-name" id="yearlyName">${escapeHtml(initialCopy.yearlyName)}</span>
+            <span class="pricing-option-badges">
+              <span class="pricing-badge">${escapeHtml(initialCopy.popular)}</span>
+              <span class="saving-badge" id="yearlySaving" hidden></span>
+            </span>
+          </span>
+          <span class="pricing-price is-loading" id="yearlyPrice">${escapeHtml(initialCopy.yearlyPrice)}</span>
+        </span>
+      </label>
+
+      <label class="pricing-option">
+        <input type="radio" name="billingCycle" value="monthly">
+        <span class="pricing-option-body">
+          <span class="pricing-option-header">
+            <span class="pricing-name" id="monthlyName">${escapeHtml(initialCopy.monthlyName)}</span>
+          </span>
+          <span class="pricing-price is-loading" id="monthlyPrice">${escapeHtml(initialCopy.monthlyPrice)}</span>
+        </span>
+      </label>
+
+      <button class="plan-btn checkout-btn" id="checkoutButton" type="button" disabled>${escapeHtml(initialCopy.upgradeCta)}</button>
+    </section>`;
+  const pageMarkup = isApiPlan ? `
+    <header class="hero">
+      <p class="eyebrow">${initialCopy.eyebrow}</p>
+      <p class="plan-kicker">${escapeHtml(initialCopy.planLabel)}</p>
+      <h1 id="pricingTitle">${initialCopy.title}</h1>
+      <p class="lead" id="pricingDescription">${escapeHtml(initialCopy.description)}</p>
+      <div class="auth-bar" id="authBar" hidden>
+        <span class="auth-status" id="authStatus"></span>
+      </div>
+    </header>
+    ${pricingCardsMarkup}` : `
+    <div class="commerce-shell">
+      <section class="value-panel">
+        <header class="hero">
+          <h1 id="pricingTitle">${initialCopy.title}</h1>
+          ${isApiPlan ? `<p class="lead" id="pricingDescription">${escapeHtml(initialCopy.description)}</p>` : ''}
+          <div class="auth-bar" id="authBar" hidden>
+            <span class="auth-status" id="authStatus"></span>
+          </div>
+        </header>
+
+        <div class="site-showcase" aria-label="${escapeHtml(initialCopy.userValueTitle)}">
+          <div class="site-logo-grid">
+            ${siteShowcaseMarkup}
+          </div>
+        </div>
+
+        <section class="value-map" aria-label="${escapeHtml(initialCopy.userValueTitle)}">
+          <div class="value-map-heading">
+            <div>
+              <span class="section-kicker">${escapeHtml(initialCopy.freeLabel)}</span>
+            </div>
+          </div>
+          <div class="capability-grid">
+            ${initialCopy.userValueItems.map((item, index) => `
+              <div class="capability-item">
+                <span class="capability-index">${String(index + 1).padStart(2, '0')}</span>
+                <span>${escapeHtml(item)}</span>
+              </div>`).join('')}
+          </div>
+        </section>
+
+      </section>
+
+      <aside class="purchase-panel">
+        <div class="product-brand">
+          ${appIconDataUrl ? `<img src="${appIconDataUrl}" alt="" width="30" height="30">` : ''}
+          <span>${escapeHtml(initialCopy.brandName)}</span>
+        </div>
+        ${pricingCardsMarkup}
+      </aside>
+    </div>`;
 
   return `<!DOCTYPE html>
-<html lang="${isApiPlan ? 'en' : 'en'}">
+<html lang="${escapeHtml(normalizePricingLocale(locale).replace('_', '-'))}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isApiPlan ? 'Choose your API Plan' : 'Choose your Chat Plan'} | AICompare</title>
+  <title>${escapeHtml(initialCopy.title)} | AICompare</title>
+  ${promoteKitScript}
   <style>
     :root {
       color-scheme: light;
-      --bg: #f5f5f0;
-      --bg-glow: radial-gradient(circle at top left, rgba(17,17,17,0.05), transparent 34%), radial-gradient(circle at 12% 8%, rgba(255,214,102,0.16), transparent 30%), radial-gradient(circle at 88% 18%, rgba(95,155,255,0.10), transparent 28%);
-      --surface: rgba(255,255,255,0.82);
-      --text: #181818;
-      --muted: rgba(24,24,24,0.66);
-      --border: rgba(17,17,17,0.08);
-      --accent: #181818;
-      --accent-contrast: #fff;
-      --shadow: 0 26px 70px rgba(45,45,45,0.08);
+      --bg: #eef0ec;
+      --surface: #ffffff;
+      --surface-soft: #e2e6df;
+      --ink: #111310;
+      --muted: #61675f;
+      --line: #cfd5cc;
+      --accent: #b9f34a;
+      --accent-ink: #172007;
+      --coral: #ff866f;
+      --blue: #80a7ff;
+      --shadow: 0 18px 48px rgba(28, 36, 24, 0.10);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       background: var(--bg);
-      color: var(--text);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      pointer-events: none;
-      background: var(--bg-glow);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
     .page {
-      width: min(1080px, calc(100% - 40px));
+      width: min(1180px, calc(100% - 40px));
       margin: 0 auto;
-      padding: 34px 0 54px;
+      min-height: 100vh;
+      padding: 30px 0 44px;
     }
-    .topbar {
+    .commerce-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr);
+      gap: 58px;
+      align-items: start;
+    }
+    .value-panel {
+      min-width: 0;
+      padding-top: 22px;
+      animation: reveal 480ms ease both;
+    }
+    .purchase-panel {
+      position: sticky;
+      top: 24px;
+      min-width: 0;
+      padding: 20px 0 0 30px;
+      border-left: 1px solid var(--line);
+      animation: reveal 480ms 80ms ease both;
+    }
+    .product-brand {
       display: flex;
-      justify-content: space-between;
-      gap: 14px;
       align-items: center;
+      gap: 9px;
+      min-height: 34px;
+      margin: 0 0 12px;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 700;
     }
-    .back-link, .sign-in-btn, .sign-out-btn, .plan-btn {
-      border: 0;
-      border-radius: 999px;
-      font-weight: 900;
-      font-size: 14px;
-      cursor: pointer;
-      text-decoration: none;
+    .product-brand img {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      border-radius: 7px;
     }
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      min-height: 38px;
-      padding: 0 14px;
-      background: rgba(255,255,255,0.72);
-      color: #242424;
-      border: 1px solid rgba(17,17,17,0.1);
-    }
-    .hero { max-width: 760px; margin-top: 42px; }
+    .hero { max-width: 720px; }
+    .api-plan-page .hero { margin-top: 28px; }
     .eyebrow {
       margin: 0 0 10px;
-      color: rgba(24,24,24,0.58);
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: 0.14em;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
       text-transform: uppercase;
+    }
+    .plan-kicker {
+      margin: 0 0 12px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
     }
     h1 {
       margin: 0;
-      font-size: clamp(34px, 6vw, 58px);
-      font-weight: 950;
-      letter-spacing: -0.06em;
-      line-height: 0.98;
+      max-width: 620px;
+      font-size: 54px;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.02;
     }
     .lead {
       max-width: 680px;
       margin: 18px 0 0;
       color: var(--muted);
-      font-size: 17px;
-      font-weight: 650;
+      font-size: 16px;
+      font-weight: 500;
       line-height: 1.65;
     }
     .auth-bar {
@@ -5434,7 +5777,9 @@ function getMembershipPricingPageHtml(planType = 'chat') {
     .sign-in-btn, .sign-out-btn {
       min-height: 42px;
       padding: 0 16px;
-      background: #1f1f1f;
+      border: 0;
+      border-radius: 6px;
+      background: var(--ink);
       color: #fff;
     }
     .sign-out-btn {
@@ -5444,94 +5789,335 @@ function getMembershipPricingPageHtml(planType = 'chat') {
     .auth-status {
       font-size: 14px;
       color: var(--muted);
-      font-weight: 650;
+      font-weight: 600;
+    }
+    .site-showcase {
+      margin-top: 34px;
+      background: transparent;
+      color: var(--ink);
+    }
+    .site-logo-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0;
+      background: transparent;
+    }
+    .site-logo-item {
+      display: flex;
+      min-width: 0;
+      min-height: 82px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 6px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: transparent;
+    }
+    .site-logo-frame {
+      display: inline-flex;
+      width: 44px;
+      height: 44px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(17, 19, 16, 0.08);
+    }
+    .site-logo-frame img {
+      display: block;
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+    }
+    .site-logo-name {
+      display: block;
+      overflow: hidden;
+      width: 100%;
+      color: var(--ink);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .value-map {
+      margin-top: 30px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .value-map-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .section-kicker {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+    .capability-item {
+      display: flex;
+      min-width: 0;
+      align-items: flex-start;
+      gap: 11px;
+      min-height: 58px;
+      padding: 14px 12px 14px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .capability-item:nth-child(odd) { margin-right: 14px; }
+    .capability-item:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--line); }
+    .capability-index {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.6;
     }
     .pricing-options {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 20px;
+      gap: 16px;
       margin-top: 28px;
+    }
+    .chat-plan-page .pricing-options {
+      grid-template-columns: 1fr;
+      margin-top: 0;
+    }
+    .pricing-selector {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .pricing-option {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 12px;
+      align-items: flex-start;
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f7f8f5;
+      cursor: pointer;
+      transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+    }
+    .pricing-option:hover { border-color: #929a90; transform: translateY(-1px); }
+    .pricing-option:has(input:checked) {
+      border-color: #7ca51f;
+      background: #f7f8f5;
+      color: var(--ink);
+    }
+    .pricing-option input {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      accent-color: var(--accent);
+    }
+    .pricing-option-body {
+      display: block;
+      min-width: 0;
+    }
+    .pricing-option-header {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .pricing-option-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .pricing-option .pricing-price {
+      display: block;
+      min-height: 42px;
+      margin-top: 7px;
+      font-size: 31px;
+      line-height: 1.3;
+    }
+    .pricing-option .pricing-price.is-loading {
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 42px;
+    }
+    .pricing-option:has(input:checked) .pricing-price.is-loading { color: var(--muted); }
+    .checkout-btn {
+      width: 100%;
+      margin-top: 4px;
     }
     .pricing-card {
       position: relative;
       display: flex;
       flex-direction: column;
-      gap: 22px;
-      min-height: 430px;
-      padding: 30px;
-      border: 1px solid var(--border);
-      border-radius: 28px;
+      gap: 18px;
+      min-height: 400px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
       background: var(--surface);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
+    }
+    .chat-plan-page .pricing-card {
+      min-height: 282px;
+      box-shadow: none;
     }
     .pricing-card.featured {
       overflow: hidden;
-      background: linear-gradient(145deg, #181818 0%, #2b2b2b 100%);
+      border-color: var(--ink);
+      background: var(--ink);
       color: #fff;
     }
+    .pricing-card-topline {
+      display: flex;
+      min-height: 25px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
     .pricing-badge {
-      align-self: flex-start;
-      min-height: 28px;
-      padding: 5px 11px;
+      display: inline-flex;
+      min-height: 25px;
+      align-items: center;
+      padding: 3px 9px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.14);
+      background: #343934;
       color: #fff;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .saving-badge {
+      display: inline-flex;
+      min-height: 25px;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-size: 11px;
       font-weight: 900;
     }
     .pricing-name {
-      font-size: 20px;
-      font-weight: 900;
+      font-size: 15px;
+      font-weight: 800;
     }
     .pricing-price {
-      margin-top: 10px;
-      font-size: clamp(34px, 5vw, 48px);
-      font-weight: 950;
-      letter-spacing: -0.05em;
+      min-height: 50px;
+      margin-top: 6px;
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+    .pricing-price.is-loading {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 50px;
+    }
+    .featured .pricing-price.is-loading { color: #aeb4ac; }
+    .pricing-card-copy { min-width: 0; }
+    .pricing-card-copy:has(.pricing-price.is-loading) {
+      opacity: 0.72;
     }
     .pricing-desc {
-      min-height: 48px;
-      margin: 12px 0 0;
+      min-height: 44px;
+      margin: 8px 0 0;
       color: inherit;
-      font-size: 15px;
-      line-height: 1.6;
-      opacity: 0.68;
+      font-size: 13px;
+      line-height: 1.55;
+      opacity: 0.7;
     }
     .feature-list {
       flex: 1;
       display: grid;
-      gap: 12px;
+      gap: 8px;
       margin: 0;
       padding: 0;
       list-style: none;
     }
     .feature-list li {
       color: inherit;
-      font-size: 15px;
+      font-size: 13px;
       line-height: 1.5;
     }
     .feature-list li::before {
-      content: "✓ ";
+      content: "✓";
+      display: inline-flex;
+      width: 17px;
+      height: 17px;
+      margin-right: 7px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-size: 10px;
       font-weight: 900;
+    }
+    .featured .feature-list li::before {
+      background: var(--accent);
+      color: var(--accent-ink);
     }
     .plan-btn {
       min-height: 48px;
-      background: #1f1f1f;
+      border: 0;
+      border-radius: 6px;
+      background: var(--ink);
       color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
       transition: transform 0.16s ease, opacity 0.16s ease;
     }
     .pricing-card.featured .plan-btn {
-      background: #fff;
-      color: #1f1f1f;
+      background: var(--accent);
+      color: var(--accent-ink);
     }
-    .plan-btn:hover { transform: translateY(-1px); }
+    .plan-btn.checkout-btn {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    .plan-btn:hover { transform: translateY(-2px); }
+    .plan-btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
     .plan-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
-    .note {
-      margin-top: 18px;
+    /* Keep the primary checkout action visually available while local pricing loads. */
+    .checkout-btn:disabled {
+      opacity: 1;
+      background: var(--accent);
+      color: var(--accent-ink);
+      cursor: pointer;
+    }
+    .checkout-note {
+      margin: 14px 0 0;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.6;
+      text-align: center;
     }
     .toast {
       position: fixed;
@@ -5542,63 +6128,61 @@ function getMembershipPricingPageHtml(planType = 'chat') {
       pointer-events: none;
       max-width: min(520px, calc(100vw - 32px));
       padding: 12px 16px;
-      border-radius: 999px;
-      background: #1f1f1f;
+      border-radius: 6px;
+      background: var(--ink);
       color: #fff;
       font-size: 14px;
       font-weight: 800;
       transition: opacity .2s ease, transform .2s ease;
     }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
-    @media (max-width: 760px) {
-      .page { width: min(100% - 28px, 1080px); padding-top: 20px; }
-      .pricing-options { grid-template-columns: 1fr; }
-      .topbar { align-items: stretch; flex-direction: column; }
-      .pricing-card { min-height: auto; padding: 24px; }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 920px) {
+      .page { width: min(100% - 32px, 760px); }
+      .commerce-shell { grid-template-columns: 1fr; gap: 36px; }
+      .purchase-panel {
+        position: static;
+        padding: 34px 0 0;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+      .chat-plan-page .pricing-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .api-plan-page .pricing-options { grid-template-columns: 1fr; }
+      .pricing-card { min-height: 360px; }
+      .chat-plan-page .pricing-card { min-height: 300px; }
+    }
+    @media (max-width: 620px) {
+      .page { width: min(100% - 28px, 760px); padding: 22px 0 36px; }
+      h1 { font-size: 36px; line-height: 1.08; }
+      .value-panel { padding-top: 8px; }
+      .site-showcase { margin-top: 26px; }
+      .site-logo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 10px; }
+      .site-logo-item { min-height: 76px; padding: 8px 4px; }
+      .site-logo-item-tail { grid-column: 2; }
+      .site-logo-frame { width: 40px; height: 40px; }
+      .site-logo-frame img { width: 30px; height: 30px; }
+      .value-map-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .capability-grid { grid-template-columns: 1fr; }
+      .capability-item:nth-child(odd) { margin-right: 0; }
+      .capability-item:nth-child(even) { padding-left: 0; border-left: 0; }
+      .chat-plan-page .pricing-options { grid-template-columns: 1fr; }
+      .pricing-card,
+      .chat-plan-page .pricing-card { min-height: auto; padding: 22px; }
+      .pricing-price { font-size: 34px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .value-panel,
+      .purchase-panel { animation: none; }
+      .plan-btn { transition: none; }
     }
   </style>
 </head>
-<body>
+<body class="${isApiPlan ? 'api-plan-page' : 'chat-plan-page'}">
   <main class="page">
-    <header class="hero">
-      <p class="eyebrow">${isApiPlan ? 'AI Compare Pro' : 'AI Compare Pro'}</p>
-      <h1 id="pricingTitle">${isApiPlan ? 'Choose your API Plan' : 'Choose your Chat Plan'}</h1>
-      <p class="lead" id="pricingDescription" hidden></p>
-      <div class="auth-bar" id="authBar" hidden>
-        <span class="auth-status" id="authStatus"></span>
-      </div>
-    </header>
-
-    <section class="pricing-options" id="pricingOptions" aria-label="${isApiPlan ? 'Choose an API Plan' : 'Choose a Pro plan'}">
-      <article class="pricing-card">
-        <div>
-          <div class="pricing-name" id="monthlyName"></div>
-          <div class="pricing-price" id="monthlyPrice"></div>
-          <p class="pricing-desc" id="monthlyDescription"></p>
-        </div>
-        <ul class="feature-list">
-          <li id="monthlyFeature1"></li>
-          <li id="monthlyFeature2"></li>
-          <li id="monthlyFeature3"></li>
-        </ul>
-        <button class="plan-btn" id="monthlyButton" type="button" data-cycle="monthly"></button>
-      </article>
-
-      <article class="pricing-card featured">
-        <span class="pricing-badge">${isApiPlan ? 'Most Popular' : 'Most Popular'}</span>
-        <div>
-          <div class="pricing-name" id="yearlyName"></div>
-          <div class="pricing-price" id="yearlyPrice"></div>
-          <p class="pricing-desc" id="yearlyDescription"></p>
-        </div>
-        <ul class="feature-list">
-          <li id="yearlyFeature1"></li>
-          <li id="yearlyFeature2"></li>
-          <li id="yearlyFeature3"></li>
-        </ul>
-        <button class="plan-btn" id="yearlyButton" type="button" data-cycle="yearly"></button>
-      </article>
-    </section>
+    ${pageMarkup}
   </main>
 
   <div class="toast" id="toast"></div>
@@ -5607,19 +6191,24 @@ function getMembershipPricingPageHtml(planType = 'chat') {
     window.__AI_COMPARE_FIREBASE_CONFIG__ = ${firebaseConfig};
     window.__AI_COMPARE_PAGE_COPY__ = ${pageCopy};
     window.__AI_COMPARE_PLAN_TYPE__ = ${JSON.stringify(resolvedPlanType)};
+    window.__AI_COMPARE_FUNNEL_ID__ = ${JSON.stringify(PaymentFunnel.normalizeFunnelId(funnelId))};
   </script>
   <script>
     (function () {
       const copy = window.__AI_COMPARE_PAGE_COPY__;
       const planType = window.__AI_COMPARE_PLAN_TYPE__ || 'chat';
+      const funnelId = window.__AI_COMPARE_FUNNEL_ID__ || '';
       const toast = document.getElementById('toast');
       const authStatus = document.getElementById('authStatus');
       const monthlyButton = document.getElementById('monthlyButton');
       const yearlyButton = document.getElementById('yearlyButton');
+      const checkoutButton = document.getElementById('checkoutButton');
+      const billingCycleInputs = Array.from(document.querySelectorAll('input[name="billingCycle"]'));
       const monthlyName = document.getElementById('monthlyName');
       const yearlyName = document.getElementById('yearlyName');
       const monthlyPrice = document.getElementById('monthlyPrice');
       const yearlyPrice = document.getElementById('yearlyPrice');
+      const yearlySavingBadge = document.getElementById('yearlySaving');
       const monthlyDescription = document.getElementById('monthlyDescription');
       const yearlyDescription = document.getElementById('yearlyDescription');
       const monthlyFeature1 = document.getElementById('monthlyFeature1');
@@ -5628,6 +6217,9 @@ function getMembershipPricingPageHtml(planType = 'chat') {
       const yearlyFeature1 = document.getElementById('yearlyFeature1');
       const yearlyFeature2 = document.getElementById('yearlyFeature2');
       const yearlyFeature3 = document.getElementById('yearlyFeature3');
+      const valueFeature1 = document.getElementById('valueFeature1');
+      const valueFeature2 = document.getElementById('valueFeature2');
+      const valueFeature3 = document.getElementById('valueFeature3');
       const pricingTitle = document.getElementById('pricingTitle');
       const pricingDescription = document.getElementById('pricingDescription');
       const pricingOptions = document.getElementById('pricingOptions');
@@ -5636,8 +6228,10 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         : '';
       const pageParams = new URLSearchParams(window.location.search);
       const prefillEmail = String(pageParams.get('prefillEmail') || pageParams.get('email') || '').trim();
+      const funnelSource = String(pageParams.get('utm_source') || pageParams.get('source') || '').slice(0, 80);
       const analyticsClientIdKey = 'ai_compare_pricing_client_id';
       let billingConfig = null;
+      let selectedCycle = billingCycleInputs.find((input) => input.checked)?.value || 'yearly';
 
       function getAnalyticsClientId() {
         try {
@@ -5657,9 +6251,10 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         return [eventName, planType, suffix || '', Date.now(), Math.random().toString(36).slice(2, 8)].join('_');
       }
 
-      function trackPricingEvent(eventName, metadata) {
+      async function trackPricingEvent(eventName, metadata) {
+        const clientEventId = createAnalyticsEventId(eventName, metadata && metadata.cycle);
         try {
-          fetch(apiBasePath + '/api/subscription-funnel-events', {
+          const response = await fetch(apiBasePath + '/api/subscription-funnel-events', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -5667,21 +6262,26 @@ function getMembershipPricingPageHtml(planType = 'chat') {
               'X-AI-Compare-Client-Id': getAnalyticsClientId()
             },
             body: JSON.stringify({
-              clientEventId: createAnalyticsEventId(eventName, metadata && metadata.cycle),
+              clientEventId,
               eventName,
               kind: 'subscription',
               source: 'membership_pricing',
               metadata: {
                 surface: 'membership_pricing',
                 planType,
+                funnelId,
+                funnelSource,
                 billingMode: billingConfig?.mode || '',
                 ...(metadata || {})
               }
             }),
             keepalive: true
-          }).catch(() => null);
+          });
+          const payload = await response.json().catch(() => ({}));
+          return { clientEventId, id: response.ok ? String(payload.id || '') : '' };
         } catch (_) {
           // Analytics must never block checkout.
+          return { clientEventId, id: '' };
         }
       }
 
@@ -5706,15 +6306,51 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         }
       }
 
+      function formatYearlySaving(monthly, yearly) {
+        const monthlyAmount = Number(monthly?.unitAmount);
+        const yearlyAmount = Number(yearly?.unitAmount);
+        const monthlyIntervalCount = Number(monthly?.intervalCount || 1);
+        const yearlyIntervalCount = Number(yearly?.intervalCount || 1);
+        const sameCurrency = String(monthly?.currency || '').toLowerCase()
+          === String(yearly?.currency || '').toLowerCase();
+        if (
+          !Number.isFinite(monthlyAmount)
+          || !Number.isFinite(yearlyAmount)
+          || monthlyAmount <= 0
+          || yearlyAmount < 0
+          || monthlyIntervalCount <= 0
+          || yearlyIntervalCount <= 0
+          || String(monthly?.interval || '').toLowerCase() !== 'month'
+          || String(yearly?.interval || '').toLowerCase() !== 'year'
+          || !sameCurrency
+        ) return '';
+        const monthlyEquivalent = monthlyAmount * (12 / monthlyIntervalCount) * yearlyIntervalCount;
+        if (!Number.isFinite(monthlyEquivalent) || monthlyEquivalent <= 0) return '';
+        const savingPercent = ((monthlyEquivalent - yearlyAmount) / monthlyEquivalent) * 100;
+        if (!Number.isFinite(savingPercent) || savingPercent <= 0) return '';
+        const rounded = Math.round(savingPercent * 10) / 10;
+        const percentText = String(Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + '%';
+        const template = String(copy.yearlySaving || '').trim();
+        return template.replace(/[0-9]+(?:[.,][0-9]+)?\s*%/, percentText) || percentText;
+      }
+
       function updateCheckoutUi() {
         const authBar = document.getElementById('authBar');
         const descriptionText = String(copy.description || '').trim();
         const loginHintText = String(copy.loginHint || '').trim();
-        pricingDescription.hidden = !descriptionText;
+        if (pricingDescription) pricingDescription.hidden = !descriptionText;
         authBar.hidden = !loginHintText;
         authStatus.textContent = loginHintText;
-        monthlyButton.disabled = false;
-        yearlyButton.disabled = false;
+        if (monthlyButton) monthlyButton.disabled = !billingConfig;
+        if (yearlyButton) yearlyButton.disabled = !billingConfig;
+        if (checkoutButton) checkoutButton.disabled = !billingConfig;
+      }
+
+      function updateSelectedCycle(cycle) {
+        selectedCycle = cycle === 'monthly' ? 'monthly' : 'yearly';
+        if (checkoutButton) {
+          checkoutButton.textContent = copy.upgradeCta || 'Upgrade';
+        }
       }
 
       function applyBillingData() {
@@ -5724,32 +6360,64 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         const planLabel = planType === 'api' ? 'API Plan' : 'Chat Plan';
 
         pricingTitle.textContent = copy.title;
-        pricingDescription.textContent = copy.description || '';
+        if (pricingDescription) pricingDescription.textContent = copy.description || '';
         monthlyName.hidden = !String(copy.monthlyName || '').trim();
         yearlyName.hidden = !String(copy.yearlyName || '').trim();
         monthlyName.textContent = copy.monthlyName;
         yearlyName.textContent = copy.yearlyName;
         monthlyPrice.textContent = formatPrice(monthly, planType === 'api' ? 'HK$10 / month' : '$4.99 / month');
         yearlyPrice.textContent = formatPrice(yearly, planType === 'api' ? 'HK$100 / year' : '$39.99 / year');
-        monthlyDescription.textContent = copy.monthlyDesc;
-        yearlyDescription.textContent = copy.yearlyDesc;
-        monthlyFeature1.textContent = copy.feature1;
-        monthlyFeature2.textContent = copy.feature2;
-        monthlyFeature3.hidden = !String(copy.feature3 || '').trim();
-        monthlyFeature3.textContent = copy.feature3 || '';
-        yearlyFeature1.textContent = copy.feature1;
-        yearlyFeature2.textContent = copy.feature2;
-        yearlyFeature3.hidden = !String(copy.feature3 || '').trim();
-        yearlyFeature3.textContent = copy.feature3 || '';
-        monthlyButton.textContent = copy.monthlyCta;
-        yearlyButton.textContent = copy.yearlyCta;
-        pricingOptions.setAttribute('aria-label', planLabel);
+        if (yearlySavingBadge) {
+          const savingText = planType === 'chat' ? formatYearlySaving(monthly, yearly) : '';
+          yearlySavingBadge.textContent = savingText;
+          yearlySavingBadge.hidden = !savingText;
+        }
+        monthlyPrice.classList.remove('is-loading');
+        yearlyPrice.classList.remove('is-loading');
+        if (monthlyDescription) monthlyDescription.textContent = copy.monthlyDesc;
+        if (yearlyDescription) yearlyDescription.textContent = copy.yearlyDesc;
+        if (monthlyFeature1) monthlyFeature1.textContent = copy.feature1;
+        if (monthlyFeature2) monthlyFeature2.textContent = copy.feature2;
+        if (monthlyFeature3) {
+          monthlyFeature3.hidden = !String(copy.feature3 || '').trim();
+          monthlyFeature3.textContent = copy.feature3 || '';
+        }
+        if (yearlyFeature1) yearlyFeature1.textContent = copy.feature1;
+        if (yearlyFeature2) yearlyFeature2.textContent = copy.feature2;
+        if (yearlyFeature3) {
+          yearlyFeature3.hidden = !String(copy.feature3 || '').trim();
+          yearlyFeature3.textContent = copy.feature3 || '';
+        }
+        if (valueFeature1) valueFeature1.textContent = copy.feature1;
+        if (valueFeature2) valueFeature2.textContent = copy.feature2;
+        if (valueFeature3) {
+          valueFeature3.hidden = !String(copy.feature3 || '').trim();
+          valueFeature3.textContent = copy.feature3 || '';
+        }
+        if (monthlyButton) {
+          monthlyButton.textContent = copy.monthlyCta;
+          monthlyButton.disabled = false;
+        }
+        if (yearlyButton) {
+          yearlyButton.textContent = copy.yearlyCta;
+          yearlyButton.disabled = false;
+        }
+        if (checkoutButton) {
+          updateSelectedCycle(selectedCycle);
+          checkoutButton.disabled = false;
+        }
+        pricingOptions.setAttribute('aria-label', copy.planLabel || planLabel);
       }
 
       async function loadBillingConfig() {
         try {
           const response = await fetch(apiBasePath + '/billingConfig', { cache: 'no-store' });
-          billingConfig = await response.json();
+          if (!response.ok) throw new Error(copy.error);
+          const payload = await response.json();
+          if (!payload || typeof payload !== 'object' || !payload.priceDetails) {
+            throw new Error(copy.error);
+          }
+          billingConfig = payload;
           applyBillingData();
         } catch (error) {
           console.warn('Failed to load billing config:', error);
@@ -5758,22 +6426,30 @@ function getMembershipPricingPageHtml(planType = 'chat') {
       }
 
       async function startCheckout(cycle) {
-        trackPricingEvent('pricing_plan_selected', { cycle });
+        const selectionResult = await trackPricingEvent('pricing_plan_selected', { cycle });
         try {
           const detail = billingConfig?.priceDetails?.[planType]?.[cycle];
           const priceId = detail?.priceId || billingConfig?.prices?.[planType]?.[cycle];
           if (!priceId) throw new Error('Price is not configured yet.');
-          const button = cycle === 'yearly' ? yearlyButton : monthlyButton;
+          const button = checkoutButton || (cycle === 'yearly' ? yearlyButton : monthlyButton);
           button.disabled = true;
           button.textContent = 'Opening Stripe…';
           const response = await fetch(apiBasePath + '/createCheckoutSession', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'X-AI-Compare-Client-Id': getAnalyticsClientId()
             },
             body: JSON.stringify({
               priceId,
               planType,
+              funnelId,
+              funnelSource,
+              selectionEventId: selectionResult.id,
+              selectionClientEventId: selectionResult.clientEventId,
+              ...(window.promotekit_referral
+                ? { promotekitReferral: String(window.promotekit_referral).trim() }
+                : {}),
               ...(prefillEmail ? { prefillEmail } : {})
             })
           });
@@ -5792,12 +6468,21 @@ function getMembershipPricingPageHtml(planType = 'chat') {
         }
       }
 
-      monthlyButton.addEventListener('click', () => startCheckout('monthly'));
-      yearlyButton.addEventListener('click', () => startCheckout('yearly'));
+      if (checkoutButton) {
+        billingCycleInputs.forEach((input) => {
+          input.addEventListener('change', () => {
+            if (input.checked) updateSelectedCycle(input.value);
+          });
+        });
+        checkoutButton.addEventListener('click', () => startCheckout(selectedCycle));
+      } else {
+        monthlyButton.addEventListener('click', () => startCheckout('monthly'));
+        yearlyButton.addEventListener('click', () => startCheckout('yearly'));
+      }
 
       updateCheckoutUi();
       trackPricingEvent('pricing_page_opened', {
-        trigger: String(pageParams.get('utm_source') || pageParams.get('source') || '').slice(0, 80)
+        trigger: funnelSource
       });
       loadBillingConfig();
     })();
@@ -6288,6 +6973,51 @@ function getPaymentCancelPageHtml() {
       <p class="fine-print">If you closed Stripe intentionally, nothing has changed on your account. You can reopen the Pro page in the extension and subscribe again at any time.</p>
     </section>
   </main>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const planType = params.get('planType') === 'api' ? 'api' : 'chat';
+      const resolvedFunnelId = /^[A-Za-z0-9_-]{8,120}$/.test(params.get('funnelId') || '')
+        ? params.get('funnelId')
+        : '';
+      const storageKey = 'ai_compare_checkout_cancel_tracked_' + [planType, resolvedFunnelId, params.get('selectionEventId') || ''].join('_');
+      try {
+        if (sessionStorage.getItem(storageKey)) return;
+        sessionStorage.setItem(storageKey, '1');
+      } catch (_) {}
+      const clientId = (() => {
+        try {
+          const key = 'ai_compare_pricing_client_id';
+          const existing = localStorage.getItem(key);
+          if (existing) return existing;
+          const next = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'cancel_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+          localStorage.setItem(key, next);
+          return next;
+        } catch (_) {
+          return 'cancel_' + Date.now();
+        }
+      })();
+      fetch('/api/subscription-funnel-events', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json', 'X-AI-Compare-Client-Id': clientId },
+        body: JSON.stringify({
+          eventName: 'checkout_canceled',
+          kind: 'subscription',
+          source: 'payment_cancel_page',
+          metadata: {
+            surface: 'payment_cancel_page',
+            planType,
+            funnelId: resolvedFunnelId,
+            funnelSource: String(params.get('source') || '').slice(0, 80),
+            selectionEventId: String(params.get('selectionEventId') || '').slice(0, 120)
+          }
+        })
+      }).catch(() => {});
+    })();
+  </script>
 </body>
 </html>`;
 }
@@ -7904,6 +8634,7 @@ function buildMembershipSnapshot(userDirectory) {
   const threshold30d = nowSeconds - 30 * 24 * 60 * 60;
 
   for (const user of users) {
+    if (PaymentFunnel.isTestIdentity({ uid: user.uid, email: user.email })) continue;
     if (!user.stripeCustomerId && !user.stripeSubscriptionId && user.plan !== 'pro') {
       continue;
     }
@@ -7957,15 +8688,36 @@ function buildStripeIndexes(userDirectory, invoices, subscriptions) {
   return { usersByCustomerId, usersBySubscriptionId, subscriptionsById, subscriptionsByCustomerId, invoicesByCustomerId };
 }
 
-function computeInvoiceRevenue(invoices) {
+function getInvoiceBusinessIdentity(invoice = {}, indexes = {}) {
+  const customerId = String(invoice.customer || '').trim();
+  const user = customerId ? indexes.usersByCustomerId?.get(customerId) : null;
+  return {
+    uid: String(user?.uid || invoice.metadata?.firebaseUid || ''),
+    email: String(user?.email || invoice.customer_email || invoice.customer_details?.email || '')
+  };
+}
+
+function getInvoiceBusinessExclusionReasons(invoice = {}, indexes = {}) {
+  return PaymentFunnel.getBusinessInvoiceExclusionReasons({
+    invoice,
+    identity: getInvoiceBusinessIdentity(invoice, indexes)
+  });
+}
+
+function computeInvoiceRevenue(invoices, indexes = {}) {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const threshold7d = nowSeconds - 7 * 24 * 60 * 60;
   const threshold30d = nowSeconds - 30 * 24 * 60 * 60;
   let revenue7d = 0;
   let revenue30d = 0;
   let currency = 'usd';
+  let excludedPaidOrders = 0;
   for (const invoice of invoices) {
-    if (!invoice.paid) continue;
+    const exclusionReasons = getInvoiceBusinessExclusionReasons(invoice, indexes);
+    if (exclusionReasons.length) {
+      if (invoice.paid && Number(invoice.created || 0) >= threshold30d) excludedPaidOrders += 1;
+      continue;
+    }
     const createdSeconds = Number(invoice.created || 0);
     const amountPaid = Number(invoice.amount_paid || 0);
     if (!createdSeconds || !amountPaid) continue;
@@ -7977,10 +8729,47 @@ function computeInvoiceRevenue(invoices) {
       revenue7d += amountPaid;
     }
   }
-  return { revenue7d, revenue30d, currency };
+  return { revenue7d, revenue30d, currency, excludedPaidOrders };
 }
 
-function buildInvoiceTrend(invoices, dateKeys) {
+function buildActiveProInvoiceDiagnostics(userDirectory, indexes = {}) {
+  const result = {
+    chat: { activePro: 0, eligiblePaidUsers: 0, gap: 0, reasons: {} },
+    api: { activePro: 0, eligiblePaidUsers: 0, gap: 0, reasons: {} }
+  };
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  for (const user of userDirectory.values()) {
+    if (PaymentFunnel.isTestIdentity({ uid: user.uid, email: user.email })) continue;
+    const plans = [
+      { key: 'chat', plan: user.plan, expiresAt: user.planExpiresAt },
+      { key: 'api', plan: user.apiPlan, expiresAt: user.apiPlanExpiresAt }
+    ];
+    for (const entry of plans) {
+      const expiresAt = getTimestampSeconds(entry.expiresAt);
+      if (entry.plan !== 'pro' || (expiresAt > 0 && expiresAt <= nowSeconds)) continue;
+      const bucket = result[entry.key];
+      bucket.activePro += 1;
+      const invoices = user.stripeCustomerId
+        ? (indexes.invoicesByCustomerId?.get(user.stripeCustomerId) || [])
+        : [];
+      const eligible = invoices.some((invoice) => getInvoiceBusinessExclusionReasons(invoice, indexes).length === 0);
+      if (eligible) {
+        bucket.eligiblePaidUsers += 1;
+        continue;
+      }
+      let reason = 'missing_paid_invoice';
+      if (!invoices.length) reason = 'missing_invoice';
+      else if (invoices.every((invoice) => Number(invoice.amount_paid || 0) <= 0)) reason = 'zero_amount_invoice';
+      else if (invoices.every((invoice) => invoice.paid !== true)) reason = 'unpaid_invoice';
+      else if (!user.stripeCustomerId) reason = 'subscription_without_customer';
+      bucket.reasons[reason] = (bucket.reasons[reason] || 0) + 1;
+    }
+  }
+  Object.values(result).forEach((bucket) => { bucket.gap = Math.max(0, bucket.activePro - bucket.eligiblePaidUsers); });
+  return result;
+}
+
+function buildInvoiceTrend(invoices, dateKeys, indexes = {}) {
   const trend = new Map();
   dateKeys.forEach((dateKey) => {
     trend.set(dateKey, {
@@ -7993,6 +8782,7 @@ function buildInvoiceTrend(invoices, dateKeys) {
   });
 
   for (const invoice of invoices) {
+    if (getInvoiceBusinessExclusionReasons(invoice, indexes).length) continue;
     const createdSeconds = Number(invoice.created || 0);
     if (!createdSeconds) continue;
     const dateKey = getDateKey(createdSeconds * 1000);
@@ -8012,8 +8802,11 @@ function buildInvoiceTrend(invoices, dateKeys) {
   return trend;
 }
 
-function applyCancellationTrend(subscriptions, trend) {
+function applyCancellationTrend(subscriptions, trend, indexes = {}) {
   for (const subscription of subscriptions) {
+    const customerId = String(subscription.customer || '').trim();
+    const user = customerId ? indexes.usersByCustomerId?.get(customerId) : null;
+    if (PaymentFunnel.isTestIdentity({ uid: user?.uid, email: user?.email }, subscription.metadata || {})) continue;
     const canceledAt = Number(subscription.canceled_at || 0);
     if (!canceledAt) continue;
     const dateKey = getDateKey(canceledAt * 1000);
@@ -8030,17 +8823,24 @@ async function getOrderSummaryData() {
   ]);
 
   const membership = buildMembershipSnapshot(userDirectory);
-  const revenue = computeInvoiceRevenue(invoices);
+  const indexes = buildStripeIndexes(userDirectory, invoices, subscriptions);
+  const revenue = computeInvoiceRevenue(invoices, indexes);
+  const activeProInvoiceDiagnostics = buildActiveProInvoiceDiagnostics(userDirectory, indexes);
   const nowSeconds = Math.floor(Date.now() / 1000);
   const thirtyDayThreshold = nowSeconds - 30 * 24 * 60 * 60;
-  const thirtyDayPaidOrders = invoices.filter((invoice) => invoice.paid && Number(invoice.created || 0) >= thirtyDayThreshold).length;
+  const thirtyDayPaidOrders = invoices.filter((invoice) => (
+    Number(invoice.created || 0) >= thirtyDayThreshold
+    && getInvoiceBusinessExclusionReasons(invoice, indexes).length === 0
+  )).length;
 
   return {
     ...membership,
     thirtyDayPaidOrders,
+    excludedPaidOrders: revenue.excludedPaidOrders,
     revenue7d: revenue.revenue7d,
     revenue30d: revenue.revenue30d,
-    currency: revenue.currency
+    currency: revenue.currency,
+    activeProInvoiceDiagnostics
   };
 }
 
@@ -8078,6 +8878,9 @@ async function getOrderListData(req) {
     }
     if (dateKey && !isDateKeyInRange(dateKey, dateFrom, dateTo)) continue;
 
+    const businessExclusionReasons = latestInvoice
+      ? getInvoiceBusinessExclusionReasons(latestInvoice, indexes)
+      : ['missing_invoice'];
     rows.push({
       uid: user.uid,
       email: user.email,
@@ -8093,7 +8896,9 @@ async function getOrderListData(req) {
       amountDue: Number(latestInvoice?.amount_due || 0),
       currency: String(latestInvoice?.currency || subscription?.items?.data?.[0]?.price?.currency || 'usd'),
       invoiceCreatedAt,
-      hostedInvoiceUrl: String(latestInvoice?.hosted_invoice_url || '')
+      hostedInvoiceUrl: String(latestInvoice?.hosted_invoice_url || ''),
+      businessEligible: businessExclusionReasons.length === 0,
+      businessExclusionReasons
     });
   }
 
@@ -8119,12 +8924,14 @@ async function getOrderListData(req) {
 async function getOrderTrendData(req) {
   const days = clamp(parseInteger(req.query?.days, 30), 1, 90);
   const dateKeys = getRecentDateKeys(days);
-  const [invoices, subscriptions] = await Promise.all([
+  const [userDirectory, invoices, subscriptions] = await Promise.all([
+    getUserDirectory(),
     listStripeInvoices({ maxPages: 10 }),
     listStripeSubscriptions({ maxPages: 10 })
   ]);
-  const trend = buildInvoiceTrend(invoices, dateKeys);
-  applyCancellationTrend(subscriptions, trend);
+  const indexes = buildStripeIndexes(userDirectory, invoices, subscriptions);
+  const trend = buildInvoiceTrend(invoices, dateKeys, indexes);
+  applyCancellationTrend(subscriptions, trend, indexes);
   const currency = String(invoices[0]?.currency || subscriptions[0]?.items?.data?.[0]?.price?.currency || 'usd');
   return {
     currency,
@@ -8926,6 +9733,7 @@ function getFeatureUsageType(row = {}) {
     homepage_site_toggle: '首页站点选择',
     iframe_search_submit: '对比页提交搜索',
     query_result_loaded: '查询结果加载',
+    homepage_result_seen: '首页看到结果',
     homepage_search_submit: '首页提交搜索',
     homepage_agent_toggle: '首页Agent选择',
     iframe_upload_click: '上传文件',
@@ -8946,6 +9754,7 @@ function getFeatureUsageType(row = {}) {
     activation_site_selected: '首次选择站点',
     activation_first_query_submitted: '首次提交问题',
     activation_first_result_seen: '首次看到结果',
+    activation_first_content_result_seen: '首次看到结果',
     anonymous_official_api_limit_reached: '匿名官方API额度触达',
     official_api_limit_reached: '官方API额度触达',
     official_api_quota_reached: '官方API额度触达',
@@ -10307,11 +11116,14 @@ async function getGrowthSummaryData() {
 
 async function getBusinessCostSummaryData() {
   const dateKeys = getRecentDateKeys(7);
-  const [subscriptionRows, apiRows, orderSummary, usageSummary] = await Promise.all([
+  const [subscriptionRows, apiRows, orderSummary, usageSummary, userDirectory, invoices, subscriptions] = await Promise.all([
     listAnalyticsEvents('subscription', dateKeys),
     listOfficialApiEvents(dateKeys),
     getOrderSummaryData(),
-    getCombinedUsageSummaryData()
+    getCombinedUsageSummaryData(),
+    getUserDirectory(),
+    listStripeInvoices({ maxPages: 6 }),
+    listStripeSubscriptions({ maxPages: 6 })
   ]);
   const tokenByIdentity = new Map();
   const costByIdentity = new Map();
@@ -10329,11 +11141,29 @@ async function getBusinessCostSummaryData() {
   }));
   const isAnyCheckoutStarted = (eventName = '') => eventName === 'checkout_started' || eventName.endsWith('_checkout_started');
   const isAnyCheckoutSuccess = (eventName = '') => eventName === 'checkout_success' || eventName.endsWith('_checkout_success');
+  const isCheckoutFunnelEvent = (eventName = '') => isAnyCheckoutStarted(eventName) || isAnyCheckoutSuccess(eventName);
+  const getCheckoutExclusionReasons = (row = {}) => PaymentFunnel.getBusinessCheckoutExclusionReasons({
+    ...row,
+    email: row.uid ? String(userDirectory.get(row.uid)?.email || '') : ''
+  });
+  const businessFunnelRows = normalizedSubscriptionRows.filter((row) => (
+    !isCheckoutFunnelEvent(row.eventName) || getCheckoutExclusionReasons(row).length === 0
+  ));
+  const excludedCheckoutStarted = normalizedSubscriptionRows.filter((row) => (
+    isAnyCheckoutStarted(row.eventName) && getCheckoutExclusionReasons(row).length > 0
+  )).length;
+  const excludedCheckoutSuccess = normalizedSubscriptionRows.filter((row) => (
+    isAnyCheckoutSuccess(row.eventName) && getCheckoutExclusionReasons(row).length > 0
+  )).length;
+  const orderIndexes = buildStripeIndexes(userDirectory, invoices, subscriptions);
+  const activeProInvoiceDiagnostics = buildActiveProInvoiceDiagnostics(userDirectory, orderIndexes);
   return {
     summary: {
       limitReached: normalizedSubscriptionRows.filter((row) => row.eventName.includes('limit_reached')).length,
-      checkoutStarted: normalizedSubscriptionRows.filter((row) => isAnyCheckoutStarted(row.eventName)).length,
-      checkoutSuccess: normalizedSubscriptionRows.filter((row) => isAnyCheckoutSuccess(row.eventName)).length,
+      checkoutStarted: businessFunnelRows.filter((row) => isAnyCheckoutStarted(row.eventName)).length,
+      checkoutSuccess: businessFunnelRows.filter((row) => isAnyCheckoutSuccess(row.eventName)).length,
+      excludedCheckoutStarted,
+      excludedCheckoutSuccess,
       activeProUsers: orderSummary.activeProUsers,
       revenue7d: orderSummary.revenue7d,
       revenue30d: orderSummary.revenue30d,
@@ -10342,7 +11172,8 @@ async function getBusinessCostSummaryData() {
       totalTokens: usageSummary.last7Days.totalTokens,
       estimatedCost: usageSummary.last7Days.estimatedCost,
       costCurrency: usageSummary.last7Days.currency,
-      costPerActiveIdentity: roundCost(usageSummary.last7Days.estimatedCost / Math.max(1, usageSummary.last7Days.activeUsers + usageSummary.last7Days.activeAnonymousClients))
+      costPerActiveIdentity: roundCost(usageSummary.last7Days.estimatedCost / Math.max(1, usageSummary.last7Days.activeUsers + usageSummary.last7Days.activeAnonymousClients)),
+      activeProInvoiceDiagnostics
     },
     tokenDistribution: {
       p50: Math.round(percentile(tokenValues, 0.5)),
@@ -10354,8 +11185,8 @@ async function getBusinessCostSummaryData() {
       p90: roundCost(percentile(costValues, 0.9)),
       p99: roundCost(percentile(costValues, 0.99))
     },
-    funnelEvents: rankAnalyticsEvents(normalizedSubscriptionRows, 20),
-    recentFunnelEvents: normalizedSubscriptionRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50)
+    funnelEvents: rankAnalyticsEvents(businessFunnelRows, 20),
+    recentFunnelEvents: businessFunnelRows.sort((left, right) => (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0)).slice(0, 50)
   };
 }
 
@@ -10856,6 +11687,8 @@ app.get(['/membership-pricing', '/membership-pricing.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const requestedPlanType = String(req.query?.planType || req.query?.plan || '').trim().toLowerCase();
   const planType = requestedPlanType === 'api' ? 'api' : 'chat';
+  const funnelId = PaymentFunnel.normalizeFunnelId(req.query?.funnelId || '')
+    || PaymentFunnel.createFunnelId(crypto.randomUUID?.() || '');
   const requestedBillingMode = String(req.query?.billingMode || req.query?.mode || '').trim().toLowerCase();
   if (requestedBillingMode === 'test' && billingMode !== 'test') {
     const redirectUrl = new URL(req.originalUrl || req.path, 'https://aicompare.club');
@@ -10872,7 +11705,13 @@ app.get(['/membership-pricing', '/membership-pricing.html'], (req, res) => {
     res.redirect(302, `${redirectUrl.pathname}${redirectUrl.search}`);
     return;
   }
-  res.send(getMembershipPricingPageHtml(planType));
+  const requestedLocale = String(
+    req.query?.locale
+      || req.query?.lang
+      || req.headers['accept-language']
+      || 'en'
+  ).split(',')[0].trim();
+  res.send(getMembershipPricingPageHtml(planType, funnelId, requestedLocale));
 });
 
 app.get('/payment-status', asyncRoute(async (req, res) => {
@@ -11372,26 +12211,64 @@ app.post('/createCheckoutSession', asyncRoute(async (req, res) => {
   }
   const planType = pricePlanType;
   const prefillEmail = normalizeBillingEmail(req.body?.prefillEmail || req.body?.customerEmail || '');
+  const promotekitReferral = normalizePromoteKitReferral(
+    req.body?.promotekitReferral || req.body?.promotekit_referral || req.body?.referral || ''
+  );
+  const funnelId = PaymentFunnel.normalizeFunnelId(req.body?.funnelId || '');
+  const selectionEventId = safeLogString(req.body?.selectionEventId || '', 120);
+  const selectionClientEventId = safeLogString(req.body?.selectionClientEventId || '', 120);
+  const funnelSource = safeLogString(req.body?.funnelSource || req.body?.source || '', 80);
+  const anonymousClientId = getAnonymousClientId(req);
+  const clientHash = anonymousClientId ? getAnonymousUsageDocId(anonymousClientId) : '';
+  const selectionVerification = await verifyPricingSelectionForCheckout({
+    selectionEventId,
+    selectionClientEventId,
+    funnelId,
+    planType,
+    uid: user?.uid || '',
+    clientHash
+  });
+  const funnelMetadata = {
+    ...(funnelId ? { funnelId } : {}),
+    ...(selectionEventId ? { selectionEventId } : {}),
+    ...(funnelSource ? { funnelSource } : {}),
+    ...(clientHash ? { clientHash } : {}),
+    selectionVerified: selectionVerification.verified ? 'true' : 'false'
+  };
 
   const session = user?.uid
     ? await createCheckoutSessionForFirebaseUser({
       firebaseUser: user,
       priceId,
-      planType
+      planType,
+      promotekitReferral,
+      funnelMetadata
     })
     : await createCheckoutSessionForAnonymousClient({
       priceId,
       planType,
-      prefillEmail
+      prefillEmail,
+      promotekitReferral,
+      funnelMetadata
     });
   recordInternalAnalyticsEvent({
     kind: 'subscription',
     eventName: 'checkout_started',
     uid: user?.uid || '',
-    clientHash: '',
+    clientHash,
     uploaderType: user?.uid ? 'user' : 'anonymous',
     source: 'backend',
-    metadata: { priceId, planType, billingMode }
+    metadata: {
+      priceId,
+      planType,
+      billingMode,
+      hasPromoteKitReferral: Boolean(promotekitReferral),
+      funnelId,
+      funnelSource,
+      selectionEventId,
+      selectionVerified: selectionVerification.verified,
+      selectionVerificationReason: selectionVerification.reason
+    }
   }).catch(() => null);
 
   res.json({ url: session.url });
@@ -11548,6 +12425,27 @@ async function updateUserFromSubscription(subscription, options = {}) {
   return { uid, customerEmail };
 }
 
+function recordCheckoutLifecycleEvent({ eventName, session = {}, uid = '', clientHash = '', extraMetadata = {} } = {}) {
+  const metadata = session.metadata || {};
+  return recordInternalAnalyticsEvent({
+    kind: 'subscription',
+    eventName,
+    uid,
+    clientHash,
+    uploaderType: uid ? 'user' : 'anonymous',
+    source: 'stripe_webhook',
+    metadata: {
+      planType: String(metadata.planType || '').trim(),
+      funnelId: String(metadata.funnelId || ''),
+      funnelSource: String(metadata.funnelSource || ''),
+      selectionEventId: String(metadata.selectionEventId || ''),
+      selectionVerified: String(metadata.selectionVerified || '') === 'true',
+      billingMode,
+      ...extraMetadata
+    }
+  }).catch(() => null);
+}
+
 app.post('/stripeWebhook', asyncRoute(async (req, res) => {
   requireFirebaseAdmin();
   const webhookSecret = String(process.env.STRIPE_WEBHOOK_SECRET || '').trim();
@@ -11575,28 +12473,66 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
       });
       uid = String(firebaseUser?.uid || '').trim();
     }
-    if (uid) {
-      recordInternalAnalyticsEvent({
-        kind: 'subscription',
-        eventName: 'checkout_success',
+    const sessionClientHash = String(session.metadata?.clientHash || '').trim();
+    const paymentSucceeded = String(session.payment_status || '').trim() === 'paid';
+    if (uid || sessionClientHash) {
+      recordCheckoutLifecycleEvent({
+        eventName: paymentSucceeded ? 'checkout_success' : 'checkout_payment_failed',
+        session,
         uid,
-        clientHash: '',
-        uploaderType: 'user',
-        source: 'stripe_webhook',
-        metadata: {
+        clientHash: sessionClientHash,
+        extraMetadata: {
           customer: session.customer || '',
           subscription: session.subscription || '',
           stripeCustomerEmail: sessionEmail,
-          planType: String(session.metadata?.planType || '').trim(),
           amountTotal: session.amount_total || 0,
           currency: session.currency || '',
-          billingMode
+          paymentStatus: String(session.payment_status || ''),
+          checkoutStatus: String(session.status || '')
         }
-      }).catch(() => null);
+      });
     }
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription);
       await updateUserFromSubscription(subscription, { checkoutEmail: sessionEmail });
+    }
+  }
+
+  if (event.type === 'checkout.session.expired') {
+    const session = event.data.object;
+    const uid = String(session.metadata?.firebaseUid || '').trim();
+    const clientHash = String(session.metadata?.clientHash || '').trim();
+    if (uid || clientHash) {
+      recordCheckoutLifecycleEvent({
+        eventName: 'checkout_expired',
+        session,
+        uid,
+        clientHash,
+        extraMetadata: {
+          customer: session.customer || '',
+          checkoutStatus: String(session.status || 'expired'),
+          paymentStatus: String(session.payment_status || '')
+        }
+      });
+    }
+  }
+
+  if (event.type === 'checkout.session.async_payment_failed') {
+    const session = event.data.object;
+    const uid = String(session.metadata?.firebaseUid || '').trim();
+    const clientHash = String(session.metadata?.clientHash || '').trim();
+    if (uid || clientHash) {
+      recordCheckoutLifecycleEvent({
+        eventName: 'checkout_payment_failed',
+        session,
+        uid,
+        clientHash,
+        extraMetadata: {
+          customer: session.customer || '',
+          checkoutStatus: String(session.status || ''),
+          paymentStatus: String(session.payment_status || 'failed')
+        }
+      });
     }
   }
 

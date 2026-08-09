@@ -2780,6 +2780,21 @@
   "liveSummaryAnalyzeFailed": {
     "message": "Failed to open the analysis page. Please try again."
   },
+  "membershipPricingValueSupportSidebar": {
+    "message": "Support sidebar"
+  },
+  "membershipPricingValueDataSync": {
+    "message": "Data sync"
+  },
+  "membershipPricingValuePromptTemplates": {
+    "message": "Prompt templates"
+  },
+  "membershipPricingMoreFeatures": {
+    "message": "More features"
+  },
+  "membershipPricingUpgrade": {
+    "message": "Upgrade"
+  },
   "membershipPricingTitle": {
     "message": "Choose your Pro plan"
   },
@@ -3289,5 +3304,8 @@
   },
   "chatPlanQuotaOverlayButton": {
     "message": "Upgrade Chat Plan"
+  },
+  "membershipPricingChatTitle": {
+    "message": "Unlock unlimited multi-AI comparisons"
   }
 }

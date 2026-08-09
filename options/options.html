@@ -490,7 +490,14 @@
         <section id="membership" class="settings-section">
           <h1 data-i18n="settingsNavProTitle">Account</h1>
 
-          <div id="membershipStatusCard" class="membership-status-card membership-account-card" hidden>
+          <div id="membershipStatusCard" class="membership-status-card membership-account-card" data-auth-state="pending" aria-busy="true">
+            <div class="membership-account-pending" aria-hidden="true">
+              <span class="membership-account-pending-avatar"></span>
+              <span class="membership-account-pending-copy">
+                <span class="membership-account-pending-line membership-account-pending-line-primary"></span>
+                <span class="membership-account-pending-line membership-account-pending-line-secondary"></span>
+              </span>
+            </div>
             <div class="membership-status-inner membership-account-inner">
               <div class="membership-account-main">
                 <div id="membershipAvatar" class="membership-account-avatar" aria-hidden="true" hidden>
@@ -764,6 +771,7 @@
   <script src="../firebase/firebase-auth.js"></script>
   <script src="../shared/prompt-template-utils.js"></script>
   <script src="../shared/runtime-i18n.js"></script>
+  <script src="../shared/payment-funnel.js"></script>
   <script src="../firebase/stripe-payment.js"></script>
   <script src="options.js"></script>
 </body>

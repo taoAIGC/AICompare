@@ -62,6 +62,25 @@ html, body {
     color: #a33333;
 }
 
+.agent-api-plan-upgrade {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 6px;
+    background: #111111;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.agent-api-plan-upgrade:hover,
+.agent-api-plan-upgrade:focus-visible {
+    background: #2b2b2b;
+    outline: 2px solid rgba(17, 17, 17, 0.22);
+    outline-offset: 2px;
+}
+
 .agent-markdown > :first-child {
     margin-top: 0;
 }

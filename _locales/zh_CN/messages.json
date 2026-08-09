@@ -2781,6 +2781,21 @@
   "membershipPricingDescription": {
     "message": "选择月付或年付后，登录账号并通过 Stripe 安全完成付款。"
   },
+  "membershipPricingValueSupportSidebar": {
+    "message": "支持侧边栏"
+  },
+  "membershipPricingValueDataSync": {
+    "message": "数据同步"
+  },
+  "membershipPricingValuePromptTemplates": {
+    "message": "提示词模板"
+  },
+  "membershipPricingMoreFeatures": {
+    "message": "更多功能"
+  },
+  "membershipPricingUpgrade": {
+    "message": "升级"
+  },
   "membershipPricingOptionsAriaLabel": {
     "message": "选择 Pro 付费方案"
   },
@@ -3284,5 +3299,8 @@
   },
   "chatPlanQuotaOverlayButton": {
     "message": "升级 Chat Plan"
+  },
+  "membershipPricingChatTitle": {
+    "message": "解锁无限次的多AI对比"
   }
 }

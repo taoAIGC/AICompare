@@ -573,7 +573,11 @@ async function firebaseSendEmailSignInLink(email) {
     throw new Error(getFirebaseAuthMessage('membershipEmailRequired', 'Please enter your email address.'));
   }
   const data = await fetchFirebaseAuthBackendJson('/auth/email-code/send', {
-    email: normalizedEmail
+    email: normalizedEmail,
+    locale: window.RuntimeI18n?.getCurrentLocale?.()
+      || chrome?.i18n?.getUILanguage?.()
+      || navigator.language
+      || 'en'
   });
   return { email: data.email || normalizedEmail };
 }

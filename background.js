@@ -3,6 +3,7 @@ importScripts(
   './shared/failure-log-sync.js',
   './shared/site-launch-utils.js',
   './shared/behavior-insights.js',
+  './shared/payment-funnel.js',
   './config/agentCatalogData.js',
   './config/agentCatalog.js',
   './config/agentEngineConfig.js',
@@ -18,6 +19,7 @@ importScripts(
 
 const SiteLaunchUtils = self.SiteLaunchUtils || {};
 const BehaviorInsights = self.AICompareBehaviorInsights || {};
+const PaymentFunnel = self.AIComparePaymentFunnel || {};
 const AgentCatalog = self.AICompareAgentCatalog || {};
 const AgentEngineConfig = self.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = self.AICompareAgentPromptUtils || {};
@@ -421,13 +423,18 @@ function getCustomApiSettingsUrl() {
   }
 }
 
-function getApiPlanPricingUrl() {
+function getApiPlanPricingUrl(funnelId = '') {
   const fallbackBaseUrl = 'https://aicompare.club';
+  const normalizedFunnelId = PaymentFunnel.normalizeFunnelId?.(funnelId)
+    || PaymentFunnel.createFunnelId?.(self.crypto?.randomUUID?.() || '')
+    || '';
   try {
     const baseUrl = getCloudFunctionsBaseUrl();
-    const url = new URL(`${baseUrl}/membership-pricing`);
-    url.searchParams.set('planType', 'api');
-    url.searchParams.set('source', 'official_api_quota_error');
+    const url = new URL(PaymentFunnel.buildApiPlanUpgradeUrl?.(
+      baseUrl,
+      normalizedFunnelId,
+      'official_api_quota_error'
+    ) || `${baseUrl}/membership-pricing?planType=api&source=official_api_quota_error`);
     if (url.pathname.startsWith('/test-api/')) {
       url.searchParams.set('billingMode', 'test');
     }
@@ -1260,6 +1267,7 @@ async function getAgentByIdWithCustomSettings(agentId) {
 function buildAgentRequestJob(payload) {
   return {
     jobId: String(payload?.jobId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+    clientJobId: String(payload?.clientJobId || '').trim(),
     panelId: String(payload?.panelId || '').trim(),
     agentId: String(payload?.agentId || '').trim(),
     messages: Array.isArray(payload?.messages) ? payload.messages.map((message) => ({
@@ -1311,6 +1319,7 @@ function sendAgentRuntimeEvent(job, data) {
     type: 'agentRuntimeEvent',
     panelId: job.panelId,
     jobId: job.jobId,
+    clientJobId: job.clientJobId,
     agentId: job.agentId,
     ...data
   }).catch(() => {});
@@ -3418,11 +3427,6 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
   console.log('符合条件的官方站点:', selectedOfficialSites);
   console.log('符合条件的 customSites:', selectedCustomSites);
 
-  const normalizedQuery = String(query || '').trim();
-  if (!options.skipChatPlanUsage && normalizedQuery && (selectedOfficialSites.length > 0 || selectedCustomSites.length > 0)) {
-    await consumeChatPlanUsageQuota(normalizedQuery);
-  }
-
   const iframeSites = selectedOfficialSites.filter(site => site.supportIframe === true);
   const externalSites = selectedOfficialSites.filter(site => site.supportIframe !== true);
 
@@ -3434,6 +3438,18 @@ async function openSearchTabs(query, checkedSites = null, options = {}) {
       ? selectedCustomSites.filter(site => site.supportIframe !== true)
       : selectedCustomSites)
     : [];
+
+  const normalizedQuery = String(query || '').trim();
+  const hasRunnableIframePanels = shouldOpenIframePage
+    && (iframeSites.length > 0 || customIframeSites.length > 0);
+  if (
+    !options.skipChatPlanUsage
+    && !hasRunnableIframePanels
+    && normalizedQuery
+    && (selectedOfficialSites.length > 0 || selectedCustomSites.length > 0)
+  ) {
+    await consumeChatPlanUsageQuota(normalizedQuery);
+  }
 
   if (shouldOpenExternalSites && externalSites.length > 0) {
     console.log('找到不支持 iframe 的官方站点，将使用新标签页打开:', externalSites);

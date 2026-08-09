@@ -9,6 +9,7 @@ const SiteLaunchUtils = window.SiteLaunchUtils || {};
 const AgentCatalog = window.AICompareAgentCatalog || {};
 const AgentEngineConfig = window.AICompareAgentEngineConfig || {};
 const AgentPromptUtils = window.AICompareAgentPromptUtils || {};
+const PaymentFunnel = window.AIComparePaymentFunnel || {};
 const HybridHistoryDB = window.AICompareHybridHistoryDB || {};
 const MarkdownRenderer = window.AICompareMarkdownRenderer || {};
 const SubmitShortcutUtils = window.SubmitShortcutUtils || {};
@@ -200,7 +201,7 @@ async function getIframeMembershipPricingPrefillEmail() {
   }
 }
 
-async function getChatPlanPricingPageUrl() {
+async function getChatPlanPricingPageUrl(funnelMetadata = {}) {
   const fallbackBaseUrl = 'https://aicompare.club';
   let baseUrl = fallbackBaseUrl;
   try {
@@ -218,6 +219,8 @@ async function getChatPlanPricingPageUrl() {
       url.searchParams.set('billingMode', 'test');
     }
     url.searchParams.set('source', 'chat_plan_quota_overlay');
+    const funnelId = PaymentFunnel.normalizeFunnelId?.(funnelMetadata.funnelId) || '';
+    if (funnelId) url.searchParams.set('funnelId', funnelId);
     const prefillEmail = await getIframeMembershipPricingPrefillEmail();
     if (prefillEmail) {
       url.searchParams.set('prefillEmail', prefillEmail);
@@ -228,14 +231,20 @@ async function getChatPlanPricingPageUrl() {
   }
 }
 
-async function openChatPlanPricingPage() {
-  const url = await getChatPlanPricingPageUrl();
-  trackEvent('plan_upgrade_entry_clicked', {
+async function openChatPlanPricingPage(funnelMetadata = {}) {
+  const url = await getChatPlanPricingPageUrl(funnelMetadata);
+  const metadata = {
     kind: 'subscription',
     planType: 'chat',
     surface: 'iframe',
-    trigger: 'chat_plan_quota_overlay'
-  });
+    trigger: 'chat_plan_quota_overlay',
+    funnelId: PaymentFunnel.normalizeFunnelId?.(funnelMetadata.funnelId) || '',
+    experiment: 'chat_quota_upgrade_v1',
+    variant: 'direct_value_cta',
+    source: 'chat_plan_quota_overlay'
+  };
+  trackEvent('chat_plan_upgrade_entry_clicked', metadata);
+  trackEvent('plan_upgrade_entry_clicked', metadata);
   try {
     chrome.tabs.create({ url });
   } catch (_) {
@@ -425,7 +434,8 @@ function createIframeLoginOverlay() {
   return overlay;
 }
 
-function createIframeChatPlanQuotaOverlay() {
+function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
+  const funnelId = PaymentFunnel.normalizeFunnelId?.(funnelMetadata.funnelId) || '';
   const overlay = document.createElement('div');
   const title = escapeHtml(t('chatPlanQuotaOverlayTitle', 'Free quota used up'));
   const description = escapeHtml(t('chatPlanQuotaOverlayDescription', 'You have used today’s free AI comparison questions. Upgrade to Chat Plan to continue with unlimited questions.'));
@@ -462,16 +472,20 @@ function createIframeChatPlanQuotaOverlay() {
       kind: 'subscription',
       planType: 'chat',
       surface: 'iframe',
-      trigger: 'chat_plan_quota_overlay'
+      trigger: 'chat_plan_quota_overlay',
+      funnelId,
+      experiment: 'chat_quota_upgrade_v1',
+      variant: 'direct_value_cta',
+      source: 'chat_plan_quota_overlay'
     });
-    openChatPlanPricingPage().catch((error) => {
+    openChatPlanPricingPage({ funnelId }).catch((error) => {
       console.warn('打开 Chat Plan 商品页失败:', error);
     });
   });
   return overlay;
 }
 
-async function showIframeChatPlanQuotaOverlay() {
+async function showIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
   if (!iframeAuthState.initialized) {
     await getIframeAuthState();
   }
@@ -492,6 +506,9 @@ async function showIframeChatPlanQuotaOverlay() {
     iframeChatPlanQuotaOverlayTimerResolve = null;
   }
 
+  const funnelId = PaymentFunnel.normalizeFunnelId?.(funnelMetadata.funnelId)
+    || PaymentFunnel.createFunnelId?.(globalThis.crypto?.randomUUID?.() || '')
+    || `funnel_${Date.now()}`;
   return new Promise((resolve) => {
     iframeChatPlanQuotaOverlayTimerResolve = resolve;
     iframeChatPlanQuotaOverlayTimer = setTimeout(() => {
@@ -503,7 +520,7 @@ async function showIframeChatPlanQuotaOverlay() {
         return;
       }
       document.querySelectorAll('.iframe-chat-plan-quota-overlay').forEach((overlay) => overlay.remove());
-      document.body.appendChild(createIframeChatPlanQuotaOverlay());
+      document.body.appendChild(createIframeChatPlanQuotaOverlay({ funnelId }));
       resolve(true);
     }, IFRAME_BLOCKING_OVERLAY_DELAY_MS);
   });
@@ -1187,6 +1204,45 @@ window.addEventListener(AI_COMPARE_RUNTIME_EVENT, () => {
   persistCurrentHybridHistorySession().catch((error) => {
     console.warn('站点运行时更新后保存 hybrid 历史失败:', error);
   });
+});
+
+const homepageResultSeenFlows = new Set();
+
+function getActivationFlowId() {
+  try {
+    return String(new URLSearchParams(window.location.search).get('activation_flow_id') || '').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+function trackHomepageResultSeen(runtimeEntry) {
+  const activationFlowId = getActivationFlowId();
+  const content = String(runtimeEntry?.content || '').trim();
+  if (!activationFlowId || !content || homepageResultSeenFlows.has(activationFlowId)) {
+    return;
+  }
+  homepageResultSeenFlows.add(activationFlowId);
+  trackEvent('homepage_result_seen', {
+    surface: 'iframe',
+    activation_flow_id: activationFlowId,
+    result_state: 'content_visible',
+    result_site: String(runtimeEntry?.siteName || '').trim(),
+    query_length: String(runtimeEntry?.query || '').trim().length,
+    has_query: Boolean(String(runtimeEntry?.query || '').trim())
+  });
+  void trackEventOnce('activation_first_content_result_seen', 'activation_first_content_result_seen', {
+    surface: 'iframe',
+    activation_flow_id: activationFlowId,
+    result_state: 'content_visible',
+    result_site: String(runtimeEntry?.siteName || '').trim(),
+    query_length: String(runtimeEntry?.query || '').trim().length,
+    has_query: Boolean(String(runtimeEntry?.query || '').trim())
+  });
+}
+
+window.addEventListener(AI_COMPARE_RUNTIME_EVENT, (event) => {
+  trackHomepageResultSeen(event?.detail?.entry);
 });
 
 // Keep iframe permissions narrow to avoid cross-site browser permission prompts
@@ -2891,7 +2947,79 @@ function isOfficialApiQuotaErrorMessage(message = '') {
     || (normalized.includes('api plan') && normalized.includes('custom api'));
 }
 
+function createApiPlanFunnelId() {
+  try {
+    const randomValue = crypto?.randomUUID?.() || '';
+    return PaymentFunnel.createFunnelId?.(randomValue)
+      || `funnel_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+  } catch (_) {
+    return `funnel_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
+
+function getApiPlanUpgradeUrl(funnelId) {
+  const fallbackBaseUrl = 'https://aicompare.club';
+  let baseUrl = fallbackBaseUrl;
+  try {
+    baseUrl = String(window.FirebaseConfig?.getCloudFunctionsBaseUrl?.() || fallbackBaseUrl)
+      .trim()
+      .replace(/\/+$/, '') || fallbackBaseUrl;
+  } catch (_) {}
+  try {
+    const url = new URL(PaymentFunnel.buildApiPlanUpgradeUrl?.(
+      baseUrl,
+      funnelId,
+      'official_api_quota_error'
+    ) || `${baseUrl}/membership-pricing?planType=api&source=official_api_quota_error`);
+    if (
+      url.pathname.startsWith('/test-api/')
+      || (chrome?.runtime?.id && chrome.runtime.id !== 'dkhpgbbhlnmjbkihoeniojpkggkabbbl')
+    ) {
+      url.searchParams.set('billingMode', 'test');
+    }
+    return url.toString();
+  } catch (_) {
+    return `${fallbackBaseUrl}/membership-pricing?planType=api&source=official_api_quota_error`;
+  }
+}
+
+function renderApiPlanQuotaUpgradeHtml(funnelId = '') {
+  const normalizedFunnelId = PaymentFunnel.normalizeFunnelId?.(funnelId) || createApiPlanFunnelId();
+  const description = t(
+    'apiPlanPricingDescription',
+    'Unlock unlimited summary and skill questions powered by the built-in API.'
+  );
+  const buttonLabel = t('membershipApiPlanButton', 'Subscribe API Plan');
+  return `
+    <p>${escapeLiveSummaryHtml(description)}</p>
+    <button
+      type="button"
+      class="live-summary-empty-action api-plan-quota-upgrade"
+      data-action="api-plan-quota-upgrade"
+      data-funnel-id="${escapeLiveSummaryHtml(normalizedFunnelId)}"
+    >${escapeLiveSummaryHtml(buttonLabel)}</button>
+  `;
+}
+
+async function openApiPlanQuotaUpgrade(funnelId, surface = 'iframe') {
+  const normalizedFunnelId = PaymentFunnel.normalizeFunnelId?.(funnelId) || createApiPlanFunnelId();
+  trackEvent('api_plan_upgrade_entry_clicked', {
+    kind: 'subscription',
+    planType: 'api',
+    surface,
+    trigger: 'official_api_quota_error',
+    funnelId: normalizedFunnelId
+  });
+  const url = getApiPlanUpgradeUrl(normalizedFunnelId);
+  try {
+    await chrome.tabs.create({ url });
+  } catch (_) {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
 function trackOfficialApiQuotaReached(surface = 'iframe', metadata = {}) {
+  const funnelId = PaymentFunnel.normalizeFunnelId?.(metadata.funnelId) || createApiPlanFunnelId();
   trackEvent('official_api_quota_reached', {
     kind: 'subscription',
     surface,
@@ -2899,8 +3027,10 @@ function trackOfficialApiQuotaReached(surface = 'iframe', metadata = {}) {
     query_length: Math.max(0, Number(metadata.queryLength) || 0),
     agent_id: metadata.agentId || '',
     entry_key: metadata.entryKey || '',
-    source: metadata.source || surface
+    source: metadata.source || surface,
+    funnelId
   });
+  return funnelId;
 }
 
 function getLatestUserMessageContent(messages = []) {
@@ -3538,7 +3668,8 @@ function renderLiveSummaryCard() {
     : renderLiveSummaryContentHtml(displaySummaryText, activeRecord.summaryError, {
       showThinking: shouldShowThinking,
       showEmptyAction,
-      actionDisabled: showEmptyAction && !canTriggerImmediateAnalysis
+      actionDisabled: showEmptyAction && !canTriggerImmediateAnalysis,
+      funnelId: activeRecord.quotaFunnelId || ''
     });
   renderLiveSummarySites();
 
@@ -4174,8 +4305,9 @@ async function refreshLiveSummaryForCurrentQuery(options = {}) {
       return;
     }
     const summaryError = String(error?.message || '').trim() || t('agentRequestFailed', 'Skill request failed');
+    let quotaFunnelId = '';
     if (isOfficialApiQuotaErrorMessage(summaryError)) {
-      trackOfficialApiQuotaReached('summary', {
+      quotaFunnelId = trackOfficialApiQuotaReached('summary', {
         entryKey,
         queryLength: query.length,
         trigger: requestSource || 'live_summary',
@@ -4201,6 +4333,7 @@ async function refreshLiveSummaryForCurrentQuery(options = {}) {
       analysisTemplateName: selectedTemplateName,
       summarySource: 'analysis',
       summaryError,
+      quotaFunnelId,
       compareSites
     }, entryKey);
     syncLiveSummaryRefreshSelection(timelineEntry, { preserveActiveEntry });
@@ -4562,6 +4695,15 @@ async function initializeLiveSummaryCard() {
 
   if (content instanceof HTMLElement) {
     content.addEventListener('click', async (event) => {
+      const apiUpgradeTarget = event.target instanceof Element
+        ? event.target.closest('[data-action="api-plan-quota-upgrade"]')
+        : null;
+      if (apiUpgradeTarget instanceof HTMLButtonElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        await openApiPlanQuotaUpgrade(apiUpgradeTarget.dataset.funnelId, 'summary');
+        return;
+      }
       const target = event.target instanceof Element
         ? event.target.closest('.live-summary-empty-action')
         : null;
@@ -6303,6 +6445,12 @@ function initializeTimelineMessageBridge() {
       showToast(String(data.error));
       return;
     }
+    if (data.event === 'apiPlanUpgradeRequested') {
+      const sourceFrame = getAgentPanelFrames().find((frame) => frame.contentWindow === event.source);
+      if (!sourceFrame) return;
+      void openApiPlanQuotaUpgrade(data.funnelId, 'skill_panel');
+      return;
+    }
     if (data.event === 'localDraftChanged' && data.agentId) {
       updateAgentDraftState(String(data.agentId), String(data.draft || ''));
       return;
@@ -7842,6 +7990,7 @@ function buildAgentPanelState(agent) {
     name: agent.name,
     color: agent.color || '#111111',
     messages: [],
+    activeJobId: '',
     localDraft: '',
     pendingAttachments: [],
     isLoading: false,
@@ -8346,7 +8495,12 @@ async function restoreHybridSessionAsLivePanels(hybridSession, container) {
       const agent = (catalog?.agents || []).find((item) => item.id === agentId);
       if (!agent) continue;
       createAgentIframe(agent, container);
-      const restoredMessages = Array.isArray(panel?.messages) ? panel.messages : [];
+      const restoredMessages = (Array.isArray(panel?.messages) ? panel.messages : []).map((message, index) => ({
+        ...message,
+        messageId: String(message?.messageId || `restored-${agentId}-${index}`),
+        sequence: Number.isFinite(Number(message?.sequence)) ? Number(message.sequence) : index,
+        createdAt: Number(message?.createdAt) || index
+      }));
       const nextState = {
         ...buildAgentPanelState(agent),
         messages: restoredMessages,
@@ -8403,8 +8557,15 @@ function appendAgentMessage(agentId, message) {
   const existingState = getAgentState(agentId);
   if (!existingState) return null;
 
+  const nextSequence = existingState.messages.reduce((max, item) => {
+    const sequence = Number(item?.sequence);
+    return Number.isFinite(sequence) ? Math.max(max, sequence) : max;
+  }, -1) + 1;
   const normalizedMessage = {
     ...message,
+    messageId: String(message?.messageId || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`),
+    sequence: Number.isFinite(Number(message?.sequence)) ? Number(message.sequence) : nextSequence,
+    createdAt: Number(message?.createdAt) || Date.now(),
     attachments: normalizeAgentAttachments(message?.attachments)
   };
 
@@ -8585,18 +8746,18 @@ function initializeAgentRuntimeMessageBridge() {
     }
 
     if (message.event === 'delta') {
+      if (!message.jobId || String(currentState.activeJobId || '') !== String(message.jobId)) return;
       const latestState = getAgentState(agentId);
       if (!latestState) return;
       const messages = [...latestState.messages];
-      const lastAssistant = messages[messages.length - 1];
-      if (lastAssistant && lastAssistant.role === 'assistant') {
-        lastAssistant.content = `${lastAssistant.content || ''}${message.delta || ''}`;
-      } else {
-        messages.push({
-          role: 'assistant',
-          content: message.delta || ''
-        });
-      }
+      const assistantIndex = messages.findIndex((item) => (
+        item?.role === 'assistant' && String(item?.jobId || '') === String(message.jobId)
+      ));
+      if (assistantIndex < 0) return;
+      messages[assistantIndex] = {
+        ...messages[assistantIndex],
+        content: `${messages[assistantIndex].content || ''}${message.delta || ''}`
+      };
       const nextState = {
         ...latestState,
         messages
@@ -8611,17 +8772,21 @@ function initializeAgentRuntimeMessageBridge() {
     }
 
     if (message.event === 'completed') {
+      if (!message.jobId || String(currentState.activeJobId || '') !== String(message.jobId)) return;
       closeAgentRuntimeKeepalivePort(agentId);
       updateAgentLoadingState(agentId, false);
+      setAgentState(agentId, { ...getAgentState(agentId), activeJobId: '' });
       scheduleLiveSummaryRefresh(250);
       return;
     }
 
     if (message.event === 'error') {
+      if (!message.jobId || String(currentState.activeJobId || '') !== String(message.jobId)) return;
       closeAgentRuntimeKeepalivePort(agentId);
       const agentErrorMessage = message.error || '';
+      let funnelId = '';
       if (isOfficialApiQuotaErrorMessage(agentErrorMessage)) {
-        trackOfficialApiQuotaReached('skill_panel', {
+        funnelId = trackOfficialApiQuotaReached('skill_panel', {
           agentId,
           queryLength: getLatestUserMessageContent(currentState?.messages).length,
           source: 'agent_runtime'
@@ -8631,13 +8796,15 @@ function initializeAgentRuntimeMessageBridge() {
       appendAgentMessage(agentId, {
         role: 'assistant',
         content: agentErrorMessage || t('agentRequestFailed', 'Skill request failed'),
-        isError: true
+        isError: true,
+        funnelId
       });
       scheduleLiveSummaryRefresh(250);
       return;
     }
 
     if (message.event === 'cancelled') {
+      if (!message.jobId || String(currentState.activeJobId || '') !== String(message.jobId)) return;
       closeAgentRuntimeKeepalivePort(agentId);
       updateAgentLoadingState(agentId, false);
       scheduleLiveSummaryRefresh(250);
@@ -8690,7 +8857,12 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
   updateAgentLoadingState(agentId, true);
 
   const stateAfterUserMessage = getAgentState(agentId);
-  const messages = (stateAfterUserMessage?.messages || []).map((message) => ({
+  const messages = [...(stateAfterUserMessage?.messages || [])]
+    .sort((a, b) => {
+      const sequenceDelta = (Number(a?.sequence) || 0) - (Number(b?.sequence) || 0);
+      return sequenceDelta || ((Number(a?.createdAt) || 0) - (Number(b?.createdAt) || 0));
+    })
+    .map((message) => ({
     role: message.role,
     content: message.content,
     source: message.source,
@@ -8732,14 +8904,20 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
   }
 
   const existingAssistantState = getAgentState(agentId);
+  const clientJobId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const nextState = {
     ...existingAssistantState,
     abortController: null,
+    activeJobId: clientJobId,
     messages: [
       ...existingAssistantState.messages,
       {
         role: 'assistant',
-        content: ''
+        content: '',
+        jobId: clientJobId,
+        messageId: `${clientJobId}:assistant`,
+        sequence: existingAssistantState.messages.length,
+        createdAt: Date.now()
       }
     ]
   };
@@ -8750,9 +8928,13 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
   }
 
   try {
+    if (String(getAgentState(agentId)?.activeJobId || '') !== clientJobId) {
+      return false;
+    }
     const response = await chrome.runtime.sendMessage({
       action: 'agentChat',
       payload: {
+        jobId: clientJobId,
         panelId: existingState.panelId || `agent:${agentId}`,
         agentId,
         messages
@@ -8769,8 +8951,9 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
   } catch (error) {
     closeAgentRuntimeKeepalivePort(agentId);
     const agentErrorMessage = error?.message || t('agentRequestFailed', 'Skill request failed');
+    let funnelId = '';
     if (isOfficialApiQuotaErrorMessage(agentErrorMessage)) {
-      trackOfficialApiQuotaReached('skill_panel', {
+      funnelId = trackOfficialApiQuotaReached('skill_panel', {
         agentId,
         queryLength: normalizedContent.length,
         source: 'agent_submit'
@@ -8780,7 +8963,8 @@ async function runAgentPrompt(agentId, content, source = 'global', attachments =
     appendAgentMessage(agentId, {
       role: 'assistant',
       content: agentErrorMessage,
-      isError: true
+      isError: true,
+      funnelId
     });
     return false;
   }
@@ -11425,6 +11609,19 @@ async function createIframes(query, sites, customSites = [], agents = []) {
   }
 
   await renderSideNav();
+
+  if (hasQuery && !window._openedFromHistory) {
+    trackEvent('iframe_search_submit', {
+      surface: 'iframe',
+      trigger: getActivationFlowId() ? 'homepage_navigation' : 'direct_navigation',
+      activation_flow_id: getActivationFlowId(),
+      query_length: String(query || '').trim().length,
+      selected_sites_count: enabledSites.length + normalizedCustomSites.length,
+      agents_count: normalizedAgents.length,
+      has_query: true,
+      result_state: 'dispatch_started'
+    });
+  }
  
   
   // 创建导航栏
@@ -12780,27 +12977,8 @@ async function runIframeSearchQuery(query, options = {}) {
   });
   if (sent) {
     const latencyMs = Date.now() - searchStartedAt;
-    trackEvent('query_result_loaded', {
-      kind: 'feature',
-      surface: 'iframe',
-      trigger,
-      query_length: normalizedQuery.length,
-      selected_sites_count: openedSites.length,
-      selected_sites: openedSites,
-      agents_count: openedAgentIds.length,
-      agents: openedAgentIds,
-      result_state: 'submitted',
-      latency_ms: latencyMs
-    });
-    void trackEventOnce('activation_first_result_seen', 'activation_first_result_seen', {
-      surface: 'iframe',
-      query_length: normalizedQuery.length,
-      selected_sites_count: openedSites.length,
-      agents_count: openedAgentIds.length,
-      result_state: 'submitted',
-      latency_ms: latencyMs,
-      has_query: true
-    });
+    // A successful dispatch is not a rendered AI result. Runtime content updates
+    // emit homepage_result_seen only after a non-empty answer is actually visible.
     const timelineEntry = upsertTimelineEntry({
       query: normalizedQuery,
       timestamp: Date.now(),
@@ -12890,7 +13068,9 @@ function triggerChatPlanUsageCheckForIframeQuery(query = '', metadata = {}) {
 
   consumeChatPlanUsageForIframeQuery(normalizedQuery).catch(async (error) => {
     if (error?.code === 'CHAT_PLAN_LIMIT_REACHED') {
-      const overlayShown = await showIframeChatPlanQuotaOverlay();
+      const funnelId = PaymentFunnel.createFunnelId?.(globalThis.crypto?.randomUUID?.() || '')
+        || `funnel_${Date.now()}`;
+      const overlayShown = await showIframeChatPlanQuotaOverlay({ funnelId });
       if (!overlayShown) {
         return;
       }
@@ -12901,7 +13081,11 @@ function triggerChatPlanUsageCheckForIframeQuery(query = '', metadata = {}) {
         result_state: 'overlay_shown',
         limit: error.limit || null,
         source: metadata.source || 'iframe',
-        active_site_panels_count: activeSitePanelCount
+        active_site_panels_count: activeSitePanelCount,
+        funnelId,
+        experiment: 'chat_quota_upgrade_v1',
+        variant: 'direct_value_cta',
+        trigger: 'chat_plan_limit_reached'
       });
       return;
     }

@@ -70,7 +70,7 @@ function getMessageWithFallback(key, fallback = '', substitutions = null) {
   return getMessage(key, substitutions) || fallback;
 }
 
-function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '', source = '') {
+function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '', source = '', funnelId = '') {
   const baseUrl = typeof window.FirebaseConfig?.getCloudFunctionsBaseUrl === 'function'
     ? window.FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/+$/, '')
     : 'https://aicompare.club';
@@ -91,6 +91,8 @@ function getHostedMembershipPricingUrl(planType = 'chat', prefillEmail = '', sou
   if (normalizedSource) {
     url.searchParams.set('source', normalizedSource);
   }
+  const normalizedFunnelId = window.AIComparePaymentFunnel?.normalizeFunnelId?.(funnelId) || '';
+  if (normalizedFunnelId) url.searchParams.set('funnelId', normalizedFunnelId);
   return url.toString();
 }
 
@@ -141,10 +143,13 @@ function trackMembershipFunnelEvent(eventName, metadata = {}) {
 async function openHostedMembershipPricingPage(planType = 'chat', source = 'membership_plan_button') {
   const prefillEmail = await getMembershipPricingPrefillEmail();
   const normalizedPlanType = String(planType || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
-  const url = getHostedMembershipPricingUrl(planType, prefillEmail, source);
+  const funnelId = window.AIComparePaymentFunnel?.createFunnelId?.(globalThis.crypto?.randomUUID?.() || '') || `funnel_${Date.now()}`;
+  const url = getHostedMembershipPricingUrl(planType, prefillEmail, source, funnelId);
   trackMembershipFunnelEvent('plan_upgrade_entry_clicked', {
     planType: normalizedPlanType,
-    trigger: source
+    trigger: source,
+    source,
+    funnelId
   });
   if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
     await chrome.tabs.create({ url });
@@ -5214,7 +5219,10 @@ async function initializeMembership() {
     membershipPageViewTracked = true;
     trackMembershipFunnelEvent('membership_page_viewed', {
       planType: 'all',
-      trigger: 'options_membership_section'
+      trigger: 'options_membership_section',
+      source: 'options_membership_section',
+      surface: 'membership',
+      availablePlanTypes: ['chat', 'api']
     });
   }
   const redeemSubmitBtn = document.getElementById('submitMembershipRedeemCode');
@@ -5612,6 +5620,8 @@ async function initializeMembership() {
     const isLoggedIn = Boolean(auth?.uid);
     if (accountCardEl) {
       accountCardEl.hidden = !isLoggedIn;
+      accountCardEl.dataset.authState = isLoggedIn ? 'authenticated' : 'guest';
+      accountCardEl.removeAttribute('aria-busy');
     }
     if (!isLoggedIn) {
       if (accountNameEl) accountNameEl.textContent = '';
@@ -5661,18 +5671,6 @@ async function initializeMembership() {
       badge.className = 'membership-plan-status-badge loading';
       badge.textContent = loadingText;
     });
-    if (btnSubscribe) {
-      btnSubscribe.style.display = '';
-      btnSubscribe.disabled = true;
-      btnSubscribe.setAttribute('aria-busy', 'true');
-    }
-    if (btnApiSubscribe) {
-      btnApiSubscribe.style.display = '';
-      btnApiSubscribe.disabled = true;
-      btnApiSubscribe.setAttribute('aria-busy', 'true');
-    }
-    if (chatPlanStatusTextEl) chatPlanStatusTextEl.textContent = loadingText;
-    if (apiPlanStatusTextEl) apiPlanStatusTextEl.textContent = loadingText;
   }
 
   function renderPlanStatusError(message = '') {
@@ -5685,8 +5683,6 @@ async function initializeMembership() {
       badge.className = 'membership-plan-status-badge';
       badge.textContent = errorText;
     });
-    if (chatPlanStatusTextEl) chatPlanStatusTextEl.textContent = errorText;
-    if (apiPlanStatusTextEl) apiPlanStatusTextEl.textContent = errorText;
     [btnSubscribe, btnApiSubscribe].forEach((button) => {
       if (!button) return;
       button.style.display = '';
@@ -6102,6 +6098,10 @@ async function initializeOptionsPage() {
   handleHashNavigation();
   window.addEventListener('hashchange', handleHashNavigation);
 
+  // Start account hydration before the slower settings sections so the account
+  // card can replace its initial skeleton without causing a layout flash.
+  void initializeMembership();
+
   const agentCatalogReadyPromise = ensureOptionsAgentCatalogReady();
 
   await initializeLanguageSettings();
@@ -6119,7 +6119,6 @@ async function initializeOptionsPage() {
   bindAgentCustomSettingsEvents();
   initializeDataSync();
   initializeRemoteSearchSettings();
-  initializeMembership();
 }
 
 async function refreshOptionsPageForLanguageChange() {
