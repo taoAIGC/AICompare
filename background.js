@@ -1023,11 +1023,11 @@ async function getBackgroundUserPlan() {
       return getCachedBackgroundPlan();
     }
 
-    if (!FirebaseConfig?.projectId || !FirebaseConfig?.apiKey) {
+    if (typeof FirebaseConfig?.getCloudFunctionsBaseUrl !== 'function') {
       return getCachedBackgroundPlan();
     }
 
-    const url = `https://firestore.googleapis.com/v1/projects/${FirebaseConfig.projectId}/databases/(default)/documents/users/${auth.uid}?key=${FirebaseConfig.apiKey}`;
+    const url = `${FirebaseConfig.getCloudFunctionsBaseUrl().replace(/\/+$/, '')}/userPlan`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${idToken}`
@@ -1038,12 +1038,11 @@ async function getBackgroundUserPlan() {
       return getCachedBackgroundPlan();
     }
 
-    const doc = await res.json();
-    const fields = doc.fields || {};
-    const plan = fields.plan?.stringValue || 'free';
-    const planExpiresAt = fields.planExpiresAt?.timestampValue || null;
-    const apiPlan = fields.apiPlan?.stringValue || 'free';
-    const apiPlanExpiresAt = fields.apiPlanExpiresAt?.timestampValue || null;
+    const data = await res.json();
+    const plan = data.plan || 'free';
+    const planExpiresAt = data.planExpiresAt || null;
+    const apiPlan = data.apiPlan || 'free';
+    const apiPlanExpiresAt = data.apiPlanExpiresAt || null;
     const isExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
     const effectivePlan = (plan === 'pro' && !isExpired) ? 'pro' : 'free';
     const isApiExpired = apiPlanExpiresAt && new Date(apiPlanExpiresAt) < new Date();

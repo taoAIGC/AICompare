@@ -149,7 +149,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 ### VPS admin backend
 
 - The repo includes a lightweight Node admin backend under `backend/`.
-- It reuses Firebase Admin, Stripe, and the existing `officialAgentChat` proxy path to provide:
+- It uses Firebase Authentication, PostgreSQL, Stripe, and the existing `officialAgentChat` proxy path to provide:
   - membership / order summary
   - Stripe invoice and subscription trend views
   - combined 7-day usage summary for built-in AI chat requests and site comparison events

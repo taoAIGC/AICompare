@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aicompare}
+      POSTGRES_USER: ${POSTGRES_USER:-aicompare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - aicompare_postgres_data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+
+volumes:
+  aicompare_postgres_data:

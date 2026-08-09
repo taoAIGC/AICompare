@@ -4,6 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const fs = require('fs');
 const admin = require('firebase-admin');
+const { createDocumentStore } = require('./postgres-document-store.js');
 const Stripe = require('stripe');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
@@ -2830,18 +2831,18 @@ function initializeFirebaseAdmin() {
         projectId: process.env.FIREBASE_PROJECT_ID || 'aicompare-12989'
       });
     }
-    db = admin.firestore();
+    db = createDocumentStore(process.env.POSTGRES_URL);
     adminInitialized = true;
     return true;
   } catch (error) {
-    console.warn('[ai-compare-backend] Firebase Admin is not configured:', error.message);
+    console.warn('[ai-compare-backend] backend storage or Firebase Auth is not configured:', error.message);
     return false;
   }
 }
 
 function requireFirebaseAdmin() {
   if (!initializeFirebaseAdmin() || !db) {
-    const error = new Error('Firebase Admin is not configured');
+    const error = new Error('Backend storage or Firebase Auth is not configured');
     error.status = 500;
     throw error;
   }
@@ -3043,9 +3044,9 @@ async function sendEmailLoginCode(req) {
     codeHash: hashEmailLoginCode(email, code, salt),
     salt,
     attempts: 0,
-    createdAt: admin.firestore.Timestamp.fromMillis(now),
-    lastSentAt: admin.firestore.Timestamp.fromMillis(now),
-    expiresAt: admin.firestore.Timestamp.fromMillis(expiresAtMs),
+    createdAt: db.timestampFromMillis(now),
+    lastSentAt: db.timestampFromMillis(now),
+    expiresAt: db.timestampFromMillis(expiresAtMs),
     consumedAt: null
   }, { merge: true });
 
@@ -3177,7 +3178,7 @@ async function verifyEmailLoginCode(req) {
   if (!safeCompare(expectedHash, actualHash)) {
     await docRef.set({
       attempts: attempts + 1,
-      lastAttemptAt: admin.firestore.FieldValue.serverTimestamp()
+      lastAttemptAt: db.serverTimestamp()
     }, { merge: true });
     const error = new Error('Incorrect verification code');
     error.status = 400;
@@ -3202,7 +3203,7 @@ async function verifyEmailLoginCode(req) {
     throw error;
   }
   await docRef.set({
-    consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+    consumedAt: db.serverTimestamp(),
     attempts: attempts + 1
   }, { merge: true });
 
@@ -3708,7 +3709,7 @@ async function consumeOfficialApiUsage(uid, locale) {
     transaction.set(usageRef, {
       officialApiCount: nextUsed,
       date: dateKey,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     return {
       billingEnabled: true,
@@ -3758,7 +3759,7 @@ async function consumeAnonymousOfficialApiUsage(clientId, locale) {
       officialApiCount: nextUsed,
       date: dateKey,
       clientHash,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     return {
       billingEnabled: true,
@@ -3829,14 +3830,14 @@ async function consumeChatPlanUsage(uid, locale) {
     transaction.set(userRef, {
       [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
       chatQuestionLimit: chatPlanDailyFreeLimit,
-      chatQuestionLastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      chatQuestionLastUsedAt: db.serverTimestamp(),
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     transaction.set(usageRef, {
-      chatQuestionCount: admin.firestore.FieldValue.increment(1),
+      chatQuestionCount: db.increment(1),
       [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
       date: dateKey,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     return {
       billingEnabled: true,
@@ -3888,15 +3889,15 @@ async function consumeAnonymousChatPlanUsage(clientId, locale) {
       [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
       chatQuestionLimit: chatPlanDailyFreeLimit,
       clientHash,
-      chatQuestionLastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      chatQuestionLastUsedAt: db.serverTimestamp(),
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     transaction.set(usageRef, {
-      chatQuestionCount: admin.firestore.FieldValue.increment(1),
+      chatQuestionCount: db.increment(1),
       [CHAT_PLAN_USAGE_TOTAL_FIELD]: nextUsed,
       date: dateKey,
       clientHash,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     return {
       billingEnabled: true,
@@ -3964,7 +3965,7 @@ async function recordOfficialApiEvent({
     costMultiplier: tokenCost.costMultiplier,
     currency: tokenCost.currency,
     hasTokenUsage: tokenCost.totalTokens > 0,
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
+    createdAt: db.serverTimestamp()
   });
 }
 
@@ -4178,7 +4179,7 @@ async function enforceFailureLogUploadLimit(uploader, dateKey, count) {
       clientHash: uploader.clientHash,
       dateKey,
       count: used + count,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
   });
 }
@@ -4223,8 +4224,8 @@ async function recordFailureLogBatch(req) {
       clientHash: uploader.clientHash,
       extensionVersion,
       requestLocale,
-      uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      uploadedAt: db.serverTimestamp(),
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
   });
   if (normalizedLogs.length) {
@@ -4313,7 +4314,7 @@ async function recordSiteCompareEvent(req) {
     throw error;
   }
 
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = db.serverTimestamp();
   const rawQueryText = String(req.body?.queryText || req.body?.queryPreview || '');
   const queryPreview = createSafeQueryPreview(req.body?.queryPreview || rawQueryText);
   const queryText = safeLogString(rawQueryText, 4000);
@@ -4520,7 +4521,7 @@ async function saveCoursePromoConfigToStore(config, updatedBy = '') {
   const payload = {
     ...normalizeCoursePromoConfig(config),
     updatedBy: safeLogString(updatedBy || '', 80),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    updatedAt: db.serverTimestamp()
   };
   await db.collection('runtimeConfigs').doc('coursePromo').set(payload, { merge: true });
   return payload;
@@ -4643,8 +4644,8 @@ async function recordAnalyticsEvent(req, kind = 'feature') {
     hasQuery: req.body?.hasQuery === true,
     queryLength: Math.max(0, Math.min(20000, Math.round(Number(req.body?.queryLength) || 0))),
     metadata,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    createdAt: db.serverTimestamp(),
+    updatedAt: db.serverTimestamp()
   }, { merge: true });
 
   return {
@@ -4690,8 +4691,8 @@ async function recordInternalAnalyticsEvent({
     hasQuery: false,
     queryLength: 0,
     metadata: safeAnalyticsMetadata(metadata),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    createdAt: db.serverTimestamp(),
+    updatedAt: db.serverTimestamp()
   });
   return docRef.id;
 }
@@ -4873,7 +4874,7 @@ async function createRedeemCodes(req, adminUser) {
   const expiresInDays = Math.max(1, Number(req.body?.expiresInDays || 365) || 365);
   const note = String(req.body?.note || '').trim().slice(0, 240);
   const durationDays = getRedeemDurationDays(interval);
-  const expiresAt = admin.firestore.Timestamp.fromDate(addDays(new Date(), expiresInDays));
+  const expiresAt = db.timestampFromDate(addDays(new Date(), expiresInDays));
   const batch = db.batch();
   const codes = [];
   let attempts = 0;
@@ -4903,14 +4904,14 @@ async function createRedeemCodes(req, adminUser) {
       note,
       expiresAt,
       createdBy: String(adminUser?.username || ''),
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: db.serverTimestamp(),
+      updatedAt: db.serverTimestamp()
     });
     codes.push(code);
   }
 
   await batch.commit();
-  return { codes, planType, interval, durationDays, expiresAt: expiresAt.toDate().toISOString() };
+  return { codes, planType, interval, durationDays, expiresAt };
 }
 
 async function listRedeemCodes(req) {
@@ -4938,7 +4939,7 @@ async function redeemMembershipCode(req) {
   const redemptionRef = codeRef.collection('redemptions').doc(user.uid);
   const userRef = db.collection('users').doc(user.uid);
   const nowDate = new Date();
-  const nowTimestamp = admin.firestore.Timestamp.fromDate(nowDate);
+  const nowTimestamp = db.timestampFromDate(nowDate);
 
   return db.runTransaction(async (transaction) => {
     const [codeSnap, userSnap, redemptionSnap] = await Promise.all([
@@ -4981,7 +4982,7 @@ async function redeemMembershipCode(req) {
     const currentExpiresAt = planType === 'api' ? userData.apiPlanExpiresAt : userData.planExpiresAt;
     const currentExpiresAtMs = getTimestampMillis(currentExpiresAt);
     const startMs = Math.max(nowDate.getTime(), currentExpiresAtMs || 0);
-    const nextExpiresAt = admin.firestore.Timestamp.fromDate(addDays(new Date(startMs), durationDays));
+    const nextExpiresAt = db.timestampFromDate(addDays(new Date(startMs), durationDays));
     const userPatch = planType === 'api'
       ? {
         apiPlan: 'pro',
@@ -4997,15 +4998,15 @@ async function redeemMembershipCode(req) {
     transaction.set(userRef, {
       ...userPatch,
       lastRedeemCodeHash: codeHash,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
     transaction.update(codeRef, {
-      redemptionCount: admin.firestore.FieldValue.increment(1),
+      redemptionCount: db.increment(1),
       status: redemptionCount + 1 >= maxRedemptions ? 'redeemed' : 'active',
       lastRedeemedAt: nowTimestamp,
       lastRedeemedByUid: user.uid,
       lastRedeemedByEmail: String(user.email || ''),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     });
     transaction.set(redemptionRef, {
       uid: user.uid,
@@ -5017,7 +5018,7 @@ async function redeemMembershipCode(req) {
       ok: true,
       planType,
       interval,
-      planExpiresAt: nextExpiresAt.toDate().toISOString()
+      planExpiresAt: nextExpiresAt
     };
   });
 }
@@ -5151,8 +5152,8 @@ async function getOrCreateFirebaseUserForStripeEmail(email, metadata = {}) {
     stripeCustomerEmail: normalizedEmail,
     ...(metadata.stripeCustomerId ? { stripeCustomerId: metadata.stripeCustomerId, [getStripeCustomerIdField()]: metadata.stripeCustomerId } : {}),
     billingMode,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    createdAt: db.serverTimestamp(),
+    updatedAt: db.serverTimestamp()
   }, { merge: true });
   return user;
 }
@@ -7022,13 +7023,13 @@ function getPaymentCancelPageHtml() {
 </html>`;
 }
 
-async function canReadFirestore() {
+async function canReadPostgres() {
   try {
     requireFirebaseAdmin();
     await Promise.race([
       db.collection('users').limit(1).get(),
       new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Firestore check timed out')), 2500);
+        setTimeout(() => reject(new Error('PostgreSQL check timed out')), 2500);
       })
     ]);
     return true;
@@ -10185,7 +10186,7 @@ async function saveBehaviorDailyStats(dateKey, options = {}) {
       return { ...existing.data(), dateKey: stats.dateKey, skipped: true };
     }
   }
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = db.serverTimestamp();
   await docRef.set({
     ...stats,
     generatedAt: now,
@@ -10290,11 +10291,11 @@ async function runBehaviorDailyStatsIfDue() {
     const stats = await saveBehaviorDailyStats(targetDateKey, { force: true });
     await jobRef.set({
       lastRunDateKey: targetDateKey,
-      lastRunAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastRunAt: db.serverTimestamp(),
       totalCount: stats.totalCount || 0,
       totalDeviceCount: stats.totalDeviceCount || 0,
       behaviorCount: stats.behaviorCount || 0,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: db.serverTimestamp()
     }, { merge: true });
   } catch (error) {
     console.error('[behavior-daily] scheduled aggregation failed:', error);
@@ -10531,8 +10532,8 @@ async function analyzeQueryInsights(req) {
       await db.collection('queryInsightAnalyses').doc(item.insightId).set({
         ...analysis,
         model: openRouterClassifierModel,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: db.serverTimestamp(),
+        updatedAt: db.serverTimestamp()
       }, { merge: true });
       analyzed += 1;
     } catch (error) {
@@ -11673,7 +11674,7 @@ app.get('/health/deep', async (_req, res) => {
   const basicHealth = getBasicHealth();
   res.json({
     ...basicHealth,
-    firestoreConfigured: basicHealth.firebaseAdminConfigured ? await canReadFirestore() : false
+    postgresConfigured: basicHealth.firebaseAdminConfigured ? await canReadPostgres() : false
   });
 });
 
@@ -12298,6 +12299,58 @@ app.get('/userPlan', asyncRoute(async (req, res) => {
   });
 }));
 
+const syncFieldNames = [
+  'pkHistoryJson', 'favoritePromptsJson', 'favoriteSitesJson', 'favoriteFoldersJson',
+  'customSitesJson', 'promptTemplatesJson', 'sitesJson', 'buttonConfigJson',
+  'disabledSitesJson', 'siteSettingsJson'
+];
+
+function emptySyncData() {
+  return {
+    pkHistory: [], favoritePrompts: [], favoriteSites: [], favoriteFolders: [],
+    customSites: [], promptTemplates: [], sites: {}, buttonConfig: {},
+    disabledSites: [], siteSettings: {}
+  };
+}
+
+function readSyncData(fields = {}) {
+  const data = emptySyncData();
+  const fieldMap = {
+    pkHistoryJson: 'pkHistory', favoritePromptsJson: 'favoritePrompts', favoriteSitesJson: 'favoriteSites',
+    favoriteFoldersJson: 'favoriteFolders', customSitesJson: 'customSites', promptTemplatesJson: 'promptTemplates',
+    sitesJson: 'sites', buttonConfigJson: 'buttonConfig', disabledSitesJson: 'disabledSites', siteSettingsJson: 'siteSettings'
+  };
+  Object.entries(fieldMap).forEach(([field, key]) => {
+    if (typeof fields[field] !== 'string') return;
+    try { data[key] = JSON.parse(fields[field]); } catch (_) { /* keep the safe default */ }
+  });
+  return data;
+}
+
+app.get('/sync/user-data', asyncRoute(async (req, res) => {
+  const user = await requireUser(req);
+  const snapshot = await db.collection('users').doc(user.uid).get();
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(readSyncData(snapshot.exists ? snapshot.data() || {} : {}));
+}));
+
+app.post('/sync/user-data', asyncRoute(async (req, res) => {
+  const user = await requireUser(req);
+  const incoming = req.body?.data;
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+    const error = new Error('data must be an object'); error.status = 400; throw error;
+  }
+  const patch = { updatedAt: db.serverTimestamp() };
+  syncFieldNames.forEach((field) => {
+    const key = field.replace(/Json$/, '');
+    if (Object.prototype.hasOwnProperty.call(incoming, key)) {
+      patch[field] = JSON.stringify(incoming[key]);
+    }
+  });
+  await db.collection('users').doc(user.uid).set(patch, { merge: true });
+  res.json({ ok: true });
+}));
+
 app.post('/redeemCode', asyncRoute(async (req, res) => {
   res.json(await redeemMembershipCode(req));
 }));
@@ -12399,14 +12452,14 @@ async function updateUserFromSubscription(subscription, options = {}) {
   const planPatch = planType === 'api'
     ? {
       apiPlan: isActive ? 'pro' : 'free',
-      apiPlanExpiresAt: periodEnd ? admin.firestore.Timestamp.fromMillis(periodEnd * 1000) : null,
+      apiPlanExpiresAt: periodEnd ? db.timestampFromMillis(periodEnd * 1000) : null,
       apiStripeSubscriptionId: subscription.id,
       [`apiStripeSubscriptionId${getStripeModeSuffix()}`]: subscription.id,
       apiSubscriptionStatus: subscription.status
     }
     : {
       plan: isActive ? 'pro' : 'free',
-      planExpiresAt: periodEnd ? admin.firestore.Timestamp.fromMillis(periodEnd * 1000) : null,
+      planExpiresAt: periodEnd ? db.timestampFromMillis(periodEnd * 1000) : null,
       stripeSubscriptionId: subscription.id,
       [getStripeSubscriptionIdField()]: subscription.id,
       subscriptionStatus: subscription.status
@@ -12419,7 +12472,7 @@ async function updateUserFromSubscription(subscription, options = {}) {
     stripeCustomerId: customerId,
     [getStripeCustomerIdField()]: customerId,
     billingMode,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    updatedAt: db.serverTimestamp()
   }, { merge: true });
 
   return { uid, customerEmail };
