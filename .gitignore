@@ -29,6 +29,7 @@
 # OS files
 .DS_Store
 .claude/
+.worktrees/
 
 # Archives and ad-hoc exports
 *.zip
