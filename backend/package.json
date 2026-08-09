@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js",
+    "migrate:firestore": "node scripts/migrate-firestore-to-postgres.js",
     "weekly-insights": "node weekly-behavior-insight-report.cjs"
   },
   "dependencies": {
@@ -14,6 +15,7 @@
     "firebase-admin": "^12.7.0",
     "geoip-lite": "^1.4.10",
     "nodemailer": "^6.10.1",
+    "pg": "^8.13.3",
     "stripe": "^17.5.0"
   }
 }
