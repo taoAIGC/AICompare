@@ -1148,7 +1148,7 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
 .iframe-auth-login-overlay .iframe-login-overlay-card,
 .iframe-chat-plan-quota-overlay .iframe-login-overlay-card {
   position: relative;
-  width: min(560px, 100%);
+  width: min(620px, 100%);
   padding: 32px 28px;
   box-sizing: border-box;
   border-radius: 28px;
@@ -1200,6 +1200,11 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
 
 .iframe-auth-login-overlay .iframe-login-overlay-card {
   width: min(480px, 100%);
+  max-height: calc(100vh - 128px);
+  overflow-y: auto;
+}
+
+.iframe-chat-plan-quota-overlay .iframe-login-overlay-card {
   max-height: calc(100vh - 128px);
   overflow-y: auto;
 }
@@ -1395,6 +1400,136 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
   width: 100%;
 }
 
+.iframe-chat-plan-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 2px;
+}
+
+.iframe-chat-plan-option {
+  position: relative;
+  min-height: 178px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)),
+    #1d1d21;
+  color: #ffffff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.iframe-chat-plan-option.is-featured {
+  border-color: rgba(185, 243, 74, 0.54);
+  background:
+    radial-gradient(circle at top right, rgba(185, 243, 74, 0.2), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+    #1d1f1b;
+}
+
+.iframe-chat-plan-option:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.32);
+}
+
+.iframe-chat-plan-option:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 4px;
+}
+
+.iframe-chat-plan-option:disabled {
+  opacity: 0.64;
+  cursor: wait;
+}
+
+.iframe-chat-plan-option[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: iframe-login-auth-spin 720ms linear infinite;
+}
+
+.iframe-chat-plan-option-badge {
+  align-self: flex-start;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #b9f34a;
+  color: #172007;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.iframe-chat-plan-option:not(.is-featured) .iframe-chat-plan-option-badge {
+  visibility: hidden;
+}
+
+.iframe-chat-plan-option-name {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.iframe-chat-plan-option-price {
+  min-height: 34px;
+  color: #ffffff;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 750;
+  line-height: 1.05;
+}
+
+.iframe-chat-plan-option-desc {
+  min-height: 36px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  line-height: 1.38;
+}
+
+.iframe-chat-plan-option-cta {
+  margin-top: auto;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.iframe-chat-plan-status {
+  min-height: 18px;
+  margin-top: -6px;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.iframe-chat-plan-status[hidden] {
+  display: none;
+}
+
+.iframe-chat-plan-status.is-error {
+  color: #ffb7b7;
+}
+
 .iframe-login-overlay-card {
   width: min(520px, 100%);
   display: flex;
@@ -1482,7 +1617,8 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
     border-radius: 24px;
   }
 
-  .iframe-auth-login-overlay .iframe-login-overlay-card {
+  .iframe-auth-login-overlay .iframe-login-overlay-card,
+  .iframe-chat-plan-quota-overlay .iframe-login-overlay-card {
     max-height: calc(100vh - 104px);
   }
 
@@ -1506,6 +1642,16 @@ body.search-bar-bottom .iframe-chat-plan-quota-overlay {
     width: min(360px, 92%);
     min-height: 52px;
     font-size: 20px;
+  }
+
+  .iframe-chat-plan-options {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .iframe-chat-plan-option {
+    min-height: 148px;
+    padding: 16px;
   }
 }
 

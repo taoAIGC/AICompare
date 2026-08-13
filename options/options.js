@@ -5189,12 +5189,19 @@ async function submitMembershipRedeemCode() {
       ? getMessageWithFallback('redeemCodeApiPlanLabel', 'API Plan')
       : getMessageWithFallback('redeemCodeChatPlanLabel', 'Chat Plan');
     const expiry = formatMembershipRedeemExpiry(result?.planExpiresAt);
+    const isReferral = result?.type === 'referral';
     showToast(
-      getMessageWithFallback(
-        'redeemCodeSuccess',
-        expiry ? `${planLabel} redeemed. Valid until ${expiry}.` : `${planLabel} redeemed.`,
-        [planLabel, expiry]
-      ),
+      isReferral
+        ? getMessageWithFallback(
+          'referralCodeRedeemSuccess',
+          expiry ? `Referral claimed. You received 3 days of Chat Plan, valid until ${expiry}.` : 'Referral claimed. You received 3 days of Chat Plan.',
+          [expiry]
+        )
+        : getMessageWithFallback(
+          'redeemCodeSuccess',
+          expiry ? `${planLabel} redeemed. Valid until ${expiry}.` : `${planLabel} redeemed.`,
+          [planLabel, expiry]
+        ),
       4000
     );
     if (input) input.value = '';
@@ -5227,6 +5234,9 @@ async function initializeMembership() {
   }
   const redeemSubmitBtn = document.getElementById('submitMembershipRedeemCode');
   const redeemInput = document.getElementById('membershipRedeemCodeInput');
+  const referralCodeEl = document.getElementById('membershipReferralCode');
+  const referralCopyBtn = document.getElementById('copyMembershipReferralCode');
+  const referralStatusEl = document.getElementById('membershipReferralCodeStatus');
   const loadingEl = document.getElementById('membershipLoadingMsg');
   const guestEntryEl = document.getElementById('membershipGuestEntry');
   const loginEntryBtn = document.getElementById('membershipOpenAuthDialogBtn');
@@ -5281,6 +5291,66 @@ async function initializeMembership() {
       }
     } catch (_) {}
     return navigator.language || 'en-US';
+  }
+
+  function setReferralStatus(message = '', kind = '') {
+    if (!referralStatusEl) return;
+    referralStatusEl.textContent = String(message || '');
+    referralStatusEl.classList.toggle('is-error', kind === 'error');
+  }
+
+  async function copyTextToClipboard(text) {
+    const value = String(text || '').trim();
+    if (!value) return false;
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    textarea.remove();
+    return copied;
+  }
+
+  async function loadMembershipReferralCode(uid) {
+    if (!referralCodeEl) return;
+    if (!uid) {
+      referralCodeEl.textContent = getMessageWithFallback('referralCodeLoginRequired', 'Sign in to get your invite code.');
+      delete referralCodeEl.dataset.code;
+      if (referralCopyBtn) referralCopyBtn.disabled = true;
+      setReferralStatus();
+      return;
+    }
+    referralCodeEl.textContent = getMessageWithFallback('referralCodeLoading', 'Loading...');
+    delete referralCodeEl.dataset.code;
+    if (referralCopyBtn) referralCopyBtn.disabled = true;
+    setReferralStatus();
+    try {
+      if (typeof window.getReferralCode !== 'function') {
+        throw new Error(getMessageWithFallback('referralCodeUnavailable', 'Invite code service is unavailable right now.'));
+      }
+      const result = await window.getReferralCode();
+      const code = String(result?.code || '').trim();
+      if (!code) {
+        throw new Error(getMessageWithFallback('referralCodeUnavailable', 'Invite code service is unavailable right now.'));
+      }
+      referralCodeEl.textContent = code;
+      referralCodeEl.dataset.code = code;
+      if (referralCopyBtn) referralCopyBtn.disabled = false;
+      setReferralStatus(getMessageWithFallback('referralCodeReady', 'Share this code with a friend. They get 3 days, you get 1 day.'));
+    } catch (error) {
+      console.warn('Failed to load referral code:', error);
+      referralCodeEl.textContent = getMessageWithFallback('referralCodeUnavailableShort', 'Unavailable');
+      delete referralCodeEl.dataset.code;
+      if (referralCopyBtn) referralCopyBtn.disabled = true;
+      setReferralStatus(error?.message || getMessageWithFallback('referralCodeUnavailable', 'Invite code service is unavailable right now.'), 'error');
+    }
   }
 
   function formatMembershipDate(value) {
@@ -5540,6 +5610,29 @@ async function initializeMembership() {
       }
       if (event.key === 'Escape') {
         setMembershipTab('plans');
+      }
+    });
+  }
+  if (referralCopyBtn && referralCopyBtn.dataset.bound !== 'true') {
+    referralCopyBtn.dataset.bound = 'true';
+    referralCopyBtn.addEventListener('click', async () => {
+      const code = String(referralCodeEl?.dataset.code || referralCodeEl?.textContent || '').trim();
+      referralCopyBtn.disabled = true;
+      try {
+        const copied = await copyTextToClipboard(code);
+        showToast(
+          copied
+            ? getMessageWithFallback('referralCodeCopied', 'Invite code copied.')
+            : getMessageWithFallback('referralCodeCopyFailed', 'Failed to copy invite code.'),
+          3000
+        );
+      } catch (error) {
+        showToast(
+          error?.message || getMessageWithFallback('referralCodeCopyFailed', 'Failed to copy invite code.'),
+          3000
+        );
+      } finally {
+        referralCopyBtn.disabled = !String(referralCodeEl?.dataset.code || '').trim();
       }
     });
   }
@@ -6014,6 +6107,7 @@ async function initializeMembership() {
     }
     if (plansEl) plansEl.style.display = 'grid';
     renderMembershipPlan({ plan: 'free', apiPlan: 'free' });
+    loadMembershipReferralCode('').catch(() => null);
     setLoading(false);
     renderInvoicesEmpty(getMessageWithFallback('membershipInvoicesLoginHint', 'Log in to view bills.'));
     return;
@@ -6026,6 +6120,9 @@ async function initializeMembership() {
   closeAuthDialog();
   renderAccountCard(auth);
   renderPlanStatusLoading();
+  loadMembershipReferralCode(uid).catch((error) => {
+    console.warn('Failed to refresh referral code:', error);
+  });
 
   if (typeof window.getUserPlan === 'function') {
     const planRequest = window.getUserPlan();

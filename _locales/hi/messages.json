@@ -3063,13 +3063,13 @@
     "message": "Close"
   },
   "redeemCodeDialogDescription": {
-    "message": "Enter a redeem code from AI Compare to activate the matching membership on this account."
+    "message": "Enter a redeem code or a friend invite code to activate Chat Plan or API Plan."
   },
   "redeemCodeInputLabel": {
-    "message": "Redeem code"
+    "message": "Redeem or invite code"
   },
   "redeemCodeInputPlaceholder": {
-    "message": "AIC-XXXX-XXXX-XXXX"
+    "message": "Enter redeem or invite code"
   },
   "redeemCodeCancelButton": {
     "message": "Cancel"
@@ -3274,5 +3274,89 @@
   },
   "membershipPricingChatTitle": {
     "message": "Unlock all features and enjoy unlimited AI comparison"
+  },
+  "membershipPricingMonthlyName": {
+    "message": "Monthly"
+  },
+  "membershipPricingYearlyName": {
+    "message": "Yearly"
+  },
+  "membershipPricingYearlySaving": {
+    "message": "Save 33%"
+  },
+  "membershipPricingLoading": {
+    "message": "Loading price..."
+  },
+  "membershipEmailLoginRequired": {
+    "message": "Please sign in before continuing."
+  },
+  "chatPlanQuotaOverlayOptionsLabel": {
+    "message": "Choose your Chat Plan"
+  },
+  "chatPlanQuotaOverlayMonthlyDescription": {
+    "message": "Flexible monthly access."
+  },
+  "chatPlanQuotaOverlayYearlyDescription": {
+    "message": "Best value for long-term access."
+  },
+  "chatPlanQuotaOverlaySubscribeMonthly": {
+    "message": "Subscribe Monthly"
+  },
+  "chatPlanQuotaOverlaySubscribeYearly": {
+    "message": "Subscribe Yearly"
+  },
+  "chatPlanQuotaOverlayLoadingPlans": {
+    "message": "Loading plans..."
+  },
+  "chatPlanQuotaOverlayPriceMonth": {
+    "message": "month"
+  },
+  "chatPlanQuotaOverlayPriceYear": {
+    "message": "year"
+  },
+  "chatPlanQuotaOverlayPriceUnavailable": {
+    "message": "Price is unavailable. Please try again later."
+  },
+  "chatPlanQuotaOverlayCheckoutError": {
+    "message": "Failed to open checkout. Please try again."
+  },
+  "chatPlanQuotaOverlayPriceLoadError": {
+    "message": "Failed to load plans. Please try again."
+  },
+  "chatPlanQuotaOverlayOpeningCheckout": {
+    "message": "Opening secure checkout..."
+  },
+  "referralCodeTitle": {
+    "message": "Invite friends"
+  },
+  "referralCodeDescription": {
+    "message": "Share your invite code. Your friend gets 3 days of Chat Plan after redeeming it, and you get 1 day."
+  },
+  "referralCodeLoading": {
+    "message": "Loading..."
+  },
+  "referralCodeCopyButton": {
+    "message": "Copy"
+  },
+  "referralCodeLoginRequired": {
+    "message": "Sign in to get your invite code."
+  },
+  "referralCodeUnavailable": {
+    "message": "Invite code service is unavailable right now."
+  },
+  "referralCodeUnavailableShort": {
+    "message": "Unavailable"
+  },
+  "referralCodeReady": {
+    "message": "Share this code with a friend. They get 3 days, you get 1 day."
+  },
+  "referralCodeCopied": {
+    "message": "Invite code copied."
+  },
+  "referralCodeCopyFailed": {
+    "message": "Failed to copy invite code."
+  },
+  "referralCodeRedeemSuccess": {
+    "message": "Referral claimed. You received 3 days of Chat Plan, valid until $1."
   }
 }

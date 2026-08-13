@@ -497,6 +497,23 @@ async function redeemMembershipCode(code) {
   return response;
 }
 
+async function getReferralCode() {
+  const idToken = await getFirebaseIdToken();
+  if (!idToken) {
+    throw new Error(getStripeMessage('membershipLoginHint', 'Sign in with Google or the email you used at checkout to view your membership status.'));
+  }
+
+  try {
+    return await fetchStripeFunctionJson('/referralCode', {
+      method: 'GET',
+      idToken,
+      retries: 1
+    });
+  } catch (error) {
+    throw await normalizeStripeRequestError(error);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 挂载到 window
 // ─────────────────────────────────────────────────────────────────────────────
@@ -512,4 +529,5 @@ if (typeof window !== 'undefined') {
   window.openCustomerPortal = openCustomerPortal;
   window.listInvoices = listInvoices;
   window.redeemMembershipCode = redeemMembershipCode;
+  window.getReferralCode = getReferralCode;
 }

@@ -2159,6 +2159,73 @@ input:checked + .slider:before {
   line-height: 1.6;
 }
 
+.membership-referral-card {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 1px solid #dfe7dc;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(185, 243, 74, 0.2), transparent 42%),
+    #f7faf4;
+}
+
+.membership-referral-title {
+  color: #1f2a16;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.membership-referral-description {
+  margin: 5px 0 0;
+  color: #5c6655;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.membership-referral-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.membership-referral-code {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px dashed #b7c3b0;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f2a16;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.membership-referral-copy-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.membership-referral-status {
+  min-height: 18px;
+  color: #63705c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.membership-referral-status.is-error {
+  color: #b3261e;
+}
+
 .membership-redeem-field {
   display: grid;
   gap: 8px;
@@ -3198,6 +3265,10 @@ h1 {
 
   .membership-account-logout {
     align-self: flex-end;
+  }
+
+  .membership-referral-code-row {
+    grid-template-columns: 1fr;
   }
 
   .settings-section-header {

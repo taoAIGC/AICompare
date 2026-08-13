@@ -33,6 +33,8 @@ const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TT
 const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
 const adminPasswordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
 const redeemCodeCollection = 'redeemCodes';
+const referralCodeCollection = 'referralCodes';
+const referralRedemptionCollection = 'referralRedemptions';
 const emailLoginCodeCollection = 'emailLoginCodes';
 const emailAuthCodeTtlSeconds = Math.max(60, Number(process.env.EMAIL_AUTH_CODE_TTL_SECONDS || 10 * 60) || (10 * 60));
 const emailAuthResendCooldownSeconds = Math.max(0, Number(process.env.EMAIL_AUTH_RESEND_COOLDOWN_SECONDS || 60) || 60);
@@ -4823,6 +4825,16 @@ function generateRedeemCode() {
   return formatRedeemCode(code);
 }
 
+function generateReferralCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'AIG';
+  while (code.length < 15) {
+    const byte = crypto.randomBytes(1)[0];
+    code += alphabet[byte % alphabet.length];
+  }
+  return formatRedeemCode(code);
+}
+
 function normalizeRedeemPlanType(value = '') {
   return String(value || '').trim().toLowerCase() === 'api' ? 'api' : 'chat';
 }
@@ -4842,6 +4854,21 @@ function addDays(date, days) {
 function getTimestampMillis(value) {
   const seconds = getTimestampSeconds(value);
   return seconds ? seconds * 1000 : 0;
+}
+
+function buildChatPlanExtensionPatch(currentUserData = {}, nowDate, durationDays, membershipSource) {
+  const currentExpiresAtMs = getTimestampMillis(currentUserData.planExpiresAt);
+  const startMs = Math.max(nowDate.getTime(), currentExpiresAtMs || 0);
+  const nextExpiresAt = db.timestampFromDate(addDays(new Date(startMs), durationDays));
+  return {
+    patch: {
+      plan: 'pro',
+      planExpiresAt: nextExpiresAt,
+      membershipSource,
+      updatedAt: db.serverTimestamp()
+    },
+    nextExpiresAt
+  };
 }
 
 function getRedeemCodePublicFields(doc) {
@@ -4924,6 +4951,189 @@ async function listRedeemCodes(req) {
   return { codes: snapshot.docs.map(getRedeemCodePublicFields) };
 }
 
+async function getOrCreateReferralCodeForUser(user) {
+  requireFirebaseAdmin();
+  const userRef = db.collection('users').doc(user.uid);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = generateReferralCode();
+    const normalizedCode = normalizeRedeemCode(code);
+    const codeRef = db.collection(referralCodeCollection).doc(normalizedCode);
+    try {
+      const result = await db.runTransaction(async (transaction) => {
+        const [userSnap, codeSnap] = await Promise.all([
+          transaction.get(userRef),
+          transaction.get(codeRef)
+        ]);
+        const userData = userSnap.exists ? userSnap.data() || {} : {};
+        const existingCode = normalizeRedeemCode(userData.referralCode);
+        if (existingCode) {
+          return {
+            code: formatRedeemCode(existingCode),
+            normalizedCode: existingCode,
+            created: false
+          };
+        }
+        if (codeSnap.exists) {
+          const error = new Error('Referral code collision');
+          error.code = 'referral_code_collision';
+          throw error;
+        }
+        transaction.set(codeRef, {
+          code: normalizedCode,
+          formattedCode: formatRedeemCode(normalizedCode),
+          ownerUid: user.uid,
+          ownerEmail: String(user.email || ''),
+          recipientRewardDays: 3,
+          ownerRewardDays: 1,
+          redemptionCount: 0,
+          status: 'active',
+          createdAt: db.serverTimestamp(),
+          updatedAt: db.serverTimestamp()
+        }, { merge: true });
+        transaction.set(userRef, {
+          email: String(user.email || ''),
+          referralCode: normalizedCode,
+          referralCodeFormatted: formatRedeemCode(normalizedCode),
+          referralCodeCreatedAt: db.serverTimestamp(),
+          updatedAt: db.serverTimestamp()
+        }, { merge: true });
+        return {
+          code: formatRedeemCode(normalizedCode),
+          normalizedCode,
+          created: true
+        };
+      });
+      return {
+        ok: true,
+        code: result.code,
+        normalizedCode: result.normalizedCode,
+        recipientRewardDays: 3,
+        ownerRewardDays: 1,
+        created: result.created
+      };
+    } catch (error) {
+      if (error?.code === 'referral_code_collision') continue;
+      throw error;
+    }
+  }
+  const error = new Error('Failed to generate a unique referral code');
+  error.status = 500;
+  throw error;
+}
+
+async function getReferralCode(req) {
+  const user = await requireUser(req);
+  return getOrCreateReferralCodeForUser(user);
+}
+
+async function redeemReferralCode(req, normalizedCode, user) {
+  const codeRef = db.collection(referralCodeCollection).doc(normalizedCode);
+  const recipientRef = db.collection('users').doc(user.uid);
+  const redemptionRef = db.collection(referralRedemptionCollection).doc(user.uid);
+  const nowDate = new Date();
+  const nowTimestamp = db.timestampFromDate(nowDate);
+
+  return db.runTransaction(async (transaction) => {
+    const [codeSnap, recipientSnap, redemptionSnap] = await Promise.all([
+      transaction.get(codeRef),
+      transaction.get(recipientRef),
+      transaction.get(redemptionRef)
+    ]);
+    if (!codeSnap.exists) {
+      const error = new Error('Redeem code not found');
+      error.status = 404;
+      throw error;
+    }
+
+    const codeData = codeSnap.data() || {};
+    const ownerUid = String(codeData.ownerUid || '').trim();
+    if (!ownerUid) {
+      const error = new Error('Referral code is invalid');
+      error.status = 400;
+      throw error;
+    }
+    if (String(codeData.status || 'active') !== 'active') {
+      const error = new Error('Referral code is inactive');
+      error.status = 410;
+      throw error;
+    }
+    if (ownerUid === user.uid) {
+      const error = new Error('You cannot redeem your own referral code');
+      error.status = 409;
+      throw error;
+    }
+    if (redemptionSnap.exists) {
+      const error = new Error('You have already claimed a referral reward');
+      error.status = 409;
+      throw error;
+    }
+
+    const ownerRef = db.collection('users').doc(ownerUid);
+    const ownerSnap = await transaction.get(ownerRef);
+    const recipientData = recipientSnap.exists ? recipientSnap.data() || {} : {};
+    const ownerData = ownerSnap.exists ? ownerSnap.data() || {} : {};
+    const recipientRewardDays = Math.max(1, Number(codeData.recipientRewardDays || 3) || 3);
+    const ownerRewardDays = Math.max(1, Number(codeData.ownerRewardDays || 1) || 1);
+    const recipientExtension = buildChatPlanExtensionPatch(
+      recipientData,
+      nowDate,
+      recipientRewardDays,
+      'referral_gift'
+    );
+    const ownerExtension = buildChatPlanExtensionPatch(
+      ownerData,
+      nowDate,
+      ownerRewardDays,
+      'referral_invite'
+    );
+
+    transaction.set(recipientRef, {
+      email: String(user.email || ''),
+      ...recipientExtension.patch,
+      referralRewardClaimedAt: nowTimestamp,
+      referralRewardSourceCode: normalizedCode,
+      referredByUid: ownerUid,
+      referredByEmail: String(codeData.ownerEmail || '')
+    }, { merge: true });
+    transaction.set(ownerRef, {
+      ...ownerExtension.patch,
+      referralRewardLastGrantedAt: nowTimestamp,
+      referralRewardDaysEarned: db.increment(ownerRewardDays),
+      referralRewardCount: db.increment(1)
+    }, { merge: true });
+    transaction.set(redemptionRef, {
+      uid: user.uid,
+      email: String(user.email || ''),
+      ownerUid,
+      ownerEmail: String(codeData.ownerEmail || ''),
+      code: normalizedCode,
+      recipientRewardDays,
+      ownerRewardDays,
+      recipientPlanExpiresAt: recipientExtension.nextExpiresAt,
+      ownerPlanExpiresAt: ownerExtension.nextExpiresAt,
+      redeemedAt: nowTimestamp
+    }, { merge: true });
+    transaction.set(codeRef, {
+      redemptionCount: db.increment(1),
+      lastRedeemedAt: nowTimestamp,
+      lastRedeemedByUid: user.uid,
+      lastRedeemedByEmail: String(user.email || ''),
+      updatedAt: db.serverTimestamp()
+    }, { merge: true });
+
+    return {
+      ok: true,
+      type: 'referral',
+      planType: 'chat',
+      interval: 'gift',
+      recipientRewardDays,
+      ownerRewardDays,
+      planExpiresAt: recipientExtension.nextExpiresAt,
+      ownerPlanExpiresAt: ownerExtension.nextExpiresAt
+    };
+  });
+}
+
 async function redeemMembershipCode(req) {
   requireFirebaseAdmin();
   const user = await requireUser(req);
@@ -4940,6 +5150,10 @@ async function redeemMembershipCode(req) {
   const userRef = db.collection('users').doc(user.uid);
   const nowDate = new Date();
   const nowTimestamp = db.timestampFromDate(nowDate);
+  const existingCodeSnap = await codeRef.get();
+  if (!existingCodeSnap.exists) {
+    return redeemReferralCode(req, normalizedCode, user);
+  }
 
   return db.runTransaction(async (transaction) => {
     const [codeSnap, userSnap, redemptionSnap] = await Promise.all([
@@ -12353,6 +12567,11 @@ app.post('/sync/user-data', asyncRoute(async (req, res) => {
 
 app.post('/redeemCode', asyncRoute(async (req, res) => {
   res.json(await redeemMembershipCode(req));
+}));
+
+app.get('/referralCode', asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(await getReferralCode(req));
 }));
 
 app.get('/billing-smoke', asyncRoute(async (req, res) => {

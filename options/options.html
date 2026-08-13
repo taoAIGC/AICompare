@@ -596,6 +596,17 @@
                 <h2 class="membership-redeem-title" data-i18n="redeemCodeDialogTitle"></h2>
                 <p class="membership-redeem-description" data-i18n="redeemCodeDialogDescription"></p>
               </div>
+              <div class="membership-referral-card">
+                <div class="membership-referral-copy">
+                  <div class="membership-referral-title" data-i18n="referralCodeTitle"></div>
+                  <p class="membership-referral-description" data-i18n="referralCodeDescription"></p>
+                </div>
+                <div class="membership-referral-code-row">
+                  <code id="membershipReferralCode" class="membership-referral-code" data-i18n="referralCodeLoading"></code>
+                  <button id="copyMembershipReferralCode" class="btn-secondary membership-referral-copy-button" type="button" data-i18n="referralCodeCopyButton"></button>
+                </div>
+                <div id="membershipReferralCodeStatus" class="membership-referral-status" role="status" aria-live="polite"></div>
+              </div>
               <label class="membership-redeem-field">
                 <span data-i18n="redeemCodeInputLabel"></span>
                 <input id="membershipRedeemCodeInput" type="text" autocomplete="one-time-code" spellcheck="false" data-i18n-placeholder="redeemCodeInputPlaceholder" placeholder="AIC-XXXX-XXXX-XXXX">

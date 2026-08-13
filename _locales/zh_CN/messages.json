@@ -3091,13 +3091,13 @@
     "message": "关闭"
   },
   "redeemCodeDialogDescription": {
-    "message": "输入 AI 比一比兑换码后，会把对应会员开通到当前登录账号。"
+    "message": "输入兑换码或好友邀请码，激活 Chat Plan 或 API Plan。"
   },
   "redeemCodeInputLabel": {
-    "message": "兑换码"
+    "message": "兑换码或邀请码"
   },
   "redeemCodeInputPlaceholder": {
-    "message": "AIC-XXXX-XXXX-XXXX"
+    "message": "输入兑换码或邀请码"
   },
   "redeemCodeCancelButton": {
     "message": "取消"
@@ -3302,5 +3302,89 @@
   },
   "membershipPricingChatTitle": {
     "message": "解锁无限次的多AI对比"
+  },
+  "membershipPricingMonthlyName": {
+    "message": "月付"
+  },
+  "membershipPricingYearlyName": {
+    "message": "年付"
+  },
+  "membershipPricingYearlySaving": {
+    "message": "节省 33%"
+  },
+  "membershipPricingLoading": {
+    "message": "正在加载价格..."
+  },
+  "membershipEmailLoginRequired": {
+    "message": "请先登录后再继续。"
+  },
+  "chatPlanQuotaOverlayOptionsLabel": {
+    "message": "选择 Chat Plan"
+  },
+  "chatPlanQuotaOverlayMonthlyDescription": {
+    "message": "灵活月付，随时开始使用。"
+  },
+  "chatPlanQuotaOverlayYearlyDescription": {
+    "message": "长期使用更划算。"
+  },
+  "chatPlanQuotaOverlaySubscribeMonthly": {
+    "message": "订阅月付"
+  },
+  "chatPlanQuotaOverlaySubscribeYearly": {
+    "message": "订阅年付"
+  },
+  "chatPlanQuotaOverlayLoadingPlans": {
+    "message": "正在加载套餐..."
+  },
+  "chatPlanQuotaOverlayPriceMonth": {
+    "message": "月"
+  },
+  "chatPlanQuotaOverlayPriceYear": {
+    "message": "年"
+  },
+  "chatPlanQuotaOverlayPriceUnavailable": {
+    "message": "价格暂不可用，请稍后重试。"
+  },
+  "chatPlanQuotaOverlayCheckoutError": {
+    "message": "无法打开支付页面，请重试。"
+  },
+  "chatPlanQuotaOverlayPriceLoadError": {
+    "message": "套餐加载失败，请重试。"
+  },
+  "chatPlanQuotaOverlayOpeningCheckout": {
+    "message": "正在打开安全支付页面..."
+  },
+  "referralCodeTitle": {
+    "message": "邀请好友"
+  },
+  "referralCodeDescription": {
+    "message": "分享你的专属邀请码。好友兑换后可获得 3 天 Chat Plan 会员，你可获得 1 天 Chat Plan 会员。"
+  },
+  "referralCodeLoading": {
+    "message": "正在加载..."
+  },
+  "referralCodeCopyButton": {
+    "message": "复制"
+  },
+  "referralCodeLoginRequired": {
+    "message": "登录后可获取你的专属邀请码。"
+  },
+  "referralCodeUnavailable": {
+    "message": "邀请码服务暂时不可用。"
+  },
+  "referralCodeUnavailableShort": {
+    "message": "暂不可用"
+  },
+  "referralCodeReady": {
+    "message": "把这个邀请码发给好友。好友得 3 天，你得 1 天。"
+  },
+  "referralCodeCopied": {
+    "message": "邀请码已复制。"
+  },
+  "referralCodeCopyFailed": {
+    "message": "复制邀请码失败。"
+  },
+  "referralCodeRedeemSuccess": {
+    "message": "领取成功。你已获得 3 天 Chat Plan 会员，有效期至 $1。"
   }
 }

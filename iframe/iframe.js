@@ -46,7 +46,11 @@ const FIREBASE_AUTH_UPDATED_AT_STORAGE_KEY = 'firebase_auth_updated_at';
 const IFRAME_BLOCKING_OVERLAY_DELAY_MS = 3000;
 const IFRAME_LOGIN_OVERLAY_DISMISSED_DATE_KEY = 'iframe_login_overlay_dismissed_date';
 const IFRAME_CHAT_PLAN_OVERLAY_DISMISSED_DATE_KEY = 'iframe_chat_plan_overlay_dismissed_date';
+const IFRAME_CHAT_PLAN_CHECKOUT_TIMEOUT_MS = 15000;
+const IFRAME_BILLING_CONFIG_CACHE_MS = 5 * 60 * 1000;
 const SITE_COMPARE_USAGE_EVENT_PREFIX = 'site_usage';
+let iframeBillingConfigCache = null;
+let iframeBillingConfigCacheAt = 0;
 let iframeAuthState = {
   initialized: false,
   isLoggedIn: false,
@@ -229,6 +233,140 @@ async function getChatPlanPricingPageUrl(funnelMetadata = {}) {
   } catch (_) {
     return `${fallbackBaseUrl}/membership-pricing?planType=chat`;
   }
+}
+
+function getIframeBillingBaseUrl() {
+  const fallbackBaseUrl = 'https://aicompare.club';
+  try {
+    return String(window.FirebaseConfig?.getCloudFunctionsBaseUrl?.() || fallbackBaseUrl)
+      .trim()
+      .replace(/\/+$/, '') || fallbackBaseUrl;
+  } catch (_) {
+    return fallbackBaseUrl;
+  }
+}
+
+async function getIframeFirebaseIdToken() {
+  try {
+    const stored = await chrome.storage.local.get(['firebase_idToken', 'firebase_expiresAt']);
+    if (stored.firebase_idToken && (stored.firebase_expiresAt || 0) > Date.now() + 60000) {
+      return stored.firebase_idToken;
+    }
+  } catch (_) {
+    // Fall back to the Firebase helper below.
+  }
+  if (typeof window.firebaseGetIdToken === 'function') {
+    return Promise.race([
+      window.firebaseGetIdToken(),
+      new Promise((resolve) => setTimeout(() => resolve(null), IFRAME_CHAT_PLAN_CHECKOUT_TIMEOUT_MS))
+    ]);
+  }
+  return null;
+}
+
+async function fetchIframeBillingJson(path, {
+  method = 'GET',
+  idToken = '',
+  body = undefined
+} = {}) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), IFRAME_CHAT_PLAN_CHECKOUT_TIMEOUT_MS) : null;
+  try {
+    const response = await fetch(`${getIframeBillingBaseUrl()}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {})
+      },
+      body,
+      signal: controller?.signal
+    });
+    const rawText = await response.text().catch(() => '');
+    let payload = {};
+    try {
+      payload = rawText ? JSON.parse(rawText) : {};
+    } catch (_) {
+      payload = {};
+    }
+    if (!response.ok) {
+      const message = String(payload?.error?.message || payload?.error || payload?.message || rawText || `HTTP ${response.status}`).trim();
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
+    }
+    return payload;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function getIframeBillingConfig(options = {}) {
+  const forceRefresh = options.forceRefresh === true;
+  if (
+    !forceRefresh &&
+    iframeBillingConfigCache &&
+    Date.now() - iframeBillingConfigCacheAt < IFRAME_BILLING_CONFIG_CACHE_MS
+  ) {
+    return iframeBillingConfigCache;
+  }
+  const config = await fetchIframeBillingJson('/billingConfig', { method: 'GET' });
+  iframeBillingConfigCache = config;
+  iframeBillingConfigCacheAt = Date.now();
+  return config;
+}
+
+function formatIframeChatPlanPrice(detail = {}, fallback = '') {
+  const unitAmount = Number(detail?.unitAmount);
+  const currency = String(detail?.currency || '').trim().toUpperCase();
+  const interval = String(detail?.interval || '').trim().toLowerCase();
+  if (!Number.isFinite(unitAmount) || !currency) return fallback;
+  const amount = unitAmount / 100;
+  const intervalText = interval === 'year'
+    ? t('chatPlanQuotaOverlayPriceYear', 'year')
+    : t('chatPlanQuotaOverlayPriceMonth', 'month');
+  try {
+    return `${new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
+    }).format(amount)} / ${intervalText}`;
+  } catch (_) {
+    return `${currency} ${amount} / ${intervalText}`;
+  }
+}
+
+async function createIframeChatPlanCheckout(cycle, funnelMetadata = {}) {
+  const billingConfig = await getIframeBillingConfig();
+  const normalizedCycle = cycle === 'monthly' ? 'monthly' : 'yearly';
+  const detail = billingConfig?.priceDetails?.chat?.[normalizedCycle] || {};
+  const priceId = String(detail.priceId || billingConfig?.prices?.chat?.[normalizedCycle] || '').trim();
+  if (!priceId) {
+    throw new Error(t('chatPlanQuotaOverlayPriceUnavailable', 'Price is unavailable. Please try again later.'));
+  }
+  const idToken = await getIframeFirebaseIdToken();
+  if (!idToken) {
+    await requestIframeAuthOverlay();
+    throw new Error(t('membershipEmailLoginRequired', 'Please sign in before continuing.'));
+  }
+  const prefillEmail = await getIframeMembershipPricingPrefillEmail();
+  const funnelId = PaymentFunnel.normalizeFunnelId?.(funnelMetadata.funnelId) || '';
+  const payload = await fetchIframeBillingJson('/createCheckoutSession', {
+    method: 'POST',
+    idToken,
+    body: JSON.stringify({
+      priceId,
+      planType: 'chat',
+      ...(prefillEmail ? { prefillEmail } : {}),
+      ...(funnelId ? { funnelId } : {}),
+      funnelSource: 'chat_plan_quota_overlay',
+      source: 'chat_plan_quota_overlay'
+    })
+  });
+  const url = String(payload?.url || '').trim();
+  if (!url) {
+    throw new Error(t('chatPlanQuotaOverlayCheckoutError', 'Failed to open checkout. Please try again.'));
+  }
+  return url;
 }
 
 async function openChatPlanPricingPage(funnelMetadata = {}) {
@@ -439,7 +577,16 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
   const overlay = document.createElement('div');
   const title = escapeHtml(t('chatPlanQuotaOverlayTitle', 'Free quota used up'));
   const description = escapeHtml(t('chatPlanQuotaOverlayDescription', 'You have used today’s free AI comparison questions. Upgrade to Chat Plan to continue with unlimited questions.'));
-  const buttonLabel = escapeHtml(t('chatPlanQuotaOverlayButton', 'Upgrade Chat Plan'));
+  const optionsLabel = escapeHtml(t('chatPlanQuotaOverlayOptionsLabel', 'Choose your Chat Plan'));
+  const monthlyLabel = escapeHtml(t('membershipPricingMonthlyName', 'Monthly'));
+  const yearlyLabel = escapeHtml(t('membershipPricingYearlyName', 'Yearly'));
+  const monthlyDesc = escapeHtml(t('chatPlanQuotaOverlayMonthlyDescription', 'Flexible monthly access.'));
+  const yearlyDesc = escapeHtml(t('chatPlanQuotaOverlayYearlyDescription', 'Best value for long-term access.'));
+  const yearlyBadge = escapeHtml(t('membershipPricingYearlySaving', 'Save 33%'));
+  const loadingPrice = escapeHtml(t('membershipPricingLoading', 'Loading price…'));
+  const subscribeMonthly = escapeHtml(t('chatPlanQuotaOverlaySubscribeMonthly', 'Subscribe Monthly'));
+  const subscribeYearly = escapeHtml(t('chatPlanQuotaOverlaySubscribeYearly', 'Subscribe Yearly'));
+  const statusLoading = escapeHtml(t('chatPlanQuotaOverlayLoadingPlans', 'Loading plans…'));
   const closeLabel = escapeHtml(t('closeButton', 'Close'));
   const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
   overlay.className = 'iframe-login-overlay iframe-chat-plan-quota-overlay';
@@ -454,7 +601,22 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
         <span>${title}</span>
       </div>
       <p class="iframe-login-overlay-copy">${description}</p>
-      <button class="iframe-login-overlay-button" type="button">${buttonLabel}</button>
+      <div class="iframe-chat-plan-options" role="group" aria-label="${optionsLabel}">
+        <button class="iframe-chat-plan-option is-featured" type="button" data-cycle="yearly" disabled>
+          <span class="iframe-chat-plan-option-badge">${yearlyBadge}</span>
+          <span class="iframe-chat-plan-option-name">${yearlyLabel}</span>
+          <span class="iframe-chat-plan-option-price" data-price-cycle="yearly">${loadingPrice}</span>
+          <span class="iframe-chat-plan-option-desc">${yearlyDesc}</span>
+          <span class="iframe-chat-plan-option-cta">${subscribeYearly}</span>
+        </button>
+        <button class="iframe-chat-plan-option" type="button" data-cycle="monthly" disabled>
+          <span class="iframe-chat-plan-option-name">${monthlyLabel}</span>
+          <span class="iframe-chat-plan-option-price" data-price-cycle="monthly">${loadingPrice}</span>
+          <span class="iframe-chat-plan-option-desc">${monthlyDesc}</span>
+          <span class="iframe-chat-plan-option-cta">${subscribeMonthly}</span>
+        </button>
+      </div>
+      <div class="iframe-chat-plan-status" role="status" aria-live="polite">${statusLoading}</div>
     </div>
   `;
   const closeButton = overlay.querySelector('.iframe-login-overlay-close');
@@ -464,24 +626,68 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
     dismissIframeOverlayForToday(IFRAME_CHAT_PLAN_OVERLAY_DISMISSED_DATE_KEY);
     overlay.remove();
   });
-  const upgradeButton = overlay.querySelector('.iframe-login-overlay-button');
-  upgradeButton?.addEventListener('click', (event) => {
+  const optionButtons = Array.from(overlay.querySelectorAll('.iframe-chat-plan-option'));
+  const status = overlay.querySelector('.iframe-chat-plan-status');
+  const setStatus = (message = '', kind = '') => {
+    if (!status) return;
+    status.textContent = String(message || '');
+    status.hidden = !message;
+    status.classList.toggle('is-error', kind === 'error');
+  };
+  const setOptionsBusy = (busy, activeButton = null) => {
+    optionButtons.forEach((button) => {
+      button.disabled = Boolean(busy);
+      button.toggleAttribute('aria-busy', Boolean(busy && button === activeButton));
+    });
+  };
+  getIframeBillingConfig().then((billingConfig) => {
+    const monthly = billingConfig?.priceDetails?.chat?.monthly || {};
+    const yearly = billingConfig?.priceDetails?.chat?.yearly || {};
+    const monthlyPriceEl = overlay.querySelector('[data-price-cycle="monthly"]');
+    const yearlyPriceEl = overlay.querySelector('[data-price-cycle="yearly"]');
+    if (monthlyPriceEl) monthlyPriceEl.textContent = formatIframeChatPlanPrice(monthly, 'HK$10 / month');
+    if (yearlyPriceEl) yearlyPriceEl.textContent = formatIframeChatPlanPrice(yearly, 'HK$100 / year');
+    optionButtons.forEach((button) => {
+      const cycle = button.dataset.cycle === 'monthly' ? 'monthly' : 'yearly';
+      const detail = billingConfig?.priceDetails?.chat?.[cycle] || {};
+      const priceId = String(detail.priceId || billingConfig?.prices?.chat?.[cycle] || '').trim();
+      button.disabled = !priceId;
+    });
+    setStatus();
+  }).catch((error) => {
+    console.warn('加载 Chat Plan 价格失败:', error);
+    setStatus(t('chatPlanQuotaOverlayPriceLoadError', 'Failed to load plans. Please try again.'), 'error');
+  });
+  optionButtons.forEach((button) => button.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    const cycle = button.dataset.cycle === 'monthly' ? 'monthly' : 'yearly';
     trackEvent('chat_plan_quota_upgrade_clicked', {
       kind: 'subscription',
       planType: 'chat',
+      billingCycle: cycle,
       surface: 'iframe',
       trigger: 'chat_plan_quota_overlay',
       funnelId,
       experiment: 'chat_quota_upgrade_v1',
-      variant: 'direct_value_cta',
+      variant: 'inline_plan_choice',
       source: 'chat_plan_quota_overlay'
     });
-    openChatPlanPricingPage({ funnelId }).catch((error) => {
-      console.warn('打开 Chat Plan 商品页失败:', error);
+    setStatus(t('chatPlanQuotaOverlayOpeningCheckout', 'Opening secure checkout…'));
+    setOptionsBusy(true, button);
+    createIframeChatPlanCheckout(cycle, { funnelId }).then((url) => {
+      try {
+        chrome.tabs.create({ url });
+      } catch (_) {
+        window.open(url, '_blank', 'noopener');
+      }
+      setStatus();
+    }).catch((error) => {
+      console.warn('打开 Chat Plan Checkout 失败:', error);
+      setStatus(error?.message || t('chatPlanQuotaOverlayCheckoutError', 'Failed to open checkout. Please try again.'), 'error');
+      setOptionsBusy(false);
     });
-  });
+  }));
   return overlay;
 }
 
@@ -7984,9 +8190,19 @@ async function retryCurrentUploadBatch() {
 }
 
 function buildAgentPanelState(agent) {
+  const instanceId = (() => {
+    try {
+      return globalThis.crypto?.randomUUID?.() || '';
+    } catch (_) {
+      return '';
+    }
+  })() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   return {
     agentId: agent.id,
-    panelId: `agent:${agent.id}`,
+    // Runtime events are broadcast to every extension page. A skill ID alone is
+    // not a window identity: the same skill can be open in multiple compare
+    // pages, or be closed and reopened while an old request is still ending.
+    panelId: `agent:${agent.id}:${instanceId}`,
     name: agent.name,
     color: agent.color || '#111111',
     messages: [],
@@ -8733,6 +8949,9 @@ function initializeAgentRuntimeMessageBridge() {
     const agentId = String(message.agentId || '').trim();
     const currentState = getAgentState(agentId);
     if (!currentState) {
+      return;
+    }
+    if (!message.panelId || String(message.panelId) !== String(currentState.panelId)) {
       return;
     }
 
