@@ -325,11 +325,13 @@ function formatIframeChatPlanPrice(detail = {}, fallback = '') {
     ? t('chatPlanQuotaOverlayPriceYear', 'year')
     : t('chatPlanQuotaOverlayPriceMonth', 'month');
   try {
-    return `${new Intl.NumberFormat(undefined, {
+    const formatted = new Intl.NumberFormat(undefined, {
       style: 'currency',
       currency,
       maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
-    }).format(amount)} / ${intervalText}`;
+    }).format(amount);
+    if (detail?.type === 'one_time' || !interval) return formatted;
+    return `${formatted} / ${intervalText}`;
   } catch (_) {
     return `${currency} ${amount} / ${intervalText}`;
   }
@@ -337,7 +339,7 @@ function formatIframeChatPlanPrice(detail = {}, fallback = '') {
 
 async function createIframeChatPlanCheckout(cycle, funnelMetadata = {}) {
   const billingConfig = await getIframeBillingConfig();
-  const normalizedCycle = cycle === 'monthly' ? 'monthly' : 'yearly';
+  const normalizedCycle = cycle === 'monthly' || cycle === 'yearly' ? cycle : 'lifetime';
   const detail = billingConfig?.priceDetails?.chat?.[normalizedCycle] || {};
   const priceId = String(detail.priceId || billingConfig?.prices?.chat?.[normalizedCycle] || '').trim();
   if (!priceId) {
@@ -580,12 +582,9 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
   const optionsLabel = escapeHtml(t('chatPlanQuotaOverlayOptionsLabel', 'Choose your Chat Plan'));
   const monthlyLabel = escapeHtml(t('membershipPricingMonthlyName', 'Monthly'));
   const yearlyLabel = escapeHtml(t('membershipPricingYearlyName', 'Yearly'));
-  const monthlyDesc = escapeHtml(t('chatPlanQuotaOverlayMonthlyDescription', 'Flexible monthly access.'));
-  const yearlyDesc = escapeHtml(t('chatPlanQuotaOverlayYearlyDescription', 'Best value for long-term access.'));
-  const yearlyBadge = escapeHtml(t('membershipPricingYearlySaving', 'Save 33%'));
+  const lifetimeLabel = escapeHtml(t('planLifetimeName', 'Lifetime'));
+  const lifetimeBadge = escapeHtml(t('planLifetimeBadge', 'Pay once'));
   const loadingPrice = escapeHtml(t('membershipPricingLoading', 'Loading price…'));
-  const subscribeMonthly = escapeHtml(t('chatPlanQuotaOverlaySubscribeMonthly', 'Subscribe Monthly'));
-  const subscribeYearly = escapeHtml(t('chatPlanQuotaOverlaySubscribeYearly', 'Subscribe Yearly'));
   const statusLoading = escapeHtml(t('chatPlanQuotaOverlayLoadingPlans', 'Loading plans…'));
   const closeLabel = escapeHtml(t('closeButton', 'Close'));
   const iconUrl = escapeHtml(chrome.runtime.getURL('icons/icon128.png'));
@@ -602,18 +601,18 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
       </div>
       <p class="iframe-login-overlay-copy">${description}</p>
       <div class="iframe-chat-plan-options" role="group" aria-label="${optionsLabel}">
-        <button class="iframe-chat-plan-option is-featured" type="button" data-cycle="yearly" disabled>
-          <span class="iframe-chat-plan-option-badge">${yearlyBadge}</span>
+        <button class="iframe-chat-plan-option is-featured iframe-chat-plan-option-lifetime" type="button" data-cycle="lifetime" disabled hidden>
+          <span class="iframe-chat-plan-option-badge">${lifetimeBadge}</span>
+          <span class="iframe-chat-plan-option-name">${lifetimeLabel}</span>
+          <span class="iframe-chat-plan-option-price" data-price-cycle="lifetime">${loadingPrice}</span>
+        </button>
+        <button class="iframe-chat-plan-option" type="button" data-cycle="yearly" disabled>
           <span class="iframe-chat-plan-option-name">${yearlyLabel}</span>
           <span class="iframe-chat-plan-option-price" data-price-cycle="yearly">${loadingPrice}</span>
-          <span class="iframe-chat-plan-option-desc">${yearlyDesc}</span>
-          <span class="iframe-chat-plan-option-cta">${subscribeYearly}</span>
         </button>
         <button class="iframe-chat-plan-option" type="button" data-cycle="monthly" disabled>
           <span class="iframe-chat-plan-option-name">${monthlyLabel}</span>
           <span class="iframe-chat-plan-option-price" data-price-cycle="monthly">${loadingPrice}</span>
-          <span class="iframe-chat-plan-option-desc">${monthlyDesc}</span>
-          <span class="iframe-chat-plan-option-cta">${subscribeMonthly}</span>
         </button>
       </div>
       <div class="iframe-chat-plan-status" role="status" aria-live="polite">${statusLoading}</div>
@@ -643,12 +642,21 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
   getIframeBillingConfig().then((billingConfig) => {
     const monthly = billingConfig?.priceDetails?.chat?.monthly || {};
     const yearly = billingConfig?.priceDetails?.chat?.yearly || {};
+    const lifetime = billingConfig?.priceDetails?.chat?.lifetime || {};
     const monthlyPriceEl = overlay.querySelector('[data-price-cycle="monthly"]');
     const yearlyPriceEl = overlay.querySelector('[data-price-cycle="yearly"]');
+    const lifetimePriceEl = overlay.querySelector('[data-price-cycle="lifetime"]');
+    const lifetimeButton = overlay.querySelector('[data-cycle="lifetime"]');
     if (monthlyPriceEl) monthlyPriceEl.textContent = formatIframeChatPlanPrice(monthly, 'HK$10 / month');
     if (yearlyPriceEl) yearlyPriceEl.textContent = formatIframeChatPlanPrice(yearly, 'HK$100 / year');
+    if (lifetimePriceEl) lifetimePriceEl.textContent = formatIframeChatPlanPrice(lifetime, 'HK$1,500');
+    if (lifetimeButton) {
+      lifetimeButton.hidden = !String(lifetime.priceId || billingConfig?.prices?.chat?.lifetime || '').trim();
+    }
     optionButtons.forEach((button) => {
-      const cycle = button.dataset.cycle === 'monthly' ? 'monthly' : 'yearly';
+      const cycle = button.dataset.cycle === 'monthly' || button.dataset.cycle === 'yearly'
+        ? button.dataset.cycle
+        : 'lifetime';
       const detail = billingConfig?.priceDetails?.chat?.[cycle] || {};
       const priceId = String(detail.priceId || billingConfig?.prices?.chat?.[cycle] || '').trim();
       button.disabled = !priceId;
@@ -661,7 +669,9 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
   optionButtons.forEach((button) => button.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const cycle = button.dataset.cycle === 'monthly' ? 'monthly' : 'yearly';
+    const cycle = button.dataset.cycle === 'monthly' || button.dataset.cycle === 'yearly'
+      ? button.dataset.cycle
+      : 'lifetime';
     trackEvent('chat_plan_quota_upgrade_clicked', {
       kind: 'subscription',
       planType: 'chat',

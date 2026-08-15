@@ -3659,12 +3659,14 @@ async function getUserPlan(uid) {
   const snap = await db.collection('users').doc(uid).get();
   const data = snap.exists ? snap.data() || {} : {};
   const expiresAtSeconds = getTimestampSeconds(data.planExpiresAt);
-  const isActive = data.plan === 'pro' && (!expiresAtSeconds || expiresAtSeconds > Math.floor(Date.now() / 1000));
+  const hasLifetimeChatPlan = data.chatPlanLifetime === true;
+  const isActive = hasLifetimeChatPlan || (data.plan === 'pro' && (!expiresAtSeconds || expiresAtSeconds > Math.floor(Date.now() / 1000)));
   const apiPlanExpiresAtSeconds = getTimestampSeconds(data.apiPlanExpiresAt);
   const isApiActive = data.apiPlan === 'pro' && (!apiPlanExpiresAtSeconds || apiPlanExpiresAtSeconds > Math.floor(Date.now() / 1000));
   return {
     plan: isActive ? 'pro' : 'free',
-    planExpiresAt: data.planExpiresAt || null,
+    planExpiresAt: hasLifetimeChatPlan ? null : (data.planExpiresAt || null),
+    chatPlanLifetime: hasLifetimeChatPlan,
     apiPlan: isApiActive ? 'pro' : 'free',
     apiPlanExpiresAt: data.apiPlanExpiresAt || null,
     stripeCustomerId: data[getStripeCustomerIdField()] || data.stripeCustomerId || '',
@@ -3798,10 +3800,6 @@ function getStoredChatQuestionTotal(data = {}) {
 }
 
 async function consumeChatPlanUsage(uid, locale) {
-  if (!shouldMeterLocale(locale)) {
-    return { billingEnabled: false, plan: 'free', limit: chatPlanDailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
-  }
-
   const plan = await getUserPlan(uid);
   if (plan.plan === 'pro') {
     return { billingEnabled: true, plan: 'pro', limit: chatPlanDailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
@@ -3852,10 +3850,6 @@ async function consumeChatPlanUsage(uid, locale) {
 }
 
 async function consumeAnonymousChatPlanUsage(clientId, locale) {
-  if (!shouldMeterLocale(locale)) {
-    return { billingEnabled: false, plan: 'anonymous', limit: chatPlanDailyFreeLimit, used: 0, remaining: Number.POSITIVE_INFINITY };
-  }
-
   const normalizedClientId = String(clientId || '').trim();
   if (!normalizedClientId) {
     const error = new Error('Anonymous client id is required');
@@ -4745,7 +4739,8 @@ function getStripePrices() {
     yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim(),
     chat: {
       monthly: String(process.env.STRIPE_PRICE_MONTHLY || '').trim(),
-      yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim()
+      yearly: String(process.env.STRIPE_PRICE_YEARLY || '').trim(),
+      lifetime: String(process.env.STRIPE_CHAT_LIFETIME_PRICE || '').trim()
     },
     api: {
       monthly: String(process.env.STRIPE_API_PRICE_MONTHLY || '').trim(),
@@ -4770,6 +4765,7 @@ function buildStripePriceDetail(priceId, price) {
     nickname: String(price.nickname || '').trim(),
     currency: String(price.currency || '').trim().toLowerCase(),
     unitAmount,
+    type: String(price.type || (recurring.interval ? 'recurring' : 'one_time')).trim(),
     interval: String(recurring.interval || '').trim(),
     intervalCount: Number(recurring.interval_count || 1) || 1
   };
@@ -5246,6 +5242,15 @@ function getStripePlanTypeForPrice(priceId = '') {
   return 'chat';
 }
 
+function isStripeChatLifetimePrice(priceId = '') {
+  const normalizedPriceId = String(priceId || '').trim();
+  return Boolean(normalizedPriceId && normalizedPriceId === getStripePrices().chat.lifetime);
+}
+
+function getStripeCheckoutModeForPrice(priceId = '') {
+  return isStripeChatLifetimePrice(priceId) ? 'payment' : 'subscription';
+}
+
 function getStripeModeSuffix() {
   return billingMode === 'live' ? 'Live' : 'Test';
 }
@@ -5265,6 +5270,7 @@ function getStripeAllowedPriceIds() {
     prices.yearly,
     prices.chat.monthly,
     prices.chat.yearly,
+    prices.chat.lifetime,
     prices.api.monthly,
     prices.api.yearly
   ].filter(Boolean));
@@ -5455,23 +5461,26 @@ async function createCheckoutSessionForFirebaseUser({
   const metadata = {
     firebaseUid: firebaseUser.uid,
     planType,
+    priceId,
     ...funnelMetadata,
     ...(promotekitReferral ? { promotekit_referral: promotekitReferral } : {}),
     ...(smokeTest ? { smokeTest: 'true' } : {})
   };
 
-  return stripe.checkout.sessions.create({
-    mode: 'subscription',
+  const checkoutMode = getStripeCheckoutModeForPrice(priceId);
+  const sessionPayload = {
+    mode: checkoutMode,
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: getCheckoutSuccessUrl(),
     cancel_url: getCheckoutCancelUrl(planType, funnelMetadata),
     adaptive_pricing: getStripeAdaptivePricingConfig(),
-    metadata,
-    subscription_data: {
-      metadata
-    }
-  });
+    metadata
+  };
+  if (checkoutMode === 'subscription') {
+    sessionPayload.subscription_data = { metadata };
+  }
+  return stripe.checkout.sessions.create(sessionPayload);
 }
 
 async function createCheckoutSessionForAnonymousClient({
@@ -5485,22 +5494,28 @@ async function createCheckoutSessionForAnonymousClient({
   const customerEmail = normalizeBillingEmail(prefillEmail);
   const metadata = {
     planType,
+    priceId,
     ...funnelMetadata,
     ...(promotekitReferral ? { promotekit_referral: promotekitReferral } : {}),
     ...(customerEmail ? { stripeCustomerEmail: customerEmail } : {})
   };
 
+  const checkoutMode = getStripeCheckoutModeForPrice(priceId);
   const sessionPayload = {
-    mode: 'subscription',
+    mode: checkoutMode,
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: getCheckoutSuccessUrl(),
     cancel_url: getCheckoutCancelUrl(planType, funnelMetadata),
     adaptive_pricing: getStripeAdaptivePricingConfig(),
-    metadata,
-    subscription_data: {
-      metadata
-    }
+    metadata
   };
+
+  if (checkoutMode === 'subscription') {
+    sessionPayload.subscription_data = { metadata };
+  } else {
+    // Ensure an anonymous lifetime purchase gets a Stripe customer for support and receipts.
+    sessionPayload.customer_creation = 'always';
+  }
 
   if (customerEmail) {
     sessionPayload.customer_email = customerEmail;
@@ -5722,13 +5737,18 @@ function getMembershipPricingPageCopy(planType = 'chat', locale = 'en') {
     signedIn: getPricingMessage(messages, 'membershipPricingDescription', 'Stripe checkout is handled securely.'),
     monthlyName: getPricingMessage(messages, 'planMonthlyName', 'Monthly'),
     yearlyName: getPricingMessage(messages, 'planYearlyName', 'Yearly'),
+    lifetimeName: getPricingMessage(messages, 'planLifetimeName', 'Lifetime'),
     monthlyPrice: 'Loading price…',
     yearlyPrice: 'Loading price…',
+    lifetimePrice: 'Loading price…',
     monthlyCta: getPricingMessage(messages, 'btnUpgradeMonthly', 'Subscribe Monthly'),
     yearlyCta: getPricingMessage(messages, 'btnUpgradeYearly', 'Subscribe Yearly'),
+    lifetimeCta: getPricingMessage(messages, 'btnUpgradeLifetime', 'Buy Lifetime Access'),
     upgradeCta: getPricingMessage(messages, 'membershipPricingUpgrade', 'Upgrade'),
     monthlyDesc: getPricingMessage(messages, 'membershipPricingMonthlyDescription', 'Flexible monthly billing.'),
     yearlyDesc: getPricingMessage(messages, 'membershipPricingYearlyDescription', 'Best value for long-term use.'),
+    lifetimeDesc: getPricingMessage(messages, 'membershipPricingLifetimeDescription', 'Pay once. Keep Chat Plan forever.'),
+    lifetimeBadge: getPricingMessage(messages, 'planLifetimeBadge', 'Pay once'),
     yearlySaving: getPricingMessage(messages, 'planYearlySaving', 'Save 33%'),
     popular: getPricingMessage(messages, 'planPopular', 'Most Popular'),
     feature1: isApiPlan
@@ -5800,8 +5820,22 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       </article>
     </section>` : `
     <section class="pricing-selector" id="pricingOptions" aria-label="${escapeHtml(initialCopy.planLabel)}">
+      <label class="pricing-option pricing-option-featured pricing-option-lifetime">
+        <input type="radio" name="billingCycle" value="lifetime" checked>
+        <span class="pricing-option-body">
+          <span class="pricing-option-header">
+            <span class="pricing-name" id="lifetimeName">${escapeHtml(initialCopy.lifetimeName)}</span>
+            <span class="pricing-option-badges">
+              <span class="pricing-badge">${escapeHtml(initialCopy.lifetimeBadge)}</span>
+            </span>
+          </span>
+          <span class="pricing-price is-loading" id="lifetimePrice">${escapeHtml(initialCopy.lifetimePrice)}</span>
+          <span class="pricing-option-description" id="lifetimeDescription">${escapeHtml(initialCopy.lifetimeDesc)}</span>
+        </span>
+      </label>
+
       <label class="pricing-option pricing-option-featured">
-        <input type="radio" name="billingCycle" value="yearly" checked>
+        <input type="radio" name="billingCycle" value="yearly">
         <span class="pricing-option-body">
           <span class="pricing-option-header">
             <span class="pricing-name" id="yearlyName">${escapeHtml(initialCopy.yearlyName)}</span>
@@ -6181,6 +6215,14 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       line-height: 42px;
     }
     .pricing-option:has(input:checked) .pricing-price.is-loading { color: var(--muted); }
+    .pricing-option-description {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
     .checkout-btn {
       width: 100%;
       margin-top: 4px;
@@ -6421,11 +6463,14 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       const billingCycleInputs = Array.from(document.querySelectorAll('input[name="billingCycle"]'));
       const monthlyName = document.getElementById('monthlyName');
       const yearlyName = document.getElementById('yearlyName');
+      const lifetimeName = document.getElementById('lifetimeName');
       const monthlyPrice = document.getElementById('monthlyPrice');
       const yearlyPrice = document.getElementById('yearlyPrice');
+      const lifetimePrice = document.getElementById('lifetimePrice');
       const yearlySavingBadge = document.getElementById('yearlySaving');
       const monthlyDescription = document.getElementById('monthlyDescription');
       const yearlyDescription = document.getElementById('yearlyDescription');
+      const lifetimeDescription = document.getElementById('lifetimeDescription');
       const monthlyFeature1 = document.getElementById('monthlyFeature1');
       const monthlyFeature2 = document.getElementById('monthlyFeature2');
       const monthlyFeature3 = document.getElementById('monthlyFeature3');
@@ -6438,6 +6483,7 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       const pricingTitle = document.getElementById('pricingTitle');
       const pricingDescription = document.getElementById('pricingDescription');
       const pricingOptions = document.getElementById('pricingOptions');
+      const lifetimeOption = document.querySelector('.pricing-option-lifetime');
       const apiBasePath = window.location.pathname.startsWith('/test-api/')
         ? '/test-api'
         : '';
@@ -6446,7 +6492,7 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       const funnelSource = String(pageParams.get('utm_source') || pageParams.get('source') || '').slice(0, 80);
       const analyticsClientIdKey = 'ai_compare_pricing_client_id';
       let billingConfig = null;
-      let selectedCycle = billingCycleInputs.find((input) => input.checked)?.value || 'yearly';
+      let selectedCycle = billingCycleInputs.find((input) => input.checked)?.value || 'lifetime';
 
       function getAnalyticsClientId() {
         try {
@@ -6511,11 +6557,13 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
         if (!detail || !detail.unitAmount || !detail.currency) return fallback;
         try {
           const amount = detail.unitAmount / 100;
-          return new Intl.NumberFormat(undefined, {
+          const formatted = new Intl.NumberFormat(undefined, {
             style: 'currency',
             currency: String(detail.currency || 'USD').toUpperCase(),
             maximumFractionDigits: amount % 1 === 0 ? 0 : 2
-          }).format(amount) + (detail.interval === 'year' ? ' / year' : ' / month');
+          }).format(amount);
+          if (detail.type === 'one_time' || !detail.interval) return formatted;
+          return formatted + (detail.interval === 'year' ? ' / year' : ' / month');
         } catch (_) {
           return fallback;
         }
@@ -6562,7 +6610,7 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       }
 
       function updateSelectedCycle(cycle) {
-        selectedCycle = cycle === 'monthly' ? 'monthly' : 'yearly';
+        selectedCycle = cycle === 'monthly' || cycle === 'yearly' ? cycle : 'lifetime';
         if (checkoutButton) {
           checkoutButton.textContent = copy.upgradeCta || 'Upgrade';
         }
@@ -6572,16 +6620,30 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
         const details = billingConfig?.priceDetails?.[planType] || {};
         const monthly = details.monthly || {};
         const yearly = details.yearly || {};
+        const lifetime = details.lifetime || {};
+        const lifetimeAvailable = planType === 'chat' && Boolean(lifetime.priceId || billingConfig?.prices?.chat?.lifetime);
+
+        if (lifetimeOption) {
+          lifetimeOption.hidden = !lifetimeAvailable;
+          if (!lifetimeAvailable && selectedCycle === 'lifetime') {
+            const yearlyInput = billingCycleInputs.find((input) => input.value === 'yearly');
+            if (yearlyInput) yearlyInput.checked = true;
+            updateSelectedCycle('yearly');
+          }
+        }
         const planLabel = planType === 'api' ? 'API Plan' : 'Chat Plan';
 
         pricingTitle.textContent = copy.title;
         if (pricingDescription) pricingDescription.textContent = copy.description || '';
         monthlyName.hidden = !String(copy.monthlyName || '').trim();
         yearlyName.hidden = !String(copy.yearlyName || '').trim();
+        if (lifetimeName) lifetimeName.hidden = !String(copy.lifetimeName || '').trim();
         monthlyName.textContent = copy.monthlyName;
         yearlyName.textContent = copy.yearlyName;
+        if (lifetimeName) lifetimeName.textContent = copy.lifetimeName;
         monthlyPrice.textContent = formatPrice(monthly, planType === 'api' ? 'HK$10 / month' : '$4.99 / month');
         yearlyPrice.textContent = formatPrice(yearly, planType === 'api' ? 'HK$100 / year' : '$39.99 / year');
+        if (lifetimePrice) lifetimePrice.textContent = formatPrice(lifetime, 'HK$1,500');
         if (yearlySavingBadge) {
           const savingText = planType === 'chat' ? formatYearlySaving(monthly, yearly) : '';
           yearlySavingBadge.textContent = savingText;
@@ -6589,8 +6651,10 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
         }
         monthlyPrice.classList.remove('is-loading');
         yearlyPrice.classList.remove('is-loading');
+        lifetimePrice?.classList.remove('is-loading');
         if (monthlyDescription) monthlyDescription.textContent = copy.monthlyDesc;
         if (yearlyDescription) yearlyDescription.textContent = copy.yearlyDesc;
+        if (lifetimeDescription) lifetimeDescription.textContent = copy.lifetimeDesc;
         if (monthlyFeature1) monthlyFeature1.textContent = copy.feature1;
         if (monthlyFeature2) monthlyFeature2.textContent = copy.feature2;
         if (monthlyFeature3) {
@@ -12668,6 +12732,8 @@ async function updateUserFromSubscription(subscription, options = {}) {
   const planType = String(subscription.metadata?.planType || getStripePlanTypeForPrice(priceId)).trim() === 'api'
     ? 'api'
     : 'chat';
+  const existingUser = await db.collection('users').doc(uid).get();
+  const hasLifetimeChatPlan = planType === 'chat' && existingUser.data()?.chatPlanLifetime === true;
   const planPatch = planType === 'api'
     ? {
       apiPlan: isActive ? 'pro' : 'free',
@@ -12677,8 +12743,9 @@ async function updateUserFromSubscription(subscription, options = {}) {
       apiSubscriptionStatus: subscription.status
     }
     : {
-      plan: isActive ? 'pro' : 'free',
-      planExpiresAt: periodEnd ? db.timestampFromMillis(periodEnd * 1000) : null,
+      // A recurring subscription must never revoke a separately purchased lifetime plan.
+      plan: hasLifetimeChatPlan ? 'pro' : (isActive ? 'pro' : 'free'),
+      planExpiresAt: hasLifetimeChatPlan ? null : (periodEnd ? db.timestampFromMillis(periodEnd * 1000) : null),
       stripeSubscriptionId: subscription.id,
       [getStripeSubscriptionIdField()]: subscription.id,
       subscriptionStatus: subscription.status
@@ -12690,6 +12757,38 @@ async function updateUserFromSubscription(subscription, options = {}) {
     ...(customerEmail ? { stripeCustomerEmail: customerEmail } : {}),
     stripeCustomerId: customerId,
     [getStripeCustomerIdField()]: customerId,
+    billingMode,
+    updatedAt: db.serverTimestamp()
+  }, { merge: true });
+
+  return { uid, customerEmail };
+}
+
+async function updateUserFromLifetimeCheckout(session, options = {}) {
+  const stripe = getStripe();
+  const customerId = extractStripeCustomerId(session.customer);
+  const checkoutEmail = normalizeBillingEmail(options.checkoutEmail || '');
+  let uid = String(options.uid || session.metadata?.firebaseUid || '').trim();
+  let customerEmail = checkoutEmail;
+
+  if (!uid && customerEmail) {
+    const firebaseUser = await getOrCreateFirebaseUserForStripeEmail(customerEmail, { stripeCustomerId: customerId });
+    uid = String(firebaseUser?.uid || '').trim();
+  }
+  if (!uid) return { uid: '', customerEmail };
+  if (!customerEmail && customerId) {
+    customerEmail = await getStripeCustomerEmail(stripe, customerId);
+  }
+
+  await db.collection('users').doc(uid).set({
+    plan: 'pro',
+    planExpiresAt: null,
+    chatPlanLifetime: true,
+    chatPlanLifetimeCheckoutId: String(session.id || ''),
+    chatPlanLifetimePurchasedAt: db.serverTimestamp(),
+    membershipSource: 'stripe_lifetime_purchase',
+    ...(customerEmail ? { email: customerEmail, stripeCustomerEmail: customerEmail } : {}),
+    ...(customerId ? { stripeCustomerId: customerId, [getStripeCustomerIdField()]: customerId } : {}),
     billingMode,
     updatedAt: db.serverTimestamp()
   }, { merge: true });
@@ -12767,6 +12866,8 @@ app.post('/stripeWebhook', asyncRoute(async (req, res) => {
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription);
       await updateUserFromSubscription(subscription, { checkoutEmail: sessionEmail });
+    } else if (paymentSucceeded && isStripeChatLifetimePrice(session.metadata?.priceId || '')) {
+      await updateUserFromLifetimeCheckout(session, { uid, checkoutEmail: sessionEmail });
     }
   }
 

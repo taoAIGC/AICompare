@@ -454,10 +454,6 @@ function isOfficialApiQuotaMessage(message = '') {
     || normalized.includes('免费额度');
 }
 
-function getFirebaseApiKey() {
-  return String(FirebaseConfig?.apiKey || '').trim();
-}
-
 function createAnonymousClientId() {
   try {
     if (self.crypto?.randomUUID) {
@@ -484,36 +480,39 @@ async function getOrCreateAnonymousClientId() {
 }
 
 async function refreshBackgroundFirebaseIdToken(auth = {}) {
-  const apiKey = getFirebaseApiKey();
-  if (!apiKey || !auth.uid || !auth.refreshToken) {
+  if (!auth.uid || !auth.refreshToken) {
     return '';
   }
 
   try {
-    const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`, {
+    const response = await fetch(`${getCloudFunctionsBaseUrl()}/auth/firebase-token/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        grant_type: 'refresh_token',
-        refresh_token: auth.refreshToken
+        refreshToken: auth.refreshToken
       })
     });
 
+    const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      await chrome.storage.local.remove([
-        'firebase_uid',
-        'firebase_email',
-        'firebase_idToken',
-        'firebase_refreshToken',
-        'firebase_expiresAt'
-      ]);
+      // Only discard the local session when the VPS confirms that the refresh
+      // credential is invalid. A temporary network or upstream failure must
+      // not turn a signed-in member into an anonymous quota request.
+      if (response.status === 400 || response.status === 401) {
+        await chrome.storage.local.remove([
+          'firebase_uid',
+          'firebase_email',
+          'firebase_idToken',
+          'firebase_refreshToken',
+          'firebase_expiresAt'
+        ]);
+      }
       return '';
     }
 
-    const payload = await response.json();
-    const expiresInSeconds = Math.max(0, parseInt(payload.expires_in || payload.expiresIn || '3600', 10) || 3600);
-    const nextIdToken = String(payload.id_token || '').trim();
-    const nextRefreshToken = String(payload.refresh_token || auth.refreshToken || '').trim();
+    const expiresInSeconds = Math.max(0, parseInt(payload.expiresIn || payload.expires_in || '3600', 10) || 3600);
+    const nextIdToken = String(payload.idToken || payload.id_token || '').trim();
+    const nextRefreshToken = String(payload.refreshToken || payload.refresh_token || auth.refreshToken || '').trim();
     if (!nextIdToken || !nextRefreshToken) {
       return '';
     }
@@ -1117,7 +1116,17 @@ async function consumeChatPlanUsageQuota(query = '') {
   }
 
   const locale = await getBillingLocale();
+  const auth = await getBackgroundFirebaseAuth();
   const idToken = await getFirebaseIdTokenIfAvailable();
+  if (auth.uid && !idToken) {
+    const rt = await getRuntimeI18nTranslator();
+    const error = new Error(rt(
+      'membershipLoginHint',
+      'Sign in with Google or the email you used at checkout to view your membership status.'
+    ));
+    error.code = 'AUTH_SESSION_EXPIRED';
+    throw error;
+  }
   const anonymousClientId = idToken ? '' : await getOrCreateAnonymousClientId();
   const headers = {
     'Content-Type': 'application/json',

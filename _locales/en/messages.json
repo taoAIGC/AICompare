@@ -3391,5 +3391,17 @@
   },
   "referralCodeRedeemSuccess": {
     "message": "Referral claimed. You received 3 days of Chat Plan, valid until $1."
+  },
+  "planLifetimeName": {
+    "message": "Lifetime"
+  },
+  "planLifetimeBadge": {
+    "message": "Pay once"
+  },
+  "btnUpgradeLifetime": {
+    "message": "Buy Lifetime Access"
+  },
+  "membershipPricingLifetimeDescription": {
+    "message": "Pay once. Keep Chat Plan forever."
   }
 }

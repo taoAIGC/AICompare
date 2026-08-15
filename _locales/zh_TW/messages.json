@@ -3376,5 +3376,17 @@
   },
   "referralCodeRedeemSuccess": {
     "message": "領取成功。你已獲得 3 天 Chat Plan 會員，有效期至 $1。"
+  },
+  "planLifetimeName": {
+    "message": "終身版"
+  },
+  "planLifetimeBadge": {
+    "message": "一次付費"
+  },
+  "btnUpgradeLifetime": {
+    "message": "購買終身版"
+  },
+  "membershipPricingLifetimeDescription": {
+    "message": "一次付費，永久享有 Chat Plan。"
   }
 }

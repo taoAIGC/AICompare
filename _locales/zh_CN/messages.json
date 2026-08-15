@@ -3386,5 +3386,17 @@
   },
   "referralCodeRedeemSuccess": {
     "message": "领取成功。你已获得 3 天 Chat Plan 会员，有效期至 $1。"
+  },
+  "planLifetimeName": {
+    "message": "终身版"
+  },
+  "planLifetimeBadge": {
+    "message": "一次付费"
+  },
+  "btnUpgradeLifetime": {
+    "message": "购买终身版"
+  },
+  "membershipPricingLifetimeDescription": {
+    "message": "一次付费，永久享受 Chat Plan。"
   }
 }
