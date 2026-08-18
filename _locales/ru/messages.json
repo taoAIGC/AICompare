@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Промпт анализа"
+    "message": "Сводка"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "Прояснение проблемы"
+  },
+  "agentProblemFramingDescription": {
+    "message": "Проясните реальную проблему с помощью самых сильных аргументов обеих сторон, прежде чем делать вывод"
   }
 }

@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "پرامپت تحلیل"
+    "message": "خلاصه"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "صورت‌بندی مسئله"
+  },
+  "agentProblemFramingDescription": {
+    "message": "پیش از قضاوت، مسئلهٔ واقعی را با قوی‌ترین استدلال‌های هر دو طرف روشن کنید"
   }
 }

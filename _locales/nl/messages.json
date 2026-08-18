@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analyseprompt"
+    "message": "Samenvatting"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "Probleemverheldering"
+  },
+  "agentProblemFramingDescription": {
+    "message": "Verhelder het werkelijke probleem met de sterkste argumenten van beide kanten voordat je oordeelt"
   }
 }

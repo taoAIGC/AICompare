@@ -1419,7 +1419,7 @@
     "message": "ホームページと iframe の候補は、現在のサイト種別に応じて絞り込まれます。"
   },
   "analysisPromptTemplatesTitle": {
-    "message": "分析プロンプト"
+    "message": "要約"
   },
   "analysisPromptTemplatesDescription": {
     "message": "分析プロンプトは、モデルやスキルの回答結果を要約・分析するために使用します。"
@@ -3367,5 +3367,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "問題整理"
+  },
+  "agentProblemFramingDescription": {
+    "message": "判断する前に、双方の最も強い論証で本当の問題を明確にします"
   }
 }

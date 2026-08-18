@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Prompt di analisi"
+    "message": "Riepilogo"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "Inquadramento del problema"
+  },
+  "agentProblemFramingDescription": {
+    "message": "Chiarisci il problema reale con le argomentazioni più forti di entrambe le parti prima di decidere"
   }
 }

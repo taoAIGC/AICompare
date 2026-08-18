@@ -6696,12 +6696,21 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
           if (!payload || typeof payload !== 'object' || !payload.priceDetails) {
             throw new Error(copy.error);
           }
-          billingConfig = payload;
-          applyBillingData();
-        } catch (error) {
-          console.warn('Failed to load billing config:', error);
-          showToast(copy.error);
-        }
+        billingConfig = payload;
+        applyBillingData();
+        trackPricingEvent('pricing_options_ready', {
+          availableCycles: Object.entries(billingConfig?.priceDetails?.[planType] || {})
+            .filter(([, detail]) => Boolean(detail?.priceId))
+            .map(([cycle]) => cycle)
+            .join(',')
+        });
+      } catch (error) {
+        console.warn('Failed to load billing config:', error);
+        trackPricingEvent('pricing_config_load_failed', {
+          reason: String(error?.message || 'unknown').slice(0, 120)
+        });
+        showToast(copy.error);
+      }
       }
 
       async function startCheckout(cycle) {
@@ -10436,6 +10445,10 @@ async function buildBehaviorDailyStats(dateKey) {
   addAnalyticsRows(featureRows, 'feature');
   addAnalyticsRows(activationRows, 'activation');
   addAnalyticsRows(subscriptionRows, 'subscription');
+  const activationFunnel = BehaviorInsights.buildCoreActivationFunnel(
+    [...activationRows, ...featureRows],
+    safeDateKey
+  );
   const rows = Array.from(buckets.values())
     .map(finalizeBehaviorStatsBucket)
     .sort((left, right) => {
@@ -10451,7 +10464,8 @@ async function buildBehaviorDailyStats(dateKey) {
     rows,
     totalCount: rows.reduce((sum, row) => sum + row.count, 0),
     totalDeviceCount: totalDevices.size,
-    behaviorCount: rows.length
+    behaviorCount: rows.length,
+    activationFunnel
   };
 }
 
@@ -10490,6 +10504,9 @@ async function getBehaviorDailyListData(req) {
       totalCount: Math.max(0, Number(data.totalCount) || 0),
       totalDeviceCount: Math.max(0, Number(data.totalDeviceCount) || 0),
       behaviorCount: Math.max(0, Number(data.behaviorCount) || 0),
+      activationFunnel: data.activationFunnel && typeof data.activationFunnel === 'object'
+        ? data.activationFunnel
+        : null,
       generatedAt: timestampToIso(data.generatedAt),
       updatedAt: timestampToIso(data.updatedAt)
     });

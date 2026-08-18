@@ -1419,7 +1419,7 @@
     "message": "Las sugerencias de la página principal y del iframe se filtran según el tipo de sitio actual."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Prompt de análisis"
+    "message": "Resumen"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Los prompts de análisis se usan para resumir y analizar las respuestas de modelos y skills."
@@ -3367,5 +3367,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "Planteamiento del problema"
+  },
+  "agentProblemFramingDescription": {
+    "message": "Aclara el problema real con los argumentos más sólidos de ambos lados antes de decidir"
   }
 }

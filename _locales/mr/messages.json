@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "विश्लेषण प्रॉम्प्ट"
+    "message": "सारांश"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "समस्येची मांडणी"
+  },
+  "agentProblemFramingDescription": {
+    "message": "निर्णयापूर्वी दोन्ही बाजूंच्या सर्वात मजबूत युक्तिवादांनी खरी समस्या स्पष्ट करा"
   }
 }

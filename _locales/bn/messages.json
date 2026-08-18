@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "বিশ্লেষণ প্রম্পট"
+    "message": "সারাংশ"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "সমস্যা বিন্যাস"
+  },
+  "agentProblemFramingDescription": {
+    "message": "সিদ্ধান্তের আগে দুই পক্ষের সবচেয়ে শক্তিশালী যুক্তি দিয়ে আসল সমস্যাটি পরিষ্কার করুন"
   }
 }

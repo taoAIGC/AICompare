@@ -1419,7 +1419,7 @@
     "message": "홈페이지와 iframe 추천은 현재 사이트 유형에 따라 필터링됩니다."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "분석 프롬프트"
+    "message": "요약"
   },
   "analysisPromptTemplatesDescription": {
     "message": "분석 프롬프트는 모델과 스킬 응답 결과를 요약·분석하는 데 사용됩니다."
@@ -3367,5 +3367,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "문제 정리"
+  },
+  "agentProblemFramingDescription": {
+    "message": "판단하기 전에 양쪽의 가장 강력한 논증으로 실제 문제를 명확히 합니다"
   }
 }

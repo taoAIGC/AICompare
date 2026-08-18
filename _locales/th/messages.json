@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "พรอมป์ต์วิเคราะห์"
+    "message": "สรุป"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "การกำหนดกรอบปัญหา"
+  },
+  "agentProblemFramingDescription": {
+    "message": "ทำให้ปัญหาที่แท้จริงชัดเจนด้วยข้อโต้แย้งที่แข็งแกร่งจากทั้งสองฝ่ายก่อนตัดสินใจ"
   }
 }

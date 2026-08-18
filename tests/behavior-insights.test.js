@@ -39,6 +39,23 @@ test('buildAnalyticsPayload infers kind and query fields', () => {
   assert.equal(activation.hasQuery, true);
   assert.equal(activation.queryLength, 12);
   assert.equal(subscription.kind, 'subscription');
+  assert.equal(insights.inferEventKind('homepage_search_submit'), 'activation');
+  assert.equal(insights.inferEventKind('homepage_result_seen'), 'activation');
+  assert.equal(insights.inferEventKind('iframe_search_submit'), 'activation');
+});
+
+test('buildCoreActivationFunnel only counts ordered events from the same flow', () => {
+  const base = { dateKey: '2026-08-15', clientHash: 'device-a' };
+  const metadata = { activation_flow_id: 'flow-a' };
+  const funnel = insights.buildCoreActivationFunnel([
+    { ...base, eventName: 'app_first_open', createdAt: '2026-08-15T00:00:00Z' },
+    { ...base, eventName: 'homepage_search_submit', metadata, createdAt: '2026-08-15T00:01:00Z' },
+    { ...base, eventName: 'iframe_search_submit', metadata: { ...metadata, trigger: 'homepage_navigation' }, createdAt: '2026-08-15T00:02:00Z' },
+    { ...base, eventName: 'homepage_result_seen', metadata, createdAt: '2026-08-15T00:03:00Z' },
+    { ...base, eventName: 'iframe_search_submit', metadata: { ...metadata, trigger: 'button' }, createdAt: '2026-08-15T00:04:00Z' }
+  ], '2026-08-15');
+  assert.deepEqual(funnel.stages.map((stage) => stage.count), [1, 1, 1, 1]);
+  assert.equal(funnel.transitions[2].conversionRate, 1);
 });
 
 test('buildSiteUsagePayload creates deterministic combination and workflow mode', () => {
@@ -94,5 +111,12 @@ test('getPlanScopedSubscriptionEventName splits paid funnel events by plan', () 
       metadata: { planType: 'chat' }
     }),
     'membership_page_viewed'
+  );
+  assert.equal(
+    insights.getPlanScopedSubscriptionEventName({
+      eventName: 'pricing_options_ready',
+      metadata: { planType: 'api' }
+    }),
+    'api_pricing_options_ready'
   );
 });

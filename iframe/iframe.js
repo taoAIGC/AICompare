@@ -639,6 +639,44 @@ function createIframeChatPlanQuotaOverlay(funnelMetadata = {}) {
       button.toggleAttribute('aria-busy', Boolean(busy && button === activeButton));
     });
   };
+  let membershipRefreshInFlight = false;
+  const refreshMembershipAndCloseIfActivated = async () => {
+    if (membershipRefreshInFlight || !overlay.isConnected) return;
+    membershipRefreshInFlight = true;
+    try {
+      const idToken = await getIframeFirebaseIdToken();
+      if (!idToken) return;
+      const plan = await fetchIframeBillingJson('/userPlan', { idToken });
+      if (plan?.plan === 'pro' && overlay.isConnected) {
+        overlay.remove();
+      }
+    } catch (_) {
+      // Stripe webhooks can take a moment. Keep the current offer visible and retry on return.
+    } finally {
+      membershipRefreshInFlight = false;
+    }
+  };
+  const refreshOnReturn = () => {
+    if (document.visibilityState === 'visible') {
+      void refreshMembershipAndCloseIfActivated();
+    }
+  };
+  const membershipRefreshTimer = window.setInterval(() => {
+    void refreshMembershipAndCloseIfActivated();
+  }, 5000);
+  const stopMembershipRefresh = () => {
+    window.clearInterval(membershipRefreshTimer);
+    window.removeEventListener('focus', refreshOnReturn);
+    document.removeEventListener('visibilitychange', refreshOnReturn);
+    overlayRemovalObserver.disconnect();
+  };
+  const overlayRemovalObserver = new MutationObserver(() => {
+    if (!overlay.isConnected) stopMembershipRefresh();
+  });
+  overlayRemovalObserver.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('focus', refreshOnReturn);
+  document.addEventListener('visibilitychange', refreshOnReturn);
+  void refreshMembershipAndCloseIfActivated();
   getIframeBillingConfig().then((billingConfig) => {
     const monthly = billingConfig?.priceDetails?.chat?.monthly || {};
     const yearly = billingConfig?.priceDetails?.chat?.yearly || {};
@@ -3173,6 +3211,9 @@ function createApiPlanFunnelId() {
   }
 }
 
+const officialApiQuotaFunnels = new Map();
+const shownApiPlanUpgradeFunnels = new Set();
+
 function getApiPlanUpgradeUrl(funnelId) {
   const fallbackBaseUrl = 'https://aicompare.club';
   let baseUrl = fallbackBaseUrl;
@@ -3201,6 +3242,16 @@ function getApiPlanUpgradeUrl(funnelId) {
 
 function renderApiPlanQuotaUpgradeHtml(funnelId = '') {
   const normalizedFunnelId = PaymentFunnel.normalizeFunnelId?.(funnelId) || createApiPlanFunnelId();
+  if (!shownApiPlanUpgradeFunnels.has(normalizedFunnelId)) {
+    shownApiPlanUpgradeFunnels.add(normalizedFunnelId);
+    trackEvent('api_plan_upgrade_entry_shown', {
+      kind: 'subscription',
+      planType: 'api',
+      surface: 'summary',
+      trigger: 'official_api_quota_error',
+      funnelId: normalizedFunnelId
+    });
+  }
   const description = t(
     'apiPlanPricingDescription',
     'Unlock unlimited summary and skill questions powered by the built-in API.'
@@ -3229,13 +3280,32 @@ async function openApiPlanQuotaUpgrade(funnelId, surface = 'iframe') {
   const url = getApiPlanUpgradeUrl(normalizedFunnelId);
   try {
     await chrome.tabs.create({ url });
-  } catch (_) {
-    window.open(url, '_blank', 'noopener');
+  } catch (error) {
+    try {
+      const opened = window.open(url, '_blank', 'noopener');
+      if (!opened) throw error;
+    } catch (_) {
+      trackEvent('api_plan_upgrade_open_failed', {
+        kind: 'subscription',
+        planType: 'api',
+        surface,
+        trigger: 'official_api_quota_error',
+        funnelId: normalizedFunnelId
+      });
+    }
   }
 }
 
 function trackOfficialApiQuotaReached(surface = 'iframe', metadata = {}) {
-  const funnelId = PaymentFunnel.normalizeFunnelId?.(metadata.funnelId) || createApiPlanFunnelId();
+  const dedupeKey = [
+    String(surface || 'iframe'),
+    String(metadata.entryKey || metadata.agentId || metadata.source || ''),
+    String(metadata.trigger || '')
+  ].join('|');
+  const existingFunnelId = officialApiQuotaFunnels.get(dedupeKey) || '';
+  const funnelId = PaymentFunnel.normalizeFunnelId?.(metadata.funnelId || existingFunnelId) || createApiPlanFunnelId();
+  if (existingFunnelId) return funnelId;
+  officialApiQuotaFunnels.set(dedupeKey, funnelId);
   trackEvent('official_api_quota_reached', {
     kind: 'subscription',
     surface,
@@ -13189,12 +13259,16 @@ async function runIframeSearchQuery(query, options = {}) {
   const openedAgentIds = typeof getOpenedAgentIds === 'function' ? getOpenedAgentIds() : [];
   const searchStartedAt = Date.now();
   trackEvent('iframe_search_submit', {
+    surface: 'iframe',
+    activation_flow_id: getActivationFlowId(),
     query_length: normalizedQuery.length,
     selected_sites_count: openedSites.length,
     selected_sites: openedSites,
     agents_count: openedAgentIds.length,
     agents: openedAgentIds,
-    trigger
+    trigger,
+    has_query: true,
+    result_state: 'dispatch_started'
   });
 
   void requestIframeAuthOverlay();

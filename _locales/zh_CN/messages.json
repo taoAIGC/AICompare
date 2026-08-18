@@ -1921,7 +1921,7 @@
     "message": "homepage 和 iframe 会按当前站点类型过滤提示词模板"
   },
   "analysisPromptTemplatesTitle": {
-    "message": "分析提示词"
+    "message": "总结"
   },
   "analysisPromptTemplatesDescription": {
     "message": "分析提示词用于对大模型、技能回答的结果进行汇总分析"
@@ -3398,5 +3398,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "一次付费，永久享受 Chat Plan。"
+  },
+  "agentProblemFramingName": {
+    "message": "问题梳理"
+  },
+  "agentProblemFramingDescription": {
+    "message": "在做判断前，用双向钢人论证厘清真正的问题"
   }
 }

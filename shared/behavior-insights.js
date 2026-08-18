@@ -12,7 +12,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   const SENSITIVE_KEY_PATTERN = /(token|key|auth|code|secret|password|session|credential|access|refresh|prompt|response|content|body|clipboard|apikey|api_key)/i;
   const SUBSCRIPTION_EVENT_PATTERN = /(membership|pricing|checkout|subscribe|subscription|payment|limit|upgrade|pro)/i;
-  const ACTIVATION_EVENT_PATTERN = /(^app_first_open$|^activation_|first_|first_result|first_query)/i;
+  const ACTIVATION_EVENT_PATTERN = /(^app_first_open$|^activation_|^homepage_search_submit$|^homepage_result_seen$|^iframe_search_submit$|first_|first_result|first_query)/i;
   const RESULT_STATES = new Set(['submitted', 'loaded', 'partial', 'failed', 'blocked', 'empty', 'navigation_started', 'dispatch_started', 'content_visible']);
 
   function normalizeString(value, limit = 160) {
@@ -105,6 +105,8 @@
       'checkout_started',
       'checkout_success',
       'pricing_page_opened',
+      'pricing_options_ready',
+      'pricing_config_load_failed',
       'pricing_plan_selected',
       'plan_upgrade_entry_clicked',
       'checkout_open_failed',
@@ -203,6 +205,71 @@
     return '';
   }
 
+  function buildCoreActivationFunnel(rows = [], dateKey = '') {
+    const stageNames = [
+      'app_first_open',
+      'homepage_search_submit',
+      'homepage_result_seen',
+      'iframe_search_submit'
+    ];
+    const normalizedRows = (Array.isArray(rows) ? rows : [])
+      .filter((row) => !dateKey || String(row.dateKey || '') === String(dateKey))
+      .map((row) => ({
+        ...row,
+        identity: getIdentityKey(row),
+        flowId: normalizeString(row.metadata?.activation_flow_id || row.metadata?.activationFlowId || '', 160),
+        trigger: normalizeString(row.metadata?.trigger || '', 80),
+        timestamp: Date.parse(row.createdAt || row.updatedAt || '') || 0
+      }))
+      .filter((row) => row.identity && stageNames.includes(String(row.eventName || '')))
+      .sort((left, right) => left.timestamp - right.timestamp);
+    const reached = stageNames.map(() => new Set());
+    const flows = new Map();
+    normalizedRows.forEach((row) => {
+      if (row.eventName === 'app_first_open') {
+        reached[0].add(row.identity);
+        return;
+      }
+      if (!row.flowId) return;
+      const key = `${row.identity}|${row.flowId}`;
+      const state = flows.get(key) || { identity: row.identity, submitAt: 0, resultAt: 0 };
+      if (row.eventName === 'homepage_search_submit' && reached[0].has(row.identity)) {
+        state.submitAt = state.submitAt || row.timestamp;
+        reached[1].add(row.identity);
+      } else if (row.eventName === 'homepage_result_seen' && state.submitAt && row.timestamp >= state.submitAt) {
+        state.resultAt = state.resultAt || row.timestamp;
+        reached[2].add(row.identity);
+      } else if (
+        row.eventName === 'iframe_search_submit'
+        && state.resultAt
+        && row.timestamp >= state.resultAt
+        && row.trigger !== 'homepage_navigation'
+      ) {
+        reached[3].add(row.identity);
+      }
+      flows.set(key, state);
+    });
+    return {
+      dateKey: String(dateKey || ''),
+      strict: true,
+      identityScope: 'user_or_anonymous_device',
+      stages: stageNames.map((eventName, index) => ({ eventName, count: reached[index].size })),
+      transitions: stageNames.slice(0, -1).map((eventName, index) => {
+        const from = reached[index].size;
+        const to = reached[index + 1].size;
+        return {
+          fromEvent: eventName,
+          toEvent: stageNames[index + 1],
+          from,
+          to,
+          lost: Math.max(0, from - to),
+          lossRate: from ? Number(((from - to) / from).toFixed(4)) : null,
+          conversionRate: from ? Number((to / from).toFixed(4)) : null
+        };
+      })
+    };
+  }
+
   function inferUserMaturity({ featureEvents = 0, activationEvents = 0, siteEvents = 0, subscriptionEvents = 0, hasWorkflowFeature = false } = {}) {
     if (subscriptionEvents > 0) return 'pro';
     if (hasWorkflowFeature || siteEvents >= 10 || featureEvents >= 20) return 'power';
@@ -214,6 +281,7 @@
 
   return {
     buildAnalyticsPayload,
+    buildCoreActivationFunnel,
     buildSiteUsagePayload,
     createSiteCombinationKey,
     getIdentityKey,

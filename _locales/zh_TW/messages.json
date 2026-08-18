@@ -1780,7 +1780,7 @@
     "message": "首頁與 iframe 建議會依目前網站類型進行篩選。"
   },
   "analysisPromptTemplatesTitle": {
-    "message": "分析提示詞"
+    "message": "總結"
   },
   "analysisPromptTemplatesDescription": {
     "message": "分析提示詞用於對大模型、技能回答的結果進行彙總分析"
@@ -3388,5 +3388,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "一次付費，永久享有 Chat Plan。"
+  },
+  "agentProblemFramingName": {
+    "message": "問題梳理"
+  },
+  "agentProblemFramingDescription": {
+    "message": "在做判斷前，以雙向鋼人論證釐清真正的問題"
   }
 }

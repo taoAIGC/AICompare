@@ -1419,7 +1419,7 @@
     "message": "يتم تصفية اقتراحات الصفحة الرئيسية وiframe حسب نوع الموقع الحالي."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "موجه التحليل"
+    "message": "ملخص"
   },
   "analysisPromptTemplatesDescription": {
     "message": "تُستخدم مطالبات التحليل لتلخيص وتحليل إجابات النماذج والمهارات."
@@ -3367,5 +3367,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "تأطير المشكلة"
+  },
+  "agentProblemFramingDescription": {
+    "message": "وضّح المشكلة الحقيقية بحجج قوية من الجانبين قبل إصدار الحكم"
   }
 }

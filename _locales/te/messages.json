@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "విశ్లేషణ ప్రాంప్ట్"
+    "message": "సారాంశం"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "సమస్య రూపకల్పన"
+  },
+  "agentProblemFramingDescription": {
+    "message": "నిర్ణయం తీసుకునే ముందు రెండు వైపుల బలమైన వాదనలతో అసలు సమస్యను స్పష్టం చేయండి"
   }
 }

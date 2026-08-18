@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "Analüüsi viip"
+    "message": "Kokkuvõte"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "Probleemi sõnastamine"
+  },
+  "agentProblemFramingDescription": {
+    "message": "Selgita enne otsustamist tegelik probleem mõlema poole tugevaimate argumentidega"
   }
 }

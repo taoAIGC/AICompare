@@ -1911,7 +1911,7 @@
     "message": "Homepage and iframe suggestions are filtered by the current site type."
   },
   "analysisPromptTemplatesTitle": {
-    "message": "பகுப்பாய்வு ப்ராம்ப்ட்"
+    "message": "சுருக்கம்"
   },
   "analysisPromptTemplatesDescription": {
     "message": "Analysis prompts are used to summarize and analyze responses from models and skills."
@@ -3370,5 +3370,11 @@
   },
   "membershipPricingLifetimeDescription": {
     "message": "Pay once. Keep Chat Plan forever."
+  },
+  "agentProblemFramingName": {
+    "message": "சிக்கல் வடிவமைப்பு"
+  },
+  "agentProblemFramingDescription": {
+    "message": "முடிவு எடுப்பதற்கு முன் இரு தரப்பின் வலுவான வாதங்களுடன் உண்மையான சிக்கலைத் தெளிவுபடுத்துங்கள்"
   }
 }
