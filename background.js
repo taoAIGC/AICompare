@@ -1709,6 +1709,14 @@ async function parseAgentErrorMessage(response) {
       );
     }
 
+    if (options.isOfficialAgentApi && status === 503) {
+      return withoutDetails(
+        'aiErrorOfficialServiceBusy',
+        'The official API is temporarily unavailable. Please try again later, or switch to [Custom API]($1).',
+        [customApiSettingsUrl]
+      );
+    }
+
     if (
       status === 408 ||
       status === 500 ||

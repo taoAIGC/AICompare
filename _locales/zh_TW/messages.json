@@ -1924,7 +1924,7 @@
     "message": "提問時間線"
   },
   "timelinePanelTitle": {
-    "message": "對話時間線"
+    "message": "儲存答案"
   },
   "timelineSharePickerHint": {
     "message": "選擇要分享的提問記錄"
@@ -1978,6 +1978,9 @@
   },
   "timelineCopyPreviewFailedSitesLabel": {
     "message": "失敗站點"
+  },
+  "timelineSaveAndShare": {
+    "message": "儲存至雲端，產生分享 URL"
   },
   "timelineCopyPreviewShare": {
     "message": "分享"
@@ -3394,5 +3397,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "在做判斷前，以雙向鋼人論證釐清真正的問題"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "官方 API 暫時無法使用，請稍後重試。你也可以切換為 [自訂 API]($1)。"
   }
 }

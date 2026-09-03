@@ -1563,7 +1563,7 @@
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "Línea de tiempo del chat"
+    "message": "Saved answers"
   },
   "timelineSharePickerHint": {
     "message": "Elige un prompt para compartir"
@@ -1617,6 +1617,9 @@
   },
   "timelineCopyPreviewFailedSitesLabel": {
     "message": "Sitios fallidos"
+  },
+  "timelineSaveAndShare": {
+    "message": "Save to cloud and generate a share URL"
   },
   "timelineCopyPreviewShare": {
     "message": "Compartir"
@@ -3373,5 +3376,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "Aclara el problema real con los argumentos más sólidos de ambos lados antes de decidir"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "The official API is temporarily unavailable. Please try again later, or switch to [Custom API]($1)."
   }
 }

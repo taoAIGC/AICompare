@@ -317,7 +317,7 @@ function createRelayServer(options = {}) {
   function getSharePageMessages(locale = 'en') {
     if (locale === 'zh-CN') {
       return {
-        continueCompare: '继续 AI 对比',
+        continueCompare: '安装 AI 比一比',
         snapshotTimeLabel: '快照时间（北京时间 UTC+8）',
         compareSitesLabel: '对比站点',
         snapshotToolLabel: '快照工具',
@@ -330,7 +330,7 @@ function createRelayServer(options = {}) {
     }
 
     return {
-      continueCompare: 'Continue AI Compare',
+      continueCompare: 'Install AI Compare',
       snapshotTimeLabel: 'Snapshot time (UTC+8)',
       compareSitesLabel: 'Compared sites',
       snapshotToolLabel: 'Snapshot tool',

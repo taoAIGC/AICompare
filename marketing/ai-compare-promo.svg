@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">AI Compare promotional banner</title>
+  <desc id="desc">One question, multiple AI perspectives, with side-by-side response panels.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071526"/>
+      <stop offset="1" stop-color="#102d45"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#020817" flood-opacity=".38"/>
+    </filter>
+    <style>
+      .sans { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+      .muted { fill: #9db4c7; }
+      .tiny { font-size: 15px; letter-spacing: .2px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1390" cy="90" r="250" fill="#0ea5e9" opacity=".08"/>
+  <circle cx="1260" cy="820" r="300" fill="#14b8a6" opacity=".06"/>
+
+  <g class="sans" transform="translate(100 110)">
+    <rect width="54" height="54" rx="14" fill="url(#accent)"/>
+    <path d="M16 18h22a7 7 0 0 1 7 7v12a7 7 0 0 1-7 7H28l-8 7v-7h-4a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Z" fill="#062032" opacity=".95"/>
+    <circle cx="21" cy="31" r="3" fill="#8ff5e6"/><circle cx="30" cy="31" r="3" fill="#8ff5e6"/><circle cx="39" cy="31" r="3" fill="#8ff5e6"/>
+    <text x="70" y="37" fill="#e8f3fa" font-size="25" font-weight="700">AI Compare</text>
+  </g>
+
+  <g class="sans" transform="translate(100 230)">
+    <text fill="#f5fbff" font-size="54" font-weight="800">One Question.</text>
+    <text y="68" fill="#f5fbff" font-size="54" font-weight="800">Multiple <tspan fill="#5eead4">AI</tspan> Perspectives.</text>
+    <rect y="126" width="116" height="5" rx="3" fill="url(#accent)"/>
+    <text y="184" class="muted" font-size="25">Compare answers from multiple AI tools</text>
+    <text y="220" class="muted" font-size="25">in one focused workspace.</text>
+
+    <g transform="translate(0 290)">
+      <circle cx="12" cy="12" r="12" fill="#2dd4bf"/><path d="m7 12 4 4 8-9" fill="none" stroke="#062032" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="34" y="19" fill="#d7e7ef" font-size="20">Ask multiple AI tools at once</text>
+      <circle cy="62" cx="12" r="12" fill="#38bdf8"/><path d="m7 62 4 4 8-9" fill="none" stroke="#062032" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="34" y="69" fill="#d7e7ef" font-size="20">Compare answers side by side</text>
+      <circle cy="112" cx="12" r="12" fill="#fbbf24"/><path d="m7 112 4 4 8-9" fill="none" stroke="#062032" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="34" y="119" fill="#d7e7ef" font-size="20">Send selected text from any webpage</text>
+    </g>
+    <rect y="485" width="244" height="58" rx="29" fill="#f8fafc"/>
+    <text x="122" y="522" text-anchor="middle" fill="#092238" font-size="19" font-weight="750">Try AI Compare  →</text>
+  </g>
+
+  <g filter="url(#shadow)" transform="translate(700 122)" class="sans">
+    <rect width="790" height="650" rx="20" fill="#f4f8fb"/>
+    <rect width="790" height="52" rx="20" fill="#e5edf2"/>
+    <rect y="32" width="790" height="20" fill="#e5edf2"/>
+    <circle cx="24" cy="26" r="7" fill="#fb7185"/><circle cx="47" cy="26" r="7" fill="#fbbf24"/><circle cx="70" cy="26" r="7" fill="#34d399"/>
+    <rect x="112" y="14" width="560" height="25" rx="12" fill="#fff"/>
+    <text x="130" y="31" font-size="12" fill="#8aa0ae">AI Compare  /  comparison workspace</text>
+    <text x="28" y="88" font-size="19" font-weight="750" fill="#102a43">Compare AI answers</text>
+    <rect x="28" y="105" width="734" height="52" rx="12" fill="#fff" stroke="#d8e4eb"/>
+    <text x="48" y="137" font-size="15" fill="#557084">Create a go-to-market plan for a new productivity app.</text>
+    <rect x="28" y="178" width="734" height="1" fill="#dbe7ed"/>
+
+    <g transform="translate(28 202)">
+      <g><rect width="231" height="325" rx="12" fill="#fff" stroke="#d9e6ed"/><rect width="231" height="48" rx="12" fill="#eef8ff"/><rect y="36" width="231" height="12" fill="#eef8ff"/><circle cx="24" cy="24" r="12" fill="#10a37f"/><text x="46" y="30" font-size="17" font-weight="750" fill="#15334a">ChatGPT</text><text x="18" y="78" class="tiny" fill="#506b7d">Structured strategy</text><rect x="18" y="98" width="183" height="8" rx="4" fill="#c8eaf4"/><rect x="18" y="116" width="160" height="8" rx="4" fill="#e1eef3"/><rect x="18" y="134" width="190" height="8" rx="4" fill="#e1eef3"/><rect x="18" y="170" width="183" height="8" rx="4" fill="#e1eef3"/><rect x="18" y="188" width="145" height="8" rx="4" fill="#e1eef3"/><rect x="18" y="224" width="112" height="28" rx="14" fill="#e8f7f4"/><text x="74" y="243" text-anchor="middle" font-size="12" fill="#087f6d">Clear steps</text></g>
+      <g transform="translate(251)"><rect width="231" height="325" rx="12" fill="#fff" stroke="#d9e6ed"/><rect width="231" height="48" rx="12" fill="#f3efff"/><rect y="36" width="231" height="12" fill="#f3efff"/><circle cx="24" cy="24" r="12" fill="#6b5ce7"/><text x="46" y="30" font-size="17" font-weight="750" fill="#15334a">Claude</text><text x="18" y="78" class="tiny" fill="#506b7d">Detailed reasoning</text><rect x="18" y="98" width="190" height="8" rx="4" fill="#ddd5ff"/><rect x="18" y="116" width="177" height="8" rx="4" fill="#e7e2fa"/><rect x="18" y="134" width="165" height="8" rx="4" fill="#e7e2fa"/><rect x="18" y="170" width="190" height="8" rx="4" fill="#e7e2fa"/><rect x="18" y="188" width="130" height="8" rx="4" fill="#e7e2fa"/><rect x="18" y="224" width="136" height="28" rx="14" fill="#f1edff"/><text x="86" y="243" text-anchor="middle" font-size="12" fill="#6656c8">Deep context</text></g>
+      <g transform="translate(502)"><rect width="231" height="325" rx="12" fill="#fff" stroke="#d9e6ed"/><rect width="231" height="48" rx="12" fill="#fff8e7"/><rect y="36" width="231" height="12" fill="#fff8e7"/><circle cx="24" cy="24" r="12" fill="#4285f4"/><text x="46" y="30" font-size="17" font-weight="750" fill="#15334a">Gemini</text><text x="18" y="78" class="tiny" fill="#506b7d">Fresh alternatives</text><rect x="18" y="98" width="170" height="8" rx="4" fill="#ffe3a8"/><rect x="18" y="116" width="196" height="8" rx="4" fill="#f8edda"/><rect x="18" y="134" width="142" height="8" rx="4" fill="#f8edda"/><rect x="18" y="170" width="195" height="8" rx="4" fill="#f8edda"/><rect x="18" y="188" width="165" height="8" rx="4" fill="#f8edda"/><rect x="18" y="224" width="147" height="28" rx="14" fill="#fff4d9"/><text x="91" y="243" text-anchor="middle" font-size="12" fill="#9a6a00">New angles</text></g>
+    </g>
+    <rect x="28" y="560" width="734" height="58" rx="12" fill="#0f2940"/><text x="395" y="596" text-anchor="middle" fill="#c9f9f1" font-size="18" font-weight="700">Compare. Think. Decide.</text>
+  </g>
+
+  <text x="100" y="850" class="sans muted" font-size="16">A faster way to work with the AI tools you already use.</text>
+  <text x="1490" y="850" text-anchor="end" class="sans muted" font-size="16">Chrome extension · AI Compare</text>
+</svg>

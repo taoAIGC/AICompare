@@ -1563,7 +1563,7 @@
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "الخط الزمني للدردشة"
+    "message": "Saved answers"
   },
   "timelineSharePickerHint": {
     "message": "اختر المطالبة التي تريد مشاركتها"
@@ -1617,6 +1617,9 @@
   },
   "timelineCopyPreviewFailedSitesLabel": {
     "message": "المواقع الفاشلة"
+  },
+  "timelineSaveAndShare": {
+    "message": "Save to cloud and generate a share URL"
   },
   "timelineCopyPreviewShare": {
     "message": "مشاركة"
@@ -3373,5 +3376,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "وضّح المشكلة الحقيقية بحجج قوية من الجانبين قبل إصدار الحكم"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "The official API is temporarily unavailable. Please try again later, or switch to [Custom API]($1)."
   }
 }

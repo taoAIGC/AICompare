@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js",
+    "check": "node --check server.js && node --check ark-usage.js",
+    "test": "node --test test/*.test.js",
     "migrate:firestore": "node scripts/migrate-firestore-to-postgres.js",
     "weekly-insights": "node weekly-behavior-insight-report.cjs"
   },

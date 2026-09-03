@@ -2055,7 +2055,7 @@
     "message": "Chat timeline"
   },
   "timelinePanelTitle": {
-    "message": "Chat timeline"
+    "message": "Saved answers"
   },
   "timelineSharePickerHint": {
     "message": "Choose a prompt to share"
@@ -2608,6 +2608,9 @@
   },
   "timelineCopyPreviewDownloadFailed": {
     "message": "Download failed. Please try again."
+  },
+  "timelineSaveAndShare": {
+    "message": "Save to cloud and generate a share URL"
   },
   "timelineCopyPreviewShare": {
     "message": "Share"
@@ -3376,5 +3379,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "முடிவு எடுப்பதற்கு முன் இரு தரப்பின் வலுவான வாதங்களுடன் உண்மையான சிக்கலைத் தெளிவுபடுத்துங்கள்"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "The official API is temporarily unavailable. Please try again later, or switch to [Custom API]($1)."
   }
 }

@@ -167,119 +167,13 @@
     return lines.join('\n').trim();
   }
 
-  function mergeTimelinePromptSnapshots(snapshots = [], previousEntries = []) {
-    const mergedEntries = [];
-    const entryByPromptKey = new Map();
-
-    for (const snapshot of Array.isArray(snapshots) ? snapshots : []) {
-      const siteName = String(snapshot?.siteName || '').trim();
-      const prompts = Array.isArray(snapshot?.prompts) ? snapshot.prompts : [];
-      const occurrenceByQuery = new Map();
-
-      for (const prompt of prompts) {
-        const query = normalizeTimelineQuery(prompt?.text);
-        if (!query) continue;
-
-        const occurrenceIndex = occurrenceByQuery.get(query) || 0;
-        occurrenceByQuery.set(query, occurrenceIndex + 1);
-        const promptKey = `${query}::${occurrenceIndex}`;
-
-        let entry = entryByPromptKey.get(promptKey);
-        if (!entry) {
-          entry = {
-            query,
-            normalizedQuery: query,
-            occurrenceIndex,
-            sourceSites: []
-          };
-          entryByPromptKey.set(promptKey, entry);
-          mergedEntries.push(entry);
-        }
-
-        if (siteName && !entry.sourceSites.includes(siteName)) {
-          entry.sourceSites.push(siteName);
-        }
-      }
-    }
-
-    const previousEntryKeySet = new Set(
-      (Array.isArray(previousEntries) ? previousEntries : [])
-        .map((entry) => buildTimelineEntryKey(entry))
-        .filter(Boolean)
-    );
-    const previousEntryByKey = new Map(
-      (Array.isArray(previousEntries) ? previousEntries : [])
-        .map((entry) => [buildTimelineEntryKey(entry), entry])
-        .filter(([entryKey]) => entryKey)
-    );
-    const previousOrderByKey = new Map(
-      (Array.isArray(previousEntries) ? previousEntries : [])
-        .map((entry, index) => [buildTimelineEntryKey(entry), index])
-        .filter(([entryKey]) => entryKey)
-    );
-
-    return mergedEntries
-      .filter((entry) => {
-        const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
-        if (occurrenceIndex === 0) {
-          return true;
-        }
-        const entryKey = buildTimelineEntryKey(entry);
-        if (entryKey && previousEntryKeySet.has(entryKey)) {
-          return true;
-        }
-        return false;
-      })
-      .map((entry, index) => ({ entry, index }))
-      .sort((left, right) => {
-        const leftOrder = previousOrderByKey.has(buildTimelineEntryKey(left.entry))
-          ? previousOrderByKey.get(buildTimelineEntryKey(left.entry))
-          : Number.POSITIVE_INFINITY;
-        const rightOrder = previousOrderByKey.has(buildTimelineEntryKey(right.entry))
-          ? previousOrderByKey.get(buildTimelineEntryKey(right.entry))
-          : Number.POSITIVE_INFINITY;
-
-        if (leftOrder !== rightOrder) {
-          return leftOrder - rightOrder;
-        }
-        return left.index - right.index;
-      })
-      .map(({ entry }) => {
-        const entryKey = buildTimelineEntryKey(entry);
-        const previousEntry = previousEntryByKey.get(entryKey);
-        if (!String(previousEntry?.query || '').trim()) {
-          return entry;
-        }
-        return {
-          ...entry,
-          query: normalizeTimelineQuery(previousEntry.query),
-          normalizedQuery: normalizeTimelineQuery(previousEntry.query)
-        };
-      });
-  }
-
-  function extractTimelinePromptsFromMessages(messages = []) {
-    const prompts = [];
-
-    for (const message of Array.isArray(messages) ? messages : []) {
-      if (message?.role !== 'user') continue;
-      const text = normalizeTimelineQuery(message?.content);
-      if (!text) continue;
-      prompts.push({ text });
-    }
-
-    return prompts;
-  }
-
   return {
     buildTimelineCopyText,
     buildTimelineEntry,
     buildTimelineEntryKey,
-    extractTimelinePromptsFromMessages,
     findTimelineEntryByKey,
     findTimelineEntryByTimelineId,
     findTimelineEntryByQuery,
-    mergeTimelinePromptSnapshots,
     normalizeTimelineQuery
   };
 });

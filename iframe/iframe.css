@@ -2573,8 +2573,8 @@ body.search-bar-bottom #iframes-container {
     position: fixed;
     right: 0;
     top: 50%;
-    width: 36px;
-    height: 72px;
+    width: 28px;
+    height: 44px;
     transform: translateY(-50%);
     z-index: 1090;
     border: none;
@@ -2590,14 +2590,31 @@ body.search-bar-bottom #iframes-container {
     right: 0;
     top: 50%;
     width: 28px;
-    height: 56px;
+    height: 44px;
+    min-width: 28px;
+    min-height: 44px;
+    max-width: 28px;
+    max-height: 44px;
+    box-sizing: border-box;
     transform: translateY(-50%);
     border: 1px solid #dddddd;
     border-right: none;
     border-radius: 8px 0 0 8px;
-    background: #ffffff url('../icons/share.svg') center / 16px 16px no-repeat;
+    background: #ffffff;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    pointer-events: none;
+}
+
+.timeline-edge-trigger svg {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    transform: translateY(-50%);
+    color: #111;
     pointer-events: none;
 }
 
@@ -3738,7 +3755,7 @@ body.search-bar-bottom #iframes-container {
     border-radius: 14px;
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.14);
     z-index: 1500;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     flex-direction: column;
     backdrop-filter: blur(10px);
@@ -3810,6 +3827,8 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
 .timeline-list {
     padding: 10px 12px 12px;
     overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -3871,13 +3890,6 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     line-height: 1.45;
     color: #2b2b2b;
     word-break: break-word;
-    margin-bottom: 6px;
-}
-
-.timeline-item-meta {
-    font-size: 11px;
-    line-height: 1.3;
-    color: #8a8a8a;
 }
 
 .timeline-item-actions {
@@ -3887,38 +3899,22 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     flex-shrink: 0;
 }
 
-.timeline-item-copy {
-    border: 1px solid #dfdfdf;
-    background: #fff;
-    color: #333;
-    border-radius: 8px;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.timeline-item-export-actions {
+    gap: 2px;
 }
 
-.timeline-item-copy:hover {
-    border-color: #111;
-}
-
-.timeline-item-copy-icon {
-    width: 16px;
-    height: 16px;
-    display: block;
-}
-
+.timeline-item-export-actions .timeline-copy-preview-share,
+.timeline-item-export-actions .timeline-copy-preview-download,
+.timeline-item-export-actions .timeline-copy-preview-confirm,
 .timeline-item-favorite {
-    border: 1px solid #dfdfdf;
-    background: #fff;
-    color: #333;
-    border-radius: 8px;
-    width: 34px;
-    height: 34px;
+    background: transparent;
+    color: #222;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    box-shadow: none;
+    min-width: 30px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     cursor: pointer;
     display: inline-flex;
@@ -3927,13 +3923,26 @@ body.search-bar-bottom .timeline-panel.is-edge-preview {
     flex-shrink: 0;
 }
 
-.timeline-item-favorite:hover {
-    border-color: #111;
+.timeline-item-export-actions .timeline-copy-preview-share img,
+.timeline-item-export-actions .timeline-copy-preview-download img {
+    filter: none;
+    width: 17px;
+    height: 17px;
+}
+
+.timeline-item-export-actions .timeline-copy-preview-share:hover:not(:disabled),
+.timeline-item-export-actions .timeline-copy-preview-download:hover:not(:disabled),
+.timeline-item-export-actions .timeline-copy-preview-confirm:hover:not(:disabled),
+.timeline-item-favorite:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+    background: rgba(17, 17, 17, 0.06);
+    border-color: rgba(17, 17, 17, 0.08);
 }
 
 .timeline-item-favorite-icon {
-    width: 16px;
-    height: 16px;
+    width: 17px;
+    height: 17px;
     display: block;
 }
 
@@ -4952,7 +4961,6 @@ body.search-bar-bottom .search-bar-drag-handle:hover {
   box-shadow: 0 0 0 3px var(--ai-accent-soft);
 }
 
-.timeline-item-copy,
 .timeline-item-favorite,
 .timeline-copy-preview-refresh,
 .timeline-copy-preview-analyze,

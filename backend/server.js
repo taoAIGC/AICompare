@@ -9,6 +9,7 @@ const Stripe = require('stripe');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const BehaviorInsights = require('./behavior-insights.js');
+const { createArkUsageClient, summarizeActivationQuota } = require('./ark-usage.js');
 const PaymentFunnel = require('../shared/payment-funnel.js');
 let geoip = null;
 try {
@@ -56,6 +57,28 @@ const officialAgentCostMultiplier = Math.max(
   Number(process.env.OFFICIAL_AGENT_COST_MULTIPLIER || 0.15) || 0.15
 );
 const officialAgentCostCurrency = String(process.env.OFFICIAL_AGENT_COST_CURRENCY || 'usd').trim().toLowerCase() || 'usd';
+const officialAgentModelQueue = parseCsvEnv(process.env.OFFICIAL_AGENT_MODELS || process.env.OFFICIAL_AGENT_MODEL || '');
+const officialAgentQuotaSwitchRatio = Math.min(
+  1,
+  Math.max(0, Number(process.env.OFFICIAL_AGENT_QUOTA_SWITCH_RATIO || 0.8) || 0.8)
+);
+const arkUsageModelEndpoints = parseCsvEnv(process.env.ARK_USAGE_MODEL_ENDPOINTS || '')
+  .reduce((result, item) => {
+    const separator = item.indexOf('=') >= 0 ? '=' : item.indexOf(':') >= 0 ? ':' : -1;
+    if (separator < 1) return result;
+    const model = item.slice(0, separator).trim();
+    const endpoint = item.slice(separator + 1).trim();
+    if (model && endpoint) result[model] = endpoint;
+    return result;
+  }, {});
+const arkUsageCacheTtlMs = Math.max(15 * 1000, Number(process.env.ARK_USAGE_CACHE_TTL_MS || 60 * 1000) || (60 * 1000));
+const arkUsageClient = createArkUsageClient({
+  accessKeyId: process.env.ARK_USAGE_ACCESS_KEY_ID,
+  secretAccessKey: process.env.ARK_USAGE_SECRET_ACCESS_KEY,
+  region: process.env.ARK_USAGE_REGION || 'cn-beijing',
+  projectName: process.env.ARK_USAGE_PROJECT_NAME || 'default'
+});
+let arkUsageCache = { expiresAt: 0, modelStatus: null, endpointsByModel: null, pending: null };
 const openRouterApiKey = String(process.env.OPENROUTER_API_KEY || '').trim();
 const openRouterClassifierModel = String(
   process.env.OPENROUTER_CLASSIFIER_MODEL || 'openai/gpt-oss-20b:free'
@@ -3580,6 +3603,211 @@ function getDateKey(date = new Date()) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
+function getBeijingDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function getOfficialAgentModelQueue() {
+  return Array.from(new Set(officialAgentModelQueue.map((model) => String(model || '').trim()).filter(Boolean)));
+}
+
+function getOfficialAgentModelDocId(index) {
+  return `model-${Math.max(0, Number(index) || 0)}`;
+}
+
+function getArkUsageEndpointForModel(model = '', endpointsByModel = {}) {
+  const normalizedModel = String(model || '').trim();
+  return arkUsageModelEndpoints[normalizedModel] || endpointsByModel[normalizedModel] || normalizedModel;
+}
+
+function getArkFoundationModelName(model = '') {
+  return String(model || '').trim().replace(/-\d{6}$/, '');
+}
+
+function inferArkEndpointMap(models, endpointRows) {
+  const normalized = (value) => String(value || '').trim().toLowerCase();
+  return models.reduce((result, model) => {
+    const target = normalized(model);
+    const row = endpointRows.find((item) => [item?.ModelName, item?.ModelId, item?.ModelID, item?.Name]
+      .some((value) => normalized(value) === target));
+    const endpoint = String(row?.EndpointId || row?.EndpointID || row?.Id || row?.ModelEndpoint || '').trim();
+    if (endpoint) result[model] = endpoint;
+    return result;
+  }, {});
+}
+
+function inferArkActivationMap(models, activationRows = []) {
+  const normalized = (value) => String(value || '').trim().toLowerCase();
+  return models.reduce((result, model) => {
+    const foundationModel = getArkFoundationModelName(model);
+    const target = normalized(foundationModel);
+    const row = activationRows.find((item) => [item?.FoundationModelName, item?.ModelName, item?.ModelId, item?.ModelID, item?.Name]
+      .some((value) => normalized(value) === target));
+    if (row) result[model] = row;
+    return result;
+  }, {});
+}
+
+async function getRealtimeArkModelStatus(models = []) {
+  if (!arkUsageClient.enabled) return null;
+  const now = Date.now();
+  if (arkUsageCache.modelStatus && arkUsageCache.expiresAt > now) {
+    return arkUsageCache.modelStatus;
+  }
+  if (!arkUsageCache.pending) {
+    arkUsageCache.pending = Promise.all([
+      arkUsageClient.listPresetModelEndpoints(),
+      arkUsageClient.listModelActivations()
+    ])
+      .then(([endpointRows, activationResult]) => {
+        const activationRows = Array.isArray(activationResult?.Items) ? activationResult.Items : [];
+        const endpointsByModel = inferArkEndpointMap(models, endpointRows);
+        const activationsByModel = inferArkActivationMap(models, activationRows);
+        const endpoints = Array.from(new Set(models.map((model) => getArkUsageEndpointForModel(model, endpointsByModel)).filter(Boolean)));
+        return arkUsageClient.getTodayUsage(endpoints).then((usageByEndpoint) => ({
+          endpointsByModel,
+          modelStatus: models.reduce((result, model) => {
+            const endpoint = getArkUsageEndpointForModel(model, endpointsByModel);
+            const todayUsage = usageByEndpoint[endpoint] || {};
+            const quota = summarizeActivationQuota(activationsByModel[model] || {});
+            result[model] = {
+              model,
+              foundationModel: getArkFoundationModelName(model),
+              endpoint,
+              state: String(activationsByModel[model]?.State || ''),
+              isOverdue: Boolean(activationsByModel[model]?.IsOverdue),
+              todayInputTokens: Math.max(0, Math.floor(Number(todayUsage.inputTokens) || 0)),
+              todayOutputTokens: Math.max(0, Math.floor(Number(todayUsage.outputTokens) || 0)),
+              todayTotalTokens: Math.max(0, Math.floor(Number(todayUsage.totalTokens) || 0)),
+              quotaTotalTokens: quota.total,
+              quotaConsumedTokens: quota.consumed,
+              quotaRemainingTokens: quota.remaining,
+              quotaUsageRatio: quota.total > 0 ? quota.consumed / quota.total : 1,
+              quotaResourcePacks: quota.resourcePacks
+            };
+            return result;
+          }, {})
+        }));
+      })
+      .then(({ modelStatus, endpointsByModel }) => {
+        arkUsageCache = {
+          expiresAt: Date.now() + arkUsageCacheTtlMs,
+          modelStatus,
+          endpointsByModel,
+          pending: null
+        };
+        return modelStatus;
+      })
+      .catch((error) => {
+        arkUsageCache.pending = null;
+        console.warn('[ai-compare-backend] Ark official quota query failed; refusing to route by local estimates:', error.message || error);
+        throw error;
+      });
+  }
+  return arkUsageCache.pending;
+}
+
+function createOfficialQuotaLookupError(cause) {
+  const error = new Error('Unable to verify the official AI model quota from Volcengine right now. Please try again later.');
+  error.status = 503;
+  error.code = 'OFFICIAL_MODEL_QUOTA_LOOKUP_FAILED';
+  error.cause = cause;
+  return error;
+}
+
+function createOfficialModelQuotaError() {
+  const error = new Error('All official AI models have reached the configured Volcengine quota switch threshold.');
+  error.status = 429;
+  error.code = 'OFFICIAL_MODEL_QUOTA_EXHAUSTED';
+  error.retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((new Date(`${getBeijingDateKey()}T23:59:59+08:00`).getTime() - Date.now()) / 1000)
+  );
+  return error;
+}
+
+function createOfficialAccountOverdueError() {
+  const error = new Error('The official Volcengine API account has an overdue balance, so no official AI model can be used right now.');
+  error.status = 402;
+  error.code = 'AccountOverdueError';
+  return error;
+}
+
+async function selectOfficialAgentModel() {
+  const models = getOfficialAgentModelQueue();
+  if (!models.length) {
+    return {
+      model: '',
+      dateKey: getBeijingDateKey(),
+      index: -1,
+      used: 0,
+      limit: null,
+      threshold: null,
+      source: 'not_configured'
+    };
+  }
+
+  let modelStatus = null;
+  try {
+    modelStatus = await getRealtimeArkModelStatus(models);
+  } catch (error) {
+    throw createOfficialQuotaLookupError(error);
+  }
+  if (!modelStatus) {
+    throw createOfficialQuotaLookupError();
+  }
+
+  let overdueCount = 0;
+  for (const [index, model] of models.entries()) {
+    const status = modelStatus[model] || {};
+    const quotaTotal = Math.max(0, Math.floor(Number(status.quotaTotalTokens) || 0));
+    const quotaConsumed = Math.max(0, Math.floor(Number(status.quotaConsumedTokens) || 0));
+    const quotaRemaining = Math.max(0, Math.floor(Number(status.quotaRemainingTokens) || 0));
+    const threshold = quotaTotal * officialAgentQuotaSwitchRatio;
+    if (status.isOverdue) {
+      overdueCount += 1;
+      continue;
+    }
+    if (status.state && status.state !== 'Available') continue;
+    if (quotaTotal > 0 && quotaRemaining > 0 && quotaConsumed < threshold) {
+      return {
+        model,
+        dateKey: getBeijingDateKey(),
+        index,
+        endpoint: status.endpoint,
+        foundationModel: status.foundationModel,
+        todayInputTokens: status.todayInputTokens,
+        todayOutputTokens: status.todayOutputTokens,
+        todayTotalTokens: status.todayTotalTokens,
+        used: quotaConsumed,
+        limit: quotaTotal,
+        threshold,
+        remaining: quotaRemaining,
+        quotaUsageRatio: status.quotaUsageRatio,
+        source: 'ark_official_quota'
+      };
+    }
+  }
+  if (overdueCount === models.length) {
+    throw createOfficialAccountOverdueError();
+  }
+  throw createOfficialModelQuotaError();
+}
+
+async function settleOfficialAgentModelUsage() {
+  // Official Ark quota APIs are the only routing source. Per-request local logs
+  // are still recorded elsewhere for analytics, but never drive model switching.
+}
+
 function getRecentDateKeys(days, endDate = new Date()) {
   const safeDays = Math.max(1, Number(days) || 1);
   const end = new Date(endDate);
@@ -6713,7 +6941,19 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
       }
       }
 
-      async function startCheckout(cycle) {
+      async function startCheckout(cycle, trigger = 'price_card') {
+        // The current pricing-card flow goes directly to Stripe. Keep this
+        // distinct from the legacy plan-selection event so reports can measure
+        // a real price-card click without guessing from checkout creation.
+        if (trigger === 'price_card') {
+          const priceClickEventName = planType === 'api'
+            ? 'api_pricing_price_clicked'
+            : 'chat_pricing_price_clicked';
+          await trackPricingEvent(priceClickEventName, {
+            cycle,
+            trigger: 'price_card'
+          });
+        }
         const selectionResult = await trackPricingEvent('pricing_plan_selected', { cycle });
         try {
           const detail = billingConfig?.priceDetails?.[planType]?.[cycle];
@@ -6762,10 +7002,10 @@ function getMembershipPricingPageHtml(planType = 'chat', funnelId = '', locale =
             if (input.checked) updateSelectedCycle(input.value);
           });
         });
-        checkoutButton.addEventListener('click', () => startCheckout(selectedCycle));
+        checkoutButton.addEventListener('click', () => startCheckout(selectedCycle, 'checkout_button'));
       } else {
-        monthlyButton.addEventListener('click', () => startCheckout('monthly'));
-        yearlyButton.addEventListener('click', () => startCheckout('yearly'));
+        monthlyButton.addEventListener('click', () => startCheckout('monthly', 'price_card'));
+        yearlyButton.addEventListener('click', () => startCheckout('yearly', 'price_card'));
       }
 
       updateCheckoutUi();
@@ -10063,6 +10303,8 @@ function getFeatureUsageType(row = {}) {
     pricing_plan_selected: '选择付费方案',
     chat_pricing_plan_selected: '选择Chat方案',
     api_pricing_plan_selected: '选择API方案',
+    chat_pricing_price_clicked: '点击Chat价格卡片',
+    api_pricing_price_clicked: '点击API价格卡片',
     plan_upgrade_entry_clicked: '点击升级入口',
     chat_plan_upgrade_entry_clicked: '点击Chat升级入口',
     api_plan_upgrade_entry_clicked: '点击API升级入口',
@@ -12972,7 +13214,6 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
   const user = await getOptionalUser(req);
   const locale = String(req.headers['x-ai-compare-locale'] || req.body?.locale || '').trim();
   const extensionVersion = safeLogString(req.body?.extensionVersion || req.headers['x-ai-compare-extension-version'] || '', 40);
-  const requestedModel = String(req.body?.model || '').trim();
   const requestQuery = extractOfficialRequestQuery(req.body || {});
   const queryPreview = createSafeQueryPreview(requestQuery);
   const queryText = safeLogString(requestQuery, 4000);
@@ -12980,7 +13221,8 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
   const apiKey = String(process.env.OFFICIAL_AGENT_API_KEY || '').trim();
   const baseUrl = String(process.env.OFFICIAL_AGENT_API_BASE_URL || '').trim().replace(/\/+$/, '');
   const defaultModel = String(process.env.OFFICIAL_AGENT_MODEL || '').trim();
-  const effectiveModel = requestedModel || defaultModel;
+  let modelSelection = null;
+  let effectiveModel = defaultModel;
   let usageResult = null;
   let eventPayload = null;
 
@@ -13019,6 +13261,10 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     };
   }
 
+  modelSelection = await selectOfficialAgentModel();
+  effectiveModel = modelSelection.model || defaultModel;
+  eventPayload.model = effectiveModel;
+
   const recordUsageEvent = async (extra = {}) => {
     try {
       await recordOfficialApiEvent({
@@ -13032,8 +13278,28 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
 
   if (!apiKey || !baseUrl || !effectiveModel) {
     await recordUsageEvent({ upstreamStatus: 0 });
+    await settleOfficialAgentModelUsage(modelSelection).catch(() => null);
     res.status(500).json({ error: 'Official API proxy is not configured' });
     return;
+  }
+
+  res.setHeader('X-AI-Compare-Official-Model', effectiveModel);
+  res.setHeader('X-AI-Compare-Official-Model-Date', modelSelection.dateKey || getBeijingDateKey());
+  res.setHeader('X-AI-Compare-Official-Model-Source', modelSelection.source || 'ark_official_quota');
+  if (Number.isFinite(modelSelection.used)) {
+    res.setHeader('X-AI-Compare-Official-Model-Used', String(modelSelection.used));
+  }
+  if (Number.isFinite(modelSelection.threshold || modelSelection.limit)) {
+    res.setHeader('X-AI-Compare-Official-Model-Threshold', String(modelSelection.threshold || modelSelection.limit));
+  }
+  if (Number.isFinite(modelSelection.limit)) {
+    res.setHeader('X-AI-Compare-Official-Model-Quota-Total', String(modelSelection.limit));
+  }
+  if (Number.isFinite(modelSelection.remaining)) {
+    res.setHeader('X-AI-Compare-Official-Model-Quota-Remaining', String(modelSelection.remaining));
+  }
+  if (Number.isFinite(modelSelection.todayTotalTokens)) {
+    res.setHeader('X-AI-Compare-Official-Model-Today-Used', String(modelSelection.todayTotalTokens));
   }
 
   let upstream = null;
@@ -13045,6 +13311,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
         model: effectiveModel,
         recordUsageEvent
       });
+      await settleOfficialAgentModelUsage(modelSelection);
       return;
     }
 
@@ -13058,6 +13325,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     });
   } catch (error) {
     await recordUsageEvent({ upstreamStatus: 0 });
+    await settleOfficialAgentModelUsage(modelSelection).catch(() => null);
     throw error;
   }
 
@@ -13093,6 +13361,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
       upstreamStatus: upstream.status,
       upstreamModel: effectiveModel
     });
+    await settleOfficialAgentModelUsage(modelSelection, tokenUsage);
     return;
   }
 
@@ -13111,6 +13380,7 @@ app.post('/officialAgentChat', asyncRoute(async (req, res) => {
     upstreamStatus: upstream.status,
     upstreamModel
   });
+  await settleOfficialAgentModelUsage(modelSelection, tokenUsage);
   res.send(responseText);
 }));
 

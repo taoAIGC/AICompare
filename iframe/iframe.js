@@ -1125,7 +1125,6 @@ const ratingReminderState = {
 const TimelineUtils = window.IframeTimelineUtils || {};
 const AnalysisUtils = window.IframeAnalysisUtils || {};
 const DEEP_RESEARCH_TIMEOUT_MS = 8000;
-const TIMELINE_LIVE_UPSERT_DEDUPE_WINDOW_MS = 2500;
 let deepResearchBatchInProgress = false;
 const timelineBuildEntry = typeof TimelineUtils.buildTimelineEntry === 'function'
   ? TimelineUtils.buildTimelineEntry
@@ -1168,20 +1167,9 @@ const timelineFindEntryByQuery = typeof TimelineUtils.findTimelineEntryByQuery =
       if (!normalizedQuery) return null;
       return (Array.isArray(entries) ? entries : []).find((entry) => String(entry?.normalizedQuery || entry?.query || '').trim() === normalizedQuery) || null;
     });
-const timelineMergeSnapshots = typeof TimelineUtils.mergeTimelinePromptSnapshots === 'function'
-  ? TimelineUtils.mergeTimelinePromptSnapshots
-  : ((snapshots) => snapshots || []);
 const timelineNormalizeQuery = typeof TimelineUtils.normalizeTimelineQuery === 'function'
   ? TimelineUtils.normalizeTimelineQuery
   : ((query) => String(query || '').replace(/\s+/g, ' ').trim());
-const timelineExtractPromptsFromMessages = typeof TimelineUtils.extractTimelinePromptsFromMessages === 'function'
-  ? TimelineUtils.extractTimelinePromptsFromMessages
-  : ((messages) => (Array.isArray(messages) ? messages
-      .filter((message) => message?.role === 'user')
-      .map((message) => ({
-        text: String(message?.content || '').replace(/\s+/g, ' ').trim()
-      }))
-      .filter((prompt) => prompt.text) : []));
 const analysisBuildPayload = typeof AnalysisUtils.buildTimelineAnalysisPayload === 'function'
   ? AnalysisUtils.buildTimelineAnalysisPayload
   : ((options = {}) => ({
@@ -1226,7 +1214,8 @@ const analysisBuildCompareUrl = typeof AnalysisUtils.buildTimelineAnalysisCompar
       if (!token || !chrome?.runtime?.getURL) return '';
       return chrome.runtime.getURL(`iframe/iframe.html?analysisToken=${encodeURIComponent(token)}&analysisMode=1`);
     });
-const DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL = 'http://64.188.6.42:8789';
+const DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL = 'https://aicompare.club';
+const LEGACY_TIMELINE_SHARE_RELAY_BASE_URL = 'http://64.188.6.42:8789';
 function getRuntimeAgentCatalogLocale() {
   if (typeof RuntimeI18n?.getCurrentLocale === 'function') {
     return RuntimeI18n.getCurrentLocale();
@@ -1241,6 +1230,11 @@ async function getRemoteSearchRelayBaseUrl() {
   try {
     const settings = await chrome.storage.sync.get('remoteSearchSettings');
     const configuredBaseUrl = String(settings?.remoteSearchSettings?.relayBaseUrl || '').trim().replace(/\/+$/, '');
+    // The legacy bare relay port is intentionally blocked by the VPS firewall.
+    // Route existing installations through the public HTTPS relay instead.
+    if (configuredBaseUrl === LEGACY_TIMELINE_SHARE_RELAY_BASE_URL) {
+      return DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL;
+    }
     return configuredBaseUrl || DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL;
   } catch (_) {
     return DEFAULT_TIMELINE_SHARE_RELAY_BASE_URL;
@@ -1253,12 +1247,10 @@ const timelineState = {
   openMode: null,
   sharePickerActive: false,
   activeTimelineId: null,
-  promptSnapshotsBySite: new Map(),
-  favoriteEntryKeys: new Set(),
-  lastLiveUpsert: null
+  favoriteEntryKeys: new Set()
 };
-let timelineSyncTimer = null;
 let timelineMessageBridgeInitialized = false;
+let timelineSyncTimer = null;
 let agentRuntimeMessageBridgeInitialized = false;
 let agentRuntimeKeepalivePorts = new Map();
 const TIMELINE_EDGE_TRIGGER_ID = 'timelineEdgeTrigger';
@@ -2237,6 +2229,7 @@ function registerLiveSummarySubmittedEntry(entryOrQuery = '', options = {}) {
       resolvedEntryKey
     ];
   }
+  syncTimelineEntriesWithLiveSummarySubmissions(resolvedEntryKey);
 
   return {
     entry,
@@ -2250,6 +2243,7 @@ function resetLiveSummarySubmittedEntries() {
   liveSummaryState.summariesByEntryKey.clear();
   liveSummaryState.expandedEntryKeys.clear();
   liveSummaryState.analyzingEntryKeys.clear();
+  syncTimelineEntriesWithLiveSummarySubmissions();
   hideLiveSummaryCard();
 }
 
@@ -3671,14 +3665,14 @@ async function rerunLiveSummaryAnalysis(options = {}) {
   }
 }
 
-function getLiveSummaryExportEntry() {
-  return getActiveLiveSummaryEntry();
+function getLiveSummaryExportEntry(entry = null) {
+  return entry && typeof entry === 'object' ? entry : getActiveLiveSummaryEntry();
 }
 
-function getLiveSummaryExportBundle() {
-  const entry = getLiveSummaryExportEntry();
-  const entryKey = getLiveSummaryEntryKey(entry);
-  const record = getLiveSummaryRecord(entry?.query || '', entryKey);
+function getLiveSummaryExportBundle(entry = null) {
+  const exportEntry = getLiveSummaryExportEntry(entry);
+  const entryKey = getLiveSummaryEntryKey(exportEntry);
+  const record = getLiveSummaryRecord(exportEntry?.query || '', entryKey);
   const responses = Array.isArray(record?.responses) ? record.responses : [];
   const { successResponses, successSiteNames } = partitionTimelineResponses(responses);
   const collectedSummaryText = String(record?.collectedSummaryText || '').trim();
@@ -3696,7 +3690,7 @@ function getLiveSummaryExportBundle() {
   }
   const copyText = exportSections.join('\n\n').trim() || collectedSummaryText || analysisSummaryText;
   return {
-    entry,
+    entry: exportEntry,
     record,
     responses,
     exportResponses: successResponses,
@@ -3712,11 +3706,11 @@ function getLiveSummaryExportBundle() {
 }
 
 async function refreshLiveSummaryExportBundle(options = {}) {
-  const entry = getLiveSummaryExportEntry();
+  const entry = getLiveSummaryExportEntry(options.entry);
   const entryKey = getLiveSummaryEntryKey(entry);
   const query = normalizeLiveSummaryQuery(entry?.query || '');
   if (!entry || !entryKey || !query) {
-    return getLiveSummaryExportBundle();
+    return getLiveSummaryExportBundle(entry);
   }
 
   try {
@@ -3752,7 +3746,7 @@ async function refreshLiveSummaryExportBundle(options = {}) {
     console.warn('刷新自动总结导出状态失败:', error);
   }
 
-  return getLiveSummaryExportBundle();
+  return getLiveSummaryExportBundle(entry);
 }
 
 function refreshLiveSummaryAnalysisTemplateSelectLabel() {
@@ -3961,7 +3955,10 @@ function renderLiveSummaryCard() {
 
   const exportBundle = getLiveSummaryExportBundle();
   if (shareButton instanceof HTMLButtonElement) {
-    shareButton.setAttribute('data-tooltip', t('timelineCopyPreviewShare', '分享'));
+    const shareLabel = t('timelineSaveAndShare', '保存到云端，生成共享URL');
+    shareButton.setAttribute('data-tooltip', shareLabel);
+    shareButton.title = shareLabel;
+    shareButton.setAttribute('aria-label', shareLabel);
   }
   if (downloadButton instanceof HTMLButtonElement) {
     downloadButton.setAttribute('data-tooltip', t('timelineCopyPreviewDownload', '下载 MD'));
@@ -4913,57 +4910,18 @@ async function initializeLiveSummaryCard() {
   }
 
   if (copyButton instanceof HTMLButtonElement && card instanceof HTMLElement) {
-    copyButton.addEventListener('click', async () => {
-      hideTimelineCopyPreviewSharePanel(card);
-      const exportBundle = await refreshLiveSummaryExportBundle({ retryFailedSites: true });
-      if (!String(exportBundle.copyText || '').trim()) return;
-      try {
-        await copyTextToClipboard(exportBundle.copyText);
-        showTimelineCopyPreviewActionFeedback(
-          card,
-          copyButton,
-          t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [
-            String(exportBundle.exportSuccessCount || 0),
-            String(exportBundle.exportTotalCount || 0)
-          ]),
-          'success'
-        );
-      } catch (error) {
-        console.error('复制自动总结原文汇总失败:', error);
-        showTimelineCopyPreviewActionFeedback(
-          card,
-          copyButton,
-          t('timelineCopyFailed', '复制失败，请重试'),
-          'error',
-          2600
-        );
-      }
-    });
+    copyButton.addEventListener('click', () => copyLiveSummaryExport(copyButton, { feedbackContainer: card }));
   }
 
   if (downloadButton instanceof HTMLButtonElement && card instanceof HTMLElement) {
-    downloadButton.addEventListener('click', async () => {
-      hideTimelineCopyPreviewSharePanel(card);
-      const exportBundle = await refreshLiveSummaryExportBundle({ retryFailedSites: true });
-      if (!exportBundle.entry || !String(exportBundle.copyText || '').trim()) return;
-      try {
-        const filename = sanitizeTimelineExportFileName(exportBundle.entry);
-        downloadTimelineMarkdownFile(exportBundle.copyText, filename);
-        showToast(t('timelineCopyPreviewDownloadSuccess', 'MD 文件已下载'));
-      } catch (error) {
-        console.error('下载自动总结原文汇总失败:', error);
-        showToast(t('timelineCopyPreviewDownloadFailed', '下载失败，请重试'));
-      } finally {
-        renderLiveSummaryCard();
-      }
-    });
+    downloadButton.addEventListener('click', () => downloadLiveSummaryExport(downloadButton, { feedbackContainer: card }));
   }
 
   if (shareButton instanceof HTMLButtonElement && card instanceof HTMLElement) {
     shareButton.addEventListener('click', async () => {
       hideTimelineCopyPreviewTooltip(card);
-      await refreshLiveSummaryExportBundle({ retryFailedSites: true });
-      await createLiveSummaryShareLink(shareButton);
+      const exportBundle = await refreshLiveSummaryExportBundle({ retryFailedSites: true });
+      await createLiveSummaryShareLink(shareButton, { entry: exportBundle.entry, feedbackContainer: card });
     });
   }
 
@@ -5249,6 +5207,19 @@ function setTimelineShareButtonLoading(button, isLoading = false) {
   button.setAttribute('aria-busy', isLoading ? 'true' : 'false');
 }
 
+function getTimelineShareErrorMessage(error) {
+  const message = String(error?.message || error || '').trim().toLowerCase();
+  const isRelayUnavailable = (
+    /^share_http_5\d\d$/.test(message)
+    || message.includes('failed to fetch')
+    || message.includes('networkerror')
+    || message.includes('network request failed')
+  );
+  return isRelayUnavailable
+    ? t('remoteSearchRelayUnavailable', 'Remote relay is offline.')
+    : t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试');
+}
+
 function ensureTimelineCopyPreviewTooltip(overlay) {
   let tooltip = overlay.querySelector('.timeline-copy-preview-tooltip');
   if (!(tooltip instanceof HTMLElement)) {
@@ -5326,6 +5297,10 @@ function ensureTimelineCopyPreviewSharePanel(overlay) {
 function hideTimelineCopyPreviewSharePanel(overlay) {
   const panel = overlay?.querySelector('.timeline-copy-preview-share-panel');
   if (panel instanceof HTMLElement) {
+    if (panel.__autoHideTimer) {
+      clearTimeout(panel.__autoHideTimer);
+      panel.__autoHideTimer = null;
+    }
     panel.hidden = true;
     panel.classList.remove('is-visible');
   }
@@ -5350,6 +5325,7 @@ function showTimelineCopyPreviewSharePanel(overlay, anchorButton, shareUrl, opti
       } else {
         window.open(shareUrl, '_blank', 'noopener,noreferrer');
       }
+      hideTimelineCopyPreviewSharePanel(overlay);
     } catch (error) {
       console.error('打开分享链接失败:', error);
       showTimelineCopyPreviewActionFeedback(
@@ -5370,6 +5346,7 @@ function showTimelineCopyPreviewSharePanel(overlay, anchorButton, shareUrl, opti
         copySuccessMessage,
         'success'
       );
+      setTimeout(() => hideTimelineCopyPreviewSharePanel(overlay), 500);
     } catch (error) {
       console.error('复制分享链接失败:', error);
       showTimelineCopyPreviewActionFeedback(
@@ -5390,6 +5367,10 @@ function showTimelineCopyPreviewSharePanel(overlay, anchorButton, shareUrl, opti
   panel.style.top = `${Math.max(16, anchorRect.top - overlayRect.top - 96)}px`;
   panel.hidden = false;
   requestAnimationFrame(() => panel.classList.add('is-visible'));
+  if (panel.__autoHideTimer) {
+    clearTimeout(panel.__autoHideTimer);
+  }
+  panel.__autoHideTimer = setTimeout(() => hideTimelineCopyPreviewSharePanel(overlay), 10000);
 }
 
 function getTimelineElements() {
@@ -5776,7 +5757,7 @@ async function createTimelineShareLink(overlay, viewMode = 'web') {
     showTimelineCopyPreviewActionFeedback(
       overlay,
       shareBtn,
-      t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+      getTimelineShareErrorMessage(error),
       'error',
       2600
     );
@@ -5786,11 +5767,73 @@ async function createTimelineShareLink(overlay, viewMode = 'web') {
   }
 }
 
-async function createLiveSummaryShareLink(anchorButton) {
-  const { card } = getLiveSummaryElements();
-  if (!(card instanceof HTMLElement) || !(anchorButton instanceof HTMLButtonElement)) return;
+async function copyLiveSummaryExport(anchorButton, options = {}) {
+  const feedbackContainer = options.feedbackContainer;
+  if (!(feedbackContainer instanceof HTMLElement) || !(anchorButton instanceof HTMLButtonElement)) return;
 
-  const exportBundle = getLiveSummaryExportBundle();
+  hideTimelineCopyPreviewSharePanel(feedbackContainer);
+  const exportBundle = await refreshLiveSummaryExportBundle({
+    entry: options.entry,
+    retryFailedSites: true
+  });
+  if (!String(exportBundle.copyText || '').trim()) return;
+
+  try {
+    await copyTextToClipboard(exportBundle.copyText);
+    showTimelineCopyPreviewActionFeedback(
+      feedbackContainer,
+      anchorButton,
+      t('timelineCopySuccess', '已复制这条提问的回答（$1/$2）', [
+        String(exportBundle.exportSuccessCount || 0),
+        String(exportBundle.exportTotalCount || 0)
+      ]),
+      'success'
+    );
+  } catch (error) {
+    console.error('复制自动总结原文汇总失败:', error);
+    showTimelineCopyPreviewActionFeedback(
+      feedbackContainer,
+      anchorButton,
+      t('timelineCopyFailed', '复制失败，请重试'),
+      'error',
+      2600
+    );
+  }
+}
+
+async function downloadLiveSummaryExport(anchorButton, options = {}) {
+  const feedbackContainer = options.feedbackContainer;
+  if (!(feedbackContainer instanceof HTMLElement) || !(anchorButton instanceof HTMLButtonElement)) return;
+
+  hideTimelineCopyPreviewSharePanel(feedbackContainer);
+  const exportBundle = await refreshLiveSummaryExportBundle({
+    entry: options.entry,
+    retryFailedSites: true
+  });
+  if (!exportBundle.entry || !String(exportBundle.copyText || '').trim()) return;
+
+  try {
+    anchorButton.disabled = true;
+    downloadTimelineMarkdownFile(
+      exportBundle.copyText,
+      sanitizeTimelineExportFileName(exportBundle.entry)
+    );
+    showToast(t('timelineCopyPreviewDownloadSuccess', 'MD 文件已下载'));
+  } catch (error) {
+    console.error('下载自动总结原文汇总失败:', error);
+    showToast(t('timelineCopyPreviewDownloadFailed', '下载失败，请重试'));
+  } finally {
+    anchorButton.disabled = false;
+    renderLiveSummaryCard();
+  }
+}
+
+async function createLiveSummaryShareLink(anchorButton, options = {}) {
+  const { card } = getLiveSummaryElements();
+  const feedbackContainer = options.feedbackContainer instanceof HTMLElement ? options.feedbackContainer : card;
+  if (!(feedbackContainer instanceof HTMLElement) || !(anchorButton instanceof HTMLButtonElement)) return;
+
+  const exportBundle = getLiveSummaryExportBundle(options.entry);
   const shareSummaryText = String(
     exportBundle.copyText
     || exportBundle.analysisSummaryText
@@ -5801,7 +5844,7 @@ async function createLiveSummaryShareLink(anchorButton) {
   const hasShareableQuestion = String(exportBundle.entry?.query || '').trim().length > 0;
   if (!exportBundle.entry || (!shareSummaryText && !hasShareableResponses && !hasShareableQuestion)) {
     showTimelineCopyPreviewActionFeedback(
-      card,
+      feedbackContainer,
       anchorButton,
       t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
       'error',
@@ -5825,7 +5868,7 @@ async function createLiveSummaryShareLink(anchorButton) {
 
   if (!rawPayload) {
     showTimelineCopyPreviewActionFeedback(
-      card,
+      feedbackContainer,
       anchorButton,
       t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
       'error',
@@ -5837,7 +5880,7 @@ async function createLiveSummaryShareLink(anchorButton) {
   const relayBaseUrl = await getRemoteSearchRelayBaseUrl();
   if (!relayBaseUrl) {
     showTimelineCopyPreviewActionFeedback(
-      card,
+      feedbackContainer,
       anchorButton,
       t('timelineCopyPreviewShareNoRelay', '请先在设置中填写 relay 地址'),
       'error',
@@ -5864,15 +5907,15 @@ async function createLiveSummaryShareLink(anchorButton) {
     const baseShareUrl = String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim().startsWith('http')
       ? String(data.publicUrl || data.shareUrl).trim()
       : `${relayBaseUrl.replace(/\/+$/, '')}${String(data.publicUrl || data.shareUrl || `/share/${encodeURIComponent(data.shareId)}`).trim()}`;
-    showTimelineCopyPreviewSharePanel(card, anchorButton, baseShareUrl, {
+    showTimelineCopyPreviewSharePanel(feedbackContainer, anchorButton, baseShareUrl, {
       copySuccessMessage: t('timelineCopyPreviewShareSuccess', '分享链接已复制')
     });
   } catch (error) {
     console.error('生成自动总结分享链接失败:', error);
     showTimelineCopyPreviewActionFeedback(
-      card,
+      feedbackContainer,
       anchorButton,
-      t('timelineCopyPreviewShareFailed', '生成分享链接失败，请重试'),
+      getTimelineShareErrorMessage(error),
       'error',
       2600
     );
@@ -5997,6 +6040,8 @@ function openTimelinePanel(options = {}) {
 
 function closeTimelinePanel() {
   clearTimelineHideTimer();
+  const { panel } = getTimelineElements();
+  hideTimelineCopyPreviewSharePanel(panel);
   setTimelineSharePickerActive(false);
   setTimelinePanelOpen(false);
 }
@@ -6052,6 +6097,13 @@ function ensureTimelineEdgeTrigger() {
     trigger.className = 'timeline-edge-trigger';
     document.body.appendChild(trigger);
   }
+
+  trigger.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-forward-icon lucide-forward" aria-hidden="true">
+      <path d="m15 17 5-5-5-5"></path>
+      <path d="M4 18v-2a4 4 0 0 1 4-4h12"></path>
+    </svg>
+  `;
 
   const label = t('timelineToggleTitle', '聊天时间线');
   trigger.title = label;
@@ -6301,21 +6353,34 @@ function renderTimeline() {
       <div class="timeline-item-index">${index + 1}</div>
       <button class="timeline-item-main" type="button">
         <div class="timeline-item-query">${escapeHtml(entry.query || '')}</div>
-        <div class="timeline-item-meta">${escapeHtml(
-          entry.siteCount
-            ? t('timelineDetectedSites', '已在 $1 个子页面中识别', [String(entry.siteCount)])
-            : (entry.dateLabel || formatTimelineDateLabel(entry.timestamp))
-        )}</div>
       </button>
       <div class="timeline-item-actions">
-        <button
-          class="timeline-item-copy"
-          type="button"
-          title="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}"
-          aria-label="${escapeHtml(t('timelineCopyPreviewShare', '分享'))}"
-        >
-          <img class="timeline-item-copy-icon" src="../icons/share.svg" alt="" aria-hidden="true">
-        </button>
+        <div class="timeline-copy-preview-export-actions timeline-item-export-actions">
+          <button
+            class="timeline-copy-preview-share"
+            type="button"
+            title="${escapeHtml(t('timelineSaveAndShare', '保存到云端，生成共享URL'))}"
+            aria-label="${escapeHtml(t('timelineSaveAndShare', '保存到云端，生成共享URL'))}"
+          >
+            <img src="../icons/link.svg" alt="" aria-hidden="true">
+          </button>
+          <button
+            class="timeline-copy-preview-download"
+            type="button"
+            title="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}"
+            aria-label="${escapeHtml(t('timelineCopyPreviewDownload', '下载 MD'))}"
+          >
+            <img src="../icons/download.svg" alt="" aria-hidden="true">
+          </button>
+          <button
+            class="timeline-copy-preview-confirm"
+            type="button"
+            title="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}"
+            aria-label="${escapeHtml(t('timelineCopyPreviewConfirm', '复制'))}"
+          >
+            <span aria-hidden="true">⧉</span>
+          </button>
+        </div>
         <button
           class="timeline-item-favorite"
           type="button"
@@ -6345,9 +6410,34 @@ function renderTimeline() {
       await scrollToTimelineEntry(entry);
     });
 
-    item.querySelector('.timeline-item-copy')?.addEventListener('click', async (event) => {
+    item.querySelector('.timeline-copy-preview-share')?.addEventListener('click', async (event) => {
       event.stopPropagation();
-      await copyTimelineEntryResponses(entry);
+      const { panel } = getTimelineElements();
+      if (!(panel instanceof HTMLElement)) return;
+      const shareButton = event.currentTarget;
+      if (!(shareButton instanceof HTMLButtonElement)) return;
+      hideTimelineCopyPreviewSharePanel(panel);
+      shareButton.disabled = true;
+      setTimelineShareButtonLoading(shareButton, true);
+      try {
+        const exportBundle = await refreshLiveSummaryExportBundle({ entry, retryFailedSites: true });
+        await createLiveSummaryShareLink(shareButton, { entry: exportBundle.entry, feedbackContainer: panel });
+      } finally {
+        setTimelineShareButtonLoading(shareButton, false);
+        shareButton.disabled = false;
+      }
+    });
+
+    item.querySelector('.timeline-copy-preview-download')?.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const { panel } = getTimelineElements();
+      await downloadLiveSummaryExport(event.currentTarget, { entry, feedbackContainer: panel });
+    });
+
+    item.querySelector('.timeline-copy-preview-confirm')?.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const { panel } = getTimelineElements();
+      await copyLiveSummaryExport(event.currentTarget, { entry, feedbackContainer: panel });
     });
 
     item.querySelector('.timeline-item-favorite')?.addEventListener('click', async (event) => {
@@ -6382,34 +6472,6 @@ function upsertTimelineEntry(entry, options = {}) {
     }
   }
 
-  const hasExplicitOccurrenceIndex = Number.isFinite(Number(entry?.occurrenceIndex));
-  const hasExplicitTimelineIdentity = Boolean(entry?.timelineId || historyId);
-  const upsertedAt = Date.now();
-  if (!hasExplicitOccurrenceIndex && !hasExplicitTimelineIdentity) {
-    const lastLiveUpsert = timelineState.lastLiveUpsert;
-    const isLikelyDuplicateLiveSubmit = lastLiveUpsert
-      && lastLiveUpsert.query === query
-      && (upsertedAt - Number(lastLiveUpsert.at || 0)) <= TIMELINE_LIVE_UPSERT_DEDUPE_WINDOW_MS;
-    if (isLikelyDuplicateLiveSubmit) {
-      const existingEntry = timelineFindEntryByKey(timelineState.entries, lastLiveUpsert.entryKey)
-        || timelineFindEntryByQuery(timelineState.entries, query);
-      if (existingEntry) {
-        existingEntry.timestamp = Number(entry?.timestamp) || existingEntry.timestamp || upsertedAt;
-        existingEntry.dateLabel = entry?.dateLabel || existingEntry.dateLabel || formatTimelineDateLabel(existingEntry.timestamp);
-        timelineState.activeTimelineId = existingEntry.timelineId;
-        timelineState.lastLiveUpsert = {
-          query,
-          entryKey: getLiveSummaryEntryKey(existingEntry),
-          at: upsertedAt
-        };
-        renderTimeline();
-        syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(existingEntry));
-        renderLiveSummaryCard();
-        return existingEntry;
-      }
-    }
-  }
-
   const normalizedEntry = timelineBuildEntry({
     query,
     historyId,
@@ -6418,13 +6480,6 @@ function upsertTimelineEntry(entry, options = {}) {
   }, timelineState.entries);
 
   timelineState.entries.push(normalizedEntry);
-  if (!hasExplicitOccurrenceIndex && !hasExplicitTimelineIdentity) {
-    timelineState.lastLiveUpsert = {
-      query,
-      entryKey: getLiveSummaryEntryKey(normalizedEntry),
-      at: upsertedAt
-    };
-  }
   timelineState.activeTimelineId = normalizedEntry.timelineId;
   renderTimeline();
   syncLiveSummaryVisibleEntryKeys(getLiveSummaryEntryKey(normalizedEntry));
@@ -6496,6 +6551,13 @@ function initializeTimelinePanel() {
     panel.dataset.bound = '1';
     panel.addEventListener('click', (event) => {
       event.stopPropagation();
+      const clickedSharePanel = event.target instanceof Element
+        && event.target.closest('.timeline-copy-preview-share-panel');
+      const clickedShareButton = event.target instanceof Element
+        && event.target.closest('.timeline-copy-preview-share');
+      if (!clickedSharePanel && !clickedShareButton) {
+        hideTimelineCopyPreviewSharePanel(panel);
+      }
     });
     panel.addEventListener('mouseenter', () => {
       clearTimelineHideTimer();
@@ -6558,163 +6620,43 @@ function initializeTimelinePanel() {
   renderTimeline();
 }
 
-function buildTimelineIdFromQuery(query, occurrenceIndex = 0) {
-  const normalizedQuery = String(query || '').slice(0, 200);
-  return `timeline-${encodeURIComponent(normalizedQuery)}-${Math.max(0, Number(occurrenceIndex) || 0)}`;
-}
-
-function getOpenTimelineSiteNames() {
-  return getSiteIframes()
-    .map((iframe) => String(iframe.getAttribute('data-site') || '').trim())
-    .filter(Boolean);
-}
-
-function getOpenTimelineSnapshots() {
-  const siteNames = getOpenTimelineSiteNames();
-  const snapshots = siteNames.map((siteName) => {
-    const snapshot = timelineState.promptSnapshotsBySite.get(siteName);
-    if (!snapshot) return null;
-    return {
-      siteName: snapshot.siteName || siteName,
-      prompts: Array.isArray(snapshot.prompts) ? snapshot.prompts : []
-    };
-  }).filter(Boolean);
-
-  getOpenedAgentIds().forEach((agentId) => {
-    const state = getAgentState(agentId);
-    if (!state) return;
-    const siteName = String(state?.name || agentId || '').trim();
-    const prompts = timelineExtractPromptsFromMessages(state.messages);
-    if (!siteName || !prompts.length) return;
-    snapshots.push({
-      siteName,
-      prompts
-    });
-  });
-
-  return snapshots;
-}
-
-function resetTimelinePromptSnapshots() {
-  timelineState.promptSnapshotsBySite.clear();
+function resetTimelineEntries() {
   timelineState.entries = [];
   timelineState.activeTimelineId = null;
-  timelineState.lastLiveUpsert = null;
   renderTimeline();
 }
 
-function rebuildTimelineEntriesFromSnapshots() {
-  const openSiteNames = getOpenTimelineSiteNames();
-  const hasAgentPanels = getOpenedAgentIds().length > 0;
-  if (!openSiteNames.length && !hasAgentPanels) {
-    timelineState.promptSnapshotsBySite.clear();
-    timelineState.entries = [];
-    timelineState.activeTimelineId = null;
-    timelineState.lastLiveUpsert = null;
-    renderTimeline();
-    return;
-  }
-
-  const openSiteSet = new Set(openSiteNames);
-  Array.from(timelineState.promptSnapshotsBySite.keys()).forEach((siteName) => {
-    if (!openSiteSet.has(siteName)) {
-      timelineState.promptSnapshotsBySite.delete(siteName);
-    }
-  });
-
-  const snapshots = getOpenTimelineSnapshots();
-
+function syncTimelineEntriesWithLiveSummarySubmissions(preferredEntryKey = '') {
   const previousEntries = timelineState.entries;
-  const mergedEntries = timelineMergeSnapshots(snapshots, previousEntries);
-  const previousEntryKeySet = new Set(previousEntries.map((entry) => timelineBuildEntryKey(entry)).filter(Boolean));
-  const activeEntry = previousEntries.find((entry) => entry.timelineId === timelineState.activeTimelineId);
-  const filteredMergedEntries = mergedEntries.filter((entry) => {
-    const occurrenceIndex = Math.max(0, Number(entry?.occurrenceIndex) || 0);
-    if (occurrenceIndex === 0) {
-      return true;
-    }
-    const entryKey = timelineBuildEntryKey({
-      query: entry?.query || '',
-      normalizedQuery: entry?.normalizedQuery || '',
-      occurrenceIndex
-    });
-    if (entryKey && previousEntryKeySet.has(entryKey)) {
-      return true;
-    }
-    return false;
-  });
+  const previousEntryByKey = new Map(
+    previousEntries.map((entry) => [timelineBuildEntryKey(entry), entry]).filter(([entryKey]) => entryKey)
+  );
+  const submittedEntryKeys = getLiveSummarySubmittedEntryKeys();
+  const nextEntries = submittedEntryKeys.map((entryKey) => {
+    const previousEntry = previousEntryByKey.get(entryKey);
+    const summaryRecord = getLiveSummaryRecord('', entryKey);
+    const entry = previousEntry || getLiveSummaryTimelineEntry(summaryRecord?.query || '', entryKey);
+    return timelineBuildEntry({
+      ...entry,
+      query: summaryRecord?.query || entry?.query || '',
+      occurrenceIndex: entry?.occurrenceIndex,
+      timelineId: previousEntry?.timelineId || entry?.timelineId,
+      timestamp: previousEntry?.timestamp || entry?.timestamp || Date.now(),
+      dateLabel: previousEntry?.dateLabel || entry?.dateLabel || formatTimelineDateLabel(Date.now())
+    }, []);
+  }).filter((entry) => entry?.query);
 
-  const nextEntries = [];
-  timelineState.entries = filteredMergedEntries.map((entry) => {
-    const entryKey = timelineBuildEntryKey({
-      query: entry.query,
-      normalizedQuery: entry.normalizedQuery,
-      occurrenceIndex: Math.max(0, Number(entry?.occurrenceIndex) || 0)
-    });
-    const existingEntry = previousEntries.find((item) => timelineBuildEntryKey(item) === entryKey);
-    const builtEntry = timelineBuildEntry({
-      query: entry.query,
-      occurrenceIndex: Math.max(0, Number(entry?.occurrenceIndex) || 0),
-      timelineId: buildTimelineIdFromQuery(entry.query, entry?.occurrenceIndex),
-      timestamp: existingEntry?.timestamp || Date.now()
-    }, nextEntries);
-    nextEntries.push(builtEntry);
-
-    return {
-      ...builtEntry,
-      timelineId: existingEntry?.timelineId || builtEntry.timelineId,
-      sourceSites: entry.sourceSites || [],
-      siteCount: Array.isArray(entry.sourceSites) ? entry.sourceSites.length : 0
-    };
-  });
-
-  if (activeEntry) {
-    const activeEntryKey = timelineBuildEntryKey(activeEntry);
-    const nextActiveEntry = activeEntryKey
-      ? timelineFindEntryByKey(timelineState.entries, activeEntryKey)
-      : null;
-    timelineState.activeTimelineId = nextActiveEntry?.timelineId || null;
-  } else if (!timelineState.entries.find((entry) => entry.timelineId === timelineState.activeTimelineId)) {
-    timelineState.activeTimelineId = timelineState.entries[timelineState.entries.length - 1]?.timelineId || null;
-  }
+  timelineState.entries = nextEntries;
+  const activeEntryKey = timelineBuildEntryKey(getActiveTimelineEntry());
+  const nextActiveEntry = timelineFindEntryByKey(
+    nextEntries,
+    preferredEntryKey || activeEntryKey || getLiveSummaryCurrentEntryKey()
+  );
+  timelineState.activeTimelineId = nextActiveEntry?.timelineId || nextEntries[nextEntries.length - 1]?.timelineId || null;
 
   renderTimeline();
   syncLiveSummaryVisibleEntryKeys();
   renderLiveSummaryCard();
-}
-
-function updateTimelineSnapshotFromIframe(siteName, prompts) {
-  const normalizedSiteName = String(siteName || '').trim();
-  if (!normalizedSiteName) return;
-
-  const normalizedPrompts = Array.isArray(prompts)
-    ? prompts
-        .map((prompt) => ({
-          text: String(prompt?.text || '').trim()
-        }))
-        .filter((prompt) => prompt.text)
-    : [];
-
-  const nextSignature = JSON.stringify(normalizedPrompts.map((prompt) => prompt.text));
-  const existingSnapshot = timelineState.promptSnapshotsBySite.get(normalizedSiteName);
-  if (existingSnapshot?.signature === nextSignature) {
-    return;
-  }
-
-  timelineState.promptSnapshotsBySite.set(normalizedSiteName, {
-    siteName: normalizedSiteName,
-    prompts: normalizedPrompts,
-    signature: nextSignature
-  });
-  rebuildTimelineEntriesFromSnapshots();
-}
-
-function clearTimelineSnapshotForSite(siteName) {
-  const normalizedSiteName = String(siteName || '').trim();
-  if (!normalizedSiteName) return;
-  if (!timelineState.promptSnapshotsBySite.has(normalizedSiteName)) return;
-  timelineState.promptSnapshotsBySite.delete(normalizedSiteName);
-  rebuildTimelineEntriesFromSnapshots();
 }
 
 function initializeTimelineMessageBridge() {
@@ -6771,31 +6713,10 @@ function initializeTimelineMessageBridge() {
     }
   });
 
-  window.addEventListener('message', (event) => {
-    if (event.data?.type !== 'TIMELINE_PROMPTS_SNAPSHOT' || event.data?.source !== 'inject-script') {
-      return;
-    }
-
-    const sourceIframe = Array.from(document.querySelectorAll('.ai-iframe')).find((iframe) => {
-      return iframe.contentWindow && event.source === iframe.contentWindow;
-    });
-    if (!sourceIframe) return;
-
-    const siteName = sourceIframe.getAttribute('data-site') || event.data.siteName || '';
-    updateTimelineSnapshotFromIframe(siteName, event.data.prompts);
-  });
-
 }
 
 async function syncTimelineFromIframes() {
-  const iframes = Array.from(document.querySelectorAll('.ai-iframe'));
-  const hasAgentPanels = getOpenedAgentIds().length > 0;
-  if (!iframes.length && !hasAgentPanels) {
-    resetTimelinePromptSnapshots();
-    return;
-  }
-
-  rebuildTimelineEntriesFromSnapshots();
+  syncTimelineEntriesWithLiveSummarySubmissions();
 }
 
 function scheduleTimelineSync(delayMs = 1200) {
@@ -8612,7 +8533,7 @@ function createAgentIframe(agent, container) {
     forgetAllAgentAttachmentSources(agent.id);
     iframe.src = buildAgentPanelUrl(agent.id);
     setAgentState(agent.id, buildAgentPanelState(agent));
-    rebuildTimelineEntriesFromSnapshots();
+    syncTimelineEntriesWithLiveSummarySubmissions();
     scheduleLiveSummaryRefresh(200);
   };
 
@@ -8626,7 +8547,7 @@ function createAgentIframe(agent, container) {
     forgetAllAgentAttachmentSources(agent.id);
     iframeContainer.remove();
     activeAgentPanelStore.delete(String(agent.id || '').trim());
-    rebuildTimelineEntriesFromSnapshots();
+    syncTimelineEntriesWithLiveSummarySubmissions();
     syncNavCheckboxStates();
     scheduleLiveSummaryRefresh(150);
     persistCurrentHybridHistorySession().catch((error) => {
@@ -8682,7 +8603,7 @@ function restoreHybridSessionTimeline(hybridSession) {
   const timelineEntries = Array.isArray(hybridSession?.timelineEntries) ? hybridSession.timelineEntries : [];
   if (timelineEntries.length > 0) {
     timelineEntries.forEach((timelineEntry, index) => {
-      upsertTimelineEntry({
+      const restoredEntry = upsertTimelineEntry({
         query: timelineEntry?.query || '',
         timelineId: String(timelineEntry?.timelineId || `${hybridSession.id}-${index}`),
         historyId: timelineEntry?.historyId || hybridSession.id,
@@ -8691,47 +8612,13 @@ function restoreHybridSessionTimeline(hybridSession) {
       }, {
         dedupeByHistoryId: false
       });
-    });
-    return;
-  }
-
-  const panelEntries = getPanelEntriesInOrder(hybridSession);
-  const agentSnapshots = panelEntries.map((panel) => {
-    const panelType = String(panel?.panelType || '').trim();
-    if (panelType !== PANEL_KIND.AGENT && panelType !== PANEL_KIND.AGENT_SNAPSHOT && panelType !== 'agent') {
-      return null;
-    }
-
-    const siteName = String(panel?.title || panel?.agentName || panel?.agentId || '').trim();
-    const prompts = timelineExtractPromptsFromMessages(panel?.messages || []);
-    if (!siteName || !prompts.length) {
-      return null;
-    }
-
-    return {
-      siteName,
-      prompts
-    };
-  }).filter(Boolean);
-
-  if (agentSnapshots.length > 0) {
-    const mergedEntries = timelineMergeSnapshots(agentSnapshots);
-    mergedEntries.forEach((timelineEntry, index) => {
-      upsertTimelineEntry({
-        query: timelineEntry?.query || '',
-        timelineId: String(timelineEntry?.timelineId || `${hybridSession.id}-agent-${index}`),
-        historyId: null,
-        timestamp: Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now(),
-        dateLabel: formatTimelineDateLabel(Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now())
-      }, {
-        dedupeByHistoryId: false
-      });
+      registerLiveSummarySubmittedEntry(restoredEntry);
     });
     return;
   }
 
   if (String(hybridSession?.query || '').trim()) {
-    upsertTimelineEntry({
+    const restoredEntry = upsertTimelineEntry({
       query: hybridSession.query,
       historyId: hybridSession.id,
       timestamp: Number(hybridSession.updatedAt || hybridSession.createdAt) || Date.now(),
@@ -8739,6 +8626,7 @@ function restoreHybridSessionTimeline(hybridSession) {
     }, {
       dedupeByHistoryId: true
     });
+    registerLiveSummarySubmittedEntry(restoredEntry);
   }
 }
 
@@ -8875,7 +8763,7 @@ function appendAgentMessage(agentId, message) {
   if (iframe) {
     syncAgentPanelStateToFrame(iframe, nextState);
   }
-  rebuildTimelineEntriesFromSnapshots();
+  syncTimelineEntriesWithLiveSummarySubmissions();
   persistCurrentHybridHistorySession().catch((error) => {
     console.warn('保存智能体消息历史失败:', error);
   });
@@ -11402,7 +11290,7 @@ function removeAgentIframeById(agentId) {
   if (!container) return false;
   container.remove();
   activeAgentPanelStore.delete(String(agentId || '').trim());
-  rebuildTimelineEntriesFromSnapshots();
+  syncTimelineEntriesWithLiveSummarySubmissions();
   return true;
 }
 
@@ -11446,7 +11334,7 @@ function removeSiteIframeByName(siteName) {
   const iframeContainer = targetIframe.closest('.iframe-container');
   if (!iframeContainer) return false;
   iframeContainer.remove();
-  clearTimelineSnapshotForSite(siteName);
+  syncTimelineEntriesWithLiveSummarySubmissions();
   scheduleLiveSummaryRefresh(150);
   return true;
 }
@@ -11839,7 +11727,7 @@ async function createIframes(query, sites, customSites = [], agents = []) {
   try {
     resetLiveSummarySubmittedEntries();
     if (hasQuery) {
-      resetTimelinePromptSnapshots();
+      resetTimelineEntries();
       // 如果有查询词,清空容器内容
       container.innerHTML = '';
       console.log('清空iframe');
@@ -12503,7 +12391,7 @@ function createSingleIframe(siteName, url, container, query, ratingBatchId, laun
     iframeContainer.remove();
     // 在导航栏中找到对应的 nav-item 并删除
     removeNavItemBySiteName(siteName);
-    clearTimelineSnapshotForSite(siteName);
+    syncTimelineEntriesWithLiveSummarySubmissions();
     
   };
 
@@ -13665,7 +13553,7 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       return;
     }
     
-    resetTimelinePromptSnapshots();
+    resetTimelineEntries();
     resetLiveSummarySubmittedEntries();
     // 清空现有 iframe
     container.innerHTML = '';
@@ -13806,7 +13694,7 @@ async function loadHistoryIframes(sites, restoreContext = null) {
       closeBtn.onclick = () => {
         iframeContainer.remove();
         removeNavItemBySiteName(siteName);
-        clearTimelineSnapshotForSite(siteName);
+        syncTimelineEntriesWithLiveSummarySubmissions();
       };
       
       // 组装元素

@@ -284,7 +284,7 @@ This project is licensed under the [GNU General Public License v3.0](https://www
   - Relay tests: `cd remote-relay && npm test`
   - Local Remote Search verifier: `node debug/verify-remote-search-local.js`
   - Playwright Remote Search verifier: `node debug/verify-remote-search-playwright.js`
-- Timeline copy preview now supports self-hosted share URLs. Set `Settings -> Remote Search -> Relay URL` to your relay base URL such as `http://64.188.6.42:8789`, then use the preview modal's share icon to create a public link and copy it to the clipboard.
+- Timeline copy preview now supports self-hosted share URLs. The hosted relay uses `https://aicompare.club`; custom deployments can set `Settings -> Remote Search -> Relay URL` to their own public HTTPS relay, then use the preview modal's share icon to create and copy a public link.
 - Shared result pages now stay on one fixed multi-panel web layout, without a separate image-mode layout switch.
 - Public share pages now also render the generated summary-analysis block near the top when the copied share payload includes summary text.
 - Public share pages now render markdown through `markdown-it` in the relay, so tables, fenced code blocks, headings, quotes, and richer inline markdown behave more consistently than the older hand-rolled parser.
@@ -511,6 +511,7 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
   2. `npm install`
   3. `npm start`
 - relay 启动后，打开 `options/options.html#remote-search`，启用远程搜索、填写 relay 地址、保存，然后生成配对二维码。
+- 时间线回答汇总支持生成公开分享链接。托管 relay 使用 `https://aicompare.club`；自部署时可在 `Settings -> Remote Search -> Relay URL` 中填写自己的公开 HTTPS relay 地址，然后点击预览弹窗中的分享图标生成并复制链接。
 - 远程搜索相关的测试 / verifier：
   - 扩展根目录单测：`node --test tests/*.test.js`
   - relay 测试：`cd remote-relay && npm test`

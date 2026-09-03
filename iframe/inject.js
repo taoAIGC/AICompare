@@ -52,10 +52,6 @@ let __directUserPromptButtonsEnabled = true;
 let __directUserPromptButtonsRefresh = null;
 let __directUserPromptButtonsSettingListenerInstalled = false;
 let __currentInjectStepMeta = null;
-let __timelinePromptPushInitialized = false;
-let __timelinePromptPushTimer = null;
-let __timelinePromptObserver = null;
-let __timelinePromptLastSignature = null;
 let __activeSearchMonitor = null;
 let __lastStableSearchRuntime = null;
 let __lastExtractionDiagnostics = null;
@@ -3480,7 +3476,6 @@ window.addEventListener('message', async function(event) {
         __aiCompareHistoryContext.historyId = event.data.historyId || null;
         __aiCompareHistoryContext.siteName = event.data.siteName || __aiCompareHistoryContext.siteName;
         console.log('✅ 已更新历史上下文:', __aiCompareHistoryContext);
-        scheduleTimelinePromptSnapshot(80, { force: true });
         return;
     }
 
@@ -3804,8 +3799,6 @@ window.addEventListener('message', async function(event) {
             // 使用配置化处理器执行
             await executeSiteHandler(event.data.query, siteHandler.searchHandler, siteHandler.name);
             console.log(`✅ ${siteHandler.name} 处理完成`);
-            scheduleTimelinePromptSnapshot(200, { force: true });
-            setTimeout(() => scheduleTimelinePromptSnapshot(0, { force: true }), 1200);
             startActiveSearchMonitor(siteHandler.name, event.data.query, searchId);
             
             // 执行完成后，启动 URL 检测逻辑（如果配置了 historyHandler）
@@ -4060,11 +4053,6 @@ function getAICompareExtractionCore() {
     return window.AICompareExtraction || null;
 }
 
-function collectTimelinePromptRecords(siteHandler) {
-    const core = getAICompareExtractionCore();
-    return core?.collectTimelinePromptRecords?.(document, siteHandler) || [];
-}
-
 function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
     const core = getAICompareExtractionCore();
     if (typeof core?.findTimelinePromptRecord === 'function') {
@@ -4072,101 +4060,6 @@ function findTimelinePromptRecord(promptRecords, query, occurrenceIndex) {
     }
     return null;
 }
-
-function buildTimelinePromptSnapshotSignature(siteName, prompts) {
-    return JSON.stringify({
-        siteName: String(siteName || '').trim(),
-        prompts: Array.isArray(prompts) ? prompts.map((prompt) => String(prompt?.text || '').trim()) : []
-    });
-}
-
-async function pushTimelinePromptSnapshot(options = {}) {
-    if (!isRunningInExtensionIframe() || !window.parent || window.parent === window) {
-        return;
-    }
-
-    const siteHandler = await getSiteHandler(window.location.hostname, __aiCompareHistoryContext.siteName || null);
-    const siteName = siteHandler?.name || __aiCompareHistoryContext.siteName || window.location.hostname;
-    const promptRecords = collectTimelinePromptRecords(siteHandler);
-    const prompts = promptRecords.map((item) => ({
-        text: item.text
-    }));
-    const nextSignature = buildTimelinePromptSnapshotSignature(siteName, prompts);
-
-    if (!options.force && __timelinePromptLastSignature === nextSignature) {
-        return;
-    }
-
-    __timelinePromptLastSignature = nextSignature;
-    window.parent.postMessage({
-        type: 'TIMELINE_PROMPTS_SNAPSHOT',
-        source: 'inject-script',
-        siteName,
-        prompts
-    }, '*');
-}
-
-function scheduleTimelinePromptSnapshot(delayMs = 240, options = {}) {
-    if (!isRunningInExtensionIframe()) return;
-    if (__timelinePromptPushTimer) {
-        clearTimeout(__timelinePromptPushTimer);
-    }
-    __timelinePromptPushTimer = setTimeout(() => {
-        pushTimelinePromptSnapshot(options).catch((error) => {
-            console.warn('时间线 prompt 推送失败:', error);
-        });
-    }, Math.max(0, Number(delayMs) || 0));
-}
-
-function initializeTimelinePromptPush() {
-    if (__timelinePromptPushInitialized || !isRunningInExtensionIframe()) {
-        return;
-    }
-    __timelinePromptPushInitialized = true;
-
-    const startObserver = () => {
-        if (__timelinePromptObserver || typeof MutationObserver !== 'function') return;
-        const targetNode = document.body || document.documentElement;
-        if (!targetNode) return;
-
-        __timelinePromptObserver = new MutationObserver(() => {
-            scheduleTimelinePromptSnapshot(260);
-        });
-        __timelinePromptObserver.observe(targetNode, {
-            childList: true,
-            subtree: true,
-            characterData: true
-        });
-    };
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            startObserver();
-            scheduleTimelinePromptSnapshot(160, { force: true });
-        }, { once: true });
-    } else {
-        startObserver();
-        scheduleTimelinePromptSnapshot(160, { force: true });
-    }
-
-    window.addEventListener('load', () => {
-        scheduleTimelinePromptSnapshot(120, { force: true });
-    });
-
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            scheduleTimelinePromptSnapshot(180, { force: true });
-        }
-    });
-
-    [900, 2400, 5200].forEach((delay) => {
-        setTimeout(() => {
-            scheduleTimelinePromptSnapshot(0, { force: true });
-        }, delay);
-    });
-}
-
-initializeTimelinePromptPush();
 
 function ensureTimelinePromptHighlightStyle() {
     if (document.getElementById('ai-compare-timeline-highlight-style')) return;

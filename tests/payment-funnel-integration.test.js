@@ -30,6 +30,14 @@ test('pricing selection carries funnel, selection, source, and client identity i
   assert.match(serverSource, /selectionVerified/);
 });
 
+test('direct price-card checkout records a plan-specific price click before selection', () => {
+  assert.match(serverSource, /const priceClickEventName = planType === 'api'/);
+  assert.match(serverSource, /api_pricing_price_clicked/);
+  assert.match(serverSource, /chat_pricing_price_clicked/);
+  assert.match(serverSource, /startCheckout\('monthly', 'price_card'\)/);
+  assert.match(serverSource, /startCheckout\(selectedCycle, 'checkout_button'\)/);
+});
+
 test('business summaries apply checkout and invoice exclusion rules', () => {
   assert.match(serverSource, /PaymentFunnel\.getBusinessCheckoutExclusionReasons/);
   assert.match(serverSource, /PaymentFunnel\.getBusinessInvoiceExclusionReasons/);

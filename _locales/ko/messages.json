@@ -1563,7 +1563,7 @@
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "채팅 타임라인"
+    "message": "Saved answers"
   },
   "timelineSharePickerHint": {
     "message": "공유할 프롬프트를 선택하세요"
@@ -1617,6 +1617,9 @@
   },
   "timelineCopyPreviewFailedSitesLabel": {
     "message": "실패 사이트"
+  },
+  "timelineSaveAndShare": {
+    "message": "Save to cloud and generate a share URL"
   },
   "timelineCopyPreviewShare": {
     "message": "공유"
@@ -3373,5 +3376,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "판단하기 전에 양쪽의 가장 강력한 논증으로 실제 문제를 명확히 합니다"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "The official API is temporarily unavailable. Please try again later, or switch to [Custom API]($1)."
   }
 }

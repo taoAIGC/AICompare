@@ -1563,7 +1563,7 @@
     "message": "Question timeline"
   },
   "timelinePanelTitle": {
-    "message": "チャットのタイムライン"
+    "message": "Saved answers"
   },
   "timelineSharePickerHint": {
     "message": "共有するプロンプトを選択"
@@ -1617,6 +1617,9 @@
   },
   "timelineCopyPreviewFailedSitesLabel": {
     "message": "失敗サイト"
+  },
+  "timelineSaveAndShare": {
+    "message": "Save to cloud and generate a share URL"
   },
   "timelineCopyPreviewShare": {
     "message": "共有"
@@ -3373,5 +3376,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "判断する前に、双方の最も強い論証で本当の問題を明確にします"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "The official API is temporarily unavailable. Please try again later, or switch to [Custom API]($1)."
   }
 }

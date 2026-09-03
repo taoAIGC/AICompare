@@ -2065,7 +2065,7 @@
     "message": "提问时间线"
   },
   "timelinePanelTitle": {
-    "message": "Chat timeline"
+    "message": "保存答案"
   },
   "timelineSharePickerHint": {
     "message": "选择要分享的提问记录"
@@ -2618,6 +2618,9 @@
   },
   "timelineCopyPreviewDownloadFailed": {
     "message": "下载失败，请重试"
+  },
+  "timelineSaveAndShare": {
+    "message": "保存到云端，生成共享URL"
   },
   "timelineCopyPreviewShare": {
     "message": "分享"
@@ -3404,5 +3407,8 @@
   },
   "agentProblemFramingDescription": {
     "message": "在做判断前，用双向钢人论证厘清真正的问题"
+  },
+  "aiErrorOfficialServiceBusy": {
+    "message": "官方 API 暂时不可用，请稍后重试。你也可以切换为 [自定义 API]($1)。"
   }
 }
