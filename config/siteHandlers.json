@@ -1,6 +1,6 @@
 {
-  "version": "1.2.9",
-  "lastUpdated": "2026-09-17T13:56:47.698Z",
+  "version": "1.2.10",
+  "lastUpdated": "2026-10-10T13:56:47.698Z",
   "sites": [
     {
       "name": "ChatGPT",
@@ -17,7 +17,7 @@
             "selector": "#prompt-textarea",
             "description": "聚焦ChatGPT输入框",
             "waitForElement": true,
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           },
           {
@@ -26,7 +26,7 @@
             "inputType": "contenteditable",
             "description": "设置ChatGPT输入框内容",
             "waitForElement": true,
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           },
           {
@@ -40,14 +40,14 @@
             ],
             "description": "触发输入事件",
             "waitForElement": true,
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 100,
             "description": "等待100ms",
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           },
           {
@@ -55,7 +55,7 @@
             "selector": "button[data-testid=\"send-button\"]",
             "description": "点击发送按钮",
             "retryOnDisabled": true,
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           }
         ]
@@ -67,14 +67,14 @@
             "selector": "#prompt-textarea",
             "description": "聚焦ChatGPT输入框准备文件粘贴",
             "waitForElement": true,
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           },
           {
             "action": "wait",
             "duration": 200,
             "description": "等待200ms确保聚焦完成",
-            "maxAttempts": 10,
+            "maxAttempts": 30,
             "retryInterval": 200
           },
           {
