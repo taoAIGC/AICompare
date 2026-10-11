@@ -333,25 +333,24 @@ This project is licensed under the [GNU General Public License v3.0](https://www
 - Coverage is now capability-aware: iframe sites count as covered by the plugin URL path, while only `supportIframe=false` sites require dedicated live verifier coverage.
 - macOS users can adapt `debug/launchd/com.aicompare.site-checks.plist.template` into `~/Library/LaunchAgents/` to run the core check on a schedule with the real Chrome profile.
 
-### OpenClaw skill integration
+### Agent bridge integration
 
-- There are two OpenClaw-facing folders in this repo, with different roles:
-  - `openclaw-extension/`: the maintainable OpenClaw plugin / hard-router layer. It intercepts search-style requests before normal model dispatch and is the recommended default integration path.
-  - `openclaw/`: the runner + skill compatibility layer. It contains the GUI runner, fast wrapper, and installable skill package used by the hard router and by legacy skill-style installs.
-- The browser extension itself still lives in the main repo root (`manifest.json`, `iframe/`, `content-scripts/`, etc.). `openclaw-extension/` is not the browser extension bundle; it is the OpenClaw plugin that routes requests into the browser extension.
-- Latest end-to-end verification passed on the formal hard-router path: `openclaw-extension/` as the entry layer, `openclaw/ai-compare-openclaw-fast.js` / `openclaw/ai-compare-openclaw-runner.js` as the runner layer, and the browser extension runtime (`iframe/inject.js`, `iframe/iframe.js`, `iframe/openclaw-bridge.js`) as the execution layer.
-- If you want the production-style behavior where users can say `搜索 XX` directly without explicitly naming the skill, prefer installing `openclaw-extension/`. Keep `openclaw/` available as the shared runner / compatibility package.
-- A ready-to-use bridge is available under `openclaw/`.
-- `openclaw/SKILL.md` is now an installable OpenClaw skill package for "ask once -> search through the browser extension -> return per-site results".
-- Runner entry: `node openclaw/ai-compare-openclaw-runner.js --query "your query"`.
+- A single agent-neutral npm package is available under `AICompare Cli/`. WorkBuddy, OpenClaw, and Hermes reuse the same runner and browser callback protocol rather than requiring per-Agent user folders.
+- WorkBuddy Connector metadata and instructions live at `AICompare Cli/connector-meta.json`, `AICompare Cli/cli.json`, and `AICompare Cli/skills/ai-compare-search/SKILL.md`.
+- For the Kimi-style local bridge, users can install from GitHub without your own domain: `curl -fsSL https://raw.githubusercontent.com/taoAIGC/AICompare/main/AICompare%20Cli/install.sh | bash`. The daemon listens on `127.0.0.1:10087`; WorkBuddy/Codex calls `aicompare-webbridge search --query "你好世界"`.
+- The npm package remains available for environments that prefer npm: `npm install -g ai-compare-cli`. See `AICompare Cli/README.md` for packaging details.
+
+- The browser extension itself lives in the main repo root (`manifest.json`, `iframe/`, `content-scripts/`, etc.). `AICompare Cli/` contains the shared runner and Skill assets used by all local Agent adapters.
+- The shared runner is exposed as `ai-compare`; adapters set `--source` without requiring users to manage a separate directory per Agent.
 - The runner now supports `--mode gui`, which opens a direct `chrome-extension://...` query link in the browser and waits for structured callback results by default.
+- Bridge callbacks now require a successful local HTTP response before the extension reports them as sent. This prevents a rejected callback from being shown as a successful result delivery.
 - `--browser-app` examples are now documented for both macOS (`"Google Chrome"`) and Windows (`"chrome"`).
-- Integration guide: `openclaw/README.md`.
+- Integration guide: `AICompare Cli/README.md`.
 - If the browser extension is missing or outdated, the runner now returns actionable install / reload guidance instead of a generic failure.
 - `ok=false` responses should stop at install / reload guidance; they must not fall back to `web_search` or other search tools.
 - The extension page now exposes `window.aiCompareOpenClaw.run(options)` for automation.
-- OpenClaw TUI smoke test: `openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` returned raw ChatGPT and Gemini plugin content.
-- Hermes compatibility now uses a thin project plugin under `.hermes/plugins/ai-compare-hard-router/`, which reuses `openclaw/ai-compare-openclaw-fast.js` as the shared execution core instead of trying to load the OpenClaw plugin format directly.
+- OpenClaw TUI smoke test: `openclaw tui --message "请用 AICompare Cli 搜索 你好世界"` returned raw ChatGPT and Gemini plugin content.
+- Hermes compatibility uses the shared `AICompare Cli/bin/ai-compare.js` execution core instead of trying to load the OpenClaw plugin format directly.
 - Hermes project plugins must be enabled explicitly with `HERMES_ENABLE_PROJECT_PLUGINS=true`, and the Hermes-side compatibility notes live in `docs/hermes-openclaw-plugin-compat.md`.
 - When using Hermes API Server as the custom browser-extension API, remember that command-line checks and browser-extension checks are different: `curl` can succeed while the extension still gets `HTTP 403` if Hermes has not allowed the extension origin. Because the options page calls Hermes from `chrome-extension://...`, Hermes must include the extension origin in `API_SERVER_CORS_ORIGINS`, for example `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi`. A working minimal setup is `baseUrl=http://localhost:8642/v1`, `model=hermes-agent`, `Authorization: Bearer <API_SERVER_KEY>`, plus the matching `API_SERVER_CORS_ORIGINS` entry and a Hermes gateway restart after config changes.
 - `docs/release-notes/history.md` is the manual update source for the contact page changelog and should be edited directly when release notes need to change.
@@ -552,28 +551,29 @@ ChatGPT、Gemini、Grok、Claude、AI Studio、DeepSeek、豆包、秘塔AI、�
 - coverage 现在按能力计算：支持 iframe 的站点视为已被插件 URL 路径覆盖，只有 `supportIframe=false` 的站点才要求专用 live verifier。
 - macOS 可基于 `debug/launchd/com.aicompare.site-checks.plist.template` 生成 `~/Library/LaunchAgents/` 里的定时任务，直接复用真实 Chrome 用户态。
 
-### OpenClaw 技能接入
+### Agent Bridge 接入
 
-- 仓库里有两个面向 OpenClaw 的目录，但职责不同：
-  - `openclaw-extension/`：可维护的 OpenClaw plugin / 硬路由层，会在正常模型分发前拦截“搜索类”请求，是当前推荐的默认接入方式。
-  - `openclaw/`：runner + skill 兼容层，里面放 GUI runner、fast wrapper 和可安装的 skill 包，既可单独做传统 skill 安装，也被硬路由方案复用。
-- 真正执行多站点搜索的浏览器扩展本体仍然在仓库根目录，例如 `manifest.json`、`iframe/`、`content-scripts/` 等。`openclaw-extension/` 不是浏览器扩展包，而是 OpenClaw 侧的插件入口层。
-- 最近一次端到端验证通过的，是正式硬路由链路：`openclaw-extension/` 负责入口拦截，`openclaw/ai-compare-openclaw-fast.js` / `openclaw/ai-compare-openclaw-runner.js` 负责拉起 GUI runner，浏览器扩展运行时 `iframe/inject.js`、`iframe/iframe.js`、`iframe/openclaw-bridge.js` 负责真正执行搜索与主动上报结果。
-- 如果你希望 OpenClaw 用户只说 `搜索 XX` 就能直接触发，而不需要显式提到 skill，优先安装 `openclaw-extension/`；`openclaw/` 建议保留为共享 runner / 兼容层。
-- Hermes 兼容现在通过 `.hermes/plugins/ai-compare-hard-router/` 这层项目级插件完成，它不会直接复用 OpenClaw 的插件格式，而是把 `openclaw/ai-compare-openclaw-fast.js` 当作共享执行核心。
+- 仓库统一使用 `AICompare Cli/` 作为中立 npm 包目录。WorkBuddy、OpenClaw 和 Hermes 复用同一 runner 与浏览器回调协议，用户不需要理解或选择不同 Agent 的文件夹。
+- WorkBuddy Connector 的元信息和调用说明位于 `AICompare Cli/connector-meta.json`、`AICompare Cli/cli.json` 与 `AICompare Cli/skills/ai-compare-search/SKILL.md`。
+- 如果采用类似 Kimi 的本地桥接方式，用户无需你的独立域名，可执行 `curl -fsSL https://raw.githubusercontent.com/taoAIGC/AICompare/main/AICompare%20Cli/install.sh | bash` 从 GitHub 安装。daemon 默认只监听 `127.0.0.1:10087`，WorkBuddy/Codex 调用 `aicompare-webbridge search --query "你好世界"`。
+- 也可在偏好 npm 的环境执行 `npm install -g ai-compare-cli`。打包说明见 `AICompare Cli/README.md`。
+
+- 真正执行多站点搜索的浏览器扩展本体在仓库根目录，例如 `manifest.json`、`iframe/`、`content-scripts/` 等；`AICompare Cli/` 放置所有本地 Agent adapter 共用的 runner 与 Skill 资源。
+- 共享 runner 通过 `ai-compare` 命令提供，各 adapter 只需设置 `--source`，无需让用户管理按 Agent 区分的目录。
+- Hermes 兼容会复用 `AICompare Cli/bin/ai-compare.js`，不直接套用 OpenClaw 的插件格式。
 - 启用方式是显式打开项目级插件：`HERMES_ENABLE_PROJECT_PLUGINS=true hermes`，兼容说明见 `docs/hermes-openclaw-plugin-compat.md`。
 - 如果把 Hermes API Server 当作浏览器扩展里的自定义 API 来用，要特别注意命令行探活和扩展页探活不是一回事：`curl` 能返回 200，不代表扩展页也能访问。因为设置页是从 `chrome-extension://...` 这个来源直接请求 Hermes，所以如果 Hermes 没有把扩展来源加入 `API_SERVER_CORS_ORIGINS`，扩展里的“测试连接”和实际对话都会得到 `HTTP 403`。最小可用配置是：`baseUrl=http://localhost:8642/v1`、`model=hermes-agent`、请求头 `Authorization: Bearer <API_SERVER_KEY>`，并在 `API_SERVER_CORS_ORIGINS` 里加入当前扩展来源，例如 `chrome-extension://hhkhgpadepocnmjfpohcmjdcgkmfnadi`。修改 Hermes 配置后记得重启 `hermes gateway`。
-- 仓库 `openclaw/` 目录提供了可直接使用的桥接方案。
-- `openclaw/SKILL.md` 现已整理为可安装的 OpenClaw skill，支持“用户提问 -> 调起浏览器插件搜索 -> 返回每个站点结果”。
-- Runner 入口：`node openclaw/ai-compare-openclaw-runner.js --query "你的问题"`。
+- 仓库 `AICompare Cli/` 目录提供统一的桥接方案。
+- Runner 入口：`ai-compare --query "你的问题"`。
 - Runner 新增 `--mode gui`，支持直接生成并打开 `chrome-extension://...` 查询链接，并默认等待扩展页把结构化结果回传给本地 runner。
+- Bridge 回调现在只有在本地 HTTP 响应成功时才显示为已发送，避免回调被拒绝后仍被误报为结果已送达。
 - `--sites` 只在用户明确点名站点时才注入；普通提问会沿用 AI Compare 当前默认选中的站点集合。
 - `--browser-app` 现已补充跨平台示例：macOS 用 `"Google Chrome"`，Windows 用 `"chrome"`。
-- 对接说明见 `openclaw/README.md`。
+- 对接说明见 `AICompare Cli/README.md`。
 - 如果浏览器插件未安装、扩展 id 不匹配或版本过旧，runner 现在会返回可执行的安装/重载引导，而不是笼统报错。
 - `ok=false` 时要直接停在安装/重载引导，不要回退到 `web_search` 或其他搜索工具。
 - 扩展对比页新增自动化接口：`window.aiCompareOpenClaw.run(options)`。
-- OpenClaw TUI 烟雾测试：`openclaw tui --message "请用 ai-compare-bridge skill 搜索 你好世界"` 已返回 ChatGPT 和 Gemini 的原始插件内容。
+- OpenClaw TUI 烟雾测试：`openclaw tui --message "请用 AICompare Cli 搜索 你好世界"` 已返回 ChatGPT 和 Gemini 的原始插件内容。
 
 ---
 
