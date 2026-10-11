@@ -41,6 +41,21 @@
       .filter(Boolean);
   }
 
+  function getBridgeSource(params = new URLSearchParams(window.location.search)) {
+    const source = (params.get('source') || '').trim();
+    return source === 'workbuddy' ? 'workbuddy' : 'openclaw';
+  }
+
+  function isBridgeAutoRun(params = new URLSearchParams(window.location.search)) {
+    return params.get('openclaw') === '1'
+      || params.get('bridge') === '1'
+      || ['openclaw', 'workbuddy'].includes((params.get('source') || '').trim());
+  }
+
+  function getBridgeCallback(params = new URLSearchParams(window.location.search)) {
+    return (params.get('bridge_callback') || params.get('openclaw_callback') || '').trim();
+  }
+
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -1137,7 +1152,7 @@
       urlRemoteMode: params.get('remote_mode') === '1',
       urlRemotePairId: (params.get('remote_pair_id') || '').trim(),
       urlRemoteRequestId: (params.get('remote_request_id') || '').trim(),
-      urlCallback: (params.get('openclaw_callback') || '').trim(),
+      urlCallback: getBridgeCallback(params),
       urlTimeoutMs: parseNumber(params.get('openclaw_timeout_ms'), DEFAULT_TIMEOUT_MS),
       urlSiteTimeoutMs: parseNumber(params.get('openclaw_site_timeout_ms'), DEFAULT_SITE_TIMEOUT_MS),
       urlPollIntervalMs: parseNumber(params.get('openclaw_poll_ms'), DEFAULT_POLL_INTERVAL_MS),
@@ -1158,7 +1173,7 @@
 
   function ensureDebugPanel() {
     const params = new URLSearchParams(window.location.search);
-    const autoEnabled = params.get('openclaw') === '1' || params.get('source') === 'openclaw';
+    const autoEnabled = isBridgeAutoRun(params);
     if (!autoEnabled) {
       return null;
     }
@@ -1339,13 +1354,17 @@
   async function postCallback(callbackUrl, payload) {
     if (!callbackUrl) return;
     updateDebugState({ callbackState: 'sending' });
-    await fetch(callbackUrl, {
+    const response = await fetch(callbackUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
+    if (!response.ok) {
+      const responseBody = await response.text().catch(() => '');
+      throw new Error(`Local Bridge callback rejected with HTTP ${response.status}${responseBody ? `: ${responseBody}` : ''}`);
+    }
     updateDebugState({
       callbackState: 'sent',
       lastCallbackAt: new Date().toISOString()
@@ -1392,7 +1411,7 @@
     try {
       await postCallback(callbackUrl, {
         ok: true,
-        source: 'ai-compare-openclaw',
+        source: `ai-compare-${getBridgeSource()}`,
         version: BRIDGE_VERSION,
         completed: Boolean(forceFinal),
         result
@@ -1660,7 +1679,7 @@
   });
 
   const params = new URLSearchParams(window.location.search);
-  const autoEnabled = params.get('openclaw') === '1' || params.get('source') === 'openclaw';
+  const autoEnabled = isBridgeAutoRun(params);
   if (autoEnabled) {
     ensureDebugPanel();
     window.addEventListener('load', function () {
@@ -1668,7 +1687,7 @@
         run({
           query: (params.get('query') || '').trim(),
           sites: parseSites(params.get('sites') || ''),
-          callbackUrl: (params.get('openclaw_callback') || '').trim(),
+          callbackUrl: getBridgeCallback(params),
           remoteMode: params.get('remote_mode') === '1',
           remotePairId: (params.get('remote_pair_id') || '').trim(),
           remoteRequestId: (params.get('remote_request_id') || '').trim(),
@@ -1705,9 +1724,9 @@
               console.warn('[openclaw-bridge] remote callback error after auto run failure:', remoteError);
             });
           }
-          postCallback((params.get('openclaw_callback') || '').trim(), {
+          postCallback(getBridgeCallback(params), {
             ok: false,
-            source: 'ai-compare-openclaw',
+            source: `ai-compare-${getBridgeSource(params)}`,
             version: BRIDGE_VERSION,
             completed: true,
             error: error && error.message ? error.message : String(error)
