@@ -1,6 +1,6 @@
 {
-  "version": "1.2.10",
-  "lastUpdated": "2026-10-10T13:56:47.698Z",
+  "version": "1.2.11",
+  "lastUpdated": "2026-10-12T13:56:47.698Z",
   "sites": [
     {
       "name": "ChatGPT",
@@ -14,7 +14,16 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "#prompt-textarea",
+            "selector": [
+              "#prompt-textarea",
+              "textarea#prompt-textarea",
+              "[data-testid=\"prompt-textarea\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "[contenteditable=\"true\"][aria-label*=\"message\" i]",
+              "[contenteditable=\"true\"][aria-label*=\"消息\"]",
+              "textarea[placeholder*=\"Message\" i]",
+              "textarea[placeholder*=\"消息\"]"
+            ],
             "description": "聚焦ChatGPT输入框",
             "waitForElement": true,
             "maxAttempts": 30,
@@ -22,8 +31,16 @@
           },
           {
             "action": "setValue",
-            "selector": "#prompt-textarea",
-            "inputType": "contenteditable",
+            "selector": [
+              "#prompt-textarea",
+              "textarea#prompt-textarea",
+              "[data-testid=\"prompt-textarea\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "[contenteditable=\"true\"][aria-label*=\"message\" i]",
+              "[contenteditable=\"true\"][aria-label*=\"消息\"]",
+              "textarea[placeholder*=\"Message\" i]",
+              "textarea[placeholder*=\"消息\"]"
+            ],
             "description": "设置ChatGPT输入框内容",
             "waitForElement": true,
             "maxAttempts": 30,
@@ -31,7 +48,16 @@
           },
           {
             "action": "triggerEvents",
-            "selector": "#prompt-textarea",
+            "selector": [
+              "#prompt-textarea",
+              "textarea#prompt-textarea",
+              "[data-testid=\"prompt-textarea\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "[contenteditable=\"true\"][aria-label*=\"message\" i]",
+              "[contenteditable=\"true\"][aria-label*=\"消息\"]",
+              "textarea[placeholder*=\"Message\" i]",
+              "textarea[placeholder*=\"消息\"]"
+            ],
             "events": [
               "input",
               "change",
@@ -64,7 +90,16 @@
         "steps": [
           {
             "action": "focus",
-            "selector": "#prompt-textarea",
+            "selector": [
+              "#prompt-textarea",
+              "textarea#prompt-textarea",
+              "[data-testid=\"prompt-textarea\"]",
+              "[contenteditable=\"true\"][role=\"textbox\"]",
+              "[contenteditable=\"true\"][aria-label*=\"message\" i]",
+              "[contenteditable=\"true\"][aria-label*=\"消息\"]",
+              "textarea[placeholder*=\"Message\" i]",
+              "textarea[placeholder*=\"消息\"]"
+            ],
             "description": "聚焦ChatGPT输入框准备文件粘贴",
             "waitForElement": true,
             "maxAttempts": 30,
